@@ -36,6 +36,9 @@ INTEGER :: i, k, indev, idcard, nLineField
 LOGICAL :: Master
 ! ----------------------------------------------------
 
+PRINT *, "TST"
+STOP
+
 RayInfo%nAziAngle = (RayInfo%nAziAngle / 6) * 6
 
 nAzmAng = RayInfo%nAziAngle
