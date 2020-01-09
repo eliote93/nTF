@@ -1,6 +1,20 @@
+# Execution
+nTRACER.*
+*.inp
+*.INP
+*.out
 
-.vs/
+#build
+*.pdb
+*.htm
+*.slo
+*.lo
+*.o
+*.obj
+*.mod
+*.smod
 
-Intel/
-
+# ETC
+.vs
 My Advisor Results - nTRACER/
+lib/

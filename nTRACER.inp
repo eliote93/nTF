@@ -1,371 +1,102 @@
+CASEID 2D_C5G7_H_Core_060
+
 STATE
-   th_cond 17.67357  301.85  15.51315 84.08895  !power_fa (MW), t_in(C), p_exit(MPa), mdot_fa (kg/s)
+   th_cond 17.67357 293.33333  15.51315 84.08895  !power_fa (MW), t_in(C), p_exit(MPa), mdot_fa (kg/s)  
 
 XSEC
-  lib_type 4
-  file     ./mox1000.71g.hom.nocorr.isotxs
-  deplfile ./lib/depl_kappa.lib
+ LIB_TYPE   1
+ GROUP_SPEC 7
+ FILE       ./lib/c5g7.xslib
 
 PARALLEL
-  MOC_TRD 16
+  MOC_TRD  14 ! 14
+  CMFD_TRD 14
 
 OPTION
-  RAY        0.05 24 4
-  CMFD       1000 6 5 0.0005
+  RAY        0.05 12 4
   NODE_MAJOR T
-  SCAT_ORDER 0
-
+  
 CONV
   nMaxOuter 1500
   Eig_Conv 1E-6
   Psi_Conv 1E-6
   Res_Conv 5E-7
 
-MATERIAL
-   mixture     1 MET 2 10.31341  534.00 / 92234  U234IF  1.478600E-06  ! Fuel in Inner Fuel Driver Assembly
-                                          92235  U235IF  1.906300E-05                                                                                                                                                                                           
-                                          92236  U236IF  3.156000E-06                                                                                                                                                                                           
-                                          92238  U238IF  1.515500E-02                                                                                                                                                                                           
-                                          93237  Np37IF  2.669900E-05                                                                                                                                                                                           
-                                          94236  Pu36IF  3.102700E-10                                                                                                                                                                                           
-                                          94238  Pu38IF  9.797900E-05                                                                                                                                                                                           
-                                          94239  Pu39IF  1.795000E-03                                                                                                                                                                                           
-                                          94240  Pu40IF  1.235200E-03                                                                                                                                                                                           
-                                          94241  Pu41IF  2.006900E-04                                                                                                                                                                                           
-                                          94242  Pu42IF  2.680100E-04                                                                                                                                                                                           
-                                          95241  Am41IF  8.947700E-05                                                                                                                                                                                           
-                                          95342  Am2MIF  7.906600E-06                                                                                                                                                                                           
-                                          95243  Am43IF  8.852000E-05                                                                                                                                                                                           
-                                          96242  Cm42IF  6.292400E-06                                                                                                                                                                                           
-                                          96243  Cm43IF  6.775900E-07                                                                                                                                                                                           
-                                          96244  Cm44IF  6.948800E-05                                                                                                                                                                                           
-                                          96245  CM45IF  1.972400E-05                                                                                                                                                                                           
-                                          96246  Cm46IF  1.219800E-05                                                                                                                                                                                           
-                                          8016   O16_IF  4.126500E-02                                                                                                                                                                                           
-                                          42092  Mo92IF  2.240840E-04                                                                                                                                                                                           
-                                          42094  Mo94IF  1.396750E-04                                                                                                                                                                                           
-                                          42095  Mo95IF  2.403920E-04                                                                                                                                                                                           
-                                          42096  Mo96IF  2.518680E-04                                                                                                                                                                                           
-                                          42097  Mo97IF  1.442050E-04                                                                                                                                                                                           
-                                          42098  Mo98IF  3.643630E-04                                                                                                                                                                                           
-                                          42100  Mo00IF  1.454130E-04                                                                                                                                                                                           
-   mixture     2 CLD 0 10.31341  432.50 / 26054  Fe54IC  4.074842E-03  ! Cladding in Inner Fuel Driver Assembly
-                                          26056  Fe56IC  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57IC  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58IC  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58IC  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60IC  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61IC  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62IC  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64IC  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50IC  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52IC  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53IC  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54IC  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92IC  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94IC  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95IC  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96IC  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97IC  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98IC  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00IC  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55IC  4.900700E-04                                                                                                                                                                                           
-   mixture     3 SOD 0 10.31341  432.50 / 11023  Na23IS  2.227200E-02  ! Sodium Coolant in Inner Fuel Driver Assembly (Inside Duct)
-   mixture     4 DCT 0 10.31341  432.50 / 26054  Fe54ID  4.074842E-03  ! Duct in Inner Fuel Driver Assembly
-                                          26056  Fe56ID  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57ID  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58ID  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58ID  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60ID  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61ID  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62ID  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64ID  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50ID  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52ID  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53ID  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54ID  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92ID  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94ID  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95ID  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96ID  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97ID  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98ID  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00ID  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55ID  4.900700E-04                                                                                                                                                                                           
-   mixture     5 SOD 0 10.31341  432.50 / 11023  Na23IG  2.227200E-02  ! Sodium Coolant in Inner Fuel Driver Assembly (Outside Duct)
-   mixture     6 MET 2 10.31341  534.00 / 92234  U234OF  2.593700E-06  ! Fuel in Outer Fuel Driver Assembly
-                                          92235  U235OF  2.161900E-05                                                                                                                                                                                           
-                                          92236  U236OF  2.013600E-06                                                                                                                                                                                           
-                                          92238  U238OF  1.295700E-02                                                                                                                                                                                           
-                                          93237  Np37OF  8.659300E-05                                                                                                                                                                                           
-                                          94236  Pu36OF  5.787000E-10                                                                                                                                                                                           
-                                          94238  Pu38OF  1.622200E-04                                                                                                                                                                                           
-                                          94239  Pu39OF  2.409600E-03                                                                                                                                                                                           
-                                          94240  Pu40OF  1.750500E-03                                                                                                                                                                                           
-                                          94241  Pu41OF  3.108500E-04                                                                                                                                                                                           
-                                          94242  Pu42OF  4.114100E-04                                                                                                                                                                                           
-                                          95241  Am41OF  1.950900E-04                                                                                                                                                                                           
-                                          95342  Am2MOF  1.230300E-05                                                                                                                                                                                           
-                                          95243  Am43OF  1.268200E-04                                                                                                                                                                                           
-                                          96242  Cm42OF  6.837100E-06                                                                                                                                                                                           
-                                          96243  Cm43OF  7.335200E-07                                                                                                                                                                                           
-                                          96244  Cm44OF  8.325200E-05                                                                                                                                                                                           
-                                          96245  CM45OF  2.332900E-05                                                                                                                                                                                           
-                                          96246  Cm46OF  1.394800E-05                                                                                                                                                                                           
-                                          8016   O16_OF  4.126500E-02                                                                                                                                                                                           
-                                          42092  Mo92OF  1.556716E-04                                                                                                                                                                                           
-                                          42094  Mo94OF  9.703250E-05                                                                                                                                                                                           
-                                          42095  Mo95OF  1.670008E-04                                                                                                                                                                                           
-                                          42096  Mo96OF  1.749732E-04                                                                                                                                                                                           
-                                          42097  Mo97OF  1.001795E-04                                                                                                                                                                                           
-                                          42098  Mo98OF  2.531237E-04                                                                                                                                                                                           
-                                          42100  Mo00OF  1.010187E-04                                                                                                                                                                                           
-   mixture     7 CLD 0 10.31341  432.50 / 26054  Fe54OC  4.074842E-03   ! Cladding in Outer Fuel Driver Assembly
-                                          26056  Fe56OC  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57OC  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58OC  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58OC  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60OC  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61OC  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62OC  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64OC  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50OC  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52OC  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53OC  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54OC  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92OC  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94OC  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95OC  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96OC  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97OC  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98OC  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00OC  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55OC  4.900700E-04                                                                                                                                                                                           
-   mixture     8 SOD 0 10.31341  432.50 / 11023  Na23OS  2.227200E-02  ! Sodium Coolant in Outer Fuel Driver Assembly (Inside Duct)
-   mixture     9 DCT 0 10.31341  432.50 / 26054  Fe54OD  4.074842E-03  ! Duct in Outer Fuel Driver Assembly
-                                          26056  Fe56OD  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57OD  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58OD  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58OD  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60OD  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61OD  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62OD  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64OD  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50OD  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52OD  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53OD  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54OD  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92OD  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94OD  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95OD  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96OD  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97OD  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98OD  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00OD  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55OD  4.900700E-04                                                                                                                                                                                           
-   mixture    10 SOD 0 10.31341  432.50 / 11023  Na23OG  2.227200E-02   ! Sodium Coolant in Outer Fuel Driver Assembly (Outside Duct)
-   mixture    11 HT9 0 10.00000  432.50 / 26054  Fe54RR  4.074842E-03   ! HT9 in Homogenized Radial Reflector Assembly
-                                          26056  Fe56RR  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57RR  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58RR  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58RR  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60RR  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61RR  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62RR  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64RR  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50RR  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52RR  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53RR  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54RR  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92RR  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94RR  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95RR  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96RR  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97RR  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98RR  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00RR  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55RR  4.900700E-04                                                                                                                                                                                           
-   mixture    12 SOD 0 10.31341  432.50 / 11023  Na23RR  2.227200E-02   ! Sodium in Homogenized Radial Reflector Assembly
-   mixture    13 NBR 0 10.00000  432.50 / 6000   NatCRS  1.965700E-02   ! Natural B4C in Homogenized Radial Shield Assembly
-                                          5010   B10_RS  1.501800E-02                                                                                                                                                                                           
-                                          5011   B11_RS  6.360900E-02                                                                                                                                                                                           
-   mixture    14 HT9 0 10.00000  432.50 / 26054  Fe54RS  4.074842E-03   ! HT9 in Homogenized Radial Shield Assembly
-                                          26056  Fe56RS  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57RS  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58RS  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58RS  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60RS  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61RS  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62RS  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64RS  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50RS  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52RS  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53RS  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54RS  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92RS  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94RS  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95RS  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96RS  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97RS  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98RS  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00RS  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55RS  4.900700E-04                                                                                                                                                                                           
-   mixture    15 SOD 0 10.31341  432.50 / 11023  Na23RS  2.227200E-02   ! Sodium in Homogenized Radial Shield Assembly
-   mixture    16 EBR 0 10.00000  432.50 / 6000   NatCCR  2.063200E-02   ! Enriched B4C in Control Assembly
-                                          5010   B10_CR  5.364200E-02                                                                                                                                                                                           
-                                          5011   B11_CR  2.888400E-02                                                                                                                                                                                           
-   mixture    17 HT9 0 10.00000  432.50 / 26054  Fe54CR  4.074842E-03   ! HT9 in Control Assembly
-                                          26056  Fe56CR  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57CR  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58CR  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58CR  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60CR  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61CR  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62CR  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64CR  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50CR  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52CR  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53CR  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54CR  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92CR  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94CR  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95CR  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96CR  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97CR  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98CR  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00CR  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55CR  4.900700E-04                                                                                                                                                                                           
-   mixture    18 SOD 0 10.31341  432.50 / 11023  Na23CR  2.227200E-02   ! Sodium in Control Assembly
-   mixture    19 MET 2 10.31341  534.00 / 92234  U234MF  1.873200E-06   ! Fuel in Inner Fuel Driver Assembly
-                                          92235  U235MF  1.983500E-05                                                                                                                                                                                           
-                                          92236  U236MF  2.733400E-06                                                                                                                                                                                           
-                                          92238  U238MF  1.460800E-02                                                                                                                                                                                           
-                                          93237  Np37MF  3.807300E-05                                                                                                                                                                                           
-                                          94236  Pu36MF  4.050600E-10                                                                                                                                                                                           
-                                          94238  Pu38MF  1.212000E-04                                                                                                                                                                                           
-                                          94239  Pu39MF  1.978900E-03                                                                                                                                                                                           
-                                          94240  Pu40MF  1.451400E-03                                                                                                                                                                                           
-                                          94241  Pu41MF  2.356800E-04                                                                                                                                                                                           
-                                          94242  Pu42MF  3.235800E-04                                                                                                                                                                                           
-                                          95241  Am41MF  1.189700E-04                                                                                                                                                                                           
-                                          95342  Am2MMF  9.844500E-06                                                                                                                                                                                           
-                                          95243  Am43MF  1.057400E-04                                                                                                                                                                                           
-                                          96242  Cm42MF  6.759900E-06                                                                                                                                                                                           
-                                          96243  Cm43MF  7.192000E-07                                                                                                                                                                                           
-                                          96244  Cm44MF  7.899100E-05                                                                                                                                                                                           
-                                          96245  CM45MF  2.241400E-05                                                                                                                                                                                           
-                                          96246  Cm46MF  1.394900E-05                                                                                                                                                                                           
-                                          8016   O16_MF  4.126500E-02                                                                                                                                                                                           
-                                          42092  Mo92MF  2.112919E-04                                                                                                                                                                                           
-                                          42094  Mo94MF  1.317015E-04                                                                                                                                                                                           
-                                          42095  Mo95MF  2.266690E-04                                                                                                                                                                                           
-                                          42096  Mo96MF  2.374898E-04                                                                                                                                                                                           
-                                          42097  Mo97MF  1.359729E-04                                                                                                                                                                                           
-                                          42098  Mo98MF  3.435629E-04                                                                                                                                                                                           
-                                          42100  Mo00MF  1.371119E-04                                                                                                                                                                                           
-   mixture    20 CLD 0 10.31341  432.50 / 26054  Fe54MC  4.074842E-03  ! Cladding in Inner Fuel Driver Assembly
-                                          26056  Fe56MC  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57MC  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58MC  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58MC  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60MC  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61MC  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62MC  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64MC  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50MC  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52MC  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53MC  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54MC  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92MC  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94MC  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95MC  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96MC  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97MC  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98MC  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00MC  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55MC  4.900700E-04                                                                                                                                                                                           
-   mixture    21 SOD 0 10.31341  432.50 / 11023  Na23MS  2.227200E-02  ! Sodium Coolant in Inner Fuel Driver Assembly (Inside Duct)
-   mixture    22 DCT 0 10.31341  432.50 / 26054  Fe54MD  4.074842E-03  ! Duct in Inner Fuel Driver Assembly
-                                          26056  Fe56MD  6.396630E-02                                                                                                                                                                                           
-                                          26057  Fe57MD  1.477261E-03                                                                                                                                                                                           
-                                          26058  Fe58MD  1.965963E-04                                                                                                                                                                                           
-                                          28058  Ni58MD  2.926222E-04                                                                                                                                                                                           
-                                          28060  Ni60MD  1.127169E-04                                                                                                                                                                                           
-                                          28061  Ni61MD  4.900176E-06                                                                                                                                                                                           
-                                          28062  Ni62MD  1.562039E-05                                                                                                                                                                                           
-                                          28064  Ni64MD  3.980318E-06                                                                                                                                                                                           
-                                          24050  Cr50MD  4.504027E-04                                                                                                                                                                                           
-                                          24052  Cr52MD  8.685568E-03                                                                                                                                                                                           
-                                          24053  Cr53MD  9.848737E-04                                                                                                                                                                                           
-                                          24054  Cr54MD  2.451559E-04                                                                                                                                                                                           
-                                          42092  Mo92MD  7.272639E-05                                                                                                                                                                                           
-                                          42094  Mo94MD  4.533148E-05                                                                                                                                                                                           
-                                          42095  Mo95MD  7.801914E-05                                                                                                                                                                                           
-                                          42096  Mo96MD  8.174368E-05                                                                                                                                                                                           
-                                          42097  Mo97MD  4.680169E-05                                                                                                                                                                                           
-                                          42098  Mo98MD  1.182539E-04                                                                                                                                                                                           
-                                          42100  Mo00MD  4.719374E-05                                                                                                                                                                                           
-                                          25055  Mn55MD  4.900700E-04                                                                                                                                                                                           
-   mixture    23 SOD 0 10.31341  432.50 / 11023  Na23MG  2.227200E-02  ! Sodium Coolant in Inner Fuel Driver Assembly (Outside Duct)
-
 GEOM
  HEX       T
- pitch     16.2471
  ax_mesh   1*1
+ pitch     20.6114046100696
+! HexOpt    T T 2 20 0.5 20 0.5
 
- cell  1    0.3322 0.3928 /  1  2  3 /  6 2 1 / 10 / 0.8966 / 15.0191 ! Inner Fuel
- cell  2    0.3322 0.3928 /  6  7  8 /  6 2 1 / 10 / 0.8966 / 15.0191 ! Outer Fuel
- cell  3    0.7757        / 11 12    /  9 1   / 6  / 1.5528 / 15.0191 ! Radial Reflector
- cell  4    1.4277 1.6794 / 13 14 15 / 18 2 1 / 3  / 3.3603 / 15.0191 ! Radial Shield
- cell  5    2.2890 2.3606 / 16 17 18 / 27 2 1 / 2  / 4.8578 / 13.4208 ! Control Rod (Rodded)
- cell  6    0.3322 0.3928 / 19 20 21 /  6 2 1 / 10 / 0.8966 / 15.0191 ! Middle Fuel
+ cell  1    0.5400 / 1 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  2    0.5400 / 2 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  3    0.5400 / 3 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  4    0.5400 / 4 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  5    0.5400 / 5 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fiss Cham
+ cell  6    0.5400 / 6 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! GT
+ cell  7    0.5400 / 7 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Mod
 
- Gap_Cell 1  0.3966 /  4  5 / 2 2 / 10 / 0.8966 / 15.0191 ! Inner Fuel Gap
- Gap_Cell 2  0.3966 /  9 10 / 2 2 / 10 / 0.8966 / 15.0191 ! Outer Fuel Gap
- Gap_Cell 3  0.3966 / 11 12 / 2 2 / 6 / 1.5528 / 15.0191 ! Radial Reflector
- Gap_Cell 4  0.3966 / 14 15 / 2 2 / 3 / 3.3603 / 15.0191 ! Radial Shield
- Gap_Cell 5  0.3966 0.79915 1.19675 / 17 18 17 18 / 2 2 2 2 / 2 / 4.8578 / 13.4208 ! Control Rod (Unrodded)
- Gap_Cell 6  0.3966 / 22 23 / 2 2 / 10 / 0.8966 / 15.0191 ! Middle Fuel Gap
+ Pin 1  1
+ Pin 2  2
+ Pin 3  3
+ Pin 4  4
+ Pin 5  5
+ Pin 6  6
+ Pin 7  7
+
+ Gap_Cell 1  7 / 2 / 9 / 1.35099962990372 / 20.28
 
  Gap_Pin 1  1
- Gap_Pin 2  2
- Gap_Pin 3  3
- Gap_Pin 4  4
- Gap_Pin 5  5
- Gap_Pin 6  6
 
- pin 1  1
- pin 2  2
- pin 3  3
- pin 4  4
- pin 5  5
- pin 6  6
+ assembly 1 360 / 1 / 9 / 1.35099962990372 / 20.28
+  1  1  1  1  1  1  1  1  1
+  1  1  1  1  1  1  1  1  1  1
+  1  1  6  1  1  6  1  1  6  1  1
+  1  1  1  1  1  1  1  1  1  1  1  1
+  1  1  1  1  1  1  1  1  1  1  1  1  1
+  1  1  6  1  1  6  1  1  6  1  1  6  1  1
+  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+  1  1  6  1  1  6  1  1  5  1  1  6  1  1  6  1  1
+     1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+        1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
+           1  1  6  1  1  6  1  1  6  1  1  6  1  1
+              1  1  1  1  1  1  1  1  1  1  1  1  1
+                 1  1  1  1  1  1  1  1  1  1  1  1
+                    1  1  6  1  1  6  1  1  6  1  1
+                       1  1  1  1  1  1  1  1  1  1
+                          1  1  1  1  1  1  1  1  1
 
- assembly 1 360 / 1 / 10 / 0.8966 / 15.0191 ! Inn Fuel Driver Assembly
-  1
- assembly 2 360 / 2 / 10 / 0.8966 / 15.0191 ! Outer Fuel Driver Assembly
-  2
- assembly 3 360 / 3 / 6 / 1.5528 / 15.0191 ! Radial Reflector Assembly
-  3
- assembly 4 360 / 4 / 3 / 3.3603 / 15.0191 ! Radial Shield Assembly
-  4
- assembly 5 360 / 5 / 2 / 4.8578 / 13.4208 ! Control Rod Assembly (Rodded)
-  5
- assembly 6 360 / 6 / 10 / 0.8966 / 15.0191 ! Middle Fuel Driver Assembly
-  6
+ assembly 2 360 / 1 / 9 / 1.35099962990372 / 20.28
+  2  2  2  2  2  2  2  2  2
+  2  3  3  3  3  3  3  3  3  2
+  2  3  6  3  3  6  3  3  6  3  2
+  2  3  3  3  4  3  3  4  3  3  3  2
+  2  3  3  4  4  4  4  4  4  4  3  3  2
+  2  3  6  3  4  6  4  4  6  4  3  6  3  2
+  2  3  3  3  4  4  4  4  4  4  4  3  3  3  2
+  2  3  3  4  4  4  4  4  4  4  4  4  4  3  3  2
+  2  3  6  3  4  6  4  4  5  4  4  6  4  3  6  3  2
+     2  3  3  4  4  4  4  4  4  4  4  4  4  3  3  2
+        2  3  3  3  4  4  4  4  4  4  4  3  3  3  2
+           2  3  6  3  4  6  4  4  6  4  3  6  3  2
+              2  3  3  4  4  4  4  4  4  4  3  3  2
+                 2  3  3  3  4  3  3  4  3  3  3  2
+                    2  3  6  3  3  6  3  3  6  3  2
+                       2  3  3  3  3  3  3  3  3  2
+                          2  2  2  2  2  2  2  2  2
+
+ assembly 3 360 / 1 / 9 / 1.35099962990372 / 20.28
+  7
 
  rad_conf 60 CENT
-  5  1  1  5  6  6  5  2  3  3  4  0
-     1  1  1  6  6  6  2  3  3  4  0
-        1  1  6  6  6  2  2  3  3  4
-           5  6  6  5  6  2  3  3  4
-              6  6  6  6  2  3  3  4
-                 6  6  2  2  3  3  4
-                    5  2  2  3  3  4
-                       2  3  3  3  4
-                          3  3  3  4
-                             3  4  4
-                                4  0
-                                   0
+  1  2  2  3
+     2  1  3
+        2  3
+           3
+
  albedo 0.5 0.0 0.0
+
+MKL
+ AXTYPE 3 0
 .
