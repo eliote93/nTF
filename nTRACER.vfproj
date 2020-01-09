@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{3A073974-B9BA-4219-8399-41AC6149629F}">
+	<Platforms>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|x64" OutputDirectory="Intel\$(ConfigurationName)" IntermediateDirectory="Intel\$(ConfigurationName)">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(ProjectDir)/src;C:\Program Files\MPICH2\include;" PreprocessorDefinitions="__INTEL_MKL" OpenMP="OpenMPParallelCode" RealKIND="realKIND8" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" UseMkl="mklParallel"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="C:\Program Files\MPICH2\lib" GenerateManifest="false" GenerateDebugInformation="true" SubSystem="subSystemConsole" StackReserveSize="100000000" StackCommitSize="100000000" AdditionalDependencies="fmpich2.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="Intel\$(ConfigurationName)" IntermediateDirectory="Intel\$(ConfigurationName)">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(ProjectDir)/src;C:\Program Files\MPICH2\include" PreprocessorDefinitions="__INTEL_MKL" OpenMP="OpenMPParallelCode" RealKIND="realKIND8" RuntimeLibrary="rtMultiThreadedDLL" UseMkl="mklParallel"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="C:\Program Files\MPICH2\lib" GenerateManifest="false" GenerateDebugInformation="true" SubSystem="subSystemConsole" StackReserveSize="100000000" StackCommitSize="100000000" AdditionalDependencies="fmpich2.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="fi;fd;h;inc">
+		<File RelativePath=".\src\CUDADEFINES.h"/>
+		<File RelativePath=".\src\defines.h"/>
+		<File RelativePath=".\src\SP3DEFINES.H"/></Filter>
+		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<Filter Name="Axial Solver">
+		<Filter Name="P1">
+		<File RelativePath=".\src\p1senm_mod.f90"/></Filter>
+		<Filter Name="SP3">
+		<File RelativePath=".\src\AxialSp3_mod.f90"/>
+		<File RelativePath=".\src\DirectSenm_mod.f90"/>
+		<File RelativePath=".\src\SenmMatSolver_mod.f90"/>
+		<File RelativePath=".\src\Sp3SenmOp_Mod.f90"/>
+		<File RelativePath=".\src\Sp3TypeDef.f90"/></Filter>
+		<File RelativePath=".\src\AllocAxSol.f90"/>
+		<File RelativePath=".\src\MPIAxSolver_Mod.f90"/>
+		<File RelativePath=".\src\Tlkg_mod.f90"/></Filter>
+		<Filter Name="Boron">
+		<File RelativePath=".\src\B10Depl.f90"/>
+		<File RelativePath=".\src\Boron_mod.f90"/>
+		<File RelativePath=".\src\BoronCoolant.f90"/></Filter>
+		<Filter Name="CMFD">
+		<Filter Name="Group Condense">
+		<Filter Name="2Group">
+		<File RelativePath=".\src\Cmfd2g_mod.f90"/>
+		<File RelativePath=".\src\Cmfd2gAcc.f90"/>
+		<File RelativePath=".\src\Cmfd2gUtil.f90"/></Filter>
+		<File RelativePath=".\src\GCCmfd_mod.f90"/>
+		<File RelativePath=".\src\GcCmfdAcc.f90"/>
+		<File RelativePath=".\src\GCCmfdUtil.f90"/></Filter>
+		<Filter Name="SetSystem">
+		<File RelativePath=".\src\homoXsGen.f90"/>
+		<File RelativePath=".\src\SetCmfdLinearSystem.f90"/></Filter>
+		<File RelativePath=".\src\cmfd_mod.f90"/>
+		<File RelativePath=".\src\CmfdEtc.f90"/>
+		<File RelativePath=".\src\CmfdPowerMethod.f90"/>
+		<File RelativePath=".\src\MocSolUpdt.f90"/>
+		<File RelativePath=".\src\PrepareCMFD.f90"/></Filter>
+		<Filter Name="COMMON">
+		<File RelativePath=".\src\cards.f90"/>
+		<File RelativePath=".\src\cntl.f90"/>
+		<File RelativePath=".\src\core_mod.f90"/>
+		<File RelativePath=".\src\geom.f90"/>
+		<File RelativePath=".\src\itrcntl.f90"/>
+		<File RelativePath=".\src\param.f90"/>
+		<File RelativePath=".\src\rays.f90"/>
+		<File RelativePath=".\src\TypeDef.f90"/></Filter>
+		<Filter Name="Control Rod">
+		<File RelativePath=".\src\CNTLROD_mod.f90"/>
+		<File RelativePath=".\src\CrCsp_mod.f90"/>
+		<File RelativePath=".\src\CrCspGen_Driver.f90"/>
+		<File RelativePath=".\src\CrCspGen_mod.f90"/>
+		<File RelativePath=".\src\CrSearch_Driver.f90"/></Filter>
+		<Filter Name="CSR Matrix">
+		<File RelativePath=".\src\CSRMATRIX.f90"/></Filter>
+		<Filter Name="Decoupled">
+		<Filter Name="DcplCMFD">
+		<File RelativePath=".\src\DcplCmfd3d.f90"/>
+		<File RelativePath=".\src\DcplCmfd_mod.f90"/>
+		<File RelativePath=".\src\DcplCmfdXsGen.f90"/>
+		<File RelativePath=".\src\DcplMicXsFtn_mod.f90"/></Filter>
+		<Filter Name="DcplMOC">
+		<File RelativePath=".\src\DcplPlnMOC.f90"/>
+		<File RelativePath=".\src\DcplThPlnMOC.f90"/>
+		<File RelativePath=".\src\DcplXsGen_Mod.f90"/></Filter>
+		<Filter Name="DcplTH">
+		<File RelativePath=".\src\DcplTH_mod.f90"/>
+		<File RelativePath=".\src\DcplThUtil.f90"/></Filter>
+		<Filter Name="PinXSOut">
+		<File RelativePath=".\src\DcplPinXsWrt.f90"/></Filter>
+		<File RelativePath=".\src\DcplCore_mod.f90"/>
+		<File RelativePath=".\src\DcplLogOut.f90"/>
+		<File RelativePath=".\src\Dcplsseig.f90"/>
+		<File RelativePath=".\src\InitDcpl.f90"/>
+		<File RelativePath=".\src\MPIDcpl_mod.f90"/></Filter>
+		<Filter Name="Depletion">
+		<Filter Name="Cooling">
+		<File RelativePath=".\src\Cooling_mod.f90"/></Filter>
+		<Filter Name="Critical Spectrum">
+		<File RelativePath=".\src\B1_mod.f90"/>
+		<File RelativePath=".\src\CriticalSpec_mod.f90"/></Filter>
+		<Filter Name="Gd Depletion">
+		<File RelativePath=".\src\GdDepl.f90"/>
+		<File RelativePath=".\src\GdDepl_mod.f90"/></Filter>
+		<File RelativePath=".\src\DeplEtc.f90"/>
+		<File RelativePath=".\src\Depletion.f90"/>
+		<File RelativePath=".\src\Depletion_Driver.f90"/>
+		<File RelativePath=".\src\depletion_mod.f90"/>
+		<File RelativePath=".\src\DeplLib_mod.f90"/>
+		<File RelativePath=".\src\DeplType.f90"/>
+		<File RelativePath=".\src\Init_Depl.f90"/>
+		<File RelativePath=".\src\MatExp_Mod.f90"/>
+		<File RelativePath=".\src\ReadDeplFile.f90"/></Filter>
+		<Filter Name="Gamma Transport">
+		<Filter Name="CMFD">
+		<File RelativePath=".\src\GammaCMFD_mod.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaCMFDAcc.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaHomoXsGen.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="MOC">
+		<File RelativePath=".\src\GammaMOC_mod.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaMOCEtc.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaMOCSweep.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaRayTracing.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaSetRtVar.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<File RelativePath=".\src\Gamma_mod.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaXsLib.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\GammaXSUtil.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\PrepareGamma.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\readLibGamma.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="Geometry Treatment">
+		<Filter Name="CADGeom">
+		<File RelativePath=".\src\CadGeom_Mod.f90"/>
+		<File RelativePath=".\src\ReadMesh.f90"/></Filter>
+		<Filter Name="Geom Init">
+		<File RelativePath=".\src\GetFSRCentroid.f90"/>
+		<File RelativePath=".\src\GlobalCoreMap.f90"/>
+		<File RelativePath=".\src\InitSubPlane.f90"/>
+		<File RelativePath=".\src\MiscStructGeom.f90"/>
+		<File RelativePath=".\src\SetAsyGeom.f90"/>
+		<File RelativePath=".\src\SetCentGeom.f90"/>
+		<File RelativePath=".\src\SetGeometry.f90"/>
+		<File RelativePath=".\src\SetPinGeom.f90"/></Filter>
+		<Filter Name="Geometry">
+		<File RelativePath=".\src\GeomTreatment_mod.f90"/></Filter>
+		<Filter Name="SetRay">
+		<File RelativePath=".\src\CorRayGen.f90"/>
+		<File RelativePath=".\src\DcmpRayGen.f90"/>
+		<File RelativePath=".\src\FastMocUtil.f90"/>
+		<File RelativePath=".\src\MakeRays.f90"/>
+		<File RelativePath=".\src\RotRayGen.f90"/>
+		<File RelativePath=".\src\SetAsyRay.f90"/>
+		<File RelativePath=".\src\SetCellRay.f90"/>
+		<File RelativePath=".\src\setCellrayBase.f90"/>
+		<File RelativePath=".\src\SetModRay.f90"/>
+		<File RelativePath=".\src\setray_mod.f90"/>
+		<File RelativePath=".\src\VolCorrection.f90"/></Filter></Filter>
+		<Filter Name="Group Constant">
+		<Filter Name="Old">
+		<File RelativePath=".\src\GroupConstantGen.f90"/>
+		<File RelativePath=".\src\GroupConstantGenOld.f90"/>
+		<File RelativePath=".\src\GroupConstantMod.f90"/></Filter>
+		<File RelativePath=".\src\FXRVAR_MOD.f90"/>
+		<File RelativePath=".\src\FXRVARIATION.f90"/>
+		<File RelativePath=".\src\GC_mod.f90"/>
+		<File RelativePath=".\src\GCADF.f90"/>
+		<File RelativePath=".\src\GCCon.f90"/>
+		<File RelativePath=".\src\GCEDIT.f90"/>
+		<File RelativePath=".\src\GCGen.f90"/>
+		<File RelativePath=".\src\GCHom.f90"/>
+		<File RelativePath=".\src\GCInit.f90"/>
+		<File RelativePath=".\src\GenFxrMacXs.f90"/></Filter>
+		<Filter Name="Hex">
+		<Filter Name="Bridge">
+		<File RelativePath=".\src\HexCP.f90"/>
+		<File RelativePath=".\src\HexData.f90"/>
+		<File RelativePath=".\src\HexInit.f90"/>
+		<File RelativePath=".\src\HexMain.f90"/>
+		<File RelativePath=".\src\HexTst.f90"/>
+		<File RelativePath=".\src\HexType.f90"/>
+		<File RelativePath=".\src\HexUtil.f90"/></Filter>
+		<Filter Name="CMFD">
+		<File RelativePath=".\src\HexCmfd.f90"/>
+		<File RelativePath=".\src\HexCmfdConst.f90"/>
+		<File RelativePath=".\src\HexNgh.f90"/>
+		<File RelativePath=".\src\HexNgh_MP.f90"/>
+		<File RelativePath=".\src\HexNgh_SP.f90"/>
+		<File RelativePath=".\src\HexTLkg.f90"/>
+		<File RelativePath=".\src\HexVtx.f90"/></Filter>
+		<Filter Name="Geo">
+		<File RelativePath=".\src\HexAsyConst.f90"/>
+		<File RelativePath=".\src\HexAsyTypConst.f90"/>
+		<File RelativePath=".\src\HexCelBasis.f90"/>
+		<File RelativePath=".\src\HexCelBasis_Gap.f90"/>
+		<File RelativePath=".\src\HexCelBasis_Rod.f90"/>
+		<File RelativePath=".\src\HexGeo.f90"/>
+		<File RelativePath=".\src\HexGeoConst.f90"/>
+		<File RelativePath=".\src\HexPinConst.f90"/></Filter>
+		<Filter Name="IO">
+		<File RelativePath=".\src\HexChkInp.f90"/>
+		<File RelativePath=".\src\HexCorePowerCal.f90"/>
+		<File RelativePath=".\src\HexEffXsOut.f90"/>
+		<File RelativePath=".\src\HexInput.f90"/>
+		<File RelativePath=".\src\HexOutputEdit.f90"/>
+		<File RelativePath=".\src\HexThOut.f90"/></Filter>
+		<Filter Name="Ray">
+		<File RelativePath=".\src\HexAsyRay.f90"/>
+		<File RelativePath=".\src\HexAsyRay_SngCel.f90"/>
+		<File RelativePath=".\src\HexAsyRayConst.f90"/>
+		<File RelativePath=".\src\HexAsyRayIntSct.f90"/>
+		<File RelativePath=".\src\HexRayBasic.f90"/>
+		<File RelativePath=".\src\HexRayConst.f90"/></Filter></Filter>
+		<Filter Name="Initialize">
+		<File RelativePath=".\src\AllocPdm.f90"/>
+		<File RelativePath=".\src\initialize.f90"/>
+		<File RelativePath=".\src\initvar.f90"/>
+		<File RelativePath=".\src\PreProcess.f90"/></Filter>
+		<Filter Name="IO">
+		<Filter Name="OutputProcess">
+		<File RelativePath=".\src\BinOutPutEdit.f90"/>
+		<File RelativePath=".\src\CorePowerCal.f90"/>
+		<File RelativePath=".\src\DeplInfoOut.f90"/>
+		<File RelativePath=".\src\EFFMAT0OUT.f90"/>
+		<File RelativePath=".\src\EffMGXsOut.f90"/>
+		<File RelativePath=".\src\EffXsOut.f90"/>
+		<File RelativePath=".\src\EffXsOutDepl.f90"/>
+		<File RelativePath=".\src\OutputEdit.f90"/>
+		<File RelativePath=".\src\PhimOUT.f90"/>
+		<File RelativePath=".\src\PinXSout.f90"/>
+		<File RelativePath=".\src\SSPHfactorOUT.f90"/>
+		<File RelativePath=".\src\ThInfoOut.f90"/></Filter>
+		<Filter Name="ReadInput">
+		<File RelativePath=".\src\readinpcard.f90"/>
+		<File RelativePath=".\src\readinput.f90"/>
+		<File RelativePath=".\src\ScanInput.f90"/></Filter>
+		<File RelativePath=".\src\inputedit.f90"/>
+		<File RelativePath=".\src\procgeom.f90"/>
+		<File RelativePath=".\src\ProcMat.f90"/></Filter>
+		<Filter Name="Linear System Solver">
+		<Filter Name="RadDcmp">
+		<File RelativePath=".\src\LsRadDecomp.f90"/></Filter>
+		<File RelativePath=".\src\BiCGSTAB.f90"/>
+		<File RelativePath=".\src\BiCGSTAB2g.f90"/>
+		<File RelativePath=".\src\BiLU.f90"/>
+		<File RelativePath=".\src\LU_mod.f90"/></Filter>
+		<Filter Name="LP_SHUFFLE">
+		<File RelativePath=".\src\LpShf_mod.f90"/>
+		<File RelativePath=".\src\restart_mod.f90"/></Filter>
+		<Filter Name="Main">
+		<File RelativePath=".\src\main.f90"/>
+		<File RelativePath=".\src\sseig.f90"/></Filter>
+		<Filter Name="MC">
+		<Filter Name="LinearSolver">
+		<File RelativePath=".\src\abi1d2g.f90"/>
+		<File RelativePath=".\src\bicg2g.f90"/>
+		<File RelativePath=".\src\facilu1d2g.f90"/>
+		<File RelativePath=".\src\facilu2g.f90"/>
+		<File RelativePath=".\src\initbicg2g.f90"/>
+		<File RelativePath=".\src\minv2g.f90"/>
+		<File RelativePath=".\src\mtbl2g.f90"/>
+		<File RelativePath=".\src\scalprods.f90"/>
+		<File RelativePath=".\src\sol1d2g.f90"/>
+		<File RelativePath=".\src\sol2d2g.f90"/>
+		<File RelativePath=".\src\solbicg2g.f90"/></Filter>
+		<File RelativePath=".\src\CMFDTally.f90"/>
+		<File RelativePath=".\src\HighOrderSC.f90"/>
+		<File RelativePath=".\src\InitializeMC.f90"/>
+		<File RelativePath=".\src\MCBasics.f90"/>
+		<File RelativePath=".\src\MCCMFD.f90"/>
+		<File RelativePath=".\src\MCDefine.f90"/>
+		<File RelativePath=".\src\MCFuelRect.f90"/>
+		<File RelativePath=".\src\MCGapRect.f90"/>
+		<File RelativePath=".\src\MCiterLog.f90"/>
+		<File RelativePath=".\src\MCMap.f90"/>
+		<File RelativePath=".\src\MCModular.f90"/>
+		<File RelativePath=".\src\MCTally.f90"/>
+		<File RelativePath=".\src\MCVacRect.f90"/>
+		<File RelativePath=".\src\MCXsLib.f90"/>
+		<File RelativePath=".\src\OutputEditMC.f90"/>
+		<File RelativePath=".\src\RNG.f90"/>
+		<File RelativePath=".\src\XSec4MC.f90"/></Filter>
+		<Filter Name="MCP">
+		<File RelativePath=".\src\MCP_Restart_Main.f90"/>
+		<File RelativePath=".\src\MCP_Util.f90"/>
+		<File RelativePath=".\src\ScanInput_include.f90"/></Filter>
+		<Filter Name="MOC">
+		<File RelativePath=".\src\ApproxExp.f90"/>
+		<File RelativePath=".\src\moc_mod.f90"/>
+		<File RelativePath=".\src\MocEtc.f90"/>
+		<File RelativePath=".\src\MOCSweep.f90"/>
+		<File RelativePath=".\src\RayTracing.f90"/>
+		<File RelativePath=".\src\RayTracing_Dcmp.f90"/>
+		<File RelativePath=".\src\RayTracing_OMP.f90"/>
+		<File RelativePath=".\src\RayTracingLinSrc.f90"/>
+		<File RelativePath=".\src\RayTracingP1.f90"/>
+		<File RelativePath=".\src\RayTracingP1_OMP.f90"/>
+		<File RelativePath=".\src\SetRtLinSrc.f90"/>
+		<File RelativePath=".\src\setRtSrc.f90"/>
+		<File RelativePath=".\src\setRTxs.f90"/></Filter>
+		<Filter Name="Parallel Computing">
+		<Filter Name="Common">
+		<File RelativePath=".\src\CMFD_COMMON.f90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Optimization="optimizeMaxSpeed" InlineFunctionExpansion="expandAnySuitable"/></FileConfiguration></File>
+		<File RelativePath=".\src\DEPL_COMMON.f90"/>
+		<File RelativePath=".\src\MOC_COMMON.f90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" Optimization="optimizeMaxSpeed"/></FileConfiguration></File>
+		<File RelativePath=".\src\TYPEDEF_COMMON.f90"/></Filter>
+		<Filter Name="CUDA">
+		<Filter Name="Axial">
+		<File RelativePath=".\src\CUDA_AXIAL.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_AXMOC.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_AXRT.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_NODAL.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="CMFD">
+		<File RelativePath=".\src\CUDA_CMFD.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_PCR.F90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_SOLVER.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_SYSTEM.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="MOC">
+		<File RelativePath=".\src\CUDA_MOC.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<File RelativePath=".\src\CUDA_COMMON.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_DRIVER.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_INIT.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDATypeDef.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="MKL">
+		<Filter Name="Axial">
+		<File RelativePath=".\src\MKL_AXIAL.f90"/>
+		<File RelativePath=".\src\MKL_FDM.f90"/>
+		<File RelativePath=".\src\MKL_FLATMOC.f90"/>
+		<File RelativePath=".\src\MKL_LINMOC.f90"/>
+		<File RelativePath=".\src\MKL_NODAL.f90"/>
+		<File RelativePath=".\src\MKL_POLYMOC.f90"/></Filter>
+		<Filter Name="CMFD">
+		<File RelativePath=".\src\MKL_BILU.f90"/>
+		<File RelativePath=".\src\MKL_CMFD.f90"/>
+		<File RelativePath=".\src\MKL_DAVIDSON.f90"/>
+		<File RelativePath=".\src\MKL_POWER.f90"/></Filter>
+		<Filter Name="Depletion">
+		<File RelativePath=".\src\MKL_DEPL.f90"/></Filter>
+		<File RelativePath=".\src\MKL_3D.f90"/>
+		<File RelativePath=".\src\MKL_INIT.f90"/></Filter>
+		<Filter Name="OpenCL">
+		<File RelativePath=".\src\clfortran.f90"/></Filter></Filter>
+		<Filter Name="PE">
+		<File RelativePath=".\src\CMFDComm_mod.f90"/>
+		<File RelativePath=".\src\MPIComm_mod.f90"/>
+		<File RelativePath=".\src\MPIConfig_Mod.f90"/>
+		<File RelativePath=".\src\PE_mod.f90"/>
+		<File RelativePath=".\src\SetPE.f90"/></Filter>
+		<Filter Name="Subgroup">
+		<File RelativePath=".\src\CP_mod.f90"/>
+		<File RelativePath=".\src\SubGrp_mod.f90"/>
+		<File RelativePath=".\src\SubGrpEffXs.f90"/>
+		<File RelativePath=".\src\SubGrpFsp.f90"/>
+		<File RelativePath=".\src\SubGrpFspNM.f90"/></Filter>
+		<Filter Name="TH">
+		<Filter Name="SteamTbl">
+		<File RelativePath=".\src\StemTBL_Mod.f90"/>
+		<File RelativePath=".\src\sth2xc.F"/></Filter>
+		<Filter Name="Subchannel">
+		<File RelativePath=".\src\CTFTH_mod.f90"/>
+		<File RelativePath=".\src\ESCOTTH_mod.f90"/>
+		<File RelativePath=".\src\MATRATH_mod.f90"/>
+		<File RelativePath=".\src\subch_mod.f90"/>
+		<File RelativePath=".\src\SubChCoupling_mod.f90"/>
+		<File RelativePath=".\src\SubChGen_mod.f90"/></Filter>
+		<File RelativePath=".\src\AllocTh.f90"/>
+		<File RelativePath=".\src\CalRelPower.f90"/>
+		<File RelativePath=".\src\FuelConduction.f90"/>
+		<File RelativePath=".\src\InitTH.f90"/>
+		<File RelativePath=".\src\SetThCell.f90"/>
+		<File RelativePath=".\src\SteadyStateTH.f90"/>
+		<File RelativePath=".\src\Th_mod.f90"/>
+		<File RelativePath=".\src\THFeedBack.f90"/>
+		<File RelativePath=".\src\ThFunction.f90"/>
+		<File RelativePath=".\src\TransientTH.f90"/>
+		<File RelativePath=".\src\UserDefTH.f90"/></Filter>
+		<Filter Name="Transient">
+		<Filter Name="CMFD">
+		<File RelativePath=".\src\TranAxNUtil_mod.f90"/>
+		<File RelativePath=".\src\TranCmfd.f90"/>
+		<File RelativePath=".\src\TranCmfd_Driver.f90"/>
+		<File RelativePath=".\src\TranCmfd_mod.f90"/>
+		<File RelativePath=".\src\TranGcCmfd.f90"/>
+		<File RelativePath=".\src\TranGcCmfd_mod.f90"/></Filter>
+		<Filter Name="MOC">
+		<File RelativePath=".\src\TranCondMOC.f90"/>
+		<File RelativePath=".\src\TranMOC.f90"/>
+		<File RelativePath=".\src\TranMoc_Driver.f90"/>
+		<File RelativePath=".\src\TranMoc_mod.f90"/></Filter>
+		<File RelativePath=".\src\InitTransient.f90"/>
+		<File RelativePath=".\src\KineticParam.f90"/>
+		<File RelativePath=".\src\NullTransient.f90"/>
+		<File RelativePath=".\src\precursor.f90"/>
+		<File RelativePath=".\src\Transient_Driver.f90"/>
+		<File RelativePath=".\src\Transient_mod.f90"/>
+		<File RelativePath=".\src\TransientEtc.f90"/>
+		<File RelativePath=".\src\XsPerturb_Mod.f90"/></Filter>
+		<Filter Name="Util">
+		<File RelativePath=".\src\banner.f90"/>
+		<File RelativePath=".\src\BasicOperation.f90"/>
+		<File RelativePath=".\src\dmalloc.f90"/>
+		<File RelativePath=".\src\files.f90"/>
+		<File RelativePath=".\src\finalize.f90"/>
+		<File RelativePath=".\src\ioutil.f90"/>
+		<File RelativePath=".\src\IsotopeOut.f90"/>
+		<File RelativePath=".\src\Mat2x2OP.f90"/>
+		<File RelativePath=".\src\timer.f90"/>
+		<File RelativePath=".\src\UtilFunction.f90"/></Filter>
+		<Filter Name="Xenon Dynamics">
+		<File RelativePath=".\src\XeDyn.f90"/>
+		<File RelativePath=".\src\XeDyn_Driver.f90"/>
+		<File RelativePath=".\src\XeDyn_mod.f90"/></Filter>
+		<Filter Name="XS">
+		<Filter Name="BenchmarkXS">
+		<File RelativePath=".\src\BenchXs_mod.f90"/>
+		<File RelativePath=".\src\readbenchxs.f90"/></Filter>
+		<Filter Name="LibXS">
+		<File RelativePath=".\src\MacXsLib.f90"/>
+		<File RelativePath=".\src\Material_Mod.f90"/>
+		<File RelativePath=".\src\nuclidmap.f90"/>
+		<File RelativePath=".\src\ReadXsec.f90"/>
+		<File RelativePath=".\src\ReorderLib.f90"/>
+		<File RelativePath=".\src\SPH_Mod.f90"/>
+		<File RelativePath=".\src\TranMacXsLib.f90"/>
+		<File RelativePath=".\src\xslib_mod.f90"/></Filter>
+		<Filter Name="ISOTXS">
+		<File RelativePath=".\src\PostProc_ISOTXS.f90"/>
+		<File RelativePath=".\src\ProcMAT_ISOTXS.f90"/>
+		<File RelativePath=".\src\readISOTXS.f90"/></Filter>
+		<Filter Name="VTK">
+		<File RelativePath=".\src\vtk_mod.f90"/></Filter>
+		<File RelativePath=".\src\inflow.f90"/>
+		<File RelativePath=".\src\inflowMathUtil.f90"/>
+		<File RelativePath=".\src\PrepareXs.f90"/>
+		<File RelativePath=".\src\Xsutil.f90"/></Filter></Filter></Files>
+	<Globals/></VisualStudioProject>
