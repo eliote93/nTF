@@ -1,0 +1,9 @@
+#define DetailedIO
+#define newcat
+#define LkgSplit
+#define Buckling
+#define DcplMemSave
+#define MPI_ENV
+#define OMP_ENV
+#define GdHO
+#define MPI_ASYNC_READ
