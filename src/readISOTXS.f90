@@ -85,6 +85,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
         ldiso(iso)%aw  = amass
         ldiso(iso)%ntemp = 1
         ldiso(iso)%nrtemp = 0
+        ldiso(iso)%ifis = ifis
         ALLOCATE(ldiso(iso)%temp(1))
         ldiso(iso)%temp(1) = temp
         IF(ifis == 1) ldiso(iso)%ityp = 3
