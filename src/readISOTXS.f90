@@ -9,7 +9,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
     INTEGER,INTENT(OUT) :: ng_out,ntiso_out,scatord_out
     
     INTEGER :: ng,ntiso,maxup,maxdn,maxord,ichist,nscmax,nsblok,sctord
-    INTEGER :: ig,jg,iso,ib,ie,il,i,j,k,scttyp,iord
+    INTEGER :: ig,jg,iso,ib,ie,il,i,j,k,scttyp,iord,it,igx
     INTEGER :: kbr,ichi,ifis,ialf,inp,in2n,ind,int,ltot,ltrn,istrpd,nscr
     INTEGER,POINTER :: isspec(:),loca(:),idsct(:),lord(:),jband(:,:),ijj(:,:),isopec(:)
     REAL(4) :: amass,efiss,ecapt,temp,sigpot,numden,fissum,tmp
@@ -173,7 +173,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
         !Save cross section to ldiso(iso)
         ALLOCATE(ldiso(iso)%sigtr(ng,1),ldiso(iso)%siga(ng,1),ldiso(iso)%sigs(ng,1),&
                  ldiso(iso)%sigf(ng,1),ldiso(iso)%signf(ng,1),ldiso(iso)%chi(ng),&
-                 ldiso(iso)%siga(ng,1),ldiso(iso)%sigs(ng,1))
+                 ldiso(iso)%siga(ng,1),ldiso(iso)%sigs(ng,1),ldiso(iso)%sigstr(ng,1), ldiso(iso)%sigss(ng,1))
         FORALL(ig=1:ng)
             ldiso(iso)%sigtr(ig,1) = 0.
             ldiso(iso)%siga (ig,1) = 0.
@@ -181,6 +181,8 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             ldiso(iso)%sigf (ig,1) = 0.
             ldiso(iso)%signf(ig,1) = 0.
             ldiso(iso)%chi  (ig)   = 0.
+            ldiso(iso)%sigstr(ig,1) = 0.
+            ldiso(iso)%sigss(ig,1) = 0.
         END FORALL
         ldiso(iso)%siga (1:ng,1) = stotpl(1:ng,1)
         ldiso(iso)%sigtr(1:ng,1) = strpl(1:ng,1)
@@ -336,6 +338,33 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
 !            WRITE(50,'(100ES16.6)') sctmat(ig,1:ng,0)
 !        ENDDO
         IF(istrpd > 0) DEALLOCATE(strpd)
+    
+        do it = 1, 1
+            ldiso(iso)%sigstr(:,it) = 0._8
+            do ig = 1, ng
+                do igx = 1, ng
+                    if(ig.ge.ldiso(iso)%sm(igx,it)%ib .and. ig.le.ldiso(iso)%sm(igx,it)%ie) then
+                        ldiso(iso)%sm(ig,it)%ioutsb = igx
+                        exit
+                    endif
+                enddo
+                do igx = ng, 1, -1
+                    if(ig.ge.ldiso(iso)%sm(igx,it)%ib .and. ig.le.ldiso(iso)%sm(igx,it)%ie) then
+                        ldiso(iso)%sm(ig,it)%ioutse = igx
+                        exit
+                    endif
+                enddo
+                do igx = ldiso(iso)%sm(ig,it)%ib, ldiso(iso)%sm(ig,it)%ie
+                    ldiso(iso)%sigstr(igx,it) = ldiso(iso)%sigstr(igx,it) + ldiso(iso)%sm(ig,it)%from(igx)
+                enddo
+            enddo
+        enddo
+        do it = 1, 1
+            do ig = 1, ng
+                ldiso(iso)%sigss(ig,it) = ldiso(iso)%sm(ig,it)%from(ig) + (ldiso(iso)%sigs(ig,it) - ldiso(iso)%sigstr(ig,it))
+            enddo
+        enddo
+        
     ENDDO !of iso
     DEALLOCATE(strpl,stotpl,sngam,sfis,snutot,schiso,snalf,snp,sn2n,snd,snt)
     DEALLOCATE(sctmat,ltotmat)

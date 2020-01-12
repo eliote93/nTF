@@ -1,5 +1,4 @@
 # Execution
-nTRACER.*
 *.inp
 *.INP
 *.out
@@ -13,6 +12,9 @@ nTRACER.*
 *.obj
 *.mod
 *.smod
+*.exe
+*.u2d
+*.layout
 
 # ETC
 .vs
