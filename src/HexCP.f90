@@ -205,7 +205,7 @@ END DO
 !               05. SET : SSPH Data
 ! ----------------------------------------------------
 DO iCel = 1, nCellType
-  CALL HexCalcCellSSPH(iCel)
+  IF (nTracerCntl%lRestrmt) CALL HexCalcCellSSPH(iCel)
 END DO
 ! ----------------------------------------------------
 !               06. REMEDY : Vol

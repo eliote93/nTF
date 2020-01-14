@@ -1,4 +1,4 @@
-CASEID 2D_1000_MWth_ABR_Metallic_SngAsy_Fuel
+CASEID 2D_1000_MWth_ABR_Metallic_SngCel_Shld
 
 STATE
  th_cond 17.67357 293.33333  15.51315 84.08895  !power_fa (MW), t_in(C), p_exit(MPa), mdot_fa (kg/s)  
@@ -17,26 +17,22 @@ OPTION
  SCAT_ORDER 0
   
 CONV
-  nMaxOuter 1500
-  Eig_Conv 1E-6
-  Psi_Conv 1E-6
-  Res_Conv 5E-7
+ nMaxOuter 1500
+ Eig_Conv 1E-6
+ Psi_Conv 1E-6
+ Res_Conv 5E-7
 
 GEOM
  HEX       T
- pitch     16.2471
+ pitch     3.3603
  ax_mesh   1*20
- HexOpt    T T 2 1000 0.005 1000 0.005
+ HexOpt    F T 4 1000 0.005 1000 0.005
 
- cell  1   0.3236 0.3857 0.4300 / 1 2 3 3 / 3 1 1 1 / 10 / 0.8966 / 15.0191 ! Inn Fuel
-  
- Gap_Cell 1  0.3966 / 4 5 / 5 5 / 10 / 0.8966 / 15.0191 ! Fuel
- 
- Gap_Pin 1  1
+ cell  1   0.2380 0.4759 0.9518 1.4277 1.6794 1.75 / 1 1 1 1 2 3 3 / 2 2 3 5 5 1 1 / 1 / 3.3603 / 3.3603 ! Shd
  
  pin 1  1
-  
- assembly 1 360 / 1 / 10 / 0.8966 / 15.0191 ! Inn Fuel
+ 
+ assembly 1 360 / 1
   1
 
  rad_conf 360 CENT
