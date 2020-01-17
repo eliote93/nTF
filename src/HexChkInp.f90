@@ -25,6 +25,8 @@ IMPLICIT NONE
 INTEGER :: iAsyTyp, iCel, iPin, ix, iy, iz, iBss, jBss, iFXR, nTmp, nPin, nMix
 REAL    :: pF2F, aiF2F
 
+REAL, PARAMETER :: rSq3 = 0.577350269189626_8
+
 TYPE(Type_HexRodCel),     POINTER :: hCel_Loc
 TYPE(Type_HexGapCel),     POINTER :: gCel_Loc
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
@@ -119,9 +121,11 @@ DO iCel = 1, nCellType
     CALL HexChkRange_INT(hCel_Loc%xMix(iFXR), 1, nMix, "ROD CEL MIXTURE")
   END DO
   
-  DO iFXR = 1, hCel_Loc%nFXR
+  DO iFXR = 2, hCel_Loc%nFXR
     CALL HexChkInc_REAL(hCel_Loc%xRad(iFXR + 1), hCel_Loc%xRad(iFXR), "ROD CEL RADIUS")
   END DO
+  
+  IF (hCel_Loc%xRad(2) > hCel_Loc%pF2F * rSq3) hCel_Loc%xDiv(1) = 1
   
   IF (hCel_Loc%nSct .NE. 12) CALL terminate("CEL # OF SECTORS")
 END DO
@@ -183,9 +187,7 @@ DO iCel = 1, ncBss
   IF (.NOT.(hCelBss(iCel)%luse)) CYCLE
   
   pF2FHlf = hCelBss(iCel)%pF2F * 0.5_8
-  
-  !CALL HexChkInc_REAL(hCelBss(iCel)%sRad(2), pF2FHlf, "RAD EXCEEDS HALF OF PIN F2F")
-  
+    
   Tmp = 3 * (hCelBss(iCel)%nPin - 1) * hCelBss(iCel)%pPch
   Tmp = Tmp + 2 * hCelBss(iCel)%sRad(hCelBss(iCel)%nSub-1)
   

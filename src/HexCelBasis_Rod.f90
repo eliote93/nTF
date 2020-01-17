@@ -341,7 +341,7 @@ END DO
 Vol = Are2
 
 DO iSub = 1, hBss_Loc%nSub
-  Tmp1 = FindBndyRad2Vol(hBss_Loc%sRad(iSub+1), Vtx1, Vtx2, Vtx3)
+  Tmp1 = FindBndyRad2Vol(hBss_Loc%sRad(iSub+1), Vtx2, Vtx3, Vtx4, Eqn1, Eqn2)
   Tmp2 = Vol - Tmp1
   
   hBss_Loc%sVol(1,  3, iSub) = Tmp2

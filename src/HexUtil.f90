@@ -870,6 +870,7 @@ END FUNCTION FindRodRad2Vol
 !                                     30. Find : Rod Sub Rad
 ! ------------------------------------------------------------------------------------------------------------
 FUNCTION FindRodSubRad(F2F, Rad2, Rad1, nDiv)
+! Rad 2 > Rad 1
 
 IMPLICIT NONE
 
@@ -888,13 +889,13 @@ INTEGER :: iTmp, iDiv, jDiv
 REAL, PARAMETER :: rSq3 = 0.577350269189626_8
 ! ----------------------------------------------------
 
-IF ((Rad2 < Rad1).OR.(Rad1 < ZERO)) CALL terminate("FIND ROD SUB RAD")
+IF (Rad1 < ZERO) CALL terminate("FIND ROD SUB RAD")
 IF (nDiv > nMaxFXR) CALL terminate("FIND ROD SUB RAD")
 
 FindRodSubRad(1)      = Rad2
 FindRodSubRad(nDiv+1) = Rad1
 ! ----------------------------------------------------
-!               01. CASE : Rad < Half of F2F
+!               CASE : Rad < Half of F2F
 ! ----------------------------------------------------
 IF (Rad2 < F2F * 0.5_8) THEN
   dVol = (Rad2 * Rad2 - Rad1 * Rad1) / real(nDiv)
@@ -909,7 +910,19 @@ IF (Rad2 < F2F * 0.5_8) THEN
   RETURN
 END IF
 ! ----------------------------------------------------
-!               02. CASE : Rad > Half of F2F
+!               CASE : Rad > PCH
+! ----------------------------------------------------
+IF (Rad2 > F2F * rSq3) THEN
+  dRad = (Rad2 - Rad1) / real(nDiv)
+  
+  DO iDiv = 2, nDiv
+    FindRodSubRad(iDiv) = FindRodSubRad(iDiv-1) - dRad
+  END DO
+  
+  RETURN
+END IF
+! ----------------------------------------------------
+!               CASE : Rad > Half of F2F
 ! ----------------------------------------------------
 dRad = (Rad2 - Rad1) / real(nnDiv)
 
@@ -1067,28 +1080,135 @@ END FUNCTION FindPtAng
 ! ------------------------------------------------------------------------------------------------------------
 !                                     37. Find : Bndy Rad to Vol
 ! ------------------------------------------------------------------------------------------------------------
-FUNCTION FindBndyRad2Vol(Rad, Vtx1, Vtx2, Vtx3)
+FUNCTION FindBndyRad2Vol(Rad, Vtx2, Vtx3, Vtx4, Eqn1, Eqn2)
 
 IMPLICIT NONE
 
 REAL :: Rad, FindBndyRad2Vol
-REAL :: Vtx1(2), Vtx2(2), Vtx3(2)
+REAL :: Vtx2(2), Vtx3(2), Vtx4(2), Eqn1(3), Eqn2(3)
 
-REAL :: Tmp1, Tmp2, Tmp3
-REAL :: Cnt(2)
+REAL :: Tmp2, Tmp3, Tmp4, Ang, Bng, Vol1, Vol2, Pt(2, 2)
+REAL :: Cnt(2), Vtx(2, 3)
 ! ----------------------------------------------------
 
 Cnt  = ZERO
-Tmp1 = FindPtLgh(Vtx1, Cnt)
 Tmp2 = FindPtLgh(Vtx2, Cnt)
 Tmp3 = FindPtLgh(Vtx3, Cnt)
+Tmp4 = FindPtLgh(Vtx4, Cnt)
 
 IF (Rad > Tmp3) CALL terminate("FIND : BNDY RAD 2 VOL")
 
-FindBndyRad2Vol = HALF * Rad * Rad * PI_6
+! sRad < Bndy
+IF ((Rad < Tmp2).AND.(Rad < Tmp3)) THEN
+  FindBndyRad2Vol = HALF * Rad * Rad * PI_6
+  
+  RETURN
+END IF
+
+! Vol 1
+Ang = atan(Vtx3(2) / Vtx3(1))
+
+IF (Rad < Tmp2) THEN
+  Vol1 = HALF * Rad * Rad * (PI_6 - Ang)
+ELSE
+  Pt  = FindLineCircleIntSct(Eqn1, Rad)
+  Bng = atan(Pt(2, 2) / Pt(1, 2)) - Ang
+  Vtx = reshape((/ZERO, ZERO, Vtx2(1), Vtx2(2), Pt(1, 2), Pt(2, 2)/), (/2, 3/))
+  
+  Vol1 = HALF * Rad * Rad * Bng &
+       + FindPolygonVol(3, Vtx)
+END IF
+
+! Vol2
+IF (Rad < Tmp4) THEN
+  Vol1 = HALF * Rad * Rad * Ang
+ELSE
+  Pt  = FindLineCircleIntSct(Eqn2, Rad)
+  Bng = Ang - atan(Pt(2, 2) / Pt(1, 2))
+  Vtx = reshape((/ZERO, ZERO, Vtx4(1), Vtx4(2), Pt(1, 2), Pt(2, 2)/), (/2, 3/))
+  
+  Vol1 = HALF * Rad * Rad * Bng &
+       + FindPolygonVol(3, Vtx)
+END IF
+
+FindBndyRad2Vol = Vol1 + Vol2
 ! ----------------------------------------------------
 
 END FUNCTION FindBndyRad2Vol
+! ------------------------------------------------------------------------------------------------------------
+!                                     38. Find : Bndy Rad to Vol
+! ------------------------------------------------------------------------------------------------------------
+FUNCTION FindPolygonVol(nVtx, Vtx)
+
+IMPLICIT NONE
+
+INTEGER :: nVtx
+REAL    :: FindPolygonVol, Vtx(2, nVtx)
+
+INTEGER :: iVtx
+REAL    :: Tmp
+! ----------------------------------------------------
+
+Tmp = ZERO
+
+DO iVtx = 1, nVtx - 1
+  Tmp = Tmp + Vtx(1, iVtx)   * Vtx(2, iVtx+1)
+  Tmp = Tmp - Vtx(1, iVtx+1) * Vtx(2, iVtx)
+END DO
+
+Tmp = Tmp + Vtx(1, nVtx) * Vtx(2, 1)
+Tmp = Tmp - Vtx(1, 1)    * Vtx(2, nVtx)
+
+FindPolygonVol = HALF * abs(Tmp)
+
+END FUNCTION FindPolygonVol
+! ------------------------------------------------------------------------------------------------------------
+!                                     38. Find : Bndy Rad to Vol
+! ------------------------------------------------------------------------------------------------------------
+FUNCTION FindLineCircleIntSct(Eqn, Rad)
+! x1 < x2
+
+IMPLICIT NONE
+
+REAL :: FindLineCircleIntSct(2, 2), Eqn(3), Rad, Pt(2)
+
+REAL :: Tmp, a, b, c
+! ----------------------------------------------------
+
+IF (abs(Eqn(1)) < hEps) THEN
+  IF (abs(Eqn(2)) < hEps) CALL terminate("FIND : LINE CIRCLE INT-SCT")
+  
+  Tmp = Eqn(3) / Eqn(2)
+  
+  IF (Rad < Tmp) CALL terminate("FIND : LINE CIRCLE INT-SCT")
+  
+  FindLineCircleIntSct(1, 1) = -sqrt(Rad*Rad - Tmp*Tmp)
+  FindLineCircleIntSct(1, 2) =  sqrt(Rad*Rad - Tmp*Tmp)
+  FindLineCircleIntSct(2, :) = Tmp
+ELSE
+  a   = 1 + Eqn(2)*Eqn(2) / Eqn(1)/Eqn(1)
+  b   = - 2._8 * Eqn(2) * Eqn(3) / Eqn(1)/Eqn(1)
+  c   = Eqn(3)*Eqn(3) / Eqn(1)/Eqn(1) - Rad*Rad
+  Tmp = b*b - 4*a*c
+  
+  IF (Tmp < ZERO) CALL terminate("FIND : LINE CIRCLE INT-SCT")
+  
+  FindLineCircleIntSct(2, 1) = -(b + sqrt(Tmp)) / 2/a
+  FindLineCircleIntSct(2, 2) = -(b - sqrt(Tmp)) / 2/a
+  
+  FindLineCircleIntSct(1, 1) = (Eqn(3) - Eqn(2) * FindLineCircleIntSct(2, 1)) / Eqn(1)
+  FindLineCircleIntSct(1, 2) = (Eqn(3) - Eqn(2) * FindLineCircleIntSct(2, 2)) / Eqn(1)
+  
+  IF (FindLineCircleIntSct(1, 1) > FindLineCircleIntSct(1, 2)) THEN
+    Pt = FindLineCircleIntSct(:, 1)
+    
+    FindLineCircleIntSct(:, 1) = FindLineCircleIntSct(:, 2)
+    FindLineCircleIntSct(:, 2) = Pt
+  END IF
+END IF
+! ----------------------------------------------------
+
+END FUNCTION FindLineCircleIntSct
 ! ------------------------------------------------------------------------------------------------------------
 
 ! HexRT Routines
