@@ -129,6 +129,8 @@ IF (PE%lMKL .AND. .NOT. lCMFD) THEN
             jfsr = FsrIdxSt + ifsr - 1
             vol  = Cell(icel)%vol(ifsr)
             
+            IF (vol < 1E-10) CYCLE
+            
             volsum = volsum + vol
             phisum = phisum + vol * phis(jfsr, iz, ig)
           END DO

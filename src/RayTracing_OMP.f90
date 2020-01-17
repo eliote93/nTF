@@ -139,6 +139,9 @@ DO l = 1, nxy
   FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
+    
+    IF (Cell(icel)%vol(j) < 1E-10) CYCLE
+    
     phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
   ENDDO
 ENDDO
@@ -444,6 +447,9 @@ DO l = 1, nxy
   FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
+    
+    IF (Cell(icel)%vol(j) < 1E-10) CYCLE
+    
     phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
   ENDDO
 ENDDO
@@ -1235,6 +1241,8 @@ DO l = 1, nxy
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
     DO g = gb, ge
+      IF (Cell(icel)%vol(j) < 1E-10) CYCLE      
+      
       phisnm(g, ireg) = phisnm(g, ireg) / (xstnm(g, ireg) * Cell(icel)%vol(j)) + srcnm(g, ireg)
     ENDDO
   ENDDO

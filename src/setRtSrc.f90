@@ -160,6 +160,9 @@ DO ipin = 1, nxy
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           !-- D*phi proportional
+          
+          IF (Cellinfo(icel)%Vol(fsridx) < 1E-10) CYCLE
+          
           psrc=psrc+(1._8/3._8/xstr1g(ifsr))*Cellinfo(icel)%Vol(fsridx);    ! pin-wise total source except axial source term
           pvol=pvol+Cellinfo(icel)%Vol(fsridx)
         ENDDO
@@ -185,6 +188,9 @@ DO ipin = 1, nxy
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           !-- D*phi proportional
+          
+          IF (Cellinfo(icel)%Vol(fsridx) < 1E-10) CYCLE
+          
           psrc=psrc+(1._8/3._8/xstr1g(ifsr)*phis(ifsr, iz, ig))*Cellinfo(icel)%Vol(fsridx);    ! pin-wise total source except axial source term
           pvol=pvol+Cellinfo(icel)%Vol(fsridx)
         ENDDO
@@ -210,6 +216,8 @@ DO ipin = 1, nxy
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           !-- Source proportional
+          IF (Cellinfo(icel)%Vol(fsridx) < 1E-10) CYCLE
+          
           psrc=psrc+src(ifsr)*Cellinfo(icel)%Vol(fsridx);    ! pin-wise total source except axial source term
           pvol=pvol+Cellinfo(icel)%Vol(fsridx)
         ENDDO

@@ -1127,7 +1127,7 @@ ELSE
   Bng = Ang - atan(Pt(2, 2) / Pt(1, 2))
   Vtx = reshape((/ZERO, ZERO, Vtx4(1), Vtx4(2), Pt(1, 2), Pt(2, 2)/), (/2, 3/))
   
-  Vol1 = HALF * Rad * Rad * Bng &
+  Vol2 = HALF * Rad * Rad * Bng &
        + FindPolygonVol(3, Vtx)
 END IF
 

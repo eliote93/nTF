@@ -274,7 +274,7 @@ SUBROUTINE HexSetRodBssSubRng_Bndy(iCel)
 USE PARAM,   ONLY : HALF, PI, ZERO, ONE
 USE ioutil,  ONLY : terminate
 USE HexType, ONLY : Type_HexRodCelBss
-USE HexData, ONLY : hCelBss, Sq3, Sq3Inv, hLgc
+USE HexData, ONLY : hCelBss, Sq3, Sq3Inv, hLgc, hEps
 USE HexUtil, ONLY : SetEqn, SolveLineEqn, FindRodRad2Vol, FindBndyRad2Vol
 
 IMPLICIT NONE
@@ -330,6 +330,8 @@ DO iSub = 1, hBss_Loc%nSub
   Tmp1 = FindRodRad2Vol(2.0_8 * Hgt, hBss_Loc%sRad(iSub+1))
   Tmp2 = (Vol - Tmp1) / hBss_Loc%nSct
   
+  IF (abs(Vol - Tmp1) < hEps) Tmp2 = ZERO
+    
   hBss_Loc%sVol(1,  1:2,  iSub) = Tmp2
   hBss_Loc%sVol(1, 11:12, iSub) = Tmp2
   hBss_Loc%sVol(2,  6:7,  iSub) = Tmp2
@@ -343,6 +345,8 @@ Vol = Are2
 DO iSub = 1, hBss_Loc%nSub
   Tmp1 = FindBndyRad2Vol(hBss_Loc%sRad(iSub+1), Vtx2, Vtx3, Vtx4, Eqn1, Eqn2)
   Tmp2 = Vol - Tmp1
+  
+  IF (abs(Vol - Tmp1) < hEps) Tmp2 = ZERO
   
   hBss_Loc%sVol(1,  3, iSub) = Tmp2
   hBss_Loc%sVol(1, 10, iSub) = Tmp2

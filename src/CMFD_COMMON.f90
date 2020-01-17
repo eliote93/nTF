@@ -341,6 +341,9 @@ DO ig = 1, ng
         ireg = Cell(icel)%MapFxr2FsrIdx(j, i)
         ifsr = FsrIdxSt + ireg - 1
         vol = Cell(icel)%vol(ireg)
+        
+        IF (vol < 1E-10) CYCLE
+        
         localphi = localphi + phis(ifsr, iz, ig) * vol
         volsum = volsum + vol
       ENDDO
@@ -432,6 +435,9 @@ IF (lFuel) THEN
         ireg = Cell(icel)%MapFxr2FsrIdx(j, i)
         ifsr = FsrIdxSt + ireg - 1
         vol = Cell(icel)%vol(ireg)
+        
+        IF (vol < 1E-10) CYCLE
+        
         DO ig = 1, ng
           psi = phis(ifsr, iz, ig) * vol * XsMac(ifxr)%XsMacNf(ig)
           psisum = psisum + psi
