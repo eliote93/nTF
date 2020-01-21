@@ -357,9 +357,7 @@ DO iz = myzb, myze
         ifxr = FxrIdxSt + j -1; nFsrInFxr = Cell(icel)%nFsrInFxr(j)
         DO i = 1, nFsrInFxr
           k = Cell(icel)%MapFxr2FsrIdx(i, j)
-          
-          IF(Cell(icel)%vol(k) < 1E-10) CYCLE
-          
+                    
           ifsr = FsrIdxSt + k - 1
           PhiSum = PhiSum + Phis(ifsr, iz, ig) * Cell(icel)%vol(k)
           IF((XsMac(j)%xsMacTr(ig)) .LT. epsm3) CYCLE

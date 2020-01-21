@@ -213,8 +213,6 @@ IF(RTMASTER) THEN
     DO ipin = 1, nxy
       FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
       DO j = 1, CellInfo(icel)%nFsr
-        IF (CellInfo(icel)%vol(j) < 1E-10) CYCLE
-        
         ifsr = FsrIdxSt + j - 1
         psipsi = psipsi + psi(ifsr, iz) * psi(ifsr, iz) * (hz(iz) * CellInfo(icel)%vol(j))**2
         psipsid = psipsid + psi(ifsr, iz) * psid(ifsr, iz) * (hz(iz) * CellInfo(icel)%vol(j))**2
@@ -264,8 +262,6 @@ DO iz = myzb, myze
     DO j = 1, nLocalFsr
       ireg = FsrIdxSt + j - 1
       
-      IF (CellInfo(icel)%vol(j) < 1E-10) CYCLE
-      
       psic(l, iz) =  psic(l, iz) + CellInfo(icel)%vol(j) * psi(ireg, iz)
     ENDDO  
     psic(l, iz) = psic(l, iz)*hz(iz)
@@ -311,8 +307,6 @@ DO iz = myzb, myze
   DO ipin = 1, nxy
     FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
     DO j = 1, CellInfo(icel)%nFsr
-      IF (CellInfo(icel)%vol(j) < 1E-10) CYCLE
-      
       ifsr = FsrIdxSt + j - 1
       psipsi = psipsi + psi(ifsr, iz) * psi(ifsr, iz) * (hz(iz) * CellInfo(icel)%vol(j))**2
       localErr = (psi(ifsr, iz) - psid(ifsr, iz)) ** 2
@@ -441,8 +435,6 @@ DO iz = myzb, myze
         ireg = FsrIdxSt + i - 1
         vol = Cell(icel)%vol(i)
         
-        IF (vol < 1E-10) CYCLE
-        
         DO ig = 1, ng
           Collision(ig) = Collision(ig) + vol * phisnm(ig, ireg) * xstnm(ig, ireg)
           Source(ig) = Source(ig) + vol * srcnm(ig, ireg) * xstnm(ig, ireg)
@@ -481,8 +473,6 @@ DO iz = myzb, myze
         FsrIdxSt = Pin(ipin)%FsrIdxSt
         icel = Pin(ipin)%Cell(iz); nlocalFsr = Cell(icel)%nFsr
         DO j = 1, nlocalFsr
-          IF (Cell(icel)%vol(j) < 1E-10) CYCLE
-          
           ireg = FsrIdxSt + j - 1
           vol = Cell(icel)%vol(j)
           Res(ipin) = Res(ipin)  + vol * tsrc(ireg)
@@ -523,8 +513,6 @@ DO iz = myzb, myze
         ENDDO
         
         DO j = 1, nlocalFsr
-          IF (Cell(icel)%vol(j) < 1E-10) CYCLE
-          
           ireg = FsrIdxSt + j - 1
           vol = Cell(icel)%vol(j)
           LocalResidual = LocalResidual + vol * phis(ireg, iz, ig) * xst1g(ireg)
@@ -585,12 +573,8 @@ DO ig = 1, ng
       ENDDO
       
       DO j = 1, nlocalFsr
-        IF (Cell(icel)%vol(j) < 1E-10) CYCLE
-        
         ireg = FsrIdxSt + j - 1
         vol = Cell(icel)%vol(j)
-        
-        IF (vol < 1E-10) CYCLE
         
         LocalResidual = LocalResidual + vol * phis(ireg, iz, ig) * xst1g(ireg)
         localsrc = localsrc + tsrc(ireg) * vol * xst1g(ireg)

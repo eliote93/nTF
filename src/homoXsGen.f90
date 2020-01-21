@@ -144,9 +144,7 @@ DO ig = 1, ng
     DO j = 1, nFsrInFxr
       ireg = CellInfo%MapFxr2FsrIdx(j, i)
       vol = CellInfo%vol(ireg)
-      
-      IF (vol < 1E-10) CYCLE
-      
+            
       volsum = volsum + vol
       localphi = phis(ireg, ig) * vol
       phisum = phisum + localphi
@@ -234,9 +232,7 @@ IF(lfuel) THEN
     DO j = 1, nFsrInFxr
       ireg = CellInfo%MapFxr2FsrIdx(j, i)
       vol = CellInfo%vol(ireg)
-      
-      IF (vol < 1E-10) CYCLE
-      
+            
       DO ig = 1, ng
         localphi = phis(ireg, ig) * vol * XsMac(i)%XsMacNf(ig) !Sum of fission neutron in the cell
         phisum = phisum + localphi
