@@ -22,8 +22,6 @@ TYPE(Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE(Type_HexCelRay), POINTER :: CelRay_Loc
 ! ----------------------------------------------------
 
-IF (.NOT. hCelBss(icBss)%lUse) RETURN
-
 IF (hLgc%lSngCel) THEN
   CALL HexSetAsyRay_SngCel()
   

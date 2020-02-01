@@ -1,9 +1,9 @@
 SUBROUTINE HexSetGeo()
 
-USE PARAM,   ONLY : ZERO
+USE PARAM,   ONLY : ZERO, FALSE
 USE ioutil,  ONLY : terminate
 USE geom,    ONLY : nAsyType0, Core, Asy, AsyInfo, AsyVol, PinInfo, CellInfo, Pin, nCellType, nZ, nPinType
-USE HexData, ONLY : nHexPin, nhAsy, nHexPin, RodPin
+USE HexData, ONLY : nHexPin, nhAsy, nHexPin, RodPin, hAsyTypInfo
 USE HexTst,  ONLY : HexPrintPinTyp, HexTsthPinInfo
 
 USE HexCP
@@ -16,7 +16,7 @@ USE HexNgh
 
 IMPLICIT NONE
 
-INTEGER :: iAsy, iAsyTyp, iGeoTyp, iPin, ipTyp
+INTEGER :: iAsy, iaTyp, iPin, ipTyp
 INTEGER :: FsrIdxSt, FxrIdxSt
 ! ----------------------------------------------------
 
@@ -27,12 +27,14 @@ CALL HexSetAsyBndy()
 CALL HexSetGeoTyp()
 CALL HexSetAsyLoc()
 
-DO iAsyTyp = 1, nAsyType0
-  CALL HexSetAsyTypPinMap(iAsyTyp)
-  CALL HexSetAsyTypPinLocIdx(iAsyTyp)
-  CALL HexSetAsyTypVtxTyp(iAsyTyp)
-  CALL HexSetAsyTypPinVtx(iAsyTyp)
-  CALL HexSetAsyTypPinNgh(iAsyTyp)
+DO iaTyp = 1, nAsyType0
+  IF (.NOT. hAsyTypInfo(iaTyp)%luse) CYCLE
+  
+  CALL HexSetAsyTypPinMap(iaTyp)
+  CALL HexSetAsyTypPinLocIdx(iaTyp)
+  CALL HexSetAsyTypVtxTyp(iaTyp)
+  CALL HexSetAsyTypPinVtx(iaTyp)
+  CALL HexSetAsyTypPinNgh(iaTyp)
 END DO
 
 DO iAsy = 1, nhAsy
@@ -48,9 +50,9 @@ CALL HexSetCore()
 ! ----------------------------------------------------
 !                3. SET : Pin & Msh
 ! ----------------------------------------------------
-ALLOCATE (Core%lFuelPlane        (nz)); Core%lFuelPlane = .FALSE.
-ALLOCATE (Core%lCladPlane        (nz)); Core%lCladPlane = .FALSE.
-ALLOCATE (Core% lAICPlane        (nz)); Core% lAICPlane = .FALSE.
+ALLOCATE (Core%lFuelPlane        (nz)); Core%lFuelPlane = FALSE
+ALLOCATE (Core%lCladPlane        (nz)); Core%lCladPlane = FALSE
+ALLOCATE (Core% lAICPlane        (nz)); Core% lAICPlane = FALSE
 ALLOCATE (Core%PinVol   (nHexPin, nZ)); Core%PinVol     = ZERO
 ALLOCATE (Core%PinVolFm (nHexPin, nZ)); Core%PinVolFm   = ZERO
 

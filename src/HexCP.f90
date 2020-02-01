@@ -48,19 +48,24 @@ TYPE(Type_HexGapCelBss), POINTER :: gBs_Loc
 nInf = pnRod * nCellType + pnGap * nGapType
 
 IF (hLgc%lVyg) nInf = nInf + pnGap ! Need to add
+
 IF (hLgc%lSngCel) THEN
-  nInf = 1
-  lSkip = TRUE
+  nInf     = pnRod * nCellType
+  lSkip    = TRUE
   lSkip(3) = FALSE
 END IF
 
 ALLOCATE (CellInfo (nInf))
+
+DO iCel = 1, nInf
+  CellInfo(iCel)%luse = FALSE
+END DO
 ! ----------------------------------------------------
 !               01. SET : Rod Cel
 ! ----------------------------------------------------
-jCel = 0
-
 DO iCel = 1, nCellType
+  IF (.NOT. hCel(iCel)%luse) CYCLE
+  
   cBs_Loc => hCelBss(hCel(iCel)%icBss)
   
   nSct = cBs_Loc%nSct
@@ -70,7 +75,7 @@ DO iCel = 1, nCellType
   DO iDir = 1, pnRod
     IF (lSkip(iDir)) CYCLE
     
-    jCel = jCel + 1
+    jCel = (iCel - 1) * pnRod + iDir
     
     Cel_Loc => CellInfo(jCel)
     
@@ -83,8 +88,8 @@ DO iCel = 1, nCellType
     ALLOCATE (Cel_Loc%iReg          (nSub * nFSRinSub))
     ALLOCATE (Cel_Loc%MapFxr2FsrIdx (nFSRinSub, nSub))
     
-    Cel_Loc%lempty    = .FALSE.
-    Cel_Loc%lrect     = .FALSE.
+    Cel_Loc%luse      = TRUE
+    Cel_Loc%lrect     = FALSE
     Cel_Loc%nFSR      = nSub * nFSRinSub
     Cel_Loc%nFXR      = nSub
     Cel_Loc%icel0     = jcel
@@ -128,13 +133,15 @@ END DO
 !               02. SET : Gap Cel
 ! ----------------------------------------------------
 DO iCel = 1, nGapType
+  IF (.NOT. gCel(iCel)%luse) CYCLE
+  
   gBs_Loc => gCelBss(gCel(iCel)%igBss)
   
   nSub = gBs_Loc%nSub
   nFXR = gBs_Loc%nFXR
   ! ----------------------------
   DO iDir = 1, pnGap
-    jCel = jCel + 1
+    jCel = nCellType * pnRod + (iCel - 1) * pnGap + iDir
     
     Cel_Loc => CellInfo(jCel)
     
@@ -148,7 +155,7 @@ DO iCel = 1, nGapType
     ALLOCATE (Cel_Loc%nFSRinFXR     (nSub))
     ALLOCATE (Cel_Loc%MapFxr2FsrIdx (nFSRinSub, nSub))
     
-    Cel_Loc%lempty       = FALSE
+    Cel_Loc%luse         = TRUE
     Cel_Loc%lrect        = FALSE
     Cel_Loc%nFXR         = nSub
     Cel_Loc%nFSR         = nFSRinSub * nSub
@@ -182,24 +189,25 @@ END DO
 !               04. SET : LOGICAL
 ! ----------------------------------------------------
 DO iCel = 1, nInf
+  IF (.NOT. CellInfo(iCel)%luse) CYCLE
+  
   Cel_Loc => CellInfo(iCel)
   
   DO iFSR = 1, Cel_Loc%nFSR
     iReg = Cel_Loc%iReg(iFSR)
     
     IF(nTracerCntl%lXsLib) THEN
-      Cel_Loc%lfuel = Cel_Loc%lfuel .or. Mixture(iReg)%lfuel
-      Cel_Loc%lres  = Cel_Loc%lres  .or. Mixture(iReg)%lres
-      Cel_Loc%lGd   = Cel_Loc%lGd   .or. Mixture(iReg)%lGd
-      Cel_Loc%lMOX  = Cel_Loc%lMOX  .or. Mixture(iReg)%lMOX
-      Cel_Loc%lAIC  = Cel_Loc%lAIC  .or. Mixture(iReg)%lAIC
-      Cel_Loc%lsSPH = Cel_Loc%lfuel .or. Cel_Loc%lAIC
+      Cel_Loc%lfuel = Cel_Loc%lfuel .OR. Mixture(iReg)%lfuel
+      Cel_Loc%lres  = Cel_Loc%lres  .OR. Mixture(iReg)%lres
+      Cel_Loc%lGd   = Cel_Loc%lGd   .OR. Mixture(iReg)%lGd
+      Cel_Loc%lMOX  = Cel_Loc%lMOX  .OR. Mixture(iReg)%lMOX
+      Cel_Loc%lAIC  = Cel_Loc%lAIC  .OR. Mixture(iReg)%lAIC
+      Cel_Loc%lsSPH = Cel_Loc%lfuel .OR. Cel_Loc%lAIC
     ELSE
-      Cel_Loc%lfuel = Cel_Loc%lfuel .or. MacXsBen(iReg)%lfuel
-      Cel_Loc%lCR   = Cel_Loc%lCR   .or. MacXsBen(iReg)%lCR
+      Cel_Loc%lfuel = Cel_Loc%lfuel .OR. MacXsBen(iReg)%lfuel
+      Cel_Loc%lCR   = Cel_Loc%lCR   .OR. MacXsBen(iReg)%lCR
     END IF
   END DO
-  ! ----------------------------
 END DO
 ! ----------------------------------------------------
 !               05. SET : SSPH Data
@@ -210,9 +218,9 @@ END DO
 ! ----------------------------------------------------
 !               06. REMEDY : Vol
 ! ----------------------------------------------------
-jCel = 0
-
 DO iCel = 1, nCellType
+  IF (.NOT. hCel(iCel)%luse) CYCLE
+  
   cBs_Loc => hCelBss(hCel(iCel)%icBss)
   
   nSct = cBs_Loc%nSct
@@ -222,7 +230,7 @@ DO iCel = 1, nCellType
   DO iDir = 1, pnRod
     IF (lSkip(iDir)) CYCLE
     
-    jCel = jCel + 1
+    jCel = (iCel - 1) * pnRod + iDir
     
     Cel_Loc => CellInfo(jCel)
     
@@ -525,7 +533,7 @@ USE HexData, ONLY : hPinInfo, RodPin, GapPin, hCel, hAsyTypInfo, hLgc
 
 IMPLICIT NONE
 
-INTEGER :: iz, iPin, ipTyp, ivTyp, iCel, iAsyTyp
+INTEGER :: iz, iPin, ipTyp, ivTyp, iCel, iaTyp
 INTEGER :: nC
 
 TYPE(pin_type),        POINTER :: Pin_Loc
@@ -594,8 +602,9 @@ DO iz = 1, Core%nz
   Pin(iPin)%lMox(iz) = CellInfo(icel)%lMox
 END DO
 
-iAsyTyp = hPinInfo(iPin)%AsyTyp
-AsyInfo(iAsyTyp)%lFuel = AsyInfo(iAsyTyp)%lFuel .OR. Pin(iPin)%lfuel
+iaTyp = hPinInfo(iPin)%AsyTyp
+
+AsyInfo(iaTyp)%lFuel = AsyInfo(iaTyp)%lFuel .OR. Pin(iPin)%lfuel
 
 NULLIFY (Pin_Loc, Inf_Loc)
 ! ----------------------------------------------------

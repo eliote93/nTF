@@ -22,7 +22,7 @@ USE BenchXs,      ONLY : nXslType
 
 IMPLICIT NONE
 
-INTEGER :: iAsyTyp, iCel, iPin, ix, iy, iz, iBss, jBss, iFXR, nTmp, nPin, nMix
+INTEGER :: iaTyp, iCel, iPin, ix, iy, iz, iBss, jBss, iFXR, nTmp, nPin, nMix
 REAL    :: pF2F, aiF2F
 
 REAL, PARAMETER :: rSq3 = 0.577350269189626_8
@@ -32,14 +32,13 @@ TYPE(Type_HexGapCel),     POINTER :: gCel_Loc
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 ! ----------------------------------------------------
 
-IF (hLgc%lSngCel .AND. (nCellType > 1)) CALL terminate("MULTIPLE CELL TYPES FOR A SINGLE CELL PROBLEM")
 IF (hLgc%lSngCel .AND. nTracerCntl%lCMFD) CALL terminate("SINGLE CELL CMFD IS NOT AVAILABLE")
 IF (hLgc%lSngCel .AND. (.NOT. (nZ .EQ. 1))) CALL terminate("3-D SINGLE CELL PROBLEM IS NOT AVAILABLE")
 IF (hLgc%lSngCel) RETURN
 ! ----------------------------------------------------
 !               01. Core
 ! ----------------------------------------------------
-IF ((nVA > 0).AND.(hLgc%lRadRef)) CALL terminate("VOID ASY SHOULD NOT EXIST IN RADIAL REF")
+IF ((nVA > 0) .AND. hLgc%lRadRef) CALL terminate("VOID ASY SHOULD NOT EXIST IN RADIAL REF")
 
 IF (hLgc%l360) THEN
   nTmp = nhAsy - (3 * nAsyCore * (nAsyCore - 1) + 1 - nVA)
@@ -51,8 +50,8 @@ IF (nTmp .NE. 0) CALL terminate("RAD CONF ASY INP")
 ! ----------------------------------------------------
 !               02. Asy
 ! ----------------------------------------------------
-DO iAsyTyp = 1, nAsyType0
-  aInf_Loc => hAsyTypInfo(iAsyTyp)
+DO iaTyp = 1, nAsyType0
+  aInf_Loc => hAsyTypInfo(iaTyp)
   
   nPin  = aInf_Loc%nPin
   pF2F  = aInf_Loc%pF2F
@@ -104,7 +103,7 @@ END DO
 ! ----------------------------------------------------
 !               04. Rod Cel
 ! ----------------------------------------------------
-IF (nCellType .EQ. 0) CALL terminate("CELL DOES NOT EXIST")
+IF (nCellType .EQ. 0) CALL terminate("CEL DOES NOT EXIST")
 
 IF (nTracerCntl%lXsLib) THEN
   nMix = nMixType
@@ -176,16 +175,14 @@ USE HexData, ONLY : ncBss, hCelBss, ngBss, gCelBss, hCel, gCel, RodPin, GapPin
 
 IMPLICIT NONE
 
-INTEGER :: iAsyTyp, iCel, iBss, jBss, iCB, jCB, iPin, iZ
-REAL    :: pF2F, pF2FHlf, iF2F, Tmp
+INTEGER :: iCel, iBss, jBss, iCB, jCB, iPin, iZ
+REAL    :: pF2F, pF2FHlf, Tmp
 ! ----------------------------------------------------
 
 ! ----------------------------------------------------
 !               01. CHK : Rod Cel Bss
 ! ----------------------------------------------------
 DO iCel = 1, ncBss
-  IF (.NOT.(hCelBss(iCel)%luse)) CYCLE
-  
   pF2FHlf = hCelBss(iCel)%pF2F * 0.5_8
     
   Tmp = 3 * (hCelBss(iCel)%nPin - 1) * hCelBss(iCel)%pPch

@@ -13,76 +13,61 @@ USE HexData, ONLY : hCel, hCelBss, ncBss, RodPin, Sq3, Sq3Inv
 
 IMPLICIT NONE
 
-INTEGER :: iCel, jCel, iPin, iz, nUse
-LOGICAL :: lBss
+INTEGER :: iCel, jCel, kCel, iPin, iz
+LOGICAL :: lNewBss
 ! ----------------------------------------------------
-
-! ----------------------------------------------------
-!               01. REMOVE : Un-used 
-! ----------------------------------------------------
-nUse = 0
-
-DO iCel = 1, nCellType
-  IF (.NOT. hCel(iCel)%luse) THEN
-    DO iPin = 1, nPinType
-      DO iz = 1, nZ
-        IF (RodPin(iPin)%iCel(iz) .EQ. iCel) RodPin(iPin)%iCel(iz) = -1
-      END DO
-    END DO
-    
-    CYCLE
-  END IF
-  
-  nUse = nUse + 1
-  
-  hCel(nUse) = hCel(iCel)
-  
-  DO iPin = 1, nPinType
-    DO iz = 1, nZ
-      IF (RodPin(iPin)%iCel(iz) .EQ. iCel) RodPin(iPin)%iCel(iz) = nUse
-    END DO
-  END DO
-END DO
-
-nCellType = nUse
 
 ALLOCATE (hCelBss (nCellType))
 ! ----------------------------------------------------
-!               02. SET : 1st Cel Geo Basis
+!               01. SET : 1st Cel Geo Basis
 ! ----------------------------------------------------
-IF (.NOT. hCel(1)%luse) CALL terminate("1ST ROD CEL MUST BE USED")
+DO iCel = 1, nCellType
+  IF (.NOT. hCel(iCel)%luse) CYCLE
+  
+  CALL HexPushRodCelBss(hCelBss(1), hCel(iCel), 1, iCel)
+  
+  EXIT
+END DO
 
-CALL HexPushRodCelBss(hCelBss(1), hCel(1), 1, 1)
+IF (hCelBss(1)%nCel .EQ. 0) CALL terminate("NONE OF ROD CEL TYPE IS USED")
 ! ----------------------------------------------------
-!               03. FIND : Nxt Cel Geo Basis
+!               02. FIND : Nxt Cel Geo Basis
 ! ----------------------------------------------------
 ncBss = 1
 
-DO iCel = 2, nCellType
-  lBss = TRUE
+DO iCel = 1, nCellType
+  IF (.NOT. hCel(iCel)%luse) CYCLE
+  
+  lNewBss = TRUE
   
   DO jCel = 1, ncBss
-    lBss = HexCompNewRodBss(hCelBss(jCel), hCel(iCel))
+    lNewBss = HexCompNewRodBss(hCelBss(jCel), hCel(iCel))
     
-    IF (.NOT. lBss) THEN
-      hCel(iCel)%icBss = jCel
-      
-      hCelBss(jCel)%nCel = hCelBss(jCel)%nCel + 1
-      
-      hCelBss(jCel)%iCel(hCelBss(jCel)%nCel) = iCel
-      
-      EXIT
-    END IF
+    IF (lNewBss) CYCLE
+    
+    DO kCel = 1, hCelBss(jCel)%nCel
+      IF (iCel .EQ. hCelBss(jCel)%iCel(kCel)) EXIT
+    END DO
+    
+    IF (kCel .LE. hCelBss(jCel)%nCel) CYCLE
+    
+    hCel(iCel)%icBss = jCel
+    
+    hCelBss(jCel)%nCel = hCelBss(jCel)%nCel + 1
+    
+    hCelBss(jCel)%iCel(hCelBss(jCel)%nCel) = iCel
+    
+    EXIT
   END DO
   
-  IF (.NOT. lBss) CYCLE
+  IF (.NOT. lNewBss) CYCLE
   
   ncBss = ncBss + 1
   
   CALL HexPushRodCelBss(hCelBss(ncBss), hCel(iCel), ncBss, iCel)
 END DO
 ! ----------------------------------------------------
-!               04. SET : Inn Sub Ring DATA
+!               03. SET : Inn Sub Ring DATA
 ! ----------------------------------------------------
 DO iCel = 1, ncBss
   CALL HexSetRodBssSubRng_Inn (iCel)
@@ -108,7 +93,7 @@ TYPE(Type_HexRodCel)    :: hhCel
 
 INTEGER :: iB, iC
 INTEGER :: iFXR
-! ------------------------
+! ----------------------------------------------------
 
 hhCelBss%nFXR = hhCel%nFXR
 hhCelBss%nPin = hhCel%nPin
@@ -138,8 +123,7 @@ ALLOCATE (hhCelBss%sVol (0:2, hhCelBss%nSct, hhCelBss%nSub))
 
 hhCelBss%sRad = ZERO
 hhCelBss%sVol = ZERO
-
-hhCelBss%luse = hhCelBss%luse .OR. hhCel%luse
+! ----------------------------------------------------
 
 END SUBROUTINE HexPushRodCelBss
 ! ------------------------------------------------------------------------------------------------------------
@@ -158,7 +142,7 @@ TYPE(Type_HexRodCel)    :: hhCel
 INTEGER :: iFXR
 LOGICAL :: l01, l02
 LOGICAL :: HexCompNewRodBss
-! ------------------------
+! ----------------------------------------------------
 
 HexCompNewRodBss = TRUE
 
@@ -191,6 +175,7 @@ IF (l01.OR.l02) THEN
 END IF
 
 HexCompNewRodBss = FALSE
+! ----------------------------------------------------
 
 END FUNCTION HexCompNewRodBss
 ! ------------------------------------------------------------------------------------------------------------

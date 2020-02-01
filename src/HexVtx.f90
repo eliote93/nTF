@@ -421,15 +421,22 @@ END SUBROUTINE HexSetAsyTypPinVtx
 SUBROUTINE HexSetSngCelVtx()
 
 USE PARAM,   ONLY : ZERO, HALF
+USE geom,    ONLY : nAsyType0
 USE HexType, ONLY : Type_HexAsyTypInfo
 USE HexData, ONLY : hAsyTypInfo, AsyVtx
 
 IMPLICIT NONE
 
+INTEGER :: iaTyp
+
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 ! ----------------------------------------------------
 
-aInf_Loc => hAsyTypInfo(1)
+DO iaTyp = 1, nAsyType0
+  IF (hAsyTypInfo(iaTyp)%luse) EXIT
+END DO
+
+aInf_Loc => hAsyTypInfo(iaTyp) ! # of used haTyp must be 1 for Sng Cel
 
 ALLOCATE (aInf_Loc%PinVtxTyp (1, 1))
 ALLOCATE (aInf_Loc%PinVtxAng (1, 1))

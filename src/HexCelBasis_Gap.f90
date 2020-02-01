@@ -13,8 +13,8 @@ USE ioutil,  ONLY : terminate
 USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss
 USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss
 
-INTEGER :: igCel, jgCel, igBss, iMsh
-LOGICAL :: lBss
+INTEGER :: igCel, jgCel, kgCel, igBss, iMsh
+LOGICAL :: lNewBss
 ! ----------------------------------------------------
 
 IF (hLgc%lSngCel) RETURN
@@ -23,21 +23,35 @@ ALLOCATE (gCelBss (nGapType))
 ! ----------------------------------------------------
 !               01. SET : 1st Cel Geo Basis
 ! ----------------------------------------------------
-IF (.NOT. gCel(1)%luse) CALL terminate("1ST ROD CEL MUST BE USED")
+DO igCel = 1, nGapType
+  IF (.NOT. gCel(igCel)%luse) CYCLE
+  
+  CALL HexPushGapCelBss(gCelBss(1), gCel(igCel), 1, igCel)
+  
+  EXIT
+END DO
 
-CALL HexPushGapCelBss(gCelBss(1), gCel(1), 1, 1)
+IF (gCelBss(1)%nCel .EQ. 0) CALL terminate("NONE OF GAP CEL TYPE IS USED")
 ! ----------------------------------------------------
 !               02. FIND : Nxt Cel Geo Basis
 ! ----------------------------------------------------
 ngBss = 1
 
-DO igCel = 2, nGapType
+DO igCel = 1, nGapType
+  IF (.NOT. gCel(igCel)%luse) CYCLE
+  
   lBss = TRUE
   
   DO jgCel = 1, ngBss
-    lBss = HexCompNewGapBss(gCelBss(jgCel), gCel(igCel))
+    lNewBss = HexCompNewGapBss(gCelBss(jgCel), gCel(igCel))
     
-    IF (lBss) CYCLE
+    IF (lNewBss) CYCLE
+    
+    DO kgCel = 1, gCelBss(jgCel)%nCel
+      IF (igCel .EQ. gCelBss(jgCel)%iCel(kgCel)) EXIT
+    END DO
+    
+    IF (igCel .LE. gCelBss(jgCel)%nCel) CYCLE
     
     gCel(igCel)%igBss = jgCel
     
@@ -48,7 +62,7 @@ DO igCel = 2, nGapType
     EXIT
   END DO
   
-  IF (.NOT. lBss) CYCLE
+  IF (.NOT. lNewBss) CYCLE
   
   ngBss = ngBss + 1
   
@@ -82,7 +96,6 @@ INTEGER :: iB, iG
 
 ggCel%igBss = iB
 
-ggCelBss%luse = ggCelBss%luse .OR. ggCel%luse
 ggCelBss%nPin = ggCel%nPin
 ggCelBss%nSub = sum(ggCel%xDiv(1:ggCel%nFXR))
 ggCelBss%nFXR = ggCel%nFXR
@@ -173,11 +186,11 @@ Del = pF2F / nHor
 DO iMsh = 1, nHor
   Tmp = Tmp + Del
   
-  IF (Tmp > Lgh) THEN
-    HexCalNumVtxHor = iMsh
-    
-    EXIT
-  END IF
+  IF (.NOT.(Tmp > Lgh)) CYCLE
+  
+  HexCalNumVtxHor = iMsh
+  
+  EXIT
 END DO
 ! ----------------------------------------------------
 

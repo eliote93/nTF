@@ -37,7 +37,7 @@ END TYPE Type_HexRodCel
 TYPE Type_HexRodCelBss
   SEQUENCE
   
-  LOGICAL :: luse = FALSE
+  !LOGICAL :: luse = TRUE ! Set only for used cel type
   
   INTEGER :: igBss = 0 ! Numeric # of Gap Cel Basis
   INTEGER :: iaTyp = 0 ! Numeric # of Gap Cel Basis
@@ -90,7 +90,7 @@ END TYPE Type_HexGapCel
 TYPE Type_HexGapCelBss
   SEQUENCE
   
-  LOGICAL :: luse = FALSE
+  !LOGICAL :: luse = TRUE ! Set only for used cel type
   
   INTEGER :: nPin = 0 ! # of Pins along Asy Side
   INTEGER :: nSub = 0 ! # of Sub-rings
