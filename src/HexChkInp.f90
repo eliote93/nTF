@@ -53,6 +53,8 @@ IF (nTmp .NE. 0) CALL terminate("RAD CONF ASY INP")
 DO iaTyp = 1, nAsyType0
   aInf_Loc => hAsyTypInfo(iaTyp)
   
+  IF (.NOT. aInf_Loc%luse) CYCLE
+  
   nPin  = aInf_Loc%nPin
   pF2F  = aInf_Loc%pF2F
   aiF2F = aInf_Loc%aiF2F
@@ -91,12 +93,18 @@ END DO
 ! ----------------------------------------------------
 !               03. PIN
 ! ----------------------------------------------------
-DO iz = 1, nZ
-  DO iPin = 1, nPinType
+DO iPin = 1, nPinType
+  IF (.NOT. RodPin(iPin)%luse) CYCLE
+  
+  DO iz = 1, nZ
     CALL HexChkRange_INT(RodPin(iPin)%iCel(iz), 1, nCellType, "ROD PIN")
   END DO
+END DO
+
+DO iPin = 1, nGapType
+  IF (.NOT. GapPin(iPin)%luse) CYCLE
   
-  DO iPin = 1, nGapType
+  DO iz = 1, nZ
     CALL HexChkRange_INT(GapPin(iPin)%iCel(iz), 1, nGapType, "GAP PIN")
   END DO
 END DO
@@ -114,7 +122,9 @@ END IF
 DO iCel = 1, nCellType
   hCel_Loc => hCel(iCel)
   
-  IF (hCel_Loc%luse) CALL HexChkRange_INT(hCel_Loc%nPin, 2, 20, "# OF PIN")
+  IF (.NOT. hCel_Loc%luse) CYCLE
+  
+  CALL HexChkRange_INT(hCel_Loc%nPin, 2, 20, "# OF PIN")
   
   DO iFXR = 1, hCel_Loc%nFXR
     CALL HexChkRange_INT(hCel_Loc%xMix(iFXR), 1, nMix, "ROD CEL MIXTURE")
@@ -135,6 +145,8 @@ IF (nGapType .EQ. 0) CALL terminate("GAP DOES NOT EXIST")
 
 DO iCel = 1, nGapType
   gCel_Loc => gCel(iCel)
+  
+  IF (.NOT. gCel_Loc%luse) CYCLE
   
   DO iFXR = 1, gCel_Loc%nFXR
     CALL HexChkRange_INT(gCel_Loc%xMix(iFXR), 1, nMix, "GAP CEL MIXTURE")
@@ -176,17 +188,15 @@ USE HexData, ONLY : ncBss, hCelBss, ngBss, gCelBss, hCel, gCel, RodPin, GapPin
 IMPLICIT NONE
 
 INTEGER :: iCel, iBss, jBss, iCB, jCB, iPin, iZ
-REAL    :: pF2F, pF2FHlf, Tmp
+REAL    :: Tmp
 ! ----------------------------------------------------
 
 ! ----------------------------------------------------
 !               01. CHK : Rod Cel Bss
 ! ----------------------------------------------------
 DO iCel = 1, ncBss
-  pF2FHlf = hCelBss(iCel)%pF2F * 0.5_8
-    
-  Tmp = 3 * (hCelBss(iCel)%nPin - 1) * hCelBss(iCel)%pPch
-  Tmp = Tmp + 2 * hCelBss(iCel)%sRad(hCelBss(iCel)%nSub-1)
+  Tmp = 3 * (hCelBss(iCel)%nPin - 1) * hCelBss(iCel)%pPch &
+      + 2 * hCelBss(iCel)%sRad(hCelBss(iCel)%nSub-1)
   
   CALL HexChkInc_REAL(Tmp, hCelBss(iCel)%aiF2F, "RAD EXCEEDS ASY F2F INN")
 END DO

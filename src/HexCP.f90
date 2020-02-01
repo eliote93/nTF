@@ -189,9 +189,9 @@ END DO
 !               04. SET : LOGICAL
 ! ----------------------------------------------------
 DO iCel = 1, nInf
-  IF (.NOT. CellInfo(iCel)%luse) CYCLE
-  
   Cel_Loc => CellInfo(iCel)
+  
+  IF (.NOT. Cel_Loc%luse) CYCLE
   
   DO iFSR = 1, Cel_Loc%nFSR
     iReg = Cel_Loc%iReg(iFSR)
@@ -275,7 +275,6 @@ INTEGER :: icTyp, jCel, iFXR, jFXR, iDir, iReg, i, j, k
 INTEGER :: nFXR, nmat, nreg, nFuelDiv, nfDiv, ibFuel, ieFuel
 INTEGER :: ndiv(0:300), iRg(0:300)
 INTEGER :: imat(100), idiv(100)
-LOGICAL :: lSkip(6) = FALSE
 
 REAL :: vol, vol_
 REAL :: rr(300), irad(0:100)
@@ -285,13 +284,15 @@ TYPE(Type_HexRodCel),    POINTER :: hCl_Loc
 TYPE(Type_HexRodCelBss), POINTER :: cBs_Loc
 ! ----------------------------------------------------
 
-IF (hLgc%lSngCel) lSkip(2:6) = TRUE
+IF (.NOT. hCel(icTyp)%luse) RETURN
 
 hCl_Loc => hCel(icTyp)
 cBs_Loc => hCelBss(hCel(icTyp)%icBss)
 
 jCel = pnRod * (icTyp - 1) + 1
 nFXR = cBs_Loc%nFXR
+
+IF (hLgc%lSngCel) jCel = pnRod * (icTyp - 1) + 3
 ! ----------------------------------------------------
 !               01. SET : INP Data
 ! ----------------------------------------------------
@@ -344,7 +345,7 @@ END DO
 !               02. CP : INP Data
 ! ----------------------------------------------------
 Cel_Loc => CellInfo(jCel)
-  
+
 Cel_Loc%nmat = nmat
 
 ALLOCATE (Cel_Loc%matidx (nmat))
@@ -463,15 +464,15 @@ END IF
 !               04. CP : Cell Info
 ! ----------------------------------------------------
 DO iDir = 2, pnRod
-  IF (lSkip(iDir)) CYCLE
+  Cel_CP => CellInfo(pnRod * (icTyp - 1) + iDir)
   
-  Cel_CP => CellInfo(jCel + iDir - 1)
+  IF (.NOT. CeL_CP%luse) CYCLE
   
   ALLOCATE (Cel_CP%matidx (nmat))
   ALLOCATE (Cel_CP%matrad (nmat))
   ALLOCATE (Cel_CP%rad_cp (nreg))
   ALLOCATE (Cel_CP%fxrvol (nreg))
-
+  
   Cel_CP%nmat     = Cel_Loc%nmat
   Cel_CP%matidx   = Cel_Loc%matidx
   Cel_CP%matrad   = Cel_Loc%matrad
@@ -506,14 +507,16 @@ DO k = ibFuel, ieFuel, -1
 END DO
 
 DO iDir = 1, pnRod
-  IF (lSkip(iDir)) CYCLE
+  jCel = pnRod * (icTyp - 1) + iDir
+  
+  IF (.NOT. CellInfo(jCel)%luse) CYCLE
   
   nfDiv = nfueldiv
   
   IF (CellInfo(jCel)%lAIC) THEN
-    CALL calcAICCellSSPH(CellInfo, jcel + iDir - 1, nFXR - 1, iRg, rr, ndiv, iFXR - 1, nfDiv)
+    CALL calcAICCellSSPH(CellInfo, jcel, nFXR - 1, iRg, rr, ndiv, iFXR - 1, nfDiv)
   ELSE
-    CALL calcCellSSPH   (CellInfo, jcel + iDir - 1, nFXR - 1, iRg, rr, ndiv, ibFuel, ieFuel, nfDiv, Cel_Loc%lhole)
+    CALL calcCellSSPH   (CellInfo, jcel, nFXR - 1, iRg, rr, ndiv, ibFuel, ieFuel, nfDiv, Cel_Loc%lhole)
   END IF
 END DO
 
@@ -584,7 +587,13 @@ DO iz = 1, nZ
   END IF
 END DO
 
-IF (hLgc%lSngCel) Pin_Loc%Cell = 1
+IF (hLgc%lSngCel) THEN
+  DO iCel = 1, nCellType
+    IF (hCel(iCel)%luse) EXIT
+  END DO
+  
+  Pin_Loc%Cell = (iCel - 1) * pnRod + 3 ! # of used hCel must be 1 for Sng Cel
+END IF
 ! ----------------------------------------------------
 !               03. SET : LOGICAL
 ! ----------------------------------------------------
@@ -596,8 +605,8 @@ DO iz = 1, Core%nz
   Core%lFuelPlane(iz) =  Core%lFuelPlane(iz) .OR. CellInfo(icel)%lfuel
   Core% lAICPlane(iz) =  Core% lAICPlane(iz) .OR. CellInfo(icel)%lAIC
   
-  Pin(iPin)%lfuel = Pin(iPin)%lfuel .or. CellInfo(icel)%lfuel
-  Pin(iPin)%lGd   = Pin(iPin)%lGd   .or. CellInfo(icel)%lGd
+  Pin(iPin)%lfuel = Pin(iPin)%lfuel .OR. CellInfo(icel)%lfuel
+  Pin(iPin)%lGd   = Pin(iPin)%lGd   .OR. CellInfo(icel)%lGd
   
   Pin(iPin)%lMox(iz) = CellInfo(icel)%lMox
 END DO

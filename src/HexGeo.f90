@@ -87,6 +87,8 @@ END DO
 !                5. FIN : Core
 ! ----------------------------------------------------
 DO ipTyp = 1, nPinType
+  IF (.NOT. RodPin(ipTyp)%luse) CYCLE
+  
   PinInfo(ipTyp)%nFsrMax = RodPin(ipTyp)%nFsrMax
 END DO
 

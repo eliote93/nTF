@@ -655,7 +655,7 @@ ALLOCATE (Core%Pin(1)%BdLength        (6))
 
 Core%Pin(1)%NeighIdx        = -1
 Core%Pin(1)%NeighSurfIdx    = -1
-Core%Pin(1)%Center2SurfaceL = hCelBss(1)%pF2F * HALF
+Core%Pin(1)%Center2SurfaceL = hCelBss(1)%pF2F * HALF ! # of hCelBss must be 1 for Sng Cel
 Core%Pin(1)%BdLength        = hCelBss(1)%pPch
 
 END SUBROUTINE HexSetHcPin_Sng

@@ -1,8 +1,7 @@
 SUBROUTINE HexConnCelBss()
 
-
 USE PARAM,   ONLY : epsm7, TRUE, FALSE
-USE geom,    ONLY : nGapType, nAsyType0
+USE geom,    ONLY : nAsyType0
 USE ioutil,  ONLY : terminate
 USE HexType, ONLY : Type_HexGapCelBss
 USE HexData, ONLY : hCelBss, gCelBss, gCel, ncBss, ngBss, hAsyTypInfo, hLgc
