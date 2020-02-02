@@ -470,10 +470,10 @@ IF (nSpt .EQ. 1) THEN
   
   ALLOCATE (aInf_Loc%PinIdx (1, 1))
   
-  aInf_Loc%PinIdx = 1
-  aInf_Loc%pF2F   = hCel(1)%pF2F
-  aInf_Loc%pPch   = hCel(1)%pF2F * Sq3Inv
-  aInf_Loc%aiF2F  = hCel(1)%pF2F
+  aInf_Loc%PinIdx = ii(1)
+  aInf_Loc%pF2F   = hCel(ii(1))%pF2F
+  aInf_Loc%pPch   = hCel(ii(1))%pF2F * Sq3Inv
+  aInf_Loc%aiF2F  = hCel(ii(1))%pF2F
     
   RETURN
 END IF
