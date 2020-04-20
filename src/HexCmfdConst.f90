@@ -12,17 +12,28 @@ SUBROUTINE HexSetHcPin()
 
 USE HexData, ONLY : hLgc
 
+USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexCmfdPin
+USE HexData, ONLY : nhAsy, hAsy, hAsyTypInfo, nHexPin, hcPin, hPinInfo, spTypNumNgh, nhcPin
+USE HexUtil, ONLY : SetEqn, FindCnt
+
 IMPLICIT NONE
 ! ----------------------------------------------------
 
+! CASE : Sng Cel
 IF (hLgc%lSngCel) THEN
-  CALL HexSetHcPin_Sng(); RETURN
-ELSE IF (hLgc%lspCMFD) THEN
+  CALL HexSetHcPin_Sng()
+  
+  RETURN
+END IF
+
+! SET : hcPin Self
+IF (hLgc%lspCMFD) THEN
   CALL HexSetHcPinSlf_SP()
 ELSE
   CALL HexSetHcPinSlf_MP()
 END IF
 
+!  SET : hcPin Ngh
 CALL HexSetHcPinNgh()
 ! ----------------------------------------------------
 
@@ -76,6 +87,8 @@ DO iAsy = 1, nhAsy
   cpSufMPidx => aInf_Loc%cpSufMPidx
   cpSufMPsuf => aInf_Loc%cpSufMPsuf
   
+  !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin)
+  !$OMP DO SCHEDULE(GUIDED)
   DO iPin = 1, hAsy(iAsy)%nRodPin
     jPin  = iPin + hAsy(iAsy)%PinIdxSt - 1  ! Global Pin Idx
     kPin  = hPinInfo(jPin)%OrdInAsy01       ! Pin Idx in "hAsyTypInfo"
@@ -123,6 +136,8 @@ DO iAsy = 1, nhAsy
       END DO
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 END DO
 
 NULLIFY (PinMap, cpSufMPnum, cpSlfMPnum, cpSlfMPidx, cpSufMPidx, cpSufMPsuf, aInf_Loc, cPin_Loc)
@@ -171,6 +186,8 @@ DO iAsy = 1, nhAsy
   cpSufMPidx => aInf_Loc%cpSufMPidx
   cpSufMPsuf => aInf_Loc%cpSufMPsuf
   
+  !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin)
+  !$OMP DO SCHEDULE(GUIDED)
   DO iPin = 1, hAsy(iAsy)%nTotPin
     jPin  = iPin + hAsy(iAsy)%PinIdxSt - 1  ! Global Pin Idx
     kPin  = hPinInfo(jPin)%OrdInAsy01       ! Pin Idx in "hAsyTypInfo"
@@ -218,6 +235,8 @@ DO iAsy = 1, nhAsy
       END DO
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 END DO
 
 NULLIFY (PinMap, cpSufMPnum, cpSlfMPnum, cpSlfMPidx, cpSufMPidx, cpSufMPsuf, aInf_Loc, cPin_Loc)
@@ -240,13 +259,12 @@ INTEGER :: iPin, jPin, iBndy, jBndy, nNgh, iPri
 LOGICAL :: lChk, lChk01, lChk02, lChk03, lChk04, lChk05, lNgh
 REAL    :: Cnt(2), PtsSlf(2, 2), PtsNgh(2, 2), EqnSlf(3), Lgh
 
-LOGICAL, POINTER :: luse(:, :)
-
 TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc, jPin_Loc
 ! ----------------------------------------------------
 
-ALLOCATE (luse (6, nhcPin)); luse = FALSE
-
+!$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, &
+                       jPin_Loc, jBndy, PtsNgh, Lgh)
+!$OMP DO SCHEDULE(GUIDED)
 DO iPin = 1, nhcPin
   cPin_Loc => hcPin(iPin)
   
@@ -289,8 +307,6 @@ DO iPin = 1, nhcPin
       jPin_Loc => hcPin(jPin)
       
       DO jBndy = 1, jPin_Loc%nBndy
-        IF (luse(jBndy, jPin)) CYCLE
-        
         PtsNgh(1:2, 1) = jPin_Loc%BdPts(1:2, jBndy)
         PtsNgh(1:2, 2) = jPin_Loc%BdPts(1:2, jBndy+1)
         
@@ -317,8 +333,6 @@ DO iPin = 1, nhcPin
           cPin_Loc%NghBd (nNgh) = iBndy
           cPin_Loc%NghSuf(nNgh) = jBndy
           cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-          
-          luse(jBndy, jPin) = TRUE
           
           EXIT
         END IF
@@ -356,8 +370,10 @@ DO iPin = 1, nhcPin
   
   cPin_Loc%nNgh = nNgh
 END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
-NULLIFY (luse, cPin_Loc, jPin_Loc)
+NULLIFY (cPin_Loc, jPin_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPinNgh

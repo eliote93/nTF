@@ -132,7 +132,7 @@ ALLOCATE (hcRay(ncRay))
 !               03. CP : hcRay
 ! ----------------------------------------------------
 !$OMP PARALLEL PRIVATE(icRay, imRay)
-!$OMP DO
+!$OMP DO SCHEDULE(GUIDED)
 DO icRay = 1, ncRay
   hcRay(icRay)%nmRay  = hcRay_Loc(icRay)%nmRay
   hcRay(icRay)%AzmIdx = hcRay_Loc(icRay)%AzmIdx
@@ -153,8 +153,8 @@ END DO
 nMaxCellRay = 0
 nMaxRaySeg  = 0
 
-!$OMP PARALLEL PRIVATE(icRay, imRay, jmRay, iAsy, iAsyTyp, iGeoTyp, icBss, haRay_Loc, iCel, ihPin, jhPin, nSeg, iz, jcBss, tNumCel, tNumSeg)
-!$OMP DO REDUCTION(MAX:nMaxCellRay, nMaxRaySeg)
+!!$OMP PARALLEL PRIVATE(icRay, imRay, jmRay, iAsy, iAsyTyp, iGeoTyp, icBss, haRay_Loc, iCel, ihPin, jhPin, nSeg, iz, jcBss, tNumCel, tNumSeg)
+!!$OMP DO REDUCTION(MAX:nMaxCellRay, nMaxRaySeg) SCHEDULE(GUIDED)
 DO icRay = 1, ncRay
   tNumCel = 0
   tNumSeg = 0
@@ -194,8 +194,8 @@ DO icRay = 1, ncRay
   nMaxCellRay = max(nMaxCellRay, tNumCel)
   nMaxRaySeg  = max(nMaxRaySeg,  tNumSeg)
 END DO
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
 NULLIFY (hcRay_Loc, haRay_Loc)
 ! ----------------------------------------------------
@@ -240,7 +240,7 @@ ALLOCATE (tLst          (ncRay))
 lErr = FALSE
 
 !$OMP PARALLEL PRIVATE(icRay, tDir, iDir, iNum, imRay, iAsy, iGeo, jmRay, jDir, jxAsy, jyAsy, jAsy, jcRay, jNum)
-!$OMP DO
+!$OMP DO SCHEDULE (GUIDED)
 DO icRay = 1, ncRay
   DO tDir = 1, 2
     iDir = 2*tDir - 3 ! Negative : y¢Ù, Positive : y¢Ö
@@ -356,7 +356,7 @@ END IF
 ALLOCATE(hRotRay (nRotRay))
 
 !$OMP PARALLEL PRIVATE(iRotRay)
-!$OMP DO
+!$OMP DO SCHEDULE(GUIDED)
 DO iRotRay = 1, nRotRay
   hRotRay(iRotRay)%ncRay = tLst(iRotRay)%ncRay
   
