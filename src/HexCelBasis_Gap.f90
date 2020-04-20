@@ -13,7 +13,8 @@ USE geom,    ONLY : nGapType, nGapPinType
 USE ioutil,  ONLY : terminate
 
 USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss, nMaxFXR
-USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss, hLgc, vFxr, vAsyTyp, vMat, GapPin, hAsyTypInfo
+USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss, hLgc, vFxr, vAsyTyp, vMat, GapPin, hAsyTypInfo, vzSt, vzEd
+USE HexUtil, ONLY : HexChkRange_INT
 
 IMPLICIT NONE
 
@@ -25,15 +26,17 @@ IF (hLgc%lSngCel) RETURN
 
 ALLOCATE (gCelBss (nGapType))
 ! ----------------------------------------------------
-!               01. SET : vyg Cel
+!               01. SET : Vyg Gap Cel
 ! ----------------------------------------------------
 IF (hLgc%lvyg) THEN
   gCel(nGapType) = gCel(GapPin(hAsyTypInfo(vAsyTyp)%gTyp)%iCel(1)) ! iz is fixed as 1
   
+  CALL HexChkRange_INT(vFXR, 1, gCel(nGapType)%nFXR, "WRONG VFXR")
+  
   gCel(nGapType)%xMix(gCel(nGapType)%nFXR - vFXR + 1) = vMat
   gCel(nGapType)%luse = TRUE
   
-  GapPin(nGapPinType)%iCel = nGapType
+  GapPin(nGapPinType)%iCel(vzSt:vzEd) = nGapType
   GapPin(nGapPinType)%luse = TRUE
 END IF
 ! ----------------------------------------------------

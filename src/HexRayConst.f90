@@ -186,7 +186,7 @@ DO icRay = 1, ncRay
           nSeg  = max(nSeg, haRay(iGeoTyp, jcBss, jmRay)%CelRay(iCel)%nSegRay)
         END DO
       END IF
-            
+      
       tNumSeg = tNumSeg + nSeg
     END DO
   END DO

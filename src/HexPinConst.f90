@@ -209,30 +209,188 @@ END SUBROUTINE HexSetPinFSR
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetVss()
 
-USE HexData, ONLY : nHexPin, hPinInfo, hVss, nVss, hLgc
+USE PARAM,   ONLY : FALSE, TRUE
+USE geom,    ONLY : nVssTyp, nCellType, nGapType, nPinType, nGapPinType
+USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexPin
+USE HexData, ONLY : nHexPin, hPinInfo, hVss, hLgc, RodPin, GapPin, hCel, gCel
 USE HexUtil, ONLY : FindPtLgh
 
 IMPLICIT NONE
 
-INTEGER :: iPin, iVss
+INTEGER :: iPin, iVss, iTyp, iz
+INTEGER :: nhc0, ngc0, nhp0, ngp0
 
 REAL :: Lgh, Cnt(2)
+
+LOGICAL, POINTER :: lvssCel(:, :, :)
+LOGICAL, POINTER :: lvssPin(:, :, :)
+INTEGER, POINTER :: aux01(:, :, :)
+INTEGER, POINTER :: aux02(:, :, :)
+
+TYPE(Type_HexRodCel) :: thCel(nCellType * (nVssTyp+1))
+TYPE(Type_HexGapCel) :: tgCel(nGapType  * (nVssTyp+1))
+
+TYPE(Type_HexPin) :: thPin(nPinType    * (nVssTyp+1))
+TYPE(Type_HexPin) :: tgPin(nGapPinType * (nVssTyp+1))
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVss) RETURN
 
+ALLOCATE (lvssCel (nVssTyp, max(nCellType, nGapType),    2)); lvssCel = FALSE
+
+ALLOCATE (lvssPin (nVssTyp, max(nPinType,  nGapPinType), 2)); lvssPin = FAlSE
+
+ALLOCATE (aux01 (nVssTyp, max(nCellType, nGapType),    2)); aux01 = 0
+ALLOCATE (aux02 (nVssTyp, max(nPinType,  nGapPinType), 2)); aux02 = 0
+
+nhc0 = nCellType
+ngc0 = nGapType
+nhp0 = nPinType
+ngp0 = nGapPinType
+! ----------------------------------------------------
+!               01. SEARCH : Vss Cel
+! ----------------------------------------------------
 DO iPin = 1, nHexPin
-  IF (hPinInfo(iPin)%lGap) CYCLE
-  
   Cnt = hPinInfo(iPin)%Cnt
   
-  DO iVss = 1, nVss
+  DO iVss = 1, nVssTyp
     Lgh = FindPtLgh(Cnt, hVss(iVss)%Cnt)
     
     IF (Lgh < hVss(iVss)%Rad(1)) CYCLE
     IF (Lgh > hVss(iVss)%Rad(2)) CYCLE
     
-    hPinInfo(iPin)%PinTyp = hVss(iVss)%vPin
+    iTyp = hPinInfo(iPin)%PinTyp
+    
+    IF (hPinInfo(iPin)%lRod) THEN
+      lvssPin(iVss, iTyp, 1) = TRUE
+      
+      DO iz = 1, hVss(iVss)%zSt, hVss(iVss)%zEd
+        lvssCel(iVss, RodPin(iTyp)%iCel(iz), 1) = TRUE
+      END DO
+    ELSE
+      lvssPin(iVss, iTyp, 2) = TRUE
+      
+      DO iz = 1, hVss(iVss)%zSt, hVss(iVss)%zEd
+        lvssCel(iVss, GapPin(iTyp)%iCel(iz), 2) =TRUE
+      END DO
+    END IF
+  END DO
+END DO
+! ----------------------------------------------------
+!               02. SET : Vss Cel
+! ----------------------------------------------------
+DO iTyp = 1, nhc0
+  DO iVss = 1, nVssTyp
+    IF (.NOT. lvssCel(iVss, iTyp, 1)) CYCLE
+    
+    thCel(1:nCellType) = hCel(1:nCellType)
+    
+    nCellType = nCellType + 1
+    
+    NULLIFY (hCel)
+    ALLOCATE (hCel (nCellType))
+    
+    hCel(1:nCellType-1) = thCel(1:nCellType-1)
+    
+    hCel(nCellType) = hCel(iTyp)
+    
+    hCel(nCellType)%xMix(1:hCel(iTyp)%nFXR) = hVss(iVss)%vMat
+    
+    aux01(iVss, iTyp, 1) = nCellType
+  END DO
+END DO
+
+DO iTyp = 1, ngc0
+  DO iVss = 1, nVssTyp
+    IF (.NOT. lvssCel(iVss, iTyp, 2)) CYCLE
+    
+    tgCel(1:nGapType) = gCel(1:nGapType)
+    
+    nGapType = nGapType + 1
+    
+    NULLIFY (gCel)
+    ALLOCATE (gCel (nGapType))
+    
+    gCel(1:nGapType-1) = tgCel(1:nGapType-1)
+    
+    gCel(nGapType) = gCel(iTyp)
+    
+    gCel(nGapType)%xMix(1:gCel(iTyp)%nFXR) = hVss(iVss)%vMat
+    
+    aux01(iVss, iTyp, 2) = nGapType
+  END DO
+END DO
+! ----------------------------------------------------
+!               03. SET : Vss Pin
+! ----------------------------------------------------
+DO iTyp = 1, nhp0
+  DO iVss = 1, nVssTyp
+    IF (.NOT. lvssPin(iVss, iTyp, 1)) CYCLE
+    
+    thPin(1:nPinType) = RodPin(1:nPinType)
+    
+    nPinType = nPinType + 1
+    
+    NULLIFY (RodPin)
+    ALLOCATE (RodPin (nPinType))
+    
+    RodPin(1:nPinType-1) = thPin(1:nPinType-1)
+    
+    RodPin(nPinType) = RodPin(iTyp)
+    
+    DO iz = hVss(iVss)%zSt, hVss(iVss)%zEd
+      RodPin(nPinType)%iCel(iz) = aux01(iVss, RodPin(nPinType)%iCel(iz), 1)
+    END DO
+    
+    aux02(iVss, iTyp, 1) = nPinType
+  END DO
+END DO
+
+DO iTyp = 1, ngp0
+  DO iVss = 1, nVssTyp
+    IF (.NOT. lvssPin(iVss, iTyp, 2)) CYCLE
+    
+    tgPin(1:nGapPinType) = GapPin(1:nGapPinType)
+    
+    nGapPinType = nGapPinType + 1
+    
+    NULLIFY (GapPin)
+    ALLOCATE (GapPin (nGapPinType))
+    
+    GapPin(1:nGapPinType-1) = tgPin(1:nGapPinType-1)
+    
+    GapPin(nGapPinType) = GapPin(iTyp)
+    
+    DO iz = hVss(iVss)%zSt, hVss(iVss)%zEd
+      GapPin(nGapPinType)%iCel(iz) = aux01(iVss, GapPin(nGapPinType)%iCel(iz), 2)
+    END DO
+    
+    aux02(iVss, iTyp, 2) = nGapPinType
+  END DO
+END DO
+! ----------------------------------------------------
+!               04. CP : Vss Cel
+! ----------------------------------------------------
+DO iPin = 1, nHexPin
+  Cnt = hPinInfo(iPin)%Cnt
+  
+  DO iVss = 1, nVssTyp
+    Lgh = FindPtLgh(Cnt, hVss(iVss)%Cnt)
+    
+    IF (Lgh < hVss(iVss)%Rad(1)) CYCLE
+    IF (Lgh > hVss(iVss)%Rad(2)) CYCLE
+    
+    iTyp = hPinInfo(iPin)%PinTyp
+    
+    IF (hPinInfo(iPin)%lRod) THEN
+      hPinInfo(iPin)%PinTyp = aux02(iVss, iTyp, 1)
+    ELSE
+      hPinInfo(iPin)%PinTyp = aux02(iVss, iTyp, 2)
+    END IF
+    
+    IF (hPinInfo(iPin)%PinTyp < 1) THEN
+      hPinInfo(iPin)%PinTyp = 0
+    END IF
   END DO
 END DO
 ! ----------------------------------------------------
@@ -240,4 +398,4 @@ END DO
 END SUBROUTINE HexSetVss
 ! ------------------------------------------------------------------------------------------------------------
 
-END MODULE HexPInConst
+END MODULE HexPinConst

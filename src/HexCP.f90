@@ -22,7 +22,7 @@ SUBROUTINE HexCPCelInfo()
 
 USE TYPEDEF,      ONLY : cell_type
 USE param,        ONLY : TRUE, FALSE, HALF, ZERO
-USE GEOM,         ONLY : CellInfo, nCellType, nGapType, nVssTyp
+USE GEOM,         ONLY : CellInfo, nCellType, nGapType
 USE cntl,         ONLY : nTracerCntl
 USE Material_Mod, ONLY : Mixture
 USE BenchXs,      ONLY : MacXsBen

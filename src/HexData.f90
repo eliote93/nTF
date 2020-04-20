@@ -27,16 +27,27 @@ INTEGER :: ncRay      = 0
 INTEGER :: nRotRay    = 0
 INTEGER :: nAzmAng    = 0
 INTEGER :: nPolAng    = 0
-INTEGER :: nVss       = 0 ! # of Vessels
 INTEGER :: nVA        = 0 ! # of Void Asys
-INTEGER :: vFxr       = 0 ! Vygorodka
-INTEGER :: vAsyTyp    = 0 ! Vygorodka
-INTEGER :: vRefTyp    = 0 ! Vygorodka
-INTEGER :: vMat       = 0 ! Vygorodka
 INTEGER :: nHexPin    = 0
 INTEGER :: nhcPin     = 0
 INTEGER :: nGeoTyp    = 1
 INTEGER :: nInnMOCItr = 2
+
+! Vygorodka
+INTEGER :: vFxr    = 0
+INTEGER :: vAsyTyp = 0
+INTEGER :: vRefTyp = 0
+INTEGER :: vMat    = 0
+INTEGER :: vzSt    = 0
+INTEGER :: vzEd    = 0
+
+INTEGER, POINTER :: NumMray(:)
+INTEGER, POINTER :: AngMray(:, :)
+
+INTEGER, POINTER :: Asy2Dto1DMap(:, :) ! (ix, iy)
+INTEGER, POINTER :: Asy1Dto2DMap(:, :) ! (ix/iy, iAsy)
+
+INTEGER, POINTER :: hCore(:, :)
 
 REAL :: aoF2F   = ZERO
 REAL :: aoPch   = ZERO
@@ -50,22 +61,6 @@ REAL :: cBndyEq(3, 6) = ZERO ! Origin : Cnt Asy
 REAL, POINTER :: AzmAng(:), AzmWgt(:)
 REAL, POINTER :: AzmDel(:), AzmDel_X(:), AzmDel_Y(:)
 REAL, POINTER :: AzmTan(:), AzmSin(:), AzmCos(:)
-
-REAL, POINTER :: AxJout (:, :, :, :)
-
-INTEGER, POINTER :: NumMray(:)
-INTEGER, POINTER :: AngMray(:, :)
-
-INTEGER, POINTER :: Asy2Dto1DMap(:, :) ! (ix, iy)
-INTEGER, POINTER :: Asy1Dto2DMap(:, :) ! (ix/iy, iAsy)
-
-TYPE(Type_HexPin), POINTER :: RodPin(:)
-TYPE(Type_HexPin), POINTER :: GapPin(:)
-
-INTEGER, POINTER :: hCore (:, :)
-
-REAL,    POINTER :: VssRad(:, :)
-INTEGER, POINTER :: va2D(:, :)
 ! ----------------------------------------------------
 TYPE(Type_HexLogical) :: hLgc
 
@@ -74,6 +69,9 @@ TYPE(Type_HexGapCel), POINTER :: gCel(:)
 
 TYPE(Type_HexRodCelBss), POINTER :: hCelBss(:)
 TYPE(Type_HexGapCelBss), POINTER :: gCelBss(:)
+
+TYPE(Type_HexPin), POINTER :: RodPin(:)
+TYPE(Type_HexPin), POINTER :: GapPin(:)
 
 TYPE(Type_HexPinInfo), POINTER :: hPinInfo(:)
 

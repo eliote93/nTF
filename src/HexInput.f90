@@ -18,7 +18,7 @@ CONTAINS
 SUBROUTINE HexReadInp(indev)
 
 USE geom,    ONLY : nZ, hz, HzInv, lgap, nVssTyp
-USE HexData, ONLY : aoF2F, aoPch, nVss, nAzmAng, nPolAng, Del_Inp
+USE HexData, ONLY : aoF2F, aoPch, nAzmAng, nPolAng, Del_Inp
 USE RAYS,    ONLY : RayInfo
 
 USE HexChk
@@ -42,7 +42,6 @@ nAzmAng = RayInfo%nAziAngle
 nPolAng = RayInfo%nPolarAngle
 Del_Inp = RayInfo%Del
 Master  = PE%master
-nVss    = nVssTyp
 
 CALL HexInitInp()
 ! ----------------------------------------------------
@@ -545,7 +544,7 @@ SUBROUTINE HexRead_Core(indev, dataline0)
 
 USE geom,    ONLY : Core, Albedo, nAsyType0, nZ, nPinType, nGapPinType
 USE HexUtil, ONLY : HexChkRange_INT
-USE HexData, ONLY : hCore, nAsyCore, nhAsy, Asy2Dto1DMap, Asy1Dto2DMap, hAsyTypInfo, nVA, va2D, &
+USE HexData, ONLY : hCore, nAsyCore, nhAsy, Asy2Dto1DMap, Asy1Dto2DMap, hAsyTypInfo, nVA, &
                     RodPin, GapPin, hCel, gCel
 
 IMPLICIT NONE
@@ -556,7 +555,7 @@ CHARACTER(256) :: dataline, dataline2
 
 INTEGER :: i, j, k, n, iAng, jfr, jto, nAsy, nAsyTot
 INTEGER :: iAsy, jAsy, ixPin, iyPin, nPin, iz, jPin
-INTEGER :: ii(100), vv(2, 100)
+INTEGER :: ii(100)
 
 LOGICAL :: Master
 ! ----------------------------------------------------
@@ -565,7 +564,6 @@ dataline = dataline0
 Master   = PE%master
 
 ii   = 0
-vv   = 0
 nVA  = 0
 nAsy = 0
 n    = nfields(oneline) - 1
@@ -656,10 +654,7 @@ ELSE IF (iAng .EQ. 360) THEN
       
       nVA  = nVA  + 1
       nAsy = nAsy - 1 ! DON'T COUNT VOID ASY
-      
-      vv(1, nVA) = k
-      vv(2, nVA) = i
-      
+            
       Asy2Dto1DMap(k, i) = 0
     END DO
     
@@ -708,10 +703,7 @@ ELSE IF (iAng .EQ. 120) THEN
       
       nVA  = nVA  + 1
       nAsy = nAsy - 1 ! DON'T COUNT VOID ASY
-      
-      vv(1, nVA) = k
-      vv(2, nVA) = i
-      
+            
       Asy2Dto1DMap(k, i) = 0
     END DO
   END DO
@@ -755,10 +747,7 @@ ELSE IF (iAng .EQ. 60) THEN
       
       nVA  = nVA  + 1
       nAsy = nAsy - 1 ! DON'T COUNT VOID ASY
-      
-      vv(1, nVA) = k
-      vv(2, nVA) = i
-      
+            
       Asy2Dto1DMap(k, i) = 0
     END DO
     
@@ -770,14 +759,6 @@ ELSE
 END IF
 
 nhAsy = nAsy
-! ----------------------------------------------------
-!               02. Void Asy
-! ----------------------------------------------------
-ALLOCATE (va2D (2, nVA))
-
-DO iAsy = 1, nVA
-  va2D(1:2, iAsy) = vv(1:2, iAsy)
-END DO
 ! ----------------------------------------------------
 !               03. SET : luse
 ! ----------------------------------------------------
@@ -886,13 +867,15 @@ nDataField = len_trim(dataline)
 CALL fndchara(dataline, ipos, nSpt, SLASH)
 
 SELECT CASE (nSpt)
-CASE (1)
-  READ(dataline(ipos(1)+1:nDataField), *) hVss(iVss)%vPin
+CASE (2)
+  READ(dataline(ipos(2)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
+  READ(dataline(ipos(1)+1:nDataField), *) hVss(iVss)%vMat
   READ(dataline, *) Tmp, hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
   
   hVss(iVss)%Cnt = ZERO
-CASE (2)
-  READ(dataline(ipos(2)+1:nDataField), *) hVss(iVss)%vPin
+CASE (3)
+  READ(dataline(ipos(3)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
+  READ(dataline(ipos(2)+1:nDataField), *) hVss(iVss)%vMat
   READ(dataline(ipos(1)+1:nDataField), *) hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
   
   READ(dataline, *) Tmp, hVss(iVss)%Cnt(1), hVss(iVss)%Cnt(2)
@@ -907,7 +890,7 @@ END SUBROUTINE HexRead_Vss
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_Vyg(dataline0)
 
-USE HexData, ONLY : vAsyTyp, vRefTyp, vMat, vFxr
+USE HexData, ONLY : vAsyTyp, vRefTyp, vMat, vFxr, vzSt, vzEd
 
 IMPLICIT NONE
 
@@ -917,7 +900,7 @@ character(256) :: dataline
 
 dataline  = dataline0
 
-READ(dataline,*) vAsyTyp, vRefTyp, vMat, vFxr
+READ(dataline,*) vAsyTyp, vRefTyp, vMat, vFxr, vzSt, vzEd
 ! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Vyg

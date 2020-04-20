@@ -13,7 +13,7 @@ SUBROUTINE HexChkInp()
 
 USE CNTL,    ONLY : nTracerCntl
 USE PARAM,   ONLY : TRUE, FALSE
-USE geom,    ONLY : nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nZ
+USE geom,    ONLY : nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp, nZ
 USE HexUtil, ONLY : ChkSameVal
 USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexAsyTypInfo
 USE IOUTIL,  ONLY : terminate
@@ -35,12 +35,12 @@ TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 ! ----------------------------------------------------
 
 IF (hLgc%lSngCel .AND. nTracerCntl%lCMFD) CALL terminate("SINGLE CELL CMFD IS NOT AVAILABLE")
-IF (hLgc%lSngCel .AND. (.NOT. (nZ .EQ. 1))) CALL terminate("3-D SINGLE CELL PROBLEM IS NOT AVAILABLE")
+IF (hLgc%lSngCel .AND. .NOT.(nZ.EQ.1)) CALL terminate("3-D SINGLE CELL PROBLEM IS NOT AVAILABLE")
 IF (hLgc%lSngCel) RETURN
 ! ----------------------------------------------------
 !               01. Core
 ! ----------------------------------------------------
-IF ((nVA > 0) .AND. hLgc%lRadRef) CALL terminate("VOID ASY SHOULD NOT EXIST IN RADIAL REF")
+IF (nVA.LT.0 .AND. hLgc%lRadRef) CALL terminate("VOID ASY SHOULD NOT EXIST IN RADIAL REF")
 
 IF (hLgc%l360) THEN
   nTmp = nhAsy - (3 * nAsyCore * (nAsyCore - 1) + 1 - nVA)
@@ -161,18 +161,20 @@ END DO
 ! ----------------------------------------------------
 !               06. ETC
 ! ----------------------------------------------------
-DO iBss = 1, nVss
-  CALL HexChkRange_INT(hVss(iBss)%vPin, 1, nPinType, "VESSEL PIN TYPE")
+DO iBss = 1, nVssTyp
   CALL HexChkInc_REAL(hVss(iBss)%Rad(1), hVss(iBss)%Rad(2), "VESSEL RAD")
   
-  RodPin(hVss(iBss)%vPin)%luse = TRUE
-  
-  DO iz = 1, nZ
-    hCel(RodPin(hVss(iBss)%vPin)%iCel(iz))%luse = TRUE
-  END DO
+  CALL HexChkRange_INT(hVss(iBss)%zSt,  1, hVss(iBss)%zEd, "WRONG VSS Z")
+  CALL HexChkRange_INT(hVss(iBss)%zEd, hVss(iBss)%zSt, nZ,  "WRONG VSS Z")
 END DO
 
-IF ((nZ > 1) .AND. (.NOT.nTracerCntl%lCMFD)) CALL terminate("3D CALCULATION MUST USE CMFD")
+CALL HexChkRange_INT(vAsyTyp, 1, nAsyType0, "WRONG VASYTYPE")
+CALL HexChkRange_INT(vRefTyp, 1, nAsyType0, "WRONG VREFTYPE")
+CALL HexChkRange_INT(vMat,    1, nMixType,  "WRONG VMAT")
+CALL HexChkRange_INT(vzSt,    1, vzEd,      "WRONG VZ")
+CALL HexChkRange_INT(vzEd, vzSt, nZ,        "WRONG VZ")
+
+IF (nZ.LT.1 .AND. .NOT.nTracerCntl%lCMFD) CALL terminate("3D CALCULATION MUST USE CMFD")
 
 NULLIFY (hCel_Loc, gCel_Loc, aInf_Loc)
 ! ----------------------------------------------------

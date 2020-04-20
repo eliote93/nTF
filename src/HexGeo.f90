@@ -68,8 +68,8 @@ DO iPin = 1, nHexPin
   CALL HexSetPinFSR(iPin, FsrIdxSt, FxrIdxSt)
 END DO
 
-CALL HexSetVss()
 CALL HexSetVyg()
+CALL HexSetVss() ! Vss must follow Vyg
 
 !CALL HexTsthPinInfo()
 !CALL HexPrintPinTyp()
