@@ -369,6 +369,6 @@ ENDDO
 NULLIFY(IDISO, pnum, myFxr)
 
 CALL ReturnXsMacDat(XsMac)
+! ----------------------------------------------------
 
 END SUBROUTINE HexFxrXSCnds_Numerator
-! ------------------------------------------------------------------------------------------------------------

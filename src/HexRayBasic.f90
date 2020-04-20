@@ -134,6 +134,7 @@ DO iAng = 2, nAzmAng
   AngMray(1, iAng) = AngMray(2, iAng-1) + 1
   AngMray(2, iAng) = AngMray(2, iAng-1) + NumMray(iAng)
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetRayParam
 ! ------------------------------------------------------------------------------------------------------------
@@ -362,7 +363,6 @@ SUBROUTINE HexSetModRayNxt()
 USE HexData, ONLY : hLgc
 
 IMPLICIT NONE
-! ----------------------------------------------------
 
 IF (hLgc%lAzmRef) THEN
   CALL HexSetModRayNxt_REF()

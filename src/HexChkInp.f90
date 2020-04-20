@@ -3,6 +3,8 @@ MODULE HexChk
 USE ioutil,  ONLY : terminate
 USE HexUtil, ONLY : HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
 
+IMPLICIT NONE
+
 CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX CHK : Input
@@ -224,6 +226,7 @@ DO iPin = 1, nGapType
     CALL HexChkEqual_INT(iCB, jCB, 1, "NOT EXTRUDED GEOM")
   END DO
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexChkCelBss
 ! ------------------------------------------------------------------------------------------------------------

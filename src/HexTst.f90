@@ -231,7 +231,7 @@ IMPLICIT NONE
 INTEGER, POINTER :: tPinTyp(:), tAsyIdx(:), tAsyTyp(:), tOrdInAsy01(:), tix(:), tiy(:), tVtxTyp(:)
 INTEGER, POINTER :: tnSct(:), tFsrIdxSt(:), tFxrIdxSt(:)
 REAL, POINTER :: tWt(:), tCnt(:,:), tVol(:), tVolFm(:)
-LOGICAL, POINTER :: tlInn(:), tlBndy(:), tlRod(:), tlGap(:), tlVyg(:)
+LOGICAL, POINTER :: tlInn(:), tlBndy(:), tlRod(:), tlGap(:)
 
 INTEGER :: iPin
 ! ----------------------------------------------------
@@ -254,7 +254,6 @@ ALLOCATE(tlInn       (nHexPin))
 ALLOCATE(tlBndy      (nHexPin))
 ALLOCATE(tlRod       (nHexPin))
 ALLOCATE(tlGap       (nHexPin))
-ALLOCATE(tlVyg       (nHexPin))
 
 DO iPin = 1, nHexPin
   tPinTyp     (iPin) = hPinInfo(iPin)%PinTyp
@@ -275,11 +274,10 @@ DO iPin = 1, nHexPin
   tlBndy      (iPin) = hPinInfo(iPin)%lBndy
   tlRod       (iPin) = hPinInfo(iPin)%lRod
   tlGap       (iPin) = hPinInfo(iPin)%lGap
-  tlVyg       (iPin) = hPinInfo(iPin)%lVyg
 END DO
 
 NULLIFY(tPinTyp, tAsyIdx, tAsyTyp, tOrdInAsy01, tix, tiy, tVtxTyp, tnSct, tFsrIdxSt, tFxrIdxSt)
-NULLIFY(tWt, tCnt, tVol, tVolFm, tlInn, tlBndy, tlRod, tlGap, tlVyg)
+NULLIFY(tWt, tCnt, tVol, tVolFm, tlInn, tlBndy, tlRod, tlGap)
 
 CALL terminate("END OF TEST = HPIN INFO")
 ! ----------------------------------------------------

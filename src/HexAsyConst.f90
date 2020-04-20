@@ -30,6 +30,7 @@ Cnt = ZERO
 DO iBndy = 1, 6
   AsyEqn(1:3, iBndy) = SetEqn(AsyVtx(1:2, iBndy), AsyVtx(1:2, iBndy + 1), Cnt)
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetAsyBndy
 ! ------------------------------------------------------------------------------------------------------------
@@ -50,7 +51,7 @@ REAL :: Area, Ang
 REAL :: Vtx(2, 6), Cnt(2)
 
 TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
-! ----------------------------
+! ----------------------------------------------------
 
 ALLOCATE (hGeoTypInfo (7)) ! Can be extended to 13 for 360 & REF
 
@@ -319,6 +320,7 @@ ELSE
     END SELECT
   END DO
 END IF
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetAsyLoc
 ! ------------------------------------------------------------------------------------------------------------

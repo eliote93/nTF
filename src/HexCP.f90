@@ -27,8 +27,8 @@ USE cntl,         ONLY : nTracerCntl
 USE Material_Mod, ONLY : Mixture
 USE BenchXs,      ONLY : MacXsBen
 
-USE HexType,      ONLY : Type_HexRodCelBss, Type_HexGapCelBss
-USE HexData,      ONLY : nInf, hCel, gCel, hCelBss, gCelBss, hLgc
+USE HexType, ONLY : Type_HexRodCelBss, Type_HexGapCelBss
+USE HexData, ONLY : nInf, hCel, gCel, hCelBss, gCelBss, hLgc
 
 IMPLICIT NONE
 
@@ -46,8 +46,6 @@ TYPE(Type_HexGapCelBss), POINTER :: gBs_Loc
 ! ----------------------------------------------------
 
 nInf = pnRod * nCellType + pnGap * nGapType
-
-IF (hLgc%lVyg) nInf = nInf + pnGap ! Need to add
 
 IF (hLgc%lSngCel) THEN
   nInf     = pnRod * nCellType
@@ -186,7 +184,7 @@ DO iCel = 1, nGapType
   ! ----------------------------
 END DO
 ! ----------------------------------------------------
-!               04. SET : LOGICAL
+!               03. SET : LOGICAL
 ! ----------------------------------------------------
 DO iCel = 1, nInf
   Cel_Loc => CellInfo(iCel)
@@ -210,13 +208,13 @@ DO iCel = 1, nInf
   END DO
 END DO
 ! ----------------------------------------------------
-!               05. SET : SSPH Data
+!               04. SET : SSPH Data
 ! ----------------------------------------------------
 DO iCel = 1, nCellType
   IF (nTracerCntl%lRestrmt) CALL HexCalcCellSSPH(iCel)
 END DO
 ! ----------------------------------------------------
-!               06. REMEDY : Vol
+!               05. REMEDY : Vol
 ! ----------------------------------------------------
 DO iCel = 1, nCellType
   IF (.NOT. hCel(iCel)%luse) CYCLE
@@ -270,6 +268,8 @@ USE BenchXs,      ONLY : MacXsBen
 USE HexType,      ONLY : Type_HexRodCelBss, Type_HexRodCel
 USE HexData,      ONLY : hCel, hCelBss, hLgc
 USE SPH_mod,      ONLY : calcCellSSPH,calcAICCellSSPH
+
+IMPLICIT NONE
 
 INTEGER :: icTyp, jCel, iFXR, jFXR, iDir, iReg, i, j, k
 INTEGER :: nFXR, nmat, nreg, nFuelDiv, nfDiv, ibFuel, ieFuel
@@ -724,6 +724,8 @@ USE Param,        ONLY : TRUE, FALSE
 USE Material_Mod, ONLY : Mixture, nMixType
 USE BenchXs,      ONLY : nxsltype
 USE CNTL,         ONLY : nTracerCntl
+
+IMPLICIT NONE
 ! ----------------------------------------------------
 
 IF (nTracerCntl%libtyp .EQ. 1) THEN
@@ -734,6 +736,7 @@ IF (nTracerCntl%libtyp .EQ. 1) THEN
   !Mixture(2:7)%lMOX  = TRUE
   !Mixture(6:8)%lfuel = FALSE
 END IF
+! ----------------------------------------------------
 
 END SUBROUTINE ConvertXs
 ! ------------------------------------------------------------------------------------------------------------

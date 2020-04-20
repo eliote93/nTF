@@ -195,15 +195,18 @@ IMPLICIT NONE
 INTEGER :: iPin
 ! ----------------------------------------------------
 
+IF (hLgc%lvyg) THEN
+  nGapPinType = nGapPinType + 1
+  nGapType    = nGapType    + 1
+END IF
+
 ALLOCATE (hCel        (nCellType))
 ALLOCATE (gCel        (nGapType))    ! ARBITRARY
 ALLOCATE (RodPin      (nPinType))
 ALLOCATE (GapPin      (nGapPinType)) ! ARBITRARY
 ALLOCATE (hAsyTypInfo (nAsyType0))
 ALLOCATE (hVss        (nVssTyp))
-! ----------------------------------------------------
-!               01. INIT
-! ----------------------------------------------------
+
 DO iPin = 1, nPinType
   ALLOCATE (RodPin(iPin)%iCel (nZ))
     
@@ -217,6 +220,7 @@ DO iPin = 1, nGapPinType
   GapPin(iPin)%lGap = TRUE
   GapPin(iPin)%iCel = 0
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexInitInp
 ! ------------------------------------------------------------------------------------------------------------
@@ -229,8 +233,8 @@ USE HexData, ONLY : hCel, aoF2F
 
 IMPLICIT NONE
 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+CHARACTER(256),INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
 
 INTEGER :: i, iCel, nSpt, nDataField, nData, mData, tData
 INTEGER :: ipos(100), nDiv(100)
@@ -289,8 +293,8 @@ USE HexData, ONLY : gCel, aoF2F
 
 IMPLICIT NONE
 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
 
 INTEGER :: i, iCel
 INTEGER :: nSpt, nDataField, nData
@@ -366,8 +370,8 @@ USE HexData, ONLY : RodPin
 
 IMPLICIT NONE
 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
 
 INTEGER :: iz, iPin
 INTEGER :: ii(300)
@@ -383,6 +387,7 @@ IF (RodPin(iPin)%iCel(1) .NE. 0) CALL terminate("OVERLAPPED GAP PIN INPUT")
 DO iz = 1, nZ
   RodPin(iPin)%iCel(iz) = ii(iz + 1)
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Pin
 ! ------------------------------------------------------------------------------------------------------------
@@ -390,13 +395,13 @@ END SUBROUTINE HexRead_Pin
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_GapPin(dataline0)
 
-USE geom,    ONLY : nz, nGapType
+USE geom,    ONLY : nz
 USE HexData, ONLY : GapPin
 
 IMPLICIT NONE
 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
 
 INTEGER :: iz, iPin
 INTEGER :: ii(300)
@@ -412,6 +417,7 @@ IF (GapPin(iPin)%iCel(1) .NE. 0) CALL terminate("OVERLAPPED GAP PIN INPUT")
 DO iz = 1, nZ
   GapPin(iPin)%iCel(iz) = ii(iz + 1)
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexRead_GapPin
 ! ------------------------------------------------------------------------------------------------------------
@@ -419,15 +425,15 @@ END SUBROUTINE HexRead_GapPin
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_Asy(indev, dataline0)
 
-USE geom,    ONLY : nZ, nPinType, nGapPinType
+USE geom,    ONLY : nZ, nPinType
 USE HexType, ONLY : Type_HexAsyTypInfo
 USE HexData, ONLY : hAsyTypInfo, RodPin, hCel, aoF2F
 
 IMPLICIT NONE
 
-INTEGER,intent(iN) :: indev 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+INTEGER, INTENT(IN) :: indev 
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
 
 INTEGER :: nSpt, nDataField, nData
 INTEGER :: ipos(100), ii(100)
@@ -544,9 +550,9 @@ USE HexData, ONLY : hCore, nAsyCore, nhAsy, Asy2Dto1DMap, Asy1Dto2DMap, hAsyTypI
 
 IMPLICIT NONE
 
-INTEGER,intent(iN) :: indev 
-character(256),intent(in) :: dataline0
-character(256) :: dataline, dataline2
+INTEGER, INTENT(IN) :: indev 
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline, dataline2
 
 INTEGER :: i, j, k, n, iAng, jfr, jto, nAsy, nAsyTot
 INTEGER :: iAsy, jAsy, ixPin, iyPin, nPin, iz, jPin
@@ -820,8 +826,8 @@ SUBROUTINE HexRead_Albedo(dataline0)
 
 IMPLICIT NONE
 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
 
 INTEGER :: k
 
@@ -901,7 +907,7 @@ END SUBROUTINE HexRead_Vss
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_Vyg(dataline0)
 
-USE HexData, ONLY : VygAsyTyp, VygMat, VygFxrSt
+USE HexData, ONLY : vAsyTyp, vRefTyp, vMat, vFxr
 
 IMPLICIT NONE
 
@@ -909,10 +915,10 @@ character(256),intent(in) :: dataline0
 character(256) :: dataline
 ! ----------------------------------------------------
 
-hLgc%lVyg = TRUE
 dataline  = dataline0
 
-READ(dataline,*) VygAsyTyp, VygMat, VygFxrSt
+READ(dataline,*) vAsyTyp, vRefTyp, vMat, vFxr
+! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Vyg
 ! ------------------------------------------------------------------------------------------------------------
@@ -930,7 +936,7 @@ USE MKL_3D,  ONLY : mklcntl
 
 IMPLICIT NONE
 
-CHARACTER(256),INTENT(IN) :: dataline0
+CHARACTER(256), INTENT(IN) :: dataline0
 CHARACTER(256) :: dataline
 
 INTEGER :: nInnCMFDmax = 100
@@ -955,6 +961,7 @@ ItrCntl%InSolverItrCntl%ninmax   = nInnCMFDmax
 ItrCntl%InSolverItrCntl%convcrit = InnCMFDConvCrit
 
 nTracerCntl%lCMFD = lCMFD
+! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Opt
 ! ------------------------------------------------------------------------------------------------------------

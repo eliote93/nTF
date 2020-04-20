@@ -19,8 +19,6 @@ IMPLICIT NONE
 INTEGER :: iAsy, iaTyp, iPin, ipTyp
 INTEGER :: FsrIdxSt, FxrIdxSt
 ! ----------------------------------------------------
-
-! ----------------------------------------------------
 !                1. SET : Asy
 ! ----------------------------------------------------
 CALL HexSetAsyBndy()
@@ -71,7 +69,7 @@ DO iPin = 1, nHexPin
 END DO
 
 CALL HexSetVss()
-!CALL HexSetVyg()
+CALL HexSetVyg()
 
 !CALL HexTsthPinInfo()
 !CALL HexPrintPinTyp()
@@ -108,4 +106,3 @@ Core%nCellType = nCellType
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetGeo
-! ------------------------------------------------------------------------------------------------------------

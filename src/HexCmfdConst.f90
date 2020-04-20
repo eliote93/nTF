@@ -374,7 +374,7 @@ IMPLICIT NONE
 
 REAL    :: Eqn(3), Pts(2, 2), Theta, CalRotPt(2, 2)
 LOGICAL :: lChk
-! ----------------------------
+! ----------------------------------------------------
 
 lChk = ChkSameVal(Eqn(1), ZERO)
 
@@ -386,6 +386,7 @@ END IF
 
 CalRotPt(1:2, 1) = RotPt(Pts(1:2, 1), Theta)
 CalRotPt(1:2, 2) = RotPt(Pts(1:2, 2), Theta)
+! ----------------------------------------------------
 
 END FUNCTION CalRotPt
 ! ------------------------------------------------------------------------------------------------------------
@@ -400,7 +401,7 @@ IMPLICIT NONE
 
 REAL :: CalNghSegLgh, PtsSlf(2, 2), PtsNgh(2, 2), Bndy(2, 2), Ngh(2, 2), Seg(2, 2)
 INTEGER :: iPri
-! ----------------------------
+! ----------------------------------------------------
 
 CalNghSegLgh = ZERO
 
@@ -435,7 +436,7 @@ END IF
 IF (Seg(iPri, 1) > Seg(iPri, 2)) RETURN
 
 CalNghSegLgh = FindPtLgh(Seg(1:2, 1), Seg(1:2, 2))
-! ----------------------------
+! ----------------------------------------------------
 
 END FUNCTION CalNghSegLgh
 ! ------------------------------------------------------------------------------------------------------------
@@ -657,6 +658,7 @@ Core%Pin(1)%NeighIdx        = -1
 Core%Pin(1)%NeighSurfIdx    = -1
 Core%Pin(1)%Center2SurfaceL = hCelBss(1)%pF2F * HALF ! # of hCelBss must be 1 for Sng Cel
 Core%Pin(1)%BdLength        = hCelBss(1)%pPch
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPin_Sng
 ! ------------------------------------------------------------------------------------------------------------

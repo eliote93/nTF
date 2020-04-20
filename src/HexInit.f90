@@ -1,7 +1,4 @@
 #include <defines.h>
-! ------------------------------------------------------------------------------------------------------------
-!                                     01. HEX INIT
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexInit
 
 USE ALLOCS
@@ -12,12 +9,11 @@ USE PE_MOD,        ONLY : PE
 USE MPIConfig_Mod, ONLY : SetGeomPEVariables, SetRayPEVariables, SetDcmpPEVariables
 USE HexCmfd,       ONLY : HexRayInfo4CmfdGen
 USE HexData,       ONLY : hRotRay, hcRay
+USE HexGeoConst,   ONLY : HexSetVyg
 
 IMPLICIT NONE
 
 INTEGER :: iAng, nAziAng, nRotRay, irRay, icRay, jcRay, iAzm, nRay
-! ----------------------------------------------------
-
 ! ----------------------------------------------------
 !               01. INIT : Basic
 ! ----------------------------------------------------

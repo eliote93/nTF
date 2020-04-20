@@ -33,6 +33,7 @@ USE MCP_Util,       ONLY : nMCP,         MCP_Path,     lMCP_restart,    nMCP_Pla
 USE SubChCoupling_mod,    ONLY: is_coupled
 USE DEPL_MOD,      ONLY : DeplCntl
 USE DeplLib_MOD,   ONLY : DeplLib
+USE HexData,       ONLY : hLgc
 #ifdef __GAMMA_TRANSPORT
 USE GammaLibdata,   ONLY : GFILE
 USE GammaCore_mod,  ONLY : GamGroupInfo
@@ -247,6 +248,8 @@ DO while(TRUE)
     CASE('VESSEL')
       read(oneline,*) astring, icell
       nVssTyp = max(iCell, nVssTyp)
+    CASE('VYGORODKA')
+      hLgc%lvyg = TRUE
     CASE('CR_CELL')
       CALL AddNCrConf(1)
     CASE('CR_ASYCONF')

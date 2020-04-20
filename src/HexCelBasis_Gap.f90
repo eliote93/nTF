@@ -1,5 +1,7 @@
 MODULE HexCelBasis_Gap
   
+IMPLICIT NONE
+  
 CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Gap Cel Bss
@@ -7,11 +9,13 @@ CONTAINS
 SUBROUTINE HexSetGapCelBss()
 
 USE PARAM,   ONLY : TRUE
-USE geom,    ONLY : nGapType
+USE geom,    ONLY : nGapType, nGapPinType
 USE ioutil,  ONLY : terminate
 
-USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss
-USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss
+USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss, nMaxFXR
+USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss, hLgc, vFxr, vAsyTyp, vMat, GapPin, hAsyTypInfo
+
+IMPLICIT NONE
 
 INTEGER :: igCel, jgCel, kgCel, igBss, iMsh
 LOGICAL :: lNewBss
@@ -21,7 +25,19 @@ IF (hLgc%lSngCel) RETURN
 
 ALLOCATE (gCelBss (nGapType))
 ! ----------------------------------------------------
-!               01. SET : 1st Cel Geo Basis
+!               01. SET : vyg Cel
+! ----------------------------------------------------
+IF (hLgc%lvyg) THEN
+  gCel(nGapType) = gCel(GapPin(hAsyTypInfo(vAsyTyp)%gTyp)%iCel(1)) ! iz is fixed as 1
+  
+  gCel(nGapType)%xMix(gCel(nGapType)%nFXR - vFXR + 1) = vMat
+  gCel(nGapType)%luse = TRUE
+  
+  GapPin(nGapPinType)%iCel = nGapType
+  GapPin(nGapPinType)%luse = TRUE
+END IF
+! ----------------------------------------------------
+!               02. SET : 1st Cel Geo Basis
 ! ----------------------------------------------------
 DO igCel = 1, nGapType
   IF (.NOT. gCel(igCel)%luse) CYCLE
@@ -33,15 +49,13 @@ END DO
 
 IF (gCelBss(1)%nCel .EQ. 0) CALL terminate("NONE OF GAP CEL TYPE IS USED")
 ! ----------------------------------------------------
-!               02. FIND : Nxt Cel Geo Basis
+!               03. FIND : Nxt Cel Geo Basis
 ! ----------------------------------------------------
 ngBss = 1
 
 DO igCel = 1, nGapType
   IF (.NOT. gCel(igCel)%luse) CYCLE
-  
-  lBss = TRUE
-  
+    
   DO jgCel = 1, ngBss
     lNewBss = HexCompNewGapBss(gCelBss(jgCel), gCel(igCel))
     
@@ -69,7 +83,7 @@ DO igCel = 1, nGapType
   CALL HexPushGapCelBss(gCelBss(ngBss), gCel(igCel), ngBss, igCel)
 END DO
 ! ----------------------------------------------------
-!               02. SET : Sub Data
+!               04. SET : Sub Data
 ! ----------------------------------------------------
 DO igBss = 1, ngBss
   CALL HexSetGapBssSubRng(igBss)

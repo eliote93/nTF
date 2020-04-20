@@ -62,6 +62,7 @@ ENDIF
 
 IF(Albedo(7) .NE. ZERO) Core%AxBc(1) = VoidCell
 IF(Albedo(8) .NE. ZERO) Core%AxBc(2) = VoidCell
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetAlbedo
 ! ------------------------------------------------------------------------------------------------------------
@@ -156,56 +157,49 @@ DO iAsy = 1, nhAsy
     END IF
   END DO
 END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetCore
 ! ------------------------------------------------------------------------------------------------------------
 !                                     03. SET : Vyg
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexSetVyg(iAsy)
+SUBROUTINE HexSetVyg()
 
-USE GEOM,    ONLY : nz
-USE HexData, ONLY : hLgc, VygAsyTyp, VygMat, VygFxrSt, hAsy, hPinInfo, hAsyTypInfo, GapPin
+USE PARAM,    ONLY : TRUE
+USE CORE_mod, ONLY : Fxr
+USE geom,     ONLY : nGapPinType
+USE HexData,  ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, hcPin, nhAsy, GapPin
 
 IMPLICIT NONE
 
-INTEGER :: iAsy
-
-INTEGER :: iAsyTyp, jAsyTyp, iDir, iPin, iDirTyp, iTmp, iz
+INTEGER :: iAsy, iaTyp, jaTyp, iDir, iPin, jPin
 INTEGER :: PinIdxSt, nRodGlb, nTotGlb
 ! ----------------------------------------------------
 
-!IF (.NOT. hLgc%lVyg) RETURN
-!
-!iAsyTyp = hAsy(iAsy)%AsyTyp
-!
-!IF (iAsyTyp .NE. VygAsyTyp) RETURN
-!
-!PinIdxSt = hAsy(iAsy)%PinIdxSt - 1
-!nRodGlb  = hAsy(iAsy)%nRodPin + PinIdxSt
-!nTotGlb  = hAsy(iAsy)%nTotPin + PinIdxSt
-!
-!DO iDir = 1, hAsy(iAsy)%nNgh
-!  jAsyTyp = hAsy(hAsy(iAsy)%NghIdx(iDir))%AsyTyp
-!  
-!  IF (jAsyTyp < VygAsyTyp) THEN
-!    DO iPin = nRodGlb + 1, nTotGlb
-!      iDirTyp = hPinInfo(iPin)%DirTyp
-!      
-!      IF (iDirTyp < 19) THEN
-!        iTmp = iDirTyp - 12
-!      ELSE
-!        iTmp = iDirTyp - 18
-!      END IF
-!      
-!      IF (iTmp .EQ. hAsy(iAsy)%NghDir(iDir) - 6) THEN
-!        DO iz = 1, nZ
-!          !hPinInfo(iPin)%FxrRegIdx(VygFxrSt:nFXR, iz) = VygMat
-!          hPinInfo(iPin)%lVyg = .TRUE.
-!        END DO
-!      END IF
-!    END DO
-!  END IF
-!END DO
+IF (.NOT. hLgc%lVyg) RETURN
+
+DO iAsy = 1, nhAsy
+  iaTyp = hAsy(iAsy)%AsyTyp
+  
+  IF (iaTyp .NE. vAsyTyp) RETURN
+  
+  PinIdxSt = hAsy(iAsy)%PinIdxSt - 1
+  nRodGlb  = hAsy(iAsy)%nRodPin + PinIdxSt
+  nTotGlb  = hAsy(iAsy)%nTotPin + PinIdxSt
+  
+  DO iPin = nRodGlb + 1, nTotGlb
+    DO iDir = 1, hcPin(iPin)%nNgh
+      jPin = hcPin(iPin)%NghPin(iDir)
+      
+      jaTyp = hPinInfo(jPin)%AsyTyp
+      
+      IF (jaTyp.EQ.iaTyp .OR. jaTyp.EQ.vRefTyp) CYCLE
+      
+      hPinInfo(iPin)%PinTyp = nGapPinType
+    END DO
+  END DO
+END DO
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetVyg
 ! ------------------------------------------------------------------------------------------------------------
@@ -234,6 +228,7 @@ nach = hAsyTypInfo(1)%nRodPin(1)
 ! IGNORE : rgt
 acf = (Area - PI * rw * rw * nach) / nach
 xi  = 2._8 * PI * rw
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetThGeo
 ! ------------------------------------------------------------------------------------------------------------

@@ -111,6 +111,7 @@ END DO
 
 RayInfo%RayInfo4Cmfd       => RayInfo4CMfd
 RayInfo4CMFD%PhiAngInSvIdx => RayInfo%PhiAngInSvIdx
+! ----------------------------------------------------
 
 END SUBROUTINE HexRayInfo4CmfdGen
 ! ------------------------------------------------------------------------------------------------------------

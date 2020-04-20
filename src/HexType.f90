@@ -162,7 +162,6 @@ TYPE Type_HexPinInfo
   LOGICAL :: lBndy = FALSE
   LOGICAL :: lRod  = TRUE
   LOGICAL :: lGap  = FALSE
-  LOGICAL :: lVyg  = FALSE
   
 END TYPE Type_HexPinInfo
 ! ----------------------------------------------------
