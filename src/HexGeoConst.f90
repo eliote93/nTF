@@ -96,7 +96,6 @@ Core%nCoreFXR = 0
 ALLOCATE (Asy      (nhAsy))
 ALLOCATE (AsyInfo  (nAsyType0))
 ALLOCATE (AsyVol   (nhAsy, nZ))
-ALLOCATE (PinInfo  (nPinType))
 ALLOCATE (hPinInfo (nHexPin))
 
 DO iPin = 1, nHexPin
@@ -106,7 +105,7 @@ END DO
 ! ----------------------------------------------------
 !                2. SET : Ax
 ! ----------------------------------------------------
-CALL InitSubPlane()
+CALL InitSubPlane
 
 Core%hz      => hz
 Core%hzInv   => hzInv

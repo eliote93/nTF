@@ -213,7 +213,7 @@ TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
 ! ----------------------------------------------------
 
 IF (hLgc%lSngCel) THEN
-  CALL HexSetSngCelVtx()
+  CALL HexSetSngCelVtx
   
   RETURN
 END IF

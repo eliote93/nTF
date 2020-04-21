@@ -21,20 +21,20 @@ IMPLICIT NONE
 
 ! CASE : Sng Cel
 IF (hLgc%lSngCel) THEN
-  CALL HexSetHcPin_Sng()
+  CALL HexSetHcPin_Sng
   
   RETURN
 END IF
 
 ! SET : hcPin Self
 IF (hLgc%lspCMFD) THEN
-  CALL HexSetHcPinSlf_SP()
+  CALL HexSetHcPinSlf_SP
 ELSE
-  CALL HexSetHcPinSlf_MP()
+  CALL HexSetHcPinSlf_MP
 END IF
 
 !  SET : hcPin Ngh
-CALL HexSetHcPinNgh()
+CALL HexSetHcPinNgh
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPin

@@ -23,7 +23,7 @@ TYPE(Type_HexCelRay), POINTER :: CelRay_Loc
 ! ----------------------------------------------------
 
 IF (hLgc%lSngCel) THEN
-  CALL HexSetAsyRay_SngCel()
+  CALL HexSetAsyRay_SngCel
   
   RETURN
 ELSE IF (hLgc%lRadVac) THEN

@@ -43,7 +43,7 @@ nPolAng = RayInfo%nPolarAngle
 Del_Inp = RayInfo%Del
 Master  = PE%master
 
-CALL HexInitInp()
+CALL HexInitInp
 ! ----------------------------------------------------
 DO WHILE(TRUE)
   READ(indev,'(a256)') oneline
@@ -173,11 +173,11 @@ BACKSPACE(io8)
 ! ----------------------------------------------------
 !               03. SET : Cel Geo Basis
 ! ----------------------------------------------------
-CALL HexChkInp()
-CALL HexSetRodCelBss()
-CALL HexSetGapCelBss()
-CALL HexConnCelBss()
-CALL HexChkCelBss()
+CALL HexChkInp
+CALL HexSetRodCelBss
+CALL HexSetGapCelBss
+CALL HexConnCelBss
+CALL HexChkCelBss
 ! ----------------------------------------------------
 
 END SUBROUTINE HexReadInp
@@ -199,10 +199,10 @@ IF (hLgc%lvyg) THEN
   nGapType    = nGapType    + 1
 END IF
 
-ALLOCATE (hCel        (nCellType))
-ALLOCATE (gCel        (nGapType))    ! ARBITRARY
-ALLOCATE (RodPin      (nPinType))
-ALLOCATE (GapPin      (nGapPinType)) ! ARBITRARY
+ALLOCATE (hCel        (nCellType    * (nVssTyp + 1)))
+ALLOCATE (gCel        (nGapType     * (nVssTyp + 1)))
+ALLOCATE (RodPin      (nPinType     * (nVssTyp + 1)))
+ALLOCATE (GapPin      (nGapPinType  * (nVssTyp + 1)))
 ALLOCATE (hAsyTypInfo (nAsyType0))
 ALLOCATE (hVss        (nVssTyp))
 
@@ -271,6 +271,12 @@ READ(dataline(ipos(3)+1:nDataField),*) hCel_Loc%nPin
 READ(dataline(ipos(2)+1:nDataField),*) (hCel_Loc%xDiv(nData - i + 1),i=1,nData)
 READ(dataline(ipos(1)+1:nDataField),*) (hCel_Loc%xMix(nData - i + 1),i=1,nData)
 READ(dataline,*) (RR(i),i=1,ndata)
+
+IF (hCel_Loc%xDiv(1) .NE. 1) THEN
+  hCel_Loc%xDiv(1) = 1
+  
+  WRITE (*,*) "LAST # of FXR DIVISION MUST BE 1"
+END IF
 
 DO i = 1, nData - 1
   hCel_Loc%xRad(nData - i + 1) = RR(i+1)

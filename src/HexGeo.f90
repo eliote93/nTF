@@ -21,30 +21,30 @@ INTEGER :: FsrIdxSt, FxrIdxSt
 ! ----------------------------------------------------
 !                1. SET : Asy
 ! ----------------------------------------------------
-CALL HexSetAsyBndy()
-CALL HexSetGeoTyp()
-CALL HexSetAsyLoc()
+CALL HexSetAsyBndy
+CALL HexSetGeoTyp
+CALL HexSetAsyLoc
 
 DO iaTyp = 1, nAsyType0
   IF (.NOT. hAsyTypInfo(iaTyp)%luse) CYCLE
   
-  CALL HexSetAsyTypPinMap(iaTyp)
+  CALL HexSetAsyTypPinMap   (iaTyp)
   CALL HexSetAsyTypPinLocIdx(iaTyp)
-  CALL HexSetAsyTypVtxTyp(iaTyp)
-  CALL HexSetAsyTypPinVtx(iaTyp)
-  CALL HexSetAsyTypPinNgh(iaTyp)
+  CALL HexSetAsyTypVtxTyp   (iaTyp)
+  CALL HexSetAsyTypPinVtx   (iaTyp)
+  CALL HexSetAsyTypPinNgh   (iaTyp)
 END DO
 
 DO iAsy = 1, nhAsy
   CALL HexSetAsyPinNum(iAsy)
-  CALL HexSetAsyNgh(iAsy)
+  CALL HexSetAsyNgh   (iAsy)
   CALL HexSetAsyRotNgh(iAsy)
 END DO
 ! ----------------------------------------------------
 !                2. SET : Core
 ! ----------------------------------------------------
-CALL HexSetAlbedo()
-CALL HexSetCore()
+CALL HexSetAlbedo
+CALL HexSetCore
 ! ----------------------------------------------------
 !                3. SET : Pin & Msh
 ! ----------------------------------------------------
@@ -68,15 +68,15 @@ DO iPin = 1, nHexPin
   CALL HexSetPinFSR(iPin, FsrIdxSt, FxrIdxSt)
 END DO
 
-CALL HexSetVyg()
-CALL HexSetVss() ! Vss must follow Vyg
+CALL HexSetVyg
+CALL HexSetVss ! Vss must follow Vyg
 
-!CALL HexTsthPinInfo()
-!CALL HexPrintPinTyp()
+!CALL HexTsthPinInfo
+!CALL HexPrintPinTyp
 ! ----------------------------------------------------
 !                4. CP
 ! ----------------------------------------------------
-CALL HexCPCelInfo()
+CALL HexCPCelInfo
 
 DO iPin = 1, nHexPin
   CALL HexCPPin(iPin)
@@ -84,6 +84,8 @@ END DO
 ! ----------------------------------------------------
 !                5. FIN : Core
 ! ----------------------------------------------------
+ALLOCATE (PinInfo (nPinType))
+
 DO ipTyp = 1, nPinType
   IF (.NOT. RodPin(ipTyp)%luse) CYCLE
   

@@ -28,7 +28,7 @@ nTracerCntl%MultigridLV = 6
 
 IF (nz .EQ. 1) nTracerCntl%l3dim = .FALSE.
 
-CALL ConvertXs()
+CALL ConvertXs
 
 WRITE(MESG, '(A)') '------------------------------------------------------------------------'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
@@ -38,25 +38,25 @@ IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 WRITE(MESG, '(A)') 'HEX : Set Geom ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-CALL HexSetGeo()
+CALL HexSetGeo
 ! ----------------------------------------------------
 !               02. SET : CMFD map
 ! ----------------------------------------------------
 WRITE(MESG, '(A)') '      Set CMFD Map ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-CALL HexSetHcPin()
-!CALL HexTstHcPin()
+CALL HexSetHcPin
+!CALL HexTstHcPin
 ! ----------------------------------------------------
 !               03. SET : Ray Basic Data
 ! ----------------------------------------------------
 WRITE(MESG, '(A)') '      Set Ray Basic Data ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-CALL HexSetRayParam()
-CALL HexSetModRay()
-CALL HexSetModRayNxt()
-!CALL HexTsthmRay()
+CALL HexSetRayParam
+CALL HexSetModRay
+CALL HexSetModRayNxt
+!CALL HexTsthmRay
 ! ----------------------------------------------------
 !               04. SET : Asy Ray Base
 ! ----------------------------------------------------
@@ -70,26 +70,26 @@ DO icBss = 1, ncBss
 END DO
 
 !CALL HexTsthaRay(1, 1, 53)
-!CALL HexTstAsyRaySegNum()
+!CALL HexTstAsyRaySegNum
 ! ----------------------------------------------------
 !               04. SET : Ray
 ! ----------------------------------------------------
 WRITE(MESG, '(A)') '      Set Core Ray ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-CALL HexSetCoreRay()
-!CALL HexTsthcRay()
+CALL HexSetCoreRay
+!CALL HexTsthcRay
 
 WRITE(MESG, '(A)') '      Connect Core Ray ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-CALL HexSetRotRay()
-!CALL HexTsthRotRay()
+CALL HexSetRotRay
+!CALL HexTsthRotRay
 
 WRITE(MESG, '(A)') '      Convert Hex Ray ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-CALL ConvertRay()
+CALL ConvertRay
 
 WRITE(MESG, '(A)') '------------------------------------------------------------------------'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)

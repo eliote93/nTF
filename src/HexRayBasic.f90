@@ -170,7 +170,7 @@ DO iang = 1, nAzmAng / 6
   Delta_Y = AzmDel_Y(iAng)
   Y_MAX   = HALF * Delta_Y + Delta_Y * (NumRay2 - 1)
   
-  CALL SetRayIntSct()
+  CALL SetRayIntSct
 END DO
 ! ----------------------------------------------------
 !               02. SET : mRay = 30 ~ 60 degree
@@ -198,7 +198,7 @@ DO iang = nAzmAng / 6 + 1, nAzmAng / 3
   
   IF (iTmp > 2 * NumRay) CALL terminate("FIND MRAY POINT")
   
-  CALL SetRayIntSct()
+  CALL SetRayIntSct
 END DO
 ! ----------------------------------------------------
 !               03. SET : mRay = 60 ~ 90 degree
@@ -227,7 +227,7 @@ DO iang = nAzmAng / 3 + 1, nAzmAng / 2
   
   IF (iTmp > 2 * NumRay) CALL terminate("FIND MRAY POINT")
   
-  CALL SetRayIntSct()
+  CALL SetRayIntSct
 END DO
 ! ----------------------------------------------------
 !               04. SET : mRay = 90 ~ 180 degree
@@ -365,9 +365,9 @@ USE HexData, ONLY : hLgc
 IMPLICIT NONE
 
 IF (hLgc%lAzmRef) THEN
-  CALL HexSetModRayNxt_REF()
+  CALL HexSetModRayNxt_REF
 ELSE
-  CALL HexSetModRayNxt_ROT()
+  CALL HexSetModRayNxt_ROT
 END IF
 
 END SUBROUTINE HexSetModRayNxt
