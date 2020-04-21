@@ -11,10 +11,12 @@ USE FILES,  ONLY : io8
 USE HexRayBasic
 USE HexRayConst
 USE HexCmfdConst
+USE HexGeoConst
+USE HexPinConst
+USE HexCP
+USE HexTst
 
 USE HexData, ONLY : hLgc, ncBss, NumMray, haRay, nGeoTyp
-USE HexCP,   ONLY : ConvertRay, ConvertXs
-USE HexTst,  ONLY : HexTstHcPin, HexTstAsyRaySegNum, HexTsthmRay, HexTsthaRay, HexTsthcRay, HexTsthRotRay
 
 IMPLICIT NONE
 
@@ -26,7 +28,7 @@ ncbd = 15
 
 nTracerCntl%MultigridLV = 6
 
-IF (nz .EQ. 1) nTracerCntl%l3dim = .FALSE.
+IF (nz .EQ. 1) nTracerCntl%l3dim = FALSE
 
 CALL ConvertXs
 
@@ -48,7 +50,17 @@ IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 CALL HexSetHcPin
 !CALL HexTstHcPin
 ! ----------------------------------------------------
-!               03. SET : Ray Basic Data
+!               03. FIN : Geo
+! ----------------------------------------------------
+CALL HexSetVyg
+CALL HexSetVss ! Vss must follow Vyg
+
+!CALL HexTsthPinInfo
+CALL HexPrintPinTyp
+
+CALL HexCPnT
+! ----------------------------------------------------
+!               04. SET : Ray Basic Data
 ! ----------------------------------------------------
 WRITE(MESG, '(A)') '      Set Ray Basic Data ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
@@ -58,7 +70,7 @@ CALL HexSetModRay
 CALL HexSetModRayNxt
 !CALL HexTsthmRay
 ! ----------------------------------------------------
-!               04. SET : Asy Ray Base
+!               05. SET : Asy Ray Base
 ! ----------------------------------------------------
 WRITE(MESG, '(A)') '      Set Asy Ray Base ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
@@ -72,7 +84,7 @@ END DO
 !CALL HexTsthaRay(1, 1, 53)
 !CALL HexTstAsyRaySegNum
 ! ----------------------------------------------------
-!               04. SET : Ray
+!               06. SET : Ray
 ! ----------------------------------------------------
 WRITE(MESG, '(A)') '      Set Core Ray ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)

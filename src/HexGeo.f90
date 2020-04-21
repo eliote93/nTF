@@ -1,12 +1,9 @@
 SUBROUTINE HexSetGeo()
 
 USE PARAM,   ONLY : ZERO, FALSE
-USE ioutil,  ONLY : terminate
-USE geom,    ONLY : nAsyType0, Core, Asy, AsyInfo, AsyVol, PinInfo, CellInfo, Pin, nCellType, nZ, nPinType
-USE HexData, ONLY : nHexPin, nhAsy, nHexPin, RodPin, hAsyTypInfo
-USE HexTst,  ONLY : HexPrintPinTyp, HexTsthPinInfo
+USE geom,    ONLY : Core, Pin, nZ, nAsyType0
+USE HexData, ONLY : nHexPin, nhAsy, nHexPin, hAsyTypInfo
 
-USE HexCP
 USE HexGeoConst
 USE HexAsyConst
 USE HexAsyTypConst
@@ -67,44 +64,6 @@ FxrIdxSt = 1
 DO iPin = 1, nHexPin
   CALL HexSetPinFSR(iPin, FsrIdxSt, FxrIdxSt)
 END DO
-
-CALL HexSetVyg
-CALL HexSetVss ! Vss must follow Vyg
-
-!CALL HexTsthPinInfo
-!CALL HexPrintPinTyp
-! ----------------------------------------------------
-!                4. CP
-! ----------------------------------------------------
-CALL HexCPCelInfo
-
-DO iPin = 1, nHexPin
-  CALL HexCPPin(iPin)
-END DO
-! ----------------------------------------------------
-!                5. FIN : Core
-! ----------------------------------------------------
-ALLOCATE (PinInfo (nPinType))
-
-DO ipTyp = 1, nPinType
-  IF (.NOT. RodPin(ipTyp)%luse) CYCLE
-  
-  PinInfo(ipTyp)%nFsrMax = RodPin(ipTyp)%nFsrMax
-END DO
-
-Core%nxyc = 0
-
-DO iAsy = 1, Core%nAsyType
-  Core%nxyc = max(Core%nxyc, AsyInfo(iAsy)%nxy)
-END DO
-
-Core%Asy      => Asy
-Core%AsyInfo  => AsyInfo
-Core%AsyVol   => AsyVol
-Core%Pin      => Pin
-Core%PinInfo  => PinInfo
-Core%CellInfo => CellInfo
-Core%nCellType = nCellType
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetGeo

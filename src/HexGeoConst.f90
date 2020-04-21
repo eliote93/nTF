@@ -167,12 +167,12 @@ SUBROUTINE HexSetVyg()
 USE PARAM,    ONLY : TRUE
 USE CORE_mod, ONLY : Fxr
 USE geom,     ONLY : nGapPinType
-USE HexData,  ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, hcPin, nhAsy, GapPin
+USE HexData,  ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, nhAsy, hAsyTypInfo
 
 IMPLICIT NONE
 
-INTEGER :: iAsy, iaTyp, jaTyp, iDir, iPin, jPin
-INTEGER :: PinIdxSt, nRodGlb, nTotGlb
+INTEGER :: iAsy, iaTyp, jaTyp, iDir, jAsy, iTmp, jTmp, kTmp, iPin, jPin
+INTEGER :: nRodGlb, nTotGlb
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVyg) RETURN
@@ -180,19 +180,28 @@ IF (.NOT. hLgc%lVyg) RETURN
 DO iAsy = 1, nhAsy
   iaTyp = hAsy(iAsy)%AsyTyp
   
-  IF (iaTyp .NE. vAsyTyp) RETURN
+  IF (iaTyp .NE. vAsyTyp) CYCLE
   
-  PinIdxSt = hAsy(iAsy)%PinIdxSt - 1
-  nRodGlb  = hAsy(iAsy)%nRodPin + PinIdxSt
-  nTotGlb  = hAsy(iAsy)%nTotPin + PinIdxSt
-  
-  DO iPin = nRodGlb + 1, nTotGlb
-    DO iDir = 1, hcPin(iPin)%nNgh
-      jPin = hcPin(iPin)%NghPin(iDir)
+  DO iDir = 1, 6
+    jAsy = hAsy(iAsy)%NghIdx(iDir)
+    
+    IF (jAsy .LT. 1) CYCLE
+    
+    jaTyp = hAsy(jAsy)%AsyTyp
+    
+    IF (jaTyp.EQ.iaTyp .OR. jaTyp.EQ.vRefTyp) CYCLE
+    
+    nRodGlb  = hAsy(iAsy)%nRodPin + hAsy(iAsy)%PinIdxSt - 1
+    nTotGlb  = hAsy(iAsy)%nTotPin + hAsy(iAsy)%PinIdxSt - 1
+    
+    DO iPin = nRodGlb + 1, nTotGlb ! Global Numeric # of Pin
+      jPin = hPinInfo(iPin)%OrdInAsy01 ! Numeric # of Pin in "hAsyTypInfo"
       
-      jaTyp = hPinInfo(jPin)%AsyTyp
+      iTmp = jPin - hAsyTypInfo(iaTyp)%nRodPin(1) - 1
+      jTmp = 2 * (hAsyTypInfo(iaTyp)%nPin - 1)
+      kTmp = 1 + iTmp / jTmp
       
-      IF (jaTyp.EQ.iaTyp .OR. jaTyp.EQ.vRefTyp) CYCLE
+      IF (kTmp .NE. iDir) CYCLE
       
       hPinInfo(iPin)%PinTyp = nGapPinType
     END DO

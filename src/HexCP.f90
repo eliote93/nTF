@@ -16,7 +16,49 @@ INTEGER, PARAMETER :: pnRod = 6, pnGap = 2
 CONTAINS
 
 ! ------------------------------------------------------------------------------------------------------------
-!                                     01. HEX CP : Cel Info
+!                                     01. HEX CP : nT
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexCPnT()
+
+USE geom,    ONLY : Core, Asy, AsyInfo, AsyVol, PinInfo, CellInfo, Pin, nCellType, nPinType
+USE HexData, ONLY : nHexPin, RodPin
+
+IMPLICIT NONE
+
+INTEGER :: iPin, ipTyp, iAsy
+! ----------------------------------------------------
+CALL HexCPCelInfo
+
+DO iPin = 1, nHexPin
+  CALL HexCPPin(iPin)
+END DO
+
+ALLOCATE (PinInfo (nPinType))
+
+DO ipTyp = 1, nPinType
+  IF (.NOT. RodPin(ipTyp)%luse) CYCLE
+  
+  PinInfo(ipTyp)%nFsrMax = RodPin(ipTyp)%nFsrMax
+END DO
+
+Core%nxyc = 0
+
+DO iAsy = 1, Core%nAsyType
+  Core%nxyc = max(Core%nxyc, AsyInfo(iAsy)%nxy)
+END DO
+
+Core%Asy      => Asy
+Core%AsyInfo  => AsyInfo
+Core%AsyVol   => AsyVol
+Core%Pin      => Pin
+Core%PinInfo  => PinInfo
+Core%CellInfo => CellInfo
+Core%nCellType = nCellType
+! ----------------------------------------------------
+
+END SUBROUTINE HexCPnT
+! ------------------------------------------------------------------------------------------------------------
+!                                     02. HEX CP : Cel Info
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCPCelInfo()
 
@@ -254,7 +296,7 @@ NULLIFY (Cel_Loc, cBs_Loc, gBs_Loc)
 
 END SUBROUTINE HexCPCelInfo
 ! ------------------------------------------------------------------------------------------------------------
-!                                     02. HEX CALC : Cell SSPH
+!                                     03. HEX CALC : Cell SSPH
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCalcCellSSPH(icTyp)
 
@@ -525,7 +567,7 @@ NULLIFY (Cel_Loc, hCl_Loc, cBs_Loc)
 
 END SUBROUTINE HexCalcCellSSPH
 ! ------------------------------------------------------------------------------------------------------------
-!                                     03. HEX CP : Pin
+!                                     04. HEX CP : Pin
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCPPin(iPin)
 

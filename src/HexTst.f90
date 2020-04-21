@@ -93,69 +93,43 @@ END SUBROUTINE HexTstAsyRaySegNum
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPrintPinTyp()
 
-USE PARAM, ONLY : BLANK
-USE CNTL,  ONLY : nTracerCntl
-USE FILES, ONLY : IO8
-USE geom,  ONLY : nZ
-
-use HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nhAsy
+use HexData, ONLY : nHexPin, hAsy, hAsyTypInfo, hPinInfo, mpTypNumNgh
 
 IMPLICIT NONE
 
-INTEGER :: nCx, iAsyTyp, iGeoTyp
-INTEGER :: iasy, ixa, iya, iz
-INTEGER :: ixy, ix, iy, iPin, jPin
+INTEGER :: io, iAsy, iaTyp, iGeo, iPin, jPin, ivTyp, nPt, iPt
 
-REAL :: EffPinNum
-
-CHARACTER(12)  :: cTmp
-CHARACTER(512) :: sTmp
-
-301 FORMAT('Assembly', I5, x, 'at', x, '(', I7, I7, ')')
-302 FORMAT(2X, A)
+REAL :: Pts(2, 6)
 ! ----------------------------------------------------
 
-WRITE(io8, '(A)') '- 2D Pin Power -'
-WRITE(io8, '(A)') '- Coordinate : 1st = from NE to SW, 2nd = from NNW to SSE'
-WRITE(io8, *)
-WRITE(io8, '(A, F12.5)') 'Eff Pin Num', 0
-WRITE(io8, *)
+io = 11
 
-DO iAsy = 1, nhAsy
-  WRITE(io8, 301), iAsy, Asy1Dto2Dmap(1, iAsy), Asy1Dto2Dmap(2, iAsy)
+OPEN (UNIT = io, file = "TST Pin Typ")
 
-  iAsyTyp = hAsy(iAsy)%AsyTyp
-  iGeoTyp = hAsy(iAsy)%GeoTyp
-  nCx     = hAsyTypInfo(iAsyTyp)%nPin
+WRITE(io, '(A, X, I6)') 'Pin Num', nHexPin
 
-  DO iy = 1, 2*nCx - 1   ! NW  to SE
-    sTmp = BLANK
-
-    DO ix = 1, 2*nCx - 1 ! NNE to SSW
-      iPin = hAsyTypInfo(iAsyTyp)%Pin2Dto1Dmap(ix, iy)
-
-      IF (iPin < 1) THEN
-        cTmp = BLANK
-      ELSE
-        jPin = hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, iPin)
-
-        IF (jPin < 1) THEN
-          WRITE (cTmp, '(I2)') 0._8
-        ELSE
-          ixy = hAsy(iAsy)%PinIdxSt + jPin - 1 ! Global Pin Idx
-
-          !WRITE (cTmp, '(I2)') hPinInfo(ixy)%PinTyp
-          !WRITE (cTmp, '(I2)') hPinInfo(ixy)%BndyTyp
-          !WRITE (cTmp, '(I2)') hPinInfo(ixy)%DirTyp
-        END IF
-      END IF
-
-      sTmp((ix-1)*3+1:ix*3) = cTmp
-    END DO
-
-    WRITE(io8, 302), sTmp(1:ix*3)
+DO iPin = 1, nHexPin
+  iAsy  = hPinInfo(iPin)%AsyIdx
+  iaTyp = hPinInfo(iPin)%AsyTyp
+  jPin  = hPinInfo(iPin)%OrdInAsy01
+  iGeo  = hAsy(iAsy)%GeoTyp
+  ivTyp = hAsyTypInfo(iaTyp)%PinVtxTyp(iGeo, jPin)
+  nPt   = mpTypNumNgh(ivTyp)
+  
+  DO iPt = 1, nPt
+    Pts(1:2, iPt) = hAsyTypInfo(iaTyp)%mpVtx(1:2, iPt, iGeo, jPin) + hAsy(iAsy)%Cnt(1:2)
   END DO
+  
+  IF (hPinInfo(iPin)%lRod) THEN
+    WRITE (io, "(X, I6, X, I2, X, I2)") iPin,  hPinInfo(iPin)%PinTyp, nPt
+  ELSE
+    WRITE (io, "(X, I6, X, I2, X, I2)") iPin, -hPinInfo(iPin)%PinTyp, nPt
+  END IF
+  
+  WRITE (io, "(X, 100(F12.5))") Pts(1:2, 1:nPt)
 END DO
+
+CLOSE (io)
 
 CALL terminate("END OF TEST = PIN TYP")
 ! ----------------------------------------------------
@@ -392,7 +366,7 @@ TYPE(Type_HexAsyRay), POINTER :: haRay_Loc
 haRay_Loc  => haRay(iGeo, icBss, imRay)
 RayEqn(1:3) = hmRay(imRay)%Eq
 
-IF (haRay_Loc%nhpRay < 1) CALL terminate("INVALID GEO TYP & MRAY")
+IF (haRay_Loc%nhpRay .LT. 1) CALL terminate("INVALID GEO TYP & MRAY")
 
 nhsRay = 0
 
@@ -460,7 +434,7 @@ DO iAng = 1, nAzmAng
   END DO
 
   DO jcRay = icRay + 1, ncRay
-    IF (hcRay(jcRay)%AzmIdx /= iAng) EXIT
+    IF (hcRay(jcRay)%AzmIdx .NE. iAng) EXIT
   END DO
 
   cRayRng(1, iAng) = icRay
