@@ -56,7 +56,7 @@ CALL HexSetVyg
 CALL HexSetVss ! Vss must follow Vyg
 
 !CALL HexTsthPinInfo
-CALL HexPrintPinTyp
+!CALL HexPrintPinTyp
 
 CALL HexCPnT
 ! ----------------------------------------------------

@@ -7,7 +7,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
     INTEGER,INTENT(IN) :: indev
     CHARACTER*(*),INTENT(IN) :: filenm
     INTEGER,INTENT(OUT) :: ng_out,ntiso_out,scatord_out
-    
+
     INTEGER :: ng,ntiso,maxup,maxdn,maxord,ichist,nscmax,nsblok,sctord
     INTEGER :: ig,jg,iso,ib,ie,il,i,j,k,scttyp,iord,it,igx
     INTEGER :: kbr,ichi,ifis,ialf,inp,in2n,ind,int,ltot,ltrn,istrpd,nscr
@@ -19,31 +19,31 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
     REAL(4),POINTER :: sctmat(:,:,:)
     REAL(8),POINTER :: sctxs(:)
     CHARACTER*6 :: hid(12),absid,ident,mat
-    CHARACTER,POINTER :: aid*6(:)
+    CHARACTER*6,POINTER :: aid(:)
     LOGICAL,POINTER :: ltotmat(:)
     TYPE(SCATMAT),POINTER :: SM(:)
-    
+
     ng_out = 0
     ntiso_out = 0
     scatord_out = 0
-    
+
     DO i = 1, 100000
         mapnucl(i) = 0
         mapnuclp13(i) = 0
         mapfis(i) = 0
     ENDDO
-    
+
     !1. Open a XS Library File
     CLOSE(InDev)
     CALL OpenFile(indev,.TRUE.,.FALSE.,.FALSE.,filenm)
-    
+
     !Card Type 0, Skip this Line
     READ(indev,*)
-    
+
     !Card Type 1, File Control (1D Record)
 100 FORMAT (' 1D ',8i6)
     READ(indev,100) ng,ntiso,maxup,maxdn,maxord,ichist,nscmax,nsblok
-    
+
     !Card Type 2, File Data (2D Record)
 200 FORMAT (' 2D ','*',11a6,'*'/'*',a6,'*',9(1x,a6)/(10(1x,a6)))
 210 FORMAT(1P,6E12.5)
@@ -57,17 +57,17 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
     ENDIF
     READ(indev,210) vel(1:ng),erg(1:ng+1)
     READ(indev,220) loca(1:ntiso)
-    
+
     ALLOCATE(enbhel(ng+1))
     enbhel(1:ng+1) = erg(1:ng+1)
-    
+
     !Card Type 3, File-wide Chi Data (3D Record)
-300 FORMAT (' 3D ',1p5e12.5/1p(6e12.5))
+300 FORMAT (' 3D ',1p5e12.5/1p,(6e12.5))
     IF(ichist > 1) THEN
       ALLOCATE(chi(ng,ichist),isspec(ng))
       READ(indev,300) ((chi(ichi,ig),ichi=1,ichist),ig=1,ng),(isspec(ig),ig=1,ng)
     ENDIF
-    
+
     ALLOCATE(idsct(nscmax),lord(nscmax),jband(ng,nscmax),ijj(ng,nscmax))
     ALLOCATE(strpl(ng,10),stotpl(ng,10),sngam(ng),sfis(ng),snutot(ng))
     ALLOCATE(schiso(ng),snalf(ng),snp(ng),sn2n(ng),snd(ng),snt(ng))
@@ -76,11 +76,11 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
     ALLOCATE(ltotmat(0:maxord))
     DO iso = 1, ntiso
         !Card Type 4, Isotope Control and Group Independent Datg (4D Record)
-400     FORMAT (' 4D ',3(1x,a6)/1p(6e12.5)/0p(12i6))
+400     FORMAT (' 4D ',3(1x,a6)/1p,(6e12.5)/0p,(12i6))
         READ(indev,400) absid,ident,mat,amass,efiss,ecapt,temp,sigpot,numden,&
                         kbr,ichi,ifis,ialf,inp,in2n,ind,int,ltot,ltrn,istrpd,&
                         idsct(1:nscmax),lord(1:nscmax),jband(1:ng,1:nscmax),ijj(1:ng,1:nscmax)
-        
+
         ldiso(iso)%aid = aid(iso)
         ldiso(iso)%aw  = amass
         ldiso(iso)%ntemp = 1
@@ -91,13 +91,13 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
         IF(ifis == 1) ldiso(iso)%ityp = 3
         ldiso(iso)%np1temp = 0
         ldiso(iso)%kappa = efiss
-            
-                        
+
+
         !Card Type 5, Principal Cross Section
         nscr = ltrn*ng + ltot*ng + ng + 2*ifis*ng + ialf*ng + inp*ng + in2n*ng + ind*ng + int*ng + istrpd*ng
         IF(ichi == 1) nscr = nscr + ng
         ALLOCATE(scr(nscr))
-500     FORMAT (' 5d ',1p5e12.5/1p(6e12.5))
+500     FORMAT (' 5d ',1p5e12.5/1p,(6e12.5))
         READ(indev,500) scr(1:nscr)
         ie = 0
         !PL weighted transport cross section
@@ -170,11 +170,11 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             strpd(1:ng,il) = scr(ib:ie)
         ENDDO
         DEALLOCATE(scr)
-        
+
         !Save cross section to ldiso(iso)
         ALLOCATE(ldiso(iso)%sigtr(ng,1),ldiso(iso)%siga(ng,1),ldiso(iso)%sigs(ng,1),&
                  ldiso(iso)%sigf(ng,1),ldiso(iso)%signf(ng,1),ldiso(iso)%chi(ng),&
-                 ldiso(iso)%siga(ng,1),ldiso(iso)%sigs(ng,1),ldiso(iso)%sigstr(ng,1), ldiso(iso)%sigss(ng,1))
+                 ldiso(iso)%sigstr(ng,1), ldiso(iso)%sigss(ng,1))
         FORALL(ig=1:ng)
             ldiso(iso)%sigtr(ig,1) = 0.
             ldiso(iso)%siga (ig,1) = 0.
@@ -192,15 +192,15 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             ldiso(iso)%signf(1:ng,1) = snutot(1:ng)*sfis(1:ng)
         ENDIF
         IF(ichi == 1) ldiso(iso)%chi(1:ng) = schiso(1:ng)
-        
+
         !Card Type 6, Isotope Chi Data
         IF(ichi > 1) THEN
-600         FORMAT(' 6d ',1p5e12.5/1p(6e12.5))
+600         FORMAT(' 6d ',1p5e12.5/1p,(6e12.5))
 610         FORMAT(12i6)
             ALLOCATE(CHIISO(ichi,ng),ISOPEC(ng))
             READ(indev,600) CHIISO(1:ichi,1:ng)
             READ(indev,610) ISOPEC(1:ng)
-            
+
             fissum = 0.
             DO ig = 1, ng
                 tmp = snutot(ig)*sfis(ig)
@@ -216,14 +216,14 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             ENDDO
             ldiso(iso)%chi = ldiso(iso)%chi/tmp
         ENDIF
-        
+
         !Card Type 7, Scattering Sub-block
         forall(ig=1:ng,jg=1:ng,il=0:maxord) sctmat(ig,jg,il) = 0.
         ltotmat = .FALSE.
         sctord = 0
         DO i = 1, nscmax
             IF(lord(i) == 0) CYCLE
-700         FORMAT(' 7d ',1p5e12.5/1p(6e12.5))
+700         FORMAT(' 7d ',1p5e12.5/1p,(6e12.5))
             nscr = 0
             DO ig = 1, ng
                 nscr = nscr + jband(ig,i)
@@ -231,7 +231,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             nscr = nscr*lord(i)
             ALLOCATE(scr(nscr))
             READ(indev,700) scr(1:nscr)
-            
+
             !save scattering matrix
             scttyp = idsct(i)/100
             il = idsct(i) - scttyp*100 - 1
@@ -240,7 +240,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
                 sctord = max(sctord,il)
                 IF(scttyp == 0) THEN
                     ltotmat(il) = .TRUE.
-                    k = 0 
+                    k = 0
                     DO ig = 1, ng
                         jg = ig - ijj(ig,i) + 1
                         DO j = 1, jband(ig,i)
@@ -254,7 +254,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
                         DEALLOCATE(scr)
                         CYCLE
                     ENDIF
-                    k = 0 
+                    k = 0
                     DO ig = 1, ng
                         jg = ig - ijj(ig,i) + 1
                         DO j = 1, jband(ig,i)
@@ -267,13 +267,13 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             ENDDO
             DEALLOCATE(scr)
         ENDDO
-        
+
         IF(sctord > 0) THEN
             ldiso(iso)%np1temp = 1
             ALLOCATE(ldiso(iso)%p1temp(1))
             ldiso(iso)%p1temp(1) = temp
         ENDIF
-        
+
         DO il = 0, sctord
             IF(il == 0) THEN
                 ALLOCATE(ldiso(iso)%sm(ng,1))
@@ -307,39 +307,39 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
             ELSE
                 stop 'readISOTXS.f90, legendre expansion order is larger than 5 !!'
             ENDIF
-            
+
             DO ig = 1, ng
                 DO jg = 1, ng
                     IF(sctmat(jg,ig,il) == 0.) CYCLE
                     ib = jg
                     EXIT
-                END DO 
+                END DO
                 DO jg = ng, 1, -1
                     IF(sctmat(jg,ig,il) == 0.) CYCLE
                     ie = jg
                     EXIT
-                END DO 
+                END DO
                 SM(ig)%ib = ib
                 SM(ig)%ie = ie
                 ALLOCATE(SM(ig)%from(ib:ie))
                 SM(ig)%from(ib:ie) = sctmat(ib:ie,ig,il)
-                
+
                 sctxs(ig) = sum(sctmat(ig,1:ng,il))
                 IF(il == 0) ldiso(iso)%siga(ig,1) = ldiso(iso)%siga(ig,1) - ldiso(iso)%sigs(ig,1)
             ENDDO
         ENDDO
-        
+
         !!Transport Correction for P0 Scattering Matrix
         DO ig = 1, ng
             ldiso(iso)%sm(ig,1)%from(ig) = ldiso(iso)%sm(ig,1)%from(ig) - (stotpl(ig,1) - strpl(ig,1))
         ENDDO
-        
+
         CONTINUE
 !        DO ig = 1, ng
 !            WRITE(50,'(100ES16.6)') sctmat(ig,1:ng,0)
 !        ENDDO
         IF(istrpd > 0) DEALLOCATE(strpd)
-    
+
         do it = 1, 1
             ldiso(iso)%sigstr(:,it) = 0._8
             do ig = 1, ng
@@ -365,20 +365,20 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
                 ldiso(iso)%sigss(ig,it) = ldiso(iso)%sm(ig,it)%from(ig) + (ldiso(iso)%sigs(ig,it) - ldiso(iso)%sigstr(ig,it))
             enddo
         enddo
-        
+
     ENDDO !of iso
     DEALLOCATE(strpl,stotpl,sngam,sfis,snutot,schiso,snalf,snp,sn2n,snd,snt)
     DEALLOCATE(sctmat,ltotmat)
-    
+
     ng_out = ng
     ntiso_out = ntiso
     scatord_out = maxord
-    
+
     nelthel = ntiso
     nelrhel = ntiso
     nreshel = 0
     nburhel = 0
-    
+
     noghel = ng
     DO ig = 1, ng
         IF(erg(ig) <= 5.0) EXIT
@@ -387,7 +387,7 @@ SUBROUTINE ReadISOTXS(indev,filenm,ng_out,ntiso_out,scatord_out)
     notghel = noghel - nofghel
     norghel = 0
     nchihel = noghel
-    
+
     IF(ichist == 1) DEALLOCATE(chi)
     IF(ichist > 1)  DEALLOCATE(chi,isspec)
     DEALLOCATE(erg,vel,loca)

@@ -168,11 +168,13 @@ DO iBss = 1, nVssTyp
   CALL HexChkRange_INT(hVss(iBss)%zEd, hVss(iBss)%zSt, nZ,  "WRONG VSS Z")
 END DO
 
-CALL HexChkRange_INT(vAsyTyp, 1, nAsyType0, "WRONG VASYTYPE")
-CALL HexChkRange_INT(vRefTyp, 1, nAsyType0, "WRONG VREFTYPE")
-CALL HexChkRange_INT(vMat,    1, nMixType,  "WRONG VMAT")
-CALL HexChkRange_INT(vzSt,    1, vzEd,      "WRONG VZ")
-CALL HexChkRange_INT(vzEd, vzSt, nZ,        "WRONG VZ")
+IF (hLgc%lVyg) THEN
+  CALL HexChkRange_INT(vAsyTyp, 1, nAsyType0, "WRONG VASYTYPE")
+  CALL HexChkRange_INT(vRefTyp, 1, nAsyType0, "WRONG VREFTYPE")
+  CALL HexChkRange_INT(vMat,    1, nMixType,  "WRONG VMAT")
+  CALL HexChkRange_INT(vzSt,    1, vzEd,      "WRONG VZ")
+  CALL HexChkRange_INT(vzEd, vzSt, nZ,        "WRONG VZ")
+END IF  
 
 IF (nZ.LT.1 .AND. .NOT.nTracerCntl%lCMFD) CALL terminate("3D CALCULATION MUST USE CMFD")
 

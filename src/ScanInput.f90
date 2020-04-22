@@ -248,6 +248,7 @@ DO while(TRUE)
     CASE('VESSEL')
       read(oneline,*) astring, icell
       nVssTyp = max(iCell, nVssTyp)
+      hLgc%lvss = TRUE
     CASE('VYGORODKA')
       hLgc%lvyg = TRUE
     CASE('CR_CELL')

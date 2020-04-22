@@ -1,6 +1,6 @@
 #include <defines.h>
 MODULE HexCmfdConst
-  
+
 IMPLICIT NONE
 
 CONTAINS
@@ -22,7 +22,7 @@ IMPLICIT NONE
 ! CASE : Sng Cel
 IF (hLgc%lSngCel) THEN
   CALL HexSetHcPin_Sng
-  
+
   RETURN
 END IF
 
@@ -65,11 +65,11 @@ nPin = 0
 
 DO iAsy = 1, nhAsy
   nhcPin = nhcPin + hAsy(iAsy)%nRodPin
-  
+
   DO iPin = 1, hAsy(iAsy)%nRodPin
     nPin = nPin + 1
     jPin = iPin + hAsy(iAsy)%PinIdxSt - 1
-    
+
     PinMap(jPin) = nPin
   END DO
 END DO
@@ -78,15 +78,15 @@ ALLOCATE (hcPin (nhcPin))
 ! ----------------------------------------------------
 DO iAsy = 1, nhAsy
   iGeo = hAsy(iAsy)%GeoTyp
-  
+
   aInf_Loc => hAsyTypInfo(hAsy(iAsy)%AsyTyp)
-  
+
   cpSufMPnum => aInf_Loc%cpSufMPnum
   cpSlfMPnum => aInf_Loc%cpSlfMPnum
   cpSlfMPidx => aInf_Loc%cpSlfMPidx
   cpSufMPidx => aInf_Loc%cpSufMPidx
   cpSufMPsuf => aInf_Loc%cpSufMPsuf
-  
+
   !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin)
   !$OMP DO SCHEDULE(GUIDED)
   DO iPin = 1, hAsy(iAsy)%nRodPin
@@ -94,45 +94,45 @@ DO iAsy = 1, nhAsy
     kPin  = hPinInfo(jPin)%OrdInAsy01       ! Pin Idx in "hAsyTypInfo"
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, kPin)  ! Vtx Typ
     nBndy = spTypNumNgh(ivTyp)
-    
+
     cPin_Loc => hcPin(PinMap(jPin))
     ! ----------------------------
     !      1. CP
     ! ----------------------------
     cPin_Loc%nBndy = nBndy
     cPin_Loc%aIdx  = iAsy
-    
+
     cPin_Loc%BdPts(1, 1:7) = aInf_Loc%spVtx(1, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(1)
     cPin_Loc%BdPts(2, 1:7) = aInf_Loc%spVtx(2, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(2)
-    
+
     Cnt(1:2) = FindCnt(nBndy, cPin_Loc%BdPts(1:2, 1:nBndy))
-    
+
     DO iBndy = 1, nBndy
       cPin_Loc%BdLgh(iBndy) = aInf_Loc%spBndyLgh(iBndy, ivTyp)
       cPin_Loc%BdC2B(iBndy) = aInf_Loc%spBndyC2B(iBndy, ivTyp)
-      
+
       cPin_Loc%BdEqn(1:3, iBndy) = SetEqn(cPin_Loc%BdPts(1:2, iBndy), cPin_Loc%BdPts(1:2, iBndy+1), Cnt)
     END DO
     ! ----------------------------
     !      2. MP
     ! ----------------------------
     cPin_Loc%Area = aInf_Loc%spTypAre(ivTyp)
-    
+
     cPin_Loc%nmPin   = cpSlfMPnum   (iGeo, kPin)
     cPin_Loc%nBdmPin = cpSufMPnum(:, iGeo, kPin)
-    
+
     DO jPin = 1, cPin_Loc%nmPin
       tPin = cpSlfMPidx(jPin, iGeo, kPin)
-      
+
       cPin_Loc%mpIdx(jPin) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1
     END DO
-    
+
     DO iBndy = 1, cPin_Loc%nBndy
       DO jPin = 1, cpSufMPnum(iBndy, iGeo, kPin)
         tPin = cpSufMPidx(jPin, iBndy, iGeo, kPin)
-        
+
         cPin_Loc%BdMPsuf(jPin, iBndy) = cpSufMPsuf(jPin, iBndy, iGeo, kPin)
-        cPin_Loc%BdMPidx(jPin, iBndy) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx 
+        cPin_Loc%BdMPidx(jPin, iBndy) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx
       END DO
     END DO
   END DO
@@ -177,15 +177,15 @@ ALLOCATE (hcPin (nhcPin))
 ! ----------------------------------------------------
 DO iAsy = 1, nhAsy
   iGeo = hAsy(iAsy)%GeoTyp
-  
+
   aInf_Loc => hAsyTypInfo(hAsy(iAsy)%AsyTyp)
-  
+
   cpSufMPnum => aInf_Loc%cpSufMPnum
   cpSlfMPnum => aInf_Loc%cpSlfMPnum
   cpSlfMPidx => aInf_Loc%cpSlfMPidx
   cpSufMPidx => aInf_Loc%cpSufMPidx
   cpSufMPsuf => aInf_Loc%cpSufMPsuf
-  
+
   !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin)
   !$OMP DO SCHEDULE(GUIDED)
   DO iPin = 1, hAsy(iAsy)%nTotPin
@@ -193,45 +193,45 @@ DO iAsy = 1, nhAsy
     kPin  = hPinInfo(jPin)%OrdInAsy01       ! Pin Idx in "hAsyTypInfo"
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, kPin)  ! Vtx Typ
     nBndy = mpTypNumNgh(ivTyp)
-    
+
     cPin_Loc => hcPin(PinMap(jPin))
     ! ----------------------------
     !      1. CP
     ! ----------------------------
     cPin_Loc%nBndy = nBndy
     cPin_Loc%aIdx  = iAsy
-    
+
     cPin_Loc%BdPts(1, 1:7) = aInf_Loc%mpVtx(1, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(1)
     cPin_Loc%BdPts(2, 1:7) = aInf_Loc%mpVtx(2, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(2)
-    
+
     Cnt(1:2) = FindCnt(nBndy, cPin_Loc%BdPts(1:2, 1:nBndy))
-    
+
     DO iBndy = 1, nBndy
       cPin_Loc%BdLgh(iBndy) = aInf_Loc%mpBndyLgh(iBndy, ivTyp)
       cPin_Loc%BdC2B(iBndy) = aInf_Loc%mpBndyC2B(iBndy, ivTyp)
-      
+
       cPin_Loc%BdEqn(1:3, iBndy) = SetEqn(cPin_Loc%BdPts(1:2, iBndy), cPin_Loc%BdPts(1:2, iBndy+1), Cnt)
     END DO
     ! ----------------------------
     !      2. MP
     ! ----------------------------
     cPin_Loc%Area = aInf_Loc%mpTypAre(ivTyp)
-    
+
     cPin_Loc%nmPin   = cpSlfMPnum   (iGeo, kPin)
     cPin_Loc%nBdmPin = cpSufMPnum(:, iGeo, kPin)
-    
+
     DO jPin = 1, cPin_Loc%nmPin
       tPin = cpSlfMPidx(jPin, iGeo, kPin)
-      
+
       cPin_Loc%mpIdx(jPin) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1
     END DO
-    
+
     DO iBndy = 1, cPin_Loc%nBndy
       DO jPin = 1, cpSufMPnum(iBndy, iGeo, kPin)
         tPin = cpSufMPidx(jPin, iBndy, iGeo, kPin)
-        
+
         cPin_Loc%BdMPsuf(jPin, iBndy) = cpSufMPsuf(jPin, iBndy, iGeo, kPin)
-        cPin_Loc%BdMPidx(jPin, iBndy) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx 
+        cPin_Loc%BdMPidx(jPin, iBndy) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx
       END DO
     END DO
   END DO
@@ -263,21 +263,21 @@ TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc, jPin_Loc
 ! ----------------------------------------------------
 
 !$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, &
-                       jPin_Loc, jBndy, PtsNgh, Lgh)
+!$OMP                  jPin_Loc, jBndy, PtsNgh, Lgh)
 !$OMP DO SCHEDULE(GUIDED)
 DO iPin = 1, nhcPin
   cPin_Loc => hcPin(iPin)
-  
+
   nNgh = 0
   ! ----------------------------
   DO iBndy = 1, cPin_Loc%nBndy
     EqnSlf(1:3)    = cPin_Loc%BdEqn(1:3, iBndy)
     PtsSlf(1:2, 1) = cPin_Loc%BdPts(1:2, iBndy)
     PtsSlf(1:2, 2) = cPin_Loc%BdPts(1:2, iBndy + 1)
-    
+
     iPri = SetPtsPri(PtsSlf(1:2, 1:2))
     lNgh = FALSE
-    
+
     lChk01 = ChkPtEqn(PtsSlf(1:2, 1), cBndyEq(1:3, 1)) .AND. ChkPtEqn(PtsSlf(1:2, 2), cBndyEq(1:3, 1))
     lChk02 = ChkPtEqn(PtsSlf(1:2, 1), cBndyEq(1:3, 2)) .AND. ChkPtEqn(PtsSlf(1:2, 2), cBndyEq(1:3, 2))
     lChk   = hLgc%l060 .AND. (lChk01 .OR. lChk02)
@@ -286,14 +286,14 @@ DO iPin = 1, nhcPin
     ! ----------------------------
     IF (lChk .AND. hLgc%lAzmRef) THEN
       nNgh = nNgh + 1
-      
+
       cPin_Loc%NghPin(nNgh) = RefCell
       cPin_Loc%NghBd (nNgh) = iBndy
       cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-      
+
       CYCLE
     END IF
-    
+
     IF (lChk .AND. hLgc%lAzmRot) THEN
       PtsSlf = CalRotPt(EqnSlf, PtsSlf)
       EqnSlf = SetEqn(PtsSlf(1:2, 1), PtsSlf(1:2, 2), Cnt) ! Cnt is meaningless
@@ -303,71 +303,71 @@ DO iPin = 1, nhcPin
     ! ----------------------------
     DO jPin = 1, nhcPin
       IF (iPin .EQ. jPin) CYCLE
-      
+
       jPin_Loc => hcPin(jPin)
-      
+
       DO jBndy = 1, jPin_Loc%nBndy
         PtsNgh(1:2, 1) = jPin_Loc%BdPts(1:2, jBndy)
         PtsNgh(1:2, 2) = jPin_Loc%BdPts(1:2, jBndy+1)
-        
+
         lChk01 = ChkPtEqn(PtsNgh(1:2, 1), EqnSlf(1:3))
         lChk02 = ChkPtEqn(PtsNgh(1:2, 2), EqnSlf(1:3))
         lChk03 = lChk01 .AND. lChk02
-        
+
         IF (.NOT. lChk03) CYCLE
-        
+
         lChk01 = ChkSamePts(PtsSlf(1:2, 1), PtsNgh(1:2, 1))
         lChk02 = ChkSamePts(PtsSlf(1:2, 2), PtsNgh(1:2, 2))
         lChk03 = lChk01 .AND. lChk02
-        
+
         lChk01 = ChkSamePts(PtsSlf(1:2, 1), PtsNgh(1:2, 2))
         lChk02 = ChkSamePts(PtsSlf(1:2, 2), PtsNgh(1:2, 1))
         lChk04 = lChk01 .AND. lChk02
-        
+
         ! Exact Ngh
         IF (lChk03 .OR. lChk04) THEN
           nNgh = nNgh + 1
           lNgh = TRUE
-          
+
           cPin_Loc%NghPin(nNgh) = jPin
           cPin_Loc%NghBd (nNgh) = iBndy
           cPin_Loc%NghSuf(nNgh) = jBndy
           cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-          
+
           EXIT
         END IF
-        
+
         Lgh = CalNghSegLgh(PtsSlf, PtsNgh, iPri)
-        
+
         IF (Lgh < 1E-3) CYCLE ! ARTIBRARY
-        
+
         ! Segment Ngh
         nNgh = nNgh + 1
         lNgh = TRUE
-        
+
         cPin_Loc%NghPin(nNgh) = jPin
         cPin_Loc%NghBd (nNgh) = iBndy
         cPin_Loc%NghSuf(nNgh) = jBndy
         cPin_Loc%NghLgh(nNgh) = Lgh
       END DO
     END DO
-    
+
     IF (lNgh) CYCLE
     ! ----------------------------
     !      3. Core VAC bndy
     ! ----------------------------
     nNgh = nNgh + 1
-    
+
     cPin_Loc%NghPin(nNgh) = VoidCell
     cPin_Loc%NghBd (nNgh) = iBndy
     cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-    
+
     IF (hLgc%iSym > 3) cPin_Loc%NghPin(nNgh) = RefCell ! Sng Asy / Cel
     IF (hLgc%lRadRef)  cPin_Loc%NghPin(nNgh) = RefCell ! REF on Radial direction
     IF (lChk)          cPin_Loc%NghPin(nNgh) = RefCell ! Ngh Pin = Self Pin with Azm ROT
   END DO
   ! ----------------------------
-  
+
   cPin_Loc%nNgh = nNgh
 END DO
 !$OMP END DO
@@ -491,29 +491,29 @@ ALLOCATE (superPin (nxy))
 DO ixy = 1, nxy
   sPin_Loc => superPin(ixy)
   cPin_Loc => hcPin(ixy)
-  
+
   ! Garbage
   sPin_Loc%nx = 0
   sPin_Loc%ny = 0
   sPin_Loc%ix = 0
   sPin_Loc%iy = 0
-  
+
   ! CP
   sPin_Loc%nxy = cPin_Loc%nmPin
-  
+
   ALLOCATE(sPin_Loc%pin(3))
-  
+
   ! SELF
   sPin_Loc%pin             = cPin_Loc%mpIdx  ! MOC Pin
   sPin_Loc%Area            = cPin_Loc%Area
   sPin_Loc%BdLength        = cPin_Loc%BdLgh
   sPin_Loc%Center2SurfaceL = cPin_Loc%BdC2B
-  
+
   ! MP
   sPin_Loc%nBdmPin = cPin_Loc%nBdmPin
   sPin_Loc%BdMPidx = cPin_Loc%BdMPidx ! MOC Pin
   sPin_Loc%BdMPsuf = cPin_Loc%BdMPsuf ! MOC Pin
-  
+
   ! CP
   sPin_Loc%nNgh         = cPin_Loc%nNgh
   sPin_Loc%NeighIdx     = cPin_Loc%NghPin
@@ -529,25 +529,25 @@ Pin  => CoreInfo%Pin
 
 DO ixy = 1, nxy
   ALLOCATE(superPin(ixy)%lFuel(CoreInfo%nz))
-  
+
   superPin(ixy)%lFuel = FALSE
-  
+
   DO iz = 1, CoreInfo%nz
     DO jxy = 1, superPin(ixy)%nxy
       iPin = superPin(ixy)%pin(jxy)
       iCel = Pin(iPin)%Cell(iz)
-      
+
       IF (Cell(iCel)%lFuel) THEN
         superPin(ixy)%lFuel(iz) = TRUE
-        
+
         EXIT
       END IF
     END DO
   END DO
-  
+
   DO jxy = 1, superPin(ixy)%nxy
     iPin = superPin(ixy)%pin(jxy)
-    
+
     IF (Pin(iPin)%lFuel) THEN
       superPin(ixy)%iFuelPin = ipin
       EXIT
@@ -611,7 +611,7 @@ END DO
 ! Pin Vol Fm
 DO izf = 1, nzCMFD
   iz = mklGeom%planeMap(izf)
-  
+
   DO iPin = 1, nhcPin
     mklGeom%PinVolFm(iPin, izf) = superPin(iPin)%Area * hzfm(izf)
   END DO
@@ -623,7 +623,7 @@ DO iPin = 1, nhcPin
 
   DO izf = 1, nzCMFD
     iz = mklGeom%planeMap(izf)
-    
+
     mklGeom%lRefCell(izf, iPin) = .NOT. superPin(iPin)%lFuel(iz)
   END DO
 END DO
@@ -632,16 +632,16 @@ END DO
 DO iPin = 1, nhcPin
   DO izf = 1, nzCMFD
     iz = mklGeom%planeMap(izf)
-    
+
     mklGeom%lH2OCell(izf, iPin) = TRUE
-    
+
     DO jPin = 1, superPin(iPin)%nxy
       kPin = superPin(iPin)%pin(jPin)
       iCel = Pin(kPin)%Cell(iz)
-      
+
       DO iFXR = 1, Cell(iCel)%nFxr
         jfxr = Pin(kPin)%FxrIdxSt + iFXR - 1
-        
+
         IF (.NOT. Fxr(jfxr, iz)%lH2O) mklGeom%lH2OCell(izf, iPin) = FALSE
       END DO
     END DO

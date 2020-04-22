@@ -227,6 +227,7 @@ END SUBROUTINE HexInitInp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_Cel(dataline0)
 
+USE CNTL,    ONLY : nTracerCntl
 USE HexType, ONLY : Type_HexRodCel, nMaxFXR
 USE HexData, ONLY : hCel, aoF2F
 
@@ -272,7 +273,7 @@ READ(dataline(ipos(2)+1:nDataField),*) (hCel_Loc%xDiv(nData - i + 1),i=1,nData)
 READ(dataline(ipos(1)+1:nDataField),*) (hCel_Loc%xMix(nData - i + 1),i=1,nData)
 READ(dataline,*) (RR(i),i=1,ndata)
 
-IF (hCel_Loc%xDiv(1) .NE. 1) THEN
+IF (hCel_Loc%xDiv(1).NE.1 .AND. nTracerCntl%lxslib) THEN
   hCel_Loc%xDiv(1) = 1
   
   WRITE (*,*) "LAST # of FXR DIVISION MUST BE 1"
@@ -858,14 +859,11 @@ CHARACTER(256), INTENT(IN) :: dataline0
 CHARACTER(256) :: dataline
 
 INTEGER :: nSpt, nDataField
-INTEGER :: iVss
+INTEGER :: iVss, Tmp
 INTEGER :: ipos(100)
-
-REAL :: Tmp
 ! ----------------------------------------------------
 
-hLgc%lVss = TRUE
-dataline  = dataline0
+dataline = dataline0
 
 READ(dataline,*) iVss
 
@@ -900,13 +898,23 @@ USE HexData, ONLY : vAsyTyp, vRefTyp, vMat, vFxr, vzSt, vzEd
 
 IMPLICIT NONE
 
-character(256),intent(in) :: dataline0
-character(256) :: dataline
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(256) :: dataline
+
+INTEGER :: nSpt, nDataField, Tmp
+INTEGER :: ipos(100)
 ! ----------------------------------------------------
 
 dataline  = dataline0
 
-READ(dataline,*) vAsyTyp, vRefTyp, vMat, vFxr, vzSt, vzEd
+nDataField = len_trim(dataline)
+CALL fndchara(dataline, ipos, nSpt, SLASH)
+
+IF (nSpt .NE. 2) CALL terminate("WRONG VYGORODKA INPUT")
+
+READ(dataline(ipos(2)+1:nDataField), *) vzSt, vzEd
+READ(dataline(ipos(1)+1:nDataField), *) vMat, vFXR
+READ(dataline, *) vAsyTyp, vRefTyp
 ! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Vyg

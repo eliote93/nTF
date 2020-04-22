@@ -4794,3 +4794,831 @@
 1563275681 source:c:\users\user\documents\visual studio 2015\projects\ntracer\src\readinput.f90
 	<defines.h>
 
+1551748012 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cards.f90
+
+1461209542 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\clfortran.f90
+
+1535670458 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cp_mod.f90
+
+1555261596 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\csrmatrix.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dmalloc.f90
+
+1507515736 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\files.f90
+
+1514217700 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\fxrvar_mod.f90
+
+1507504438 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\inflowmathutil.f90
+
+1471490484 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mat2x2op.f90
+
+1516502178 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_depl.f90
+	<defines.h>
+
+1532473212 c:\users\user\documents\visual studio 2015\projects\ntf\src\defines.h
+
+1561944348 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\param.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\rng.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\scalprods.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setpe.f90
+	<defines.h>
+
+1536545472 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\timer.f90
+
+1566291034 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\typedef.f90
+
+1574729364 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\typedef_common.f90
+
+1536606452 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\basicoperation.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\benchxs_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cadgeom_mod.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfd_mod.f90
+
+1578485660 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cntl.f90
+
+1561965052 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\core_mod.f90
+
+1556654506 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cudatypedef.f90
+	<CUDADEFINES.h>
+
+1552431756 c:\users\user\documents\visual studio 2015\projects\ntf\src\cudadefines.h
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplcore_mod.f90
+
+1507514468 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gamma_mod.f90
+	<defines.h>
+
+1574580894 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\geom.f90
+
+1587388147 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hextype.f90
+
+1528512088 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\itrcntl.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\lu_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\material_mod.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcdefine.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mciterlog.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mtbl2g.f90
+
+1528326830 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\p1senm_mod.f90
+	<defines.h>
+
+1473131584 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\pe_mod.f90
+
+1495146838 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\rays.f90
+
+1528529742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setray_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sp3typedef.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\stemtbl_mod.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\tlkg_mod.f90
+	<defines.h>
+
+1578485266 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xslib_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\allocth.f90
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\b1_mod.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\bicg2g.f90
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\corraygen.f90
+
+1555270230 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_common.f90
+	<CUDADEFINES.h>
+
+1471642296 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplcmfd_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplpinxswrt.f90
+
+1507511518 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammacmfd_mod.f90
+	<defines.h>
+
+1507511562 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammamoc_mod.f90
+	<defines.h>
+
+1507511598 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammaxsutil.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gccmfd_mod.f90
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\groupconstantmod.f90
+
+1587381957 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexdata.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initsubplane.f90
+
+1579272373 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\ioutil.f90
+
+1548617496 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\matexp_mod.f90
+
+1571916428 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_3d.f90
+	<defines.h>
+
+1529876562 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mocsolupdt.f90
+
+1536546128 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\nuclidmap.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\senmmatsolver_mod.f90
+
+1503456808 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setcmfdlinearsystem.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sp3senmop_mod.f90
+	<SP3DEFINES.H>
+
+1484084380 c:\users\user\documents\visual studio 2015\projects\ntf\src\sp3defines.h
+
+1566348196 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sph_mod.f90
+
+1490548818 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sth2xc.f
+
+1536545060 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\subgrp_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\tranaxnutil_mod.f90
+
+1475123480 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\trancmfd_mod.f90
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\trangccmfd_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\tranmoc_mod.f90
+
+1536543044 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\utilfunction.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\volcorrection.f90
+	<defines.h>
+
+1523916584 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xsutil.f90
+	<defines.h>
+
+1555888874 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\abi1d2g.f90
+
+1546802092 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\banner.f90
+
+1471640236 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfd2g_mod.f90
+
+1533148372 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_axrt.f90
+	<CUDADEFINES.h>
+
+1545086488 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_moc.f90
+	<CUDADEFINES.h>
+
+1532746408 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_nodal.f90
+	<CUDADEFINES.h>
+
+1551749522 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_pcr.f90
+	<CUDADEFINES.h>
+
+1536542944 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\depltype.f90
+
+1528326864 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\directsenm_mod.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\facilu1d2g.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\facilu2g.f90
+
+1507511590 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammaxslib.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\geomtreatment_mod.f90
+
+1539988274 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\globalcoremap.f90
+
+1587446687 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexgeoconst.f90
+
+1587363123 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexngh.f90
+
+1574751458 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexngh_mp.f90
+
+1574126748 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexthout.f90
+
+1587363141 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hextlkg.f90
+
+1587444913 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexutil.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\highordersc.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initbicg2g.f90
+
+1493160986 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\inputedit.f90
+
+1484090202 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\lsraddecomp.f90
+
+1457910744 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcp_util.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\minv2g.f90
+
+1544980964 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_bilu.f90
+	<defines.h>
+
+1527806586 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_fdm.f90
+	<defines.h>
+
+1574570084 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_flatmoc.f90
+	<defines.h>
+
+1534792510 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_linmoc.f90
+	<defines.h>
+
+1536611600 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_nodal.f90
+	<defines.h>
+
+1530126702 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_polymoc.f90
+	<defines.h>
+
+1490552048 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mpicomm_mod.f90
+
+1578485172 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\postproc_isotxs.f90
+
+1537405474 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\procmat.f90
+	<defines.h>
+
+1506654620 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\procmat_isotxs.f90
+	<defines.h>
+
+1537416050 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readbenchxs.f90
+
+1507511678 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readlibgamma.f90
+	<defines.h>
+
+1507515554 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readmesh.f90
+
+1554753014 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readxsec.f90
+
+1522477912 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\reorderlib.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setasygeom.f90
+
+1536966052 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setcentgeom.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sol1d2g.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sol2d2g.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\solbicg2g.f90
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\ssphfactorout.f90
+	<defines.h>
+
+1457910744 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\subchgen_mod.f90
+	<defines.h>
+
+1523861084 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\tranmacxslib.f90
+
+1484090672 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xsperturb_mod.f90
+
+1587531300 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readisotxs.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\axialsp3_mod.f90
+	<SP3DEFINES.H>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\bilu.f90
+	<defines.h>
+
+1490552048 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\boron_mod.f90
+
+1528159898 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfdcomm_mod.f90
+
+1551571016 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\corepowercal.f90
+	<defines.h>
+
+1537937638 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_solver.f90
+	<CUDADEFINES.h>
+
+1556654268 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_system.f90
+	<CUDADEFINES.h>
+
+1536543884 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\depletion_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\depllib_mod.f90
+
+1507511392 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammacmfdacc.f90
+	<defines.h>
+
+1507511576 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammamocetc.f90
+	<defines.h>
+
+1507514528 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammamocsweep.f90
+	<defines.h>
+
+1507514536 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammasetrtvar.f90
+	<defines.h>
+
+1528516212 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gccmfdutil.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gddepl_mod.f90
+
+1587363176 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexasyconst.f90
+
+1574126808 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexasyrayconst.f90
+
+1574126488 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexasytypconst.f90
+
+1580565483 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcelbasis.f90
+
+1587389864 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcelbasis_gap.f90
+
+1587365318 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcelbasis_rod.f90
+
+1587389364 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexchkinp.f90
+
+1587363050 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcmfd.f90
+
+1574751440 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexngh_sp.f90
+
+1587428693 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexpinconst.f90
+
+1587531317 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcmfdconst.f90
+	<defines.h>
+
+1587429165 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexraybasic.f90
+
+1587447057 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hextst.f90
+	<defines.h>
+
+1484090774 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcp_restart_main.f90
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\miscstructgeom.f90
+	<defines.h>
+
+1531195378 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_davidson.f90
+	<defines.h>
+
+1574836410 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_power.f90
+	<defines.h>
+
+1573803756 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mpiconfig_mod.f90
+	<defines.h>
+
+1484091390 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mpidcpl_mod.f90
+	<defines.h>
+
+1567564496 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\procgeom.f90
+
+1522477942 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readdeplfile.f90
+
+1536640058 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\restart_mod.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setasyray.f90
+
+1536990846 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setcellray.f90
+
+1527008232 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setcellraybase.f90
+
+1528530220 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setmodray.f90
+
+1536966128 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setpingeom.f90
+
+1495146456 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\subchcoupling_mod.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\th_mod.f90
+
+1522478382 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\thfunction.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\trancmfd.f90
+	<defines.h>
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xedyn_mod.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xsec4mc.f90
+
+1574830772 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\bicgstab.f90
+	<defines.h>
+
+1544988356 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\bicgstab2g.f90
+	<defines.h>
+
+1507516356 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\binoutputedit.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfdtally.f90
+
+1536644804 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cooling_mod.f90
+
+1457910744 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\crcsp_mod.f90
+	<defines.h>
+
+1495412790 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\ctfth_mod.f90
+	<defines.h>
+
+1471642060 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplth_mod.f90
+
+1545330244 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\deplinfoout.f90
+	<defines.h>
+
+1495146456 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\escotth_mod.f90
+
+1536613050 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\finalize.f90
+	<defines.h>
+
+1490552048 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\fuelconduction.f90
+
+1536019102 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\fxrvariation.f90
+
+1507514520 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammahomoxsgen.f90
+	<defines.h>
+
+1536547690 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gddepl.f90
+
+1587363397 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexasyrayintsct.f90
+
+1587362972 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexinit.f90
+	<defines.h>
+
+1587430314 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexinput.f90
+
+1587429165 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexvtx.f90
+
+1528320484 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\init_depl.f90
+	<defines.h>
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initdcpl.f90
+	<defines.h>
+
+1567410150 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initth.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\isotopeout.f90
+
+1542782220 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\makerays.f90
+	<defines.h>
+
+1495146456 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\matrath_mod.f90
+
+1574830822 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mpiaxsolver_mod.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\outputeditmc.f90
+	<defines.h>
+
+1532476590 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\preprocess.f90
+	<defines.h>
+
+1537403340 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setgeometry.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setthcell.f90
+
+1495146456 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\subch_mod.f90
+	<defines.h>
+
+1536695500 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\subgrpfspnm.f90
+	<defines.h>
+
+1522478390 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\thinfoout.f90
+
+1471547324 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\transientth.f90
+	<defines.h>
+
+1457910744 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\userdefth.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\allocaxsol.f90
+	<defines.h>
+
+1544986546 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfd2gacc.f90
+
+1471648330 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfd2gutil.f90
+	<defines.h>
+
+1544986562 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfdpowermethod.f90
+	<defines.h>
+
+1523860584 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cntlrod_mod.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\crcspgen_mod.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplcmfd3d.f90
+	<defines.h>
+
+1471642150 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplthutil.f90
+	<defines.h>
+
+1457910744 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gccmfdacc.f90
+	<defines.h>
+
+1587429165 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexasyray.f90
+
+1587363367 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexasyray_sngcel.f90
+
+1587444017 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexgeo.f90
+
+1537403206 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\lpshf_mod.f90
+	<defines.h>
+
+1554750574 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\macxslib.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mccmfd.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\precursor.f90
+	<defines.h>
+
+1567491300 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\preparecmfd.f90
+	<defines.h>
+
+1567467708 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\steadystateth.f90
+	<defines.h>
+
+1490552048 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\thfeedback.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\trancmfd_driver.f90
+	<defines.h>
+
+1471488294 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\trangccmfd.f90
+	<defines.h>
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\boroncoolant.f90
+	<defines.h>
+
+1579275032 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\calrelpower.f90
+	<defines.h>
+
+1579593503 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfdetc.f90
+	<defines.h>
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\crcspgen_driver.f90
+	<defines.h>
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\crsearch_driver.f90
+
+1556653636 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_axmoc.f90
+	<CUDADEFINES.h>
+
+1523860640 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplmicxsftn_mod.f90
+
+1579593500 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\homoxsgen.f90
+
+1574831988 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initvar.f90
+	<defines.h>
+
+1523833620 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcxslib.f90
+
+1555893594 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\moc_common.f90
+
+1561965238 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\moc_mod.f90
+
+1523861598 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setrtlinsrc.f90
+	<defines.h>
+
+1579593556 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setrtsrc.f90
+	<defines.h>
+
+1539988170 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\setrtxs.f90
+	<defines.h>
+
+1536699792 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\subgrpeffxs.f90
+	<defines.h>
+
+1517794824 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xedyn.f90
+	<defines.h>
+
+1571913444 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\allocpdm.f90
+	<defines.h>
+
+1487021452 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\approxexp.f90
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\b10depl.f90
+	<defines.h>
+
+1579593562 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cmfd_common.f90
+
+1523860606 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\criticalspec_mod.f90
+	<defines.h>
+
+1556654178 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_axial.f90
+	<CUDADEFINES.h>
+
+1485445130 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcmpraygen.f90
+	<defines.h>
+
+1523860632 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplcmfdxsgen.f90
+	<defines.h>
+
+1471652750 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplxsgen_mod.f90
+
+1536606954 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\depletion.f90
+	<defines.h>
+
+1536548140 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\effmat0out.f90
+	<defines.h>
+
+1536548192 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\effmgxsout.f90
+	<defines.h>
+
+1535670458 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\effxsout.f90
+	<defines.h>
+
+1536548226 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\effxsoutdepl.f90
+	<defines.h>
+
+1495146838 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\fastmocutil.f90
+
+1507514532 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gammaraytracing.f90
+	<defines.h>
+
+1542782000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\getfsrcentroid.f90
+
+1587443677 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcp.f90
+
+1587363278 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexeffxsout.f90
+	<defines.h>
+
+1587372331 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexrayconst.f90
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\inflow.f90
+	<defines.h>
+
+1523860926 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\kineticparam.f90
+	<defines.h>
+
+1504134816 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcmap.f90
+
+1574829714 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mocsweep.f90
+	<defines.h>
+
+1536548480 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\phimout.f90
+	<defines.h>
+
+1523861490 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\pinxsout.f90
+	<defines.h>
+
+1507514540 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\preparegamma.f90
+	<defines.h>
+
+1490242664 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\raytracing.f90
+	<defines.h>
+
+1498266332 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\raytracing_dcmp.f90
+	<defines.h>
+
+1579593547 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\raytracing_omp.f90
+	<defines.h>
+
+1542782222 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\raytracinglinsrc.f90
+
+1490242518 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\raytracingp1.f90
+
+1564575574 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\raytracingp1_omp.f90
+	<defines.h>
+
+1542783618 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\rotraygen.f90
+	<defines.h>
+
+1523861078 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\tranmoc.f90
+	<defines.h>
+
+1523861066 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\tranmoc_driver.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\transient_mod.f90
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\transientetc.f90
+	<defines.h>
+
+1556654640 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_cmfd.f90
+	<CUDADEFINES.h>
+
+1551744552 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_init.f90
+	<CUDADEFINES.h>
+
+1427400470 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcpllogout.f90
+
+1523860662 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplplnmoc.f90
+	<defines.h>
+
+1427400414 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplsseig.f90
+	<defines.h>
+
+1522476944 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\dcplthplnmoc.f90
+	<defines.h>
+
+1537403600 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\depletc.f90
+	<defines.h>
+
+1536606094 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\depletion_driver.f90
+	<defines.h>
+
+1536527862 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gc_mod.f90
+
+1522478594 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\groupconstantgenold.f90
+	<defines.h>
+
+1587363266 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexcorepowercal.f90
+	<defines.h>
+
+1587448812 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexmain.f90
+	<defines.h>
+
+1457910744 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\inittransient.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcbasics.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mctally.f90
+
+1547578714 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_axial.f90
+	<defines.h>
+
+1563427356 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_init.f90
+	<defines.h>
+
+1579593534 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mocetc.f90
+	<defines.h>
+
+1409176168 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\nulltransient.f90
+
+1587364695 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\scaninput.f90
+	<defines.h>
+
+1537415814 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\scaninput_include.f90
+	<defines.h>
+
+1523861096 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\trancondmoc.f90
+	<defines.h>
+
+1522478280 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\transient_driver.f90
+	<defines.h>
+
+1523861052 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\vtk_mod.f90
+	<defines.h>
+
+1457910742 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\xedyn_driver.f90
+	<defines.h>
+
+1556653354 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\cuda_driver.f90
+	<defines.h>
+	<CUDADEFINES.h>
+
+1514217764 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gcadf.f90
+
+1545187026 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gccon.f90
+
+1527472382 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gcedit.f90
+
+1527522656 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gcgen.f90
+	<defines.h>
+
+1536526982 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gchom.f90
+
+1556735718 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\gcinit.f90
+
+1542578208 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\genfxrmacxs.f90
+	<defines.h>
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\groupconstantgen.f90
+	<defines.h>
+
+1574994710 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\hexoutputedit.f90
+	<defines.h>
+
+1571983708 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initialize.f90
+	<defines.h>
+
+1507512848 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\initializemc.f90
+	<defines.h>
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcfuelrect.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcgaprect.f90
+
+1490234000 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcvacrect.f90
+
+1574837632 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mkl_cmfd.f90
+	<defines.h>
+
+1544983368 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\outputedit.f90
+	<defines.h>
+
+1530035760 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\mcmodular.f90
+	<defines.h>
+
+1578486302 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readinpcard.f90
+	<defines.h>
+
+1574907652 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\sseig.f90
+	<defines.h>
+
+1563430516 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\main.f90
+	<defines.h>
+
+1578485828 source:c:\users\user\documents\visual studio 2015\projects\ntf\src\readinput.f90
+	<defines.h>
+
