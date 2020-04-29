@@ -128,11 +128,17 @@ DO iCel = 1, nCellType
     ALLOCATE (Cel_Loc%iReg          (nSub * nFSRinSub))
     ALLOCATE (Cel_Loc%MapFxr2FsrIdx (nFSRinSub, nSub))
     
-    Cel_Loc%luse      = TRUE
-    Cel_Loc%lrect     = FALSE
-    Cel_Loc%nFSR      = nSub * nFSRinSub
-    Cel_Loc%nFXR      = nSub
-    Cel_Loc%icel0     = jcel
+    Cel_Loc%luse   = TRUE
+    Cel_Loc%lfuel  = FALSE
+    Cel_Loc%lres   = FALSE
+    Cel_Loc%lGd    = FALSE
+    Cel_Loc%lMOX   = FALSE
+    Cel_Loc%lAIC   = FALSE
+    Cel_Loc%lrect  = FALSE
+    Cel_Loc%nFSR   = nSub * nFSRinSub
+    Cel_Loc%nFXR   = nSub
+    Cel_Loc%icel0  = jcel
+    
     Cel_Loc%nFSRinFXR = nFSRinSub ! ASSUME : # of FSR in Sub is same along FXRs
     
     Cel_Loc%Geom%lCircle = TRUE
@@ -195,10 +201,16 @@ DO iCel = 1, nGapType
     ALLOCATE (Cel_Loc%nFSRinFXR     (nSub))
     ALLOCATE (Cel_Loc%MapFxr2FsrIdx (nFSRinSub, nSub))
     
-    Cel_Loc%luse         = TRUE
-    Cel_Loc%lrect        = FALSE
-    Cel_Loc%nFXR         = nSub
-    Cel_Loc%nFSR         = nFSRinSub * nSub
+    Cel_Loc%luse   = TRUE
+    Cel_Loc%lfuel  = FALSE
+    Cel_Loc%lres   = FALSE
+    Cel_Loc%lGd    = FALSE
+    Cel_Loc%lMOX   = FALSE
+    Cel_Loc%lAIC   = FALSE
+    Cel_Loc%lrect  = FALSE
+    Cel_Loc%nFXR   = nSub
+    Cel_Loc%nFSR   = nFSRinSub * nSub
+    
     Cel_Loc%nFSRinFXR    = nFSRinSub
     Cel_Loc%Geom%lCircle = FALSE
     ! ----------------------------

@@ -659,11 +659,13 @@ END SUBROUTINE HexSetGlobalPin
 SUBROUTINE HexSetHcPin_Sng()
 
 USE PARAM,   ONLY : HALF
-USE geom,    ONLY : Core
+USE geom,    ONLY : Core, Pin
 USE HexData, ONLY : hCelBss
 
 IMPLICIT NONE
 ! ----------------------------------------------------
+
+Core%Pin => Pin
 
 ALLOCATE (Core%Pin(1)%NeighIdx        (6))
 ALLOCATE (Core%Pin(1)%NeighSurfIdx    (6))
