@@ -164,15 +164,17 @@ END SUBROUTINE HexSetCore
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetVyg()
 
-USE PARAM,    ONLY : TRUE
-USE CORE_mod, ONLY : Fxr
-USE geom,     ONLY : nGapPinType
-USE HexData,  ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, nhAsy, hAsyTypInfo
+USE PARAM,   ONLY : TRUE, FALSE
+USE geom,    ONLY : nGapPinType
+USE HexData, ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, nhAsy, hAsyTypInfo, nHexPin
 
 IMPLICIT NONE
 
 INTEGER :: iAsy, iaTyp, jaTyp, iDir, jAsy, iSt, iEd, iPin, jPin, kPin
-INTEGER :: nRod, nPch, iRodGlb, iTotGlb
+INTEGER :: nRod, nPch, iRodGlb, iTotGlb, iFst, iLst
+
+LOGICAL :: lModel2 = FALSE
+LOGICAL :: lFst
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVyg) RETURN
@@ -181,6 +183,12 @@ DO iAsy = 1, nhAsy
   iaTyp = hAsy(iAsy)%AsyTyp
   
   IF (iaTyp .NE. vAsyTyp) CYCLE
+  
+  nRod = hAsyTypInfo(iaTyp)%nRodPin(1)
+  nPch = 2 * (hAsyTypInfo(iaTyp)%nPin - 1)
+    
+  iRodGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nRodPin
+  iTotGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
   
   DO iDir = 1, 6
     jAsy = hAsy(iAsy)%NghIdx(iDir)
@@ -191,14 +199,9 @@ DO iAsy = 1, nhAsy
     
     IF (jaTyp.EQ.iaTyp .OR. jaTyp.EQ.vRefTyp) CYCLE
     
-    nRod = hAsyTypInfo(iaTyp)%nRodPin(1)
-    nPch = 2 * (hAsyTypInfo(iaTyp)%nPin - 1)
-    
-    iSt = nRod + (iDir - 1) * nPch + 1
-    iEd = nRod +       iDir * nPch
-    
-    iRodGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nRodPin
-    iTotGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
+    iSt  = nRod + (iDir - 1) * nPch + 1
+    iEd  = nRod +       iDir * nPch
+    lFst = TRUE
     
     DO iPin = iSt, iEd ! Numeric # of Pin in "hAsyTypInfo"
       DO jPin = iRodGlb, iTotGlb ! Numeric # of Pin in Core
@@ -208,9 +211,26 @@ DO iAsy = 1, nhAsy
         
         hPinInfo(jPin)%PinTyp = nGapPinType
         
+        IF (lFst) THEN
+          lFst = FALSE
+          iFst = jPin
+        END IF
+        
+        iLst = jPin
+        
         EXIT
       END DO
     END DO
+    
+    IF (.NOT. lModel2) CYCLE
+    
+    IF (iFst .EQ. iRodGlb) hPinInfo(iTotGlb)%PinTyp = nGapPinType
+    IF (iLst .EQ. iTotGlb) hPinInfo(iRodGlb)%PinTyp = nGapPinType
+    
+    iLst = min(iLst, nHexPin-1)
+    
+    IF (hPinInfo(iFst-1)%AsyIdx .EQ. iAsy .AND. hPinInfo(iFst-1)%lGap) hPinInfo(iFst-1)%PinTyp = nGapPinType
+    IF (hPinInfo(iLst+1)%AsyIdx .EQ. iAsy .AND. hPinInfo(iLst+1)%lGap) hPinInfo(iLst+1)%PinTyp = nGapPinType
   END DO
 END DO
 ! ----------------------------------------------------
