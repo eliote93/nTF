@@ -171,8 +171,8 @@ USE HexData,  ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, nhAsy, hAsyTypInfo
 
 IMPLICIT NONE
 
-INTEGER :: iAsy, iaTyp, jaTyp, iDir, jAsy, iTmp, jTmp, kTmp, iPin, jPin
-INTEGER :: nRodGlb, nTotGlb
+INTEGER :: iAsy, iaTyp, jaTyp, iDir, jAsy, iSt, iEd, iPin, jPin, kPin
+INTEGER :: nRod, nPch, iRodGlb, iTotGlb
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVyg) RETURN
@@ -191,19 +191,25 @@ DO iAsy = 1, nhAsy
     
     IF (jaTyp.EQ.iaTyp .OR. jaTyp.EQ.vRefTyp) CYCLE
     
-    nRodGlb  = hAsy(iAsy)%nRodPin + hAsy(iAsy)%PinIdxSt - 1
-    nTotGlb  = hAsy(iAsy)%nTotPin + hAsy(iAsy)%PinIdxSt - 1
+    nRod = hAsyTypInfo(iaTyp)%nRodPin(1)
+    nPch = 2 * (hAsyTypInfo(iaTyp)%nPin - 1)
     
-    DO iPin = nRodGlb + 1, nTotGlb ! Global Numeric # of Pin
-      jPin = hPinInfo(iPin)%OrdInAsy01 ! Numeric # of Pin in "hAsyTypInfo"
-      
-      iTmp = jPin - hAsyTypInfo(iaTyp)%nRodPin(1) - 1
-      jTmp = 2 * (hAsyTypInfo(iaTyp)%nPin - 1)
-      kTmp = 1 + iTmp / jTmp
-      
-      IF (kTmp .NE. iDir) CYCLE
-      
-      hPinInfo(iPin)%PinTyp = nGapPinType
+    iSt = nRod + (iDir - 1) * nPch + 1
+    iEd = nRod +       iDir * nPch
+    
+    iRodGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nRodPin
+    iTotGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
+    
+    DO iPin = iSt, iEd ! Numeric # of Pin in "hAsyTypInfo"
+      DO jPin = iRodGlb, iTotGlb ! Numeric # of Pin in Core
+        kPin = hPinInfo(jPin)%OrdInAsy01 ! Numeric # of Pin in "hAsyTypInfo"
+        
+        IF (kPin .NE. iPin) CYCLE
+        
+        hPinInfo(jPin)%PinTyp = nGapPinType
+        
+        EXIT
+      END DO
     END DO
   END DO
 END DO

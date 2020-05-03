@@ -46,9 +46,9 @@ Master  = PE%master
 CALL HexInitInp
 ! ----------------------------------------------------
 DO WHILE(TRUE)
-  READ(indev,'(a256)') oneline
+  READ (indev,'(a256)') oneline
   
-  IF(Master) CALL message(io8, FALSE, FALSE, oneline)
+  IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
   ! ----------------------------------------------------
   !               01. CHK : Valid Input
   ! ----------------------------------------------------
@@ -56,7 +56,7 @@ DO WHILE(TRUE)
   IF(oneline.eq.BLANK) cycle;  IF(IFnumeric(oneline)) cycle
   IF(probe.eq.DOT) exit;       IF(probe.eq.SLASH) exit
   
-  READ(oneline, *) cardname
+  READ (oneline, *) cardname
   CALL toupper(cardname)
   
   idcard     = FindCardId(idblock, cardname)
@@ -73,7 +73,7 @@ DO WHILE(TRUE)
     CASE(3)
       IF(nLineField .ne. 1) CALL terminate("PITCH")
       
-      READ(oneline,*) ASTRING, aoF2F
+      READ (oneline,*) ASTRING, aoF2F
       
       aoPch = aoF2F * Sq3Inv
     ! ----------------------------
@@ -83,7 +83,7 @@ DO WHILE(TRUE)
       CALL dmalloc(hz,    nz)
       CALL dmalloc(HzInv, nz)
       
-      READ(oneline, *) astring, (hz(k), k = 1, nz)
+      READ (oneline, *) astring, (hz(k), k = 1, nz)
       HzInv = 1. / Hz
     ! ----------------------------
     !      5. ALBEDO
@@ -245,7 +245,7 @@ TYPE(Type_HexRodCel), POINTER :: hCel_Loc
 
 dataline = dataline0
 
-READ(dataline,*) icel
+READ (dataline,*) icel
 hCel_Loc => hCel(iCel)
 
 nDataField = len_trim(dataline)
@@ -265,12 +265,12 @@ IF (nData .NE. mData)        CALL terminate("# of FXRS")
 IF (nData .NE. tData)        CALL terminate("# of FXRS")
 IF (hCel_Loc%nFXR > nMaxFXR) CALL terminate("NMAXFXR")
 
-READ(dataline(ipos(5)+1:nDataField),*) hCel_Loc%aiF2F
-READ(dataline(ipos(4)+1:nDataField),*) hCel_Loc%pF2F
-READ(dataline(ipos(3)+1:nDataField),*) hCel_Loc%nPin
-READ(dataline(ipos(2)+1:nDataField),*) (hCel_Loc%xDiv(nData - i + 1),i=1,nData)
-READ(dataline(ipos(1)+1:nDataField),*) (hCel_Loc%xMix(nData - i + 1),i=1,nData)
-READ(dataline,*) (RR(i),i=1,ndata)
+READ (dataline(ipos(5)+1:nDataField),*) hCel_Loc%aiF2F
+READ (dataline(ipos(4)+1:nDataField),*) hCel_Loc%pF2F
+READ (dataline(ipos(3)+1:nDataField),*) hCel_Loc%nPin
+READ (dataline(ipos(2)+1:nDataField),*) (hCel_Loc%xDiv(nData - i + 1),i=1,nData)
+READ (dataline(ipos(1)+1:nDataField),*) (hCel_Loc%xMix(nData - i + 1),i=1,nData)
+READ (dataline,*) (RR(i),i=1,ndata)
 
 IF (hCel_Loc%xDiv(1).NE.1 .AND. nTracerCntl%lxslib) THEN
   hCel_Loc%xDiv(1) = 1
@@ -312,7 +312,7 @@ TYPE(Type_HexGapCel), POINTER :: gCel_Loc
 
 dataline = dataline0
 
-READ(dataline,*) iCel
+READ (dataline,*) iCel
 
 nDataField = len_trim(dataline)
 CALL fndchara(dataline, ipos, nSpt, SLASH)
@@ -327,11 +327,11 @@ SELECT CASE (nSpt)
 CASE (4)
   gCel_Loc%nFXR = 1
   
-  READ(dataline(ipos(4)+1:nDataField),*) gCel_Loc%aiF2F
-  READ(dataline(ipos(3)+1:nDataField),*) gCel_Loc%pF2F
-  READ(dataline(ipos(2)+1:nDataField),*) gCel_Loc%nPin
-  READ(dataline(ipos(1)+1:nDataField),*) gCel_Loc%xDiv(1)
-  READ(dataline,*) (ii(i),i=1,2)
+  READ (dataline(ipos(4)+1:nDataField),*) gCel_Loc%aiF2F
+  READ (dataline(ipos(3)+1:nDataField),*) gCel_Loc%pF2F
+  READ (dataline(ipos(2)+1:nDataField),*) gCel_Loc%nPin
+  READ (dataline(ipos(1)+1:nDataField),*) gCel_Loc%xDiv(1)
+  READ (dataline,*) (ii(i),i=1,2)
   
   gCel_Loc%xMix(1) = ii(2)
   gCel_Loc%xHgt(1) = (aoF2F - gCel_Loc%aiF2F) * HALF
@@ -344,13 +344,13 @@ CASE (5)
   
   IF (gCel_Loc%nFXR > nMaxFXR) CALL terminate("NMAXFXR")
   
-  READ(dataline(ipos(5)+1:nDataField),*) gCel_Loc%aiF2F
-  READ(dataline(ipos(4)+1:nDataField),*) gCel_Loc%pF2F
-  READ(dataline(ipos(3)+1:nDataField),*) gCel_Loc%nPin
+  READ (dataline(ipos(5)+1:nDataField),*) gCel_Loc%aiF2F
+  READ (dataline(ipos(4)+1:nDataField),*) gCel_Loc%pF2F
+  READ (dataline(ipos(3)+1:nDataField),*) gCel_Loc%nPin
   
-  READ(dataline(ipos(2)+1:nDataField),*) (gCel_Loc%xDiv(ndata - i + 1),i=1,ndata)
-  READ(dataline(ipos(1)+1:nDataField),*) (gCel_Loc%xMix(ndata - i + 1),i=1,ndata)
-  READ(dataline,*) (RR(i),i=1,ndata)
+  READ (dataline(ipos(2)+1:nDataField),*) (gCel_Loc%xDiv(ndata - i + 1),i=1,ndata)
+  READ (dataline(ipos(1)+1:nDataField),*) (gCel_Loc%xMix(ndata - i + 1),i=1,ndata)
+  READ (dataline,*) (RR(i),i=1,ndata)
   
   DO i = 1, ndata - 1
     gCel_Loc%xHgt(ndata - i + 1) = RR(i+1)
@@ -384,8 +384,8 @@ INTEGER :: ii(300)
 
 dataline = dataline0
 
-READ(dataline,*) iPin
-READ(dataline,*) (ii(iz),iz = 1, nZ + 1)
+READ (dataline,*) iPin
+READ (dataline,*) (ii(iz),iz = 1, nZ + 1)
 
 IF (RodPin(iPin)%iCel(1) .NE. 0) CALL terminate("OVERLAPPED GAP PIN INPUT")
 
@@ -414,8 +414,8 @@ INTEGER :: ii(300)
 
 dataline = dataline0
 
-READ(dataline,*) iPin
-READ(dataline,*) (ii(iz),iz = 1, nZ + 1)
+READ (dataline,*) iPin
+READ (dataline,*) (ii(iz),iz = 1, nZ + 1)
 
 IF (GapPin(iPin)%iCel(1) .NE. 0) CALL terminate("OVERLAPPED GAP PIN INPUT")
 
@@ -456,7 +456,7 @@ dataline = dataline0
 ! ----------------------------------------------------
 !               01. READ : Basic Data
 ! ----------------------------------------------------
-READ(dataline,*) iAsy, Azm
+READ (dataline,*) iAsy, Azm
 
 IF (Azm .NE. 360) CALL terminate("HEX ASY AZM")
 
@@ -470,10 +470,10 @@ IF (aInf_Loc%nPin .NE. 0) CALL terminate("OVERLAPPED ASY INPUT")
 !               02. CASE : Sng Cel
 ! ----------------------------------------------------
 IF (nSpt .EQ. 1) THEN
-  READ(dataline(ipos(1)+1:nDataField),*) iCase
+  READ (dataline(ipos(1)+1:nDataField),*) iCase
   
-  READ(indev,'(a256)') oneline
-  READ(oneline, *) ii(1)
+  READ (indev,'(a256)') oneline
+  READ (oneline, *) ii(1)
   
   IF (iCase .NE. 1) CALL terminate("ASY TYPE INPUT")
   
@@ -493,10 +493,10 @@ END IF
 ! ----------------------------------------------------
 IF (nSpt .NE. 4) CALL terminate("ASY INPUT")
 
-READ(dataline(ipos(4)+1:nDataField),*) aInf_Loc%aiF2F
-READ(dataline(ipos(3)+1:nDataField),*) aInf_Loc%pF2F
-READ(dataline(ipos(2)+1:nDataField),*) aInf_Loc%nPin
-READ(dataline(ipos(1)+1:nDataField),*) aInf_Loc%gTyp
+READ (dataline(ipos(4)+1:nDataField),*) aInf_Loc%aiF2F
+READ (dataline(ipos(3)+1:nDataField),*) aInf_Loc%pF2F
+READ (dataline(ipos(2)+1:nDataField),*) aInf_Loc%nPin
+READ (dataline(ipos(1)+1:nDataField),*) aInf_Loc%gTyp
 
 aInf_Loc%pPCH  = aInf_Loc%pF2F  * Sq3Inv
 aInf_Loc%aiPch = aInf_Loc%aiF2F * Sq3Inv
@@ -509,13 +509,12 @@ jfr = 0
 jto = aInf_Loc%nPin
 
 DO i = 1, 2 * aInf_Loc%nPin - 1
-  READ(indev, '(a256)') oneline
-  IF(Master) CALL message(io8, FALSE, FALSE, oneline)
-  IF(probe.eq.BANG ) CYCLE
-  IF(probe.eq.POUND) CYCLE
+  READ (indev, '(a256)') oneline
+  IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+  IF (probe.EQ.BANG .OR. probe.EQ.POUND) CYCLE
   
   n = nFields(oneline)
-  READ(oneline, *) (ii(j), j = 1, n)
+  READ (oneline, *) (ii(j), j = 1, n)
   
   IF (n .EQ. 1) THEN
     aInf_Loc%PinIdx = ii(1)
@@ -564,8 +563,12 @@ INTEGER :: iAsy, jAsy, ixPin, iyPin, nPin, iz, jPin
 INTEGER :: ii(100)
 
 LOGICAL :: Master
+LOGICAL, SAVE :: lfirst = TRUE
 ! ----------------------------------------------------
 
+IF (.NOT. lfirst) CALL terminate ("[RAD_CONF] INPUTTED MORE THAN ONE ")
+
+lfirst   = FALSE
 dataline = dataline0
 Master   = PE%master
 
@@ -575,11 +578,11 @@ nAsy = 0
 n    = nfields(oneline) - 1
 
 IF (n .EQ. 1) THEN
-  READ(dataline,*) iAng
+  READ (dataline,*) iAng
   
   hLgc%lAzmRef = TRUE
 ELSE
-  READ(dataline,*) iAng, dataline2
+  READ (dataline,*) iAng, dataline2
   
   CALL toupper(dataline2)
   
@@ -607,9 +610,9 @@ IF (Core%nya .EQ. 1) THEN
   Asy2Dto1Dmap(1,1) = 1
   Asy1Dto2Dmap(:,1) = 1
   
-  read(indev,'(a256)') oneline
-  IF(Master) CALL message(io8, FALSE, FALSE, oneline)
-  read(oneline, *) ii(1)
+  READ (indev,'(a256)') oneline
+  IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+  READ (oneline, *) ii(1)
   
   hCore(1, 1) = ii(1)
   
@@ -639,12 +642,12 @@ ELSE IF (iAng .EQ. 360) THEN
   jto = nAsyCore
 
   DO i = 1, Core%nya
-    read(indev,'(a256)') oneline
-    IF(Master) CALL message(io8, FALSE, FALSE, oneline)
-    IF(probe.eq.BANG) cycle; IF(probe.eq.POUND) CYCLE
+    READ (indev,'(a256)') oneline
+    IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+    IF (probe.EQ.BANG .OR. probe.EQ.POUND) CYCLE
     
     n = nFields(oneline)
-    read(oneline, *) (ii(j), j = 1, n)
+    READ (oneline, *) (ii(j), j = 1, n)
     
     DO j = 1, jto
       k = j + jfr
@@ -689,12 +692,12 @@ ELSE IF (iAng .EQ. 120) THEN
   jto = nAsyCore
   
   DO i = 1, Core%nya
-    read(indev,'(a256)') oneline
-    IF(Master) CALL message(io8, FALSE, FALSE, oneline)
-    IF(probe.eq.BANG) cycle; IF(probe.eq.POUND) cycle
+    READ (indev,'(a256)') oneline
+    IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+    IF (probe.EQ.BANG .OR. probe.EQ.POUND) CYCLE
     
     n = nFields(oneline)
-    read(oneline, *) (ii(j), j = 1, n)
+    READ (oneline, *) (ii(j), j = 1, n)
     
     DO j = 1, jto
       hCore(j, i) = ii(j)
@@ -732,12 +735,12 @@ ELSE IF (iAng .EQ. 60) THEN
   jto = nAsyCore
   
   DO i = 1, Core%nya
-    read(indev,'(a256)') oneline
-    IF(Master) CALL message(io8, FALSE, FALSE, oneline)
-    IF(probe.eq.BANG) cycle; IF(probe.eq.POUND) cycle
+    READ (indev,'(a256)') oneline
+    IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+    IF (probe.EQ.BANG .OR. probe.EQ.POUND) CYCLE
     
     n = nFields(oneline)
-    read(oneline, *) (ii(j), j = 1, n)
+    READ (oneline, *) (ii(j), j = 1, n)
     
     DO j = 1, jto
       k = j + jfr
@@ -823,7 +826,7 @@ REAL :: Albedo(3)
 
 dataline = dataline0
 
-read(dataline,*) (Albedo(k),k=1,3)
+READ (dataline,*) (Albedo(k),k=1,3)
 
 IF (abs(Albedo(1)) < epsm5) THEN
   hLgc%lRadRef = TRUE
@@ -864,24 +867,24 @@ INTEGER :: ipos(100)
 
 dataline = dataline0
 
-READ(dataline,*) iVss
+READ (dataline,*) iVss
 
 nDataField = len_trim(dataline)
 CALL fndchara(dataline, ipos, nSpt, SLASH)
 
 SELECT CASE (nSpt)
 CASE (2)
-  READ(dataline(ipos(2)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
-  READ(dataline(ipos(1)+1:nDataField), *) hVss(iVss)%vMat
-  READ(dataline, *) Tmp, hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
+  READ (dataline(ipos(2)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
+  READ (dataline(ipos(1)+1:nDataField), *) hVss(iVss)%vMat
+  READ (dataline, *) Tmp, hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
   
   hVss(iVss)%Cnt = ZERO
 CASE (3)
-  READ(dataline(ipos(3)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
-  READ(dataline(ipos(2)+1:nDataField), *) hVss(iVss)%vMat
-  READ(dataline(ipos(1)+1:nDataField), *) hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
+  READ (dataline(ipos(3)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
+  READ (dataline(ipos(2)+1:nDataField), *) hVss(iVss)%vMat
+  READ (dataline(ipos(1)+1:nDataField), *) hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
   
-  READ(dataline, *) Tmp, hVss(iVss)%Cnt(1), hVss(iVss)%Cnt(2)
+  READ (dataline, *) Tmp, hVss(iVss)%Cnt(1), hVss(iVss)%Cnt(2)
 CASE DEFAULT
   CALL terminate("VESSEL SLASH")
 END SELECT
@@ -911,9 +914,9 @@ CALL fndchara(dataline, ipos, nSpt, SLASH)
 
 IF (nSpt .NE. 2) CALL terminate("WRONG VYGORODKA INPUT")
 
-READ(dataline(ipos(2)+1:nDataField), *) vzSt, vzEd
-READ(dataline(ipos(1)+1:nDataField), *) vMat, vFXR
-READ(dataline, *) vAsyTyp, vRefTyp
+READ (dataline(ipos(2)+1:nDataField), *) vzSt, vzEd
+READ (dataline(ipos(1)+1:nDataField), *) vMat, vFXR
+READ (dataline, *) vAsyTyp, vRefTyp
 ! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Vyg
@@ -946,7 +949,7 @@ LOGICAL :: lCmfd = TRUE
 
 dataline = dataline0
 
-READ(dataline,*) lCmfd, hLgc%lspCMFD, nInnMOCItr, nInnCMFDmax, InnCMFDConvCrit, nOutCMFDmax, OutCMFDConvCrit
+READ (dataline,*) lCmfd, hLgc%lspCMFD, nInnMOCItr, nInnCMFDmax, InnCMFDConvCrit, nOutCMFDmax, OutCMFDConvCrit
 
 !mklcntl%maxOuter  = nOutCmfdmax
 !mklcntl%maxInner  = nInnCmfdmax
