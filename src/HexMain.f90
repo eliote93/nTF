@@ -16,15 +16,17 @@ USE HexPinConst
 USE HexCP
 USE HexTst
 
-USE HexData, ONLY : hLgc, ncBss, NumMray, haRay, nGeoTyp
+USE HexData, ONLY : hLgc, ncBss, ngBss, NumMray, haRay, nGeoTyp
 
 IMPLICIT NONE
 
 INTEGER :: icBss
 ! ----------------------------------------------------
 
-nbd  = 6
-ncbd = 15
+nbd = 6
+
+IF (ngBss .EQ. 1) ncbd = 6
+IF (ngBss .NE. 1) ncbd = 10
 
 nTracerCntl%MultigridLV = 6
 

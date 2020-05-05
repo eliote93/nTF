@@ -156,6 +156,7 @@ END SUBROUTINE
 
 SUBROUTINE SetRadialGcCoupling(PinXS, GcPinXS)
 USE PARAM
+USE geom,           ONLY : ncbd
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
 
@@ -177,7 +178,7 @@ pinMap => mklGeom%pinMap
 pinMapRev => mklGeom%pinMapRev
 planeMap => mklGeom%planeMap
 
-ALLOCATE(Jnet(4, nxy, nzCMFD, ngc)); Jnet = 0.0
+ALLOCATE(Jnet(ncbd, nxy, nzCMFD, ngc)); Jnet = 0.0
 
 !--- Condense Currents
 
@@ -190,7 +191,7 @@ DO igc = 1, ngc
       DO ipin = 1, nxy
         ipin_map = pinMap(ipin)
         myphi = mklCMFD%phis(ipin, izf, ig)
-        DO ibd = 1, 4
+        DO ibd = 1, ncbd
           ineighpin = Pin(ipin_map)%Neighidx(ibd)
           ineighpin = pinMapRev(ineighpin)
           IF (ineighpin .LE. 0) THEN
@@ -218,7 +219,7 @@ DO igc = 1, ngc
   DO izf = 1, nzCMFD
     DO ipin = 1, nxy
       ipin_map = pinMap(ipin)
-      DO ibd = 1, 4
+      DO ibd = 1, ncbd
         ineighpin = Pin(ipin_map)%NeighIdx(ibd)
         smy = Pin(ipin_map)%BdLength(ibd)
         myphi = GcPinXS(ipin_map, izf)%Phi(igc)

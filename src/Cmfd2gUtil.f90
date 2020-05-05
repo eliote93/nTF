@@ -2,7 +2,7 @@
 SUBROUTINE AllocCMFD2G()
 USE PARAM
 USE TYPEDEF,         ONLY : CmInfo_Type,     CmfdLs_Type,         PE_TYPE
-USE Geom,            ONLY : Core
+USE Geom,            ONLY : Core,            ncbd
 USE Core_mod,        ONLY : GcPinXs,          GCCMFDLS,           GcPsiC,         GcPsiCD,    &
                             GcPhiC,           GroupInfo,          GcGroupInfo,    CmInfo
 USE CMFD_Mod,        ONLY : PinNeighIdx,      AllocPinXs
@@ -12,13 +12,13 @@ USE CNTL,            ONLY : nTracerCntl
 USE PE_MOD,          ONLY : PE
 USE Allocs
 IMPLICIT NONE
-INTEGER :: nxy, myzbf, myzef, myzb, myze, ngc, nbd
+INTEGER :: nxy, myzbf, myzef, myzb, myze, ngc
 INTEGER :: ig, iz ,ixy
 
 nxy = Core%nxy
 myzb = PE%myzb; myze = PE%myze
 myzbf = PE%myzbf; myzef = PE%myzef 
-nGC = nTracerCntl%nGC; nbd = 4
+nGC = nTracerCntl%nGC
 
 CALL Dmalloc0(GcPsiC, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(GcPsiCD, 1, nxy, myzbf, myzef)
@@ -32,11 +32,11 @@ ALLOCATE(GcPinXS(nxy,myzbf-1:myzef+1))
 ALLOCATE(GCCMFDLS(1))
 
 CALL Dmalloc0(GCCMFDLS(1)%diag2g, 1, 4, 1, nxy, myzbf, myzef)
-CALL Dmalloc0(GCCMFDLS(1)%RadOffDiag2g, 1, 4, 1, nbd, 1, nxy, myzbf, myzef)
+CALL Dmalloc0(GCCMFDLS(1)%RadOffDiag2g, 1, 4, 1, ncbd, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(GCCMFDLS(1)%AxOffDiag2g, 1, 4, 1, 2, 1, nxy, myzbf, myzef)
 GCCMFDLS(1)%NeighIdx => PinNeighIdx
 GCCMFDLS(1)%myzbf = myzbf; GCCMFDLS%myzef = myzef
-GCCMFDLS(1)%nxy = nxy; GCCMFDLS%nbd = nbd
+GCCMFDLS(1)%nxy = nxy; GCCMFDLS%nbd = ncbd
 GCCMFDLS(1)%l2G = .TRUE.
 CALL Dmalloc0(GCCMFDLS(1)%AxialPlaneMap, myzbf, myzef)
 DO iz = myzbf, myzef
@@ -48,7 +48,7 @@ CALL SetCmfdMpiOmpEnv(Core, GCCMFDLS, 1, PE)
 
 DO iz= myzbf, myzef
   DO ixy = 1, nxy
-    CALL AllocPinXS(GcPinXs(ixy, iz), ngc, nbd, GcGroupInfo%InScatRange)
+    CALL AllocPinXS(GcPinXs(ixy, iz), ngc, ncbd, GcGroupInfo%InScatRange)
   ENDDO
 ENDDO
 #ifdef MPI_ENV
