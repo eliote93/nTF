@@ -156,8 +156,8 @@ END SUBROUTINE
 
 SUBROUTINE SetRadialGcCoupling(PinXS, GcPinXS)
 USE PARAM
-USE geom,           ONLY : ncbd
 USE TYPEDEF,        ONLY : PinXS_Type
+USE CNTL,           ONLY : nTracerCntl
 IMPLICIT NONE
 
 TYPE(PinXS_Type), POINTER :: PinXS(:, :), GcPinXS(:, :)
@@ -169,6 +169,12 @@ INTEGER :: ig, igc, ipin, ipin_map, ineighpin, iz, izf, ibd, inbd
 REAL :: Dtil, Dhat, pDhat(2), atil, myphi, neighphi, mybeta, neighbeta, albedo, jfdm, surfphifdm, smy
 REAL, POINTER :: Jnet(:, :, :, :), Jpart(:, :, :, :, :)
 
+IF (nTracerCntl%lHex) THEN
+  CALL HexSetRadialGcCoupling(PinXs, GcPinXs)
+  
+  RETURN
+END IF
+
 Pin => mklGeom%superPin
 ng = mklGeom%ng
 ngc = mklGeom%ngc
@@ -178,7 +184,7 @@ pinMap => mklGeom%pinMap
 pinMapRev => mklGeom%pinMapRev
 planeMap => mklGeom%planeMap
 
-ALLOCATE(Jnet(ncbd, nxy, nzCMFD, ngc)); Jnet = 0.0
+ALLOCATE(Jnet(4, nxy, nzCMFD, ngc)); Jnet = 0.0
 
 !--- Condense Currents
 
@@ -191,7 +197,7 @@ DO igc = 1, ngc
       DO ipin = 1, nxy
         ipin_map = pinMap(ipin)
         myphi = mklCMFD%phis(ipin, izf, ig)
-        DO ibd = 1, ncbd
+        DO ibd = 1, 4
           ineighpin = Pin(ipin_map)%Neighidx(ibd)
           ineighpin = pinMapRev(ineighpin)
           IF (ineighpin .LE. 0) THEN
@@ -219,7 +225,7 @@ DO igc = 1, ngc
   DO izf = 1, nzCMFD
     DO ipin = 1, nxy
       ipin_map = pinMap(ipin)
-      DO ibd = 1, ncbd
+      DO ibd = 1, 4
         ineighpin = Pin(ipin_map)%NeighIdx(ibd)
         smy = Pin(ipin_map)%BdLength(ibd)
         myphi = GcPinXS(ipin_map, izf)%Phi(igc)
@@ -253,6 +259,128 @@ ENDDO
 DEALLOCATE(Jnet)
 
 END SUBROUTINE
+
+SUBROUTINE HexSetRadialGcCoupling(PinXS, GcPinXS)
+
+USE PARAM
+USE allocs
+USE geom,    ONLY : ncbd
+USE TYPEDEF, ONLY : PinXS_Type
+
+IMPLICIT NONE
+
+TYPE(PinXS_Type),    POINTER :: PinXS(:, :), GcPinXS(:, :)
+TYPE(superPin_Type), POINTER :: Pin(:)
+
+INTEGER, POINTER :: pinMap(:), pinMapRev(:), planeMap(:)
+INTEGER :: ng, ngc, nxy, nzCMFD
+INTEGER :: ig, igc, ipin, ipin_map, ineighpin, iz, izf, ibd, jbd, iNgh, jNgh
+REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, albedo, jfdm, smy
+REAL, POINTER :: Jnet(:, :, :, :)
+! ----------------------------------------------------
+
+ng     = mklGeom%ng
+ngc    = mklGeom%ngc
+nxy    = mklGeom%nxy
+nzCMFD = mklGeom%nzCMFD
+
+Pin       => mklGeom%superPin
+pinMap    => mklGeom%pinMap
+pinMapRev => mklGeom%pinMapRev
+planeMap  => mklGeom%planeMap
+
+CALL dmalloc(Jnet, ncbd, nxy, nzCMFD, ngc)
+! ----------------------------------------------------
+!               01. CONDENSE : current
+! ----------------------------------------------------
+DO igc = 1, ngc
+  DO ig = mklGeom%GcStruct(1, igc), mklGeom%GcStruct(2, igc)
+    DO izf = 1, nzCMFD
+      iz = planeMap(izf)
+      !$OMP PARALLEL PRIVATE(ipin_map, ineighpin, myphi, neighphi, Dtil, Dhat, jfdm, iNgh)
+      !$OMP DO SCHEDULE(GUIDED)
+      DO ipin = 1, nxy
+        ipin_map = pinMap(ipin)
+        myphi    = mklCMFD%phis(ipin, izf, ig)
+        
+        DO iNgh = 1, Pin(ipin_map)%nNgh
+          ineighpin = Pin(ipin_map)%Neighidx(iNgh)
+          ineighpin = pinMapRev(ineighpin)
+          
+          IF (ineighpin .LE. 0) THEN
+            neighphi = ZERO
+          ELSE
+            neighphi = mklCMFD%phis(ineighpin, izf, ig)
+          END IF
+          
+          Dtil = PinXS(ipin_map, iz)%Dtil(iNgh, ig)
+          Dhat = PinXS(ipin_map, iz)%Dhat(iNgh, ig)
+          jfdm = - Dtil * (neighphi - myphi) - Dhat * (neighphi + myphi)
+          
+          Jnet(iNgh, ipin, izf, igc) = Jnet(iNgh, ipin, izf, igc) + jfdm
+        END DO
+      END DO
+      !$OMP END DO
+      !$OMP END PARALLEL
+    END DO
+  END DO
+END DO
+! ----------------------------------------------------
+!               02. CAL : dhat, dtil
+! ----------------------------------------------------
+!$OMP PARALLEL PRIVATE(ipin_map, ineighpin, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jfdm, albedo, smy, iNgh, jNgh)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+DO igc = 1, ngc
+  DO izf = 1, nzCMFD
+    DO ipin = 1, nxy
+      ipin_map = pinMap(ipin)
+      
+      DO iNgh = 1, Pin(ipin_map)%nNgh
+        ibd       = Pin(ipin_map)%NghBd(iNgh)
+        ineighpin = Pin(ipin_map)%NeighIdx(iNgh)
+        jNgh      = Pin(ipin_map)%NeighSurfIdx(iNgh)
+        smy       = Pin(ipin_map)%BdLength(iNgh)
+        
+        myphi  = GcPinXS(ipin_map, izf)%Phi(igc)
+        mybeta = GcPinXS(ipin_map, izf)%XSD(igc) / Pin(ipin_map)%Center2SurfaceL(ibd)
+        
+        IF (ineighpin .GT. 0) THEN
+          jbd = Pin(ineighpin)%NghBd(jNgh)
+          
+          neighphi  = GcPinXS(ineighpin, izf)%Phi(igc)
+          neighbeta = GcPinXS(ineighpin, izf)%XSD(igc) / Pin(ineighpin)%Center2SurfaceL(jbd)
+          
+          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+          jfdm = - Dtil * (neighphi - myphi)
+          Dhat = - (Jnet(iNgh, ipin, izf, igc) - jfdm) / (myphi + neighphi)
+        ELSE
+          IF (ineighpin .EQ. VoidCell) THEN
+            neighbeta = HALF
+            neighphi  = ZERO
+            albedo    = HALF
+          ELSE IF (ineighpin .EQ. RefCell) THEN
+            neighbeta = ZERO
+            neighphi  = myphi
+            albedo    = ZERO
+          END IF
+          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+          jfdm = - Dtil * (neighphi - myphi)
+          Dhat = - (Jnet(iNgh, ipin, izf, igc) - jfdm) / (myphi + neighphi)
+        END IF
+        
+        GcPinXS(ipin_map, izf)%Dtil(iNgh, igc) = Dtil
+        GcPinXS(ipin_map, izf)%Dhat(iNgh, igc) = Dhat
+      END DO
+    END DO
+  END DO
+END DO
+!$OMP END DO
+!$OMP END PARALLEL
+
+DEALLOCATE(Jnet)
+! ----------------------------------------------------
+
+END SUBROUTINE HexSetRadialGcCoupling
 
 END MODULE
     
