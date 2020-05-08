@@ -453,9 +453,9 @@ END TYPE Type_HexRotRay
 TYPE Type_HexVss
   SEQUENCE
   
-  INTEGER :: vMat = 0
-  INTEGER :: zSt  = 0
-  INTEGER :: zEd  = 0
+  INTEGER :: Mat = 0
+  INTEGER :: zSt = 0
+  INTEGER :: zEd = 0
   
   REAL    :: Cnt(2) = ZERO ! (x/y)
   REAL    :: Rad(2) = ZERO ! (Inn/Out)

@@ -194,8 +194,8 @@ INTEGER :: iPin
 ! ----------------------------------------------------
 
 IF (hLgc%lvyg) THEN
-  nGapPinType = nGapPinType + 1
-  nGapType    = nGapType    + 1
+  nGapPinType = nGapPinType + 2
+  nGapType    = nGapType    + 2
 END IF
 
 ALLOCATE (hCel        (nCellType    * (nVssTyp + 1)))
@@ -875,13 +875,13 @@ CALL fndchara(dataline, ipos, nSpt, SLASH)
 SELECT CASE (nSpt)
 CASE (2)
   READ (dataline(ipos(2)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
-  READ (dataline(ipos(1)+1:nDataField), *) hVss(iVss)%vMat
+  READ (dataline(ipos(1)+1:nDataField), *) hVss(iVss)%Mat
   READ (dataline, *) Tmp, hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
   
   hVss(iVss)%Cnt = ZERO
 CASE (3)
   READ (dataline(ipos(3)+1:nDataField), *) hVss(iVss)%zSt, hVss(iVss)%zEd
-  READ (dataline(ipos(2)+1:nDataField), *) hVss(iVss)%vMat
+  READ (dataline(ipos(2)+1:nDataField), *) hVss(iVss)%Mat
   READ (dataline(ipos(1)+1:nDataField), *) hVss(iVss)%Rad(1), hVss(iVss)%Rad(2)
   
   READ (dataline, *) Tmp, hVss(iVss)%Cnt(1), hVss(iVss)%Cnt(2)
@@ -896,7 +896,7 @@ END SUBROUTINE HexRead_Vss
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_Vyg(dataline0)
 
-USE HexData, ONLY : vAsyTyp, vRefTyp, vMat, vFxr, vzSt, vzEd
+USE HexData, ONLY : vAsyTyp, vRefTyp, vMat1, vMat2, vFxr, vzSt, vzEd
 
 IMPLICIT NONE
 
@@ -915,7 +915,7 @@ CALL fndchara(dataline, ipos, nSpt, SLASH)
 IF (nSpt .NE. 2) CALL terminate("WRONG VYGORODKA INPUT")
 
 READ (dataline(ipos(2)+1:nDataField), *) vzSt, vzEd
-READ (dataline(ipos(1)+1:nDataField), *) vMat, vFXR
+READ (dataline(ipos(1)+1:nDataField), *) vMat1, vMat2, vFXR
 READ (dataline, *) vAsyTyp, vRefTyp
 ! ----------------------------------------------------
 

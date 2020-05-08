@@ -171,10 +171,7 @@ USE HexData, ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, nhAsy, hAsyTypInfo, 
 IMPLICIT NONE
 
 INTEGER :: iAsy, iaTyp, jaTyp, iDir, jAsy, iSt, iEd, iPin, jPin, kPin
-INTEGER :: nRod, nPch, iRodGlb, iTotGlb, iFst, iLst
-
-LOGICAL :: lModel2 = FALSE
-LOGICAL :: lFst
+INTEGER :: nRod, nPch, iRodGlb, iTotGlb
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVyg) RETURN
@@ -186,10 +183,11 @@ DO iAsy = 1, nhAsy
   
   nRod = hAsyTypInfo(iaTyp)%nRodPin(1)
   nPch = 2 * (hAsyTypInfo(iaTyp)%nPin - 1)
-    
+  
   iRodGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nRodPin
   iTotGlb = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
   
+  ! SET : VYG Edge
   DO iDir = 1, 6
     jAsy = hAsy(iAsy)%NghIdx(iDir)
     
@@ -199,9 +197,8 @@ DO iAsy = 1, nhAsy
     
     IF (jaTyp.EQ.iaTyp .OR. jaTyp.EQ.vRefTyp) CYCLE
     
-    iSt  = nRod + (iDir - 1) * nPch + 1
-    iEd  = nRod +       iDir * nPch
-    lFst = TRUE
+    iSt = nRod + (iDir - 1) * nPch + 1
+    iEd = nRod +       iDir * nPch
     
     DO iPin = iSt, iEd ! Numeric # of Pin in "hAsyTypInfo"
       DO jPin = iRodGlb, iTotGlb ! Numeric # of Pin in Core
@@ -209,28 +206,29 @@ DO iAsy = 1, nhAsy
         
         IF (kPin .NE. iPin) CYCLE
         
-        hPinInfo(jPin)%PinTyp = nGapPinType
-        
-        IF (lFst) THEN
-          lFst = FALSE
-          iFst = jPin
-        END IF
-        
-        iLst = jPin
+        hPinInfo(jPin)%PinTyp = nGapPinType - 1
         
         EXIT
       END DO
     END DO
+  END DO
+  
+  ! SET : Vyg Corn
+  DO iPin = iRodGlb, iTotGlb
+    IF (hPinInfo(iPin)%PinTyp .NE. nGapPinType-1) CYCLE
+    IF (hPinInfo(iPin)%VtxTyp .EQ. 10)            CYCLE ! Core Bndy
     
-    IF (.NOT. lModel2) CYCLE
+    ! Clockwise
+    jPin = iPin + 1
+    IF (iPin .EQ. iTotGlb) jPin = iRodGlb
     
-    IF (iFst .EQ. iRodGlb) hPinInfo(iTotGlb)%PinTyp = nGapPinType
-    IF (iLst .EQ. iTotGlb) hPinInfo(iRodGlb)%PinTyp = nGapPinType
+    IF (hPinInfo(jPin)%PinTyp .NE. nGapPinType-1) hPinInfo(jPin)%PinTyp = nGapPinType
     
-    iLst = min(iLst, nHexPin-1)
+    ! Anti-clockwise
+    jPin = iPin - 1
+    IF (iPin .EQ. iRodGlb) jPin = iTotGlb
     
-    IF (hPinInfo(iFst-1)%AsyIdx .EQ. iAsy .AND. hPinInfo(iFst-1)%lGap) hPinInfo(iFst-1)%PinTyp = nGapPinType
-    IF (hPinInfo(iLst+1)%AsyIdx .EQ. iAsy .AND. hPinInfo(iLst+1)%lGap) hPinInfo(iLst+1)%PinTyp = nGapPinType
+    IF (hPinInfo(jPin)%PinTyp .NE. nGapPinType-1) hPinInfo(jPin)%PinTyp = nGapPinType
   END DO
 END DO
 ! ----------------------------------------------------

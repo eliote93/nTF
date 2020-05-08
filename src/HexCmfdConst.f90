@@ -367,7 +367,7 @@ DO iPin = 1, nhcPin
     IF (lChk)          cPin_Loc%NghPin(nNgh) = RefCell ! Ngh Pin = Self Pin with Azm ROT
   END DO
   ! ----------------------------
-
+  
   cPin_Loc%nNgh = nNgh
 END DO
 !$OMP END DO

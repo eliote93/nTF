@@ -13,12 +13,12 @@ USE geom,    ONLY : nGapType, nGapPinType
 USE ioutil,  ONLY : terminate
 
 USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss, nMaxFXR
-USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss, hLgc, vFxr, vAsyTyp, vMat, GapPin, hAsyTypInfo, vzSt, vzEd
+USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss, hLgc, vFxr, vAsyTyp, vMat1, vMat2, GapPin, hAsyTypInfo, vzSt, vzEd
 USE HexUtil, ONLY : HexChkRange_INT
 
 IMPLICIT NONE
 
-INTEGER :: igCel, jgCel, kgCel, igBss, iMsh
+INTEGER :: igCel, jgCel, kgCel, igBss, iMsh, jgPin
 LOGICAL :: lNewBss
 ! ----------------------------------------------------
 
@@ -29,15 +29,21 @@ ALLOCATE (gCelBss (nGapType))
 !               01. SET : Vyg Gap Cel
 ! ----------------------------------------------------
 IF (hLgc%lvyg) THEN
-  gCel(nGapType) = gCel(GapPin(hAsyTypInfo(vAsyTyp)%gTyp)%iCel(1)) ! iz is fixed as 1
+  jgPin = hAsyTypInfo(vAsyTyp)%gTyp
   
-  CALL HexChkRange_INT(vFXR, 1, gCel(nGapType)%nFXR, "WRONG VFXR")
+  CALL HexPushGapCel(nGapType-1, GapPin(jgPin)%iCel(1)) ! VYG Cel : Edge, iz is fixed as 1
+  CALL HexPushGapCel(nGapType,   GapPin(jgPin)%iCel(1)) ! VYG Cel : Corn
   
-  gCel(nGapType)%xMix(gCel(nGapType)%nFXR - vFXR + 1) = vMat
-  gCel(nGapType)%luse = TRUE
+  CALL HexChkRange_INT(vFXR, 1, gCel(nGapType-1)%nFXR, "WRONG VFXR")
   
-  GapPin(nGapPinType)%iCel(vzSt:vzEd) = nGapType
-  GapPin(nGapPinType)%luse = TRUE
+  gCel(nGapType-1)%xMix(gCel(nGapType-1)%nFXR - vFXR + 1) = vMat1
+  gCel(nGapType)  %xMix(:)                                = vMat2
+  
+  CALL HexPushGapPin(nGapPinType-1, jgPin)
+  CALL HexPushGapPin(nGapPinType,   jgPin)
+  
+  GapPin(nGapPinType-1)%iCel(vzSt:vzEd) = nGapType-1 ! VYG Pin : Edge
+  GapPin(nGapPinType)  %iCel(vzSt:vzEd) = nGapType   ! VYG Pin : Corn
 END IF
 ! ----------------------------------------------------
 !               02. SET : 1st Cel Geo Basis
@@ -58,7 +64,7 @@ ngBss = 1
 
 DO igCel = 1, nGapType
   IF (.NOT. gCel(igCel)%luse) CYCLE
-    
+  
   DO jgCel = 1, ngBss
     lNewBss = HexCompNewGapBss(gCelBss(jgCel), gCel(igCel))
     
@@ -213,7 +219,7 @@ END DO
 
 END FUNCTION HexCalNumVtxHor
 ! ------------------------------------------------------------------------------------------------------------
-!                                     03. HEX SET : Gap Bss 
+!                                     03. HEX SET : Gap Bss
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetGapBssSubRng(igBss)
 
@@ -295,6 +301,56 @@ NULLIFY (gBss_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetGapBssSubRng
+! ------------------------------------------------------------------------------------------------------------
+!                                     04. HEX PUSH : Gap Cel
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexPushGapCel(igCel, jgCel)
+
+USE PARAM,   ONLY : TRUE
+USE HexType, ONLY : nMaxFXR
+USE HexData, ONLY : gCel
+
+IMPLICIT NONE
+
+INTEGER :: igCel, jgCel
+! ----------------------------------------------------
+
+gCel(igCel)%luse = TRUE
+
+gCel(igCel)%nPin  = gCel(jgCel)%nPin
+gCel(igCel)%nFXR  = gCel(jgCel)%nFXR
+gCel(igCel)%pF2F  = gCel(jgCel)%pF2F
+gCel(igCel)%aiF2F = gCel(jgCel)%aiF2F
+
+gCel(igCel)%xHgt(1:nMaxFXR) = gCel(jgCel)%xHgt(1:nMaxFXR)
+gCel(igCel)%xDiv(1:nMaxFXR) = gCel(jgCel)%xDiv(1:nMaxFXR)
+gCel(igCel)%xMix(1:nMaxFXR) = gCel(jgCel)%xMix(1:nMaxFXR)
+! ----------------------------------------------------
+
+END SUBROUTINE HexPushGapCel
+! ------------------------------------------------------------------------------------------------------------
+!                                     04. HEX PUSH : Gap Pin
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexPushGapPin(igPin, jgPin)
+
+USE PARAM,   ONLY : TRUE
+USE geom,    ONLY : nZ
+USE HexData, ONLY : GapPin
+
+IMPLICIT NONE
+
+INTEGER :: igPin, jgPin
+! ----------------------------------------------------
+
+GapPin(igPin)%luse = TRUE
+GapPin(igPin)%lGap = TRUE
+
+ALLOCATE (GapPin(igPin)%iCel (nZ))
+
+GapPin(igPin)%iCel(1:nZ) = GapPin(jgPin)%iCel(1:nZ)
+! ----------------------------------------------------
+
+END SUBROUTINE HexPushGapPin
 ! ------------------------------------------------------------------------------------------------------------
 
 END MODULE HexCelBasis_Gap

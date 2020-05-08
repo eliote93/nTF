@@ -289,7 +289,7 @@ DO iTyp = 1, nhc0
     hCel(nCellType)%xRad(1:hCel(iTyp)%nFXR) = hCel(iTyp)%xRad(1:hCel(iTyp)%nFXR)
     hCel(nCellType)%xDiv(1:hCel(iTyp)%nFXR) = hCel(iTyp)%xDiv(1:hCel(iTyp)%nFXR)
     
-    hCel(nCellType)%xMix(1:hCel(iTyp)%nFXR) = hVss(iVss)%vMat
+    hCel(nCellType)%xMix(1:hCel(iTyp)%nFXR) = hVss(iVss)%Mat
     
     aux01(iVss, iTyp, 1) = nCellType
   END DO
@@ -311,7 +311,7 @@ DO iTyp = 1, ngc0
     gCel(nGapType)%xHgt(1:gCel(iTyp)%nFXR) = gCel(iTyp)%xHgt(1:gCel(iTyp)%nFXR)
     gCel(nGapType)%xDiv(1:gCel(iTyp)%nFXR) = gCel(iTyp)%xDiv(1:gCel(iTyp)%nFXR)
         
-    gCel(nGapType)%xMix(1:gCel(iTyp)%nFXR) = hVss(iVss)%vMat
+    gCel(nGapType)%xMix(1:gCel(iTyp)%nFXR) = hVss(iVss)%Mat
     
     aux01(iVss, iTyp, 2) = nGapType
   END DO

@@ -37,7 +37,8 @@ INTEGER :: nInnMOCItr = 2
 INTEGER :: vFxr    = 0
 INTEGER :: vAsyTyp = 0
 INTEGER :: vRefTyp = 0
-INTEGER :: vMat    = 0
+INTEGER :: vMat1   = 0
+INTEGER :: vMat2   = 0
 INTEGER :: vzSt    = 0
 INTEGER :: vzEd    = 0
 
