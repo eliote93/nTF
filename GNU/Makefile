@@ -3,697 +3,697 @@
 #
 
 SRCS_f90d1 = \
-SetCentGeom.f90 \
-CMFDTally.f90 \
-main.f90 \
-MCFuelRect.f90 \
-Xsutil.f90 \
-Mat2x2OP.f90 \
-CUDA_PCR.f90 \
-HexAsyRayIntSct.f90 \
-CrSearch_Driver.f90 \
-restart_mod.f90 \
-HexCelBasis_Gap.f90 \
-TranGcCmfd_mod.f90 \
-ProcMat.f90 \
-ReorderLib.f90 \
-BenchXs_mod.f90 \
-abi1d2g.f90 \
-MKL_3D.f90 \
-RayTracing_OMP.f90 \
-CUDA_AXIAL.f90 \
-GCCmfd_mod.f90 \
-DcplPinXsWrt.f90 \
-readbenchxs.f90 \
-HexEffXsOut.f90 \
-TransientEtc.f90 \
-PE_mod.f90 \
-SetRtLinSrc.f90 \
-B10Depl.f90 \
-geom.f90 \
-HexInit.f90 \
-MATRATH_mod.f90 \
-SenmMatSolver_mod.f90 \
-CalRelPower.f90 \
-GammaHomoXsGen.f90 \
-DeplLib_mod.f90 \
-procgeom.f90 \
-HexCmfdConst.f90 \
-SubGrpFsp.f90 \
-Material_Mod.f90 \
-GenFxrMacXs.f90 \
-Cooling_mod.f90 \
-core_mod.f90 \
-HexTst.f90 \
-IsotopeOut.f90 \
-SetCmfdLinearSystem.f90 \
-BoronCoolant.f90 \
-GammaMOCEtc.f90 \
-DeplInfoOut.f90 \
-readISOTXS.f90 \
-MKL_LINMOC.f90 \
-TranMacXsLib.f90 \
-MatExp_Mod.f90 \
-GdDepl_mod.f90 \
-CriticalSpec_mod.f90 \
+GetFSRCentroid.f90 \
+InitTransient.f90 \
 mtbl2g.f90 \
-InitDcpl.f90 \
-Init_Depl.f90 \
-Sp3SenmOp_Mod.f90 \
-CUDA_INIT.f90 \
-HexAsyRay_SngCel.f90 \
-banner.f90 \
-FuelConduction.f90 \
-MCTally.f90 \
-THFeedBack.f90 \
-PrepareGamma.f90 \
-CNTLROD_mod.f90 \
-GeomTreatment_mod.f90 \
-EFFMAT0OUT.f90 \
-cntl.f90 \
-AllocTh.f90 \
-InitSubPlane.f90 \
-UtilFunction.f90 \
-MKL_POLYMOC.f90 \
-Sp3TypeDef.f90 \
-CUDA_NODAL.f90 \
-facilu2g.f90 \
-EffXsOutDepl.f90 \
-MKL_FDM.f90 \
-XSec4MC.f90 \
-MPIConfig_Mod.f90 \
-CUDA_SYSTEM.f90 \
-HexAsyConst.f90 \
-ESCOTTH_mod.f90 \
-HexNgh_SP.f90 \
-TranCondMOC.f90 \
-MPIComm_mod.f90 \
-SubChCoupling_mod.f90 \
-B1_mod.f90 \
-minv2g.f90 \
-readLibGamma.f90 \
-MKL_FLATMOC.f90 \
-XeDyn_mod.f90 \
-MOCSweep.f90 \
-CUDA_CMFD.f90 \
-GroupConstantMod.f90 \
-DcplXsGen_Mod.f90 \
-setRtSrc.f90 \
-HexCelBasis_Rod.f90 \
-TranMOC.f90 \
-RNG.f90 \
-SetThCell.f90 \
-BasicOperation.f90 \
-LpShf_mod.f90 \
-RayTracingP1_OMP.f90 \
-CmfdPowerMethod.f90 \
-GCInit.f90 \
-DcplThUtil.f90 \
+CrCspGen_Driver.f90 \
+B10Depl.f90 \
+Material_Mod.f90 \
 vtk_mod.f90 \
-HexInput.f90 \
-Th_mod.f90 \
-NullTransient.f90 \
+RayTracing_OMP.f90 \
+HexThOut.f90 \
+TranCmfd_Driver.f90 \
+Depletion.f90 \
+MCTally.f90 \
 StemTBL_Mod.f90 \
-homoXsGen.f90 \
-HexTLkg.f90 \
-MCVacRect.f90 \
-ReadDeplFile.f90 \
-Boron_mod.f90 \
-GCGen.f90 \
-DcplTH_mod.f90 \
-subch_mod.f90 \
-HexNgh.f90 \
-ThInfoOut.f90 \
-MocSolUpdt.f90 \
-GammaRayTracing.f90 \
-DcplCmfd3d.f90 \
-inflowMathUtil.f90 \
-HexVtx.f90 \
-MCXsLib.f90 \
-SetCellRay.f90 \
-CSRMATRIX.f90 \
-Gamma_mod.f90 \
-ioutil.f90 \
+HexAsyRayConst.f90 \
+cntl.f90 \
+CmfdEtc.f90 \
+BinOutPutEdit.f90 \
+RayTracing.f90 \
+readbenchxs.f90 \
+RayTracingP1_OMP.f90 \
+HexInput.f90 \
+THFeedBack.f90 \
 DcmpRayGen.f90 \
-readinput.f90 \
-MKL_NODAL.f90 \
-TranMoc_Driver.f90 \
-PhimOUT.f90 \
-GCCon.f90 \
-DcplCore_mod.f90 \
-nuclidmap.f90 \
-HexRayBasic.f90 \
-MCiterLog.f90 \
-CUDA_AXRT.f90 \
-HexCP.f90 \
-bicg2g.f90 \
-GCCmfdUtil.f90 \
-xslib_mod.f90 \
-MKL_DEPL.f90 \
+DcplMicXsFtn_mod.f90 \
+MCP_Restart_Main.f90 \
 SubGrpEffXs.f90 \
-PrepareXs.f90 \
-CP_mod.f90 \
-GlobalCoreMap.f90 \
-CorRayGen.f90 \
-dmalloc.f90 \
-InitTH.f90 \
-TranAxNUtil_mod.f90 \
-MPIDcpl_mod.f90 \
-SetAsyGeom.f90 \
-CUDA_SOLVER.f90 \
-initbicg2g.f90 \
-FXRVARIATION.f90 \
-KineticParam.f90 \
-TranMoc_mod.f90 \
-MiscStructGeom.f90 \
-CadGeom_Mod.f90 \
-HexAsyRay.f90 \
-EffMGXsOut.f90 \
-precursor.f90 \
-HexCelBasis.f90 \
-Transient_mod.f90 \
-MocEtc.f90 \
-RayTracing_Dcmp.f90 \
-BiCGSTAB2g.f90 \
-p1senm_mod.f90 \
-MKL_INIT.f90 \
-XsPerturb_Mod.f90 \
-SteadyStateTH.f90 \
-Cmfd2g_mod.f90 \
-GdDepl.f90 \
-DeplType.f90 \
-solbicg2g.f90 \
-AllocPdm.f90 \
-HexChkInp.f90 \
-VolCorrection.f90 \
-OutputEditMC.f90 \
-SubChGen_mod.f90 \
-BiCGSTAB.f90 \
-depletion_mod.f90 \
-HexPinConst.f90 \
+GammaCMFDAcc.f90 \
+banner.f90 \
+CrSearch_Driver.f90 \
+AxialSp3_mod.f90 \
+Mat2x2OP.f90 \
+subch_mod.f90 \
+SetModRay.f90 \
+HexUtil.f90 \
+TranMoc_Driver.f90 \
+CUDA_COMMON.f90 \
+DcplPlnMOC.f90 \
 MCP_Util.f90 \
 RotRayGen.f90 \
-BiLU.f90 \
-GC_mod.f90 \
-Dcplsseig.f90 \
-sseig.f90 \
-HexOutputEdit.f90 \
-Transient_Driver.f90 \
-RayTracing.f90 \
-RayTracingP1.f90 \
-Depletion.f90 \
-files.f90 \
-HexMain.f90 \
-MCCMFD.f90 \
-ReadXsec.f90 \
-CTFTH_mod.f90 \
-GammaCMFDAcc.f90 \
-DcplThPlnMOC.f90 \
-setRTxs.f90 \
-HexData.f90 \
-Tlkg_mod.f90 \
-PostProc_ISOTXS.f90 \
-GetFSRCentroid.f90 \
-DcplCmfd_mod.f90 \
-initialize.f90 \
-HexCorePowerCal.f90 \
-MKL_AXIAL.f90 \
-SetModRay.f90 \
-CUDATypeDef.f90 \
-GammaXSUtil.f90 \
-moc_mod.f90 \
-CrCspGen_mod.f90 \
-setCellrayBase.f90 \
-MCMap.f90 \
-UserDefTH.f90 \
-PinXSout.f90 \
-GCEDIT.f90 \
-DcplPlnMOC.f90 \
-param.f90 \
-HexType.f90 \
-TypeDef.f90 \
-MKL_CMFD.f90 \
-SetPinGeom.f90 \
-CMFD_COMMON.f90 \
-HexAsyTypConst.f90 \
-finalize.f90 \
-GCADF.f90 \
-MCBasics.f90 \
-TranGcCmfd.f90 \
-OutputEdit.f90 \
-GroupConstantGen.f90 \
-CrCspGen_Driver.f90 \
-InitTransient.f90 \
+HexAsyRay_SngCel.f90 \
 TransientTH.f90 \
-MacXsLib.f90 \
-ScanInput_include.f90 \
-Cmfd2gAcc.f90 \
-itrcntl.f90 \
-EffXsOut.f90 \
-rays.f90 \
-InitializeMC.f90 \
-SubGrp_mod.f90 \
-MPIAxSolver_Mod.f90 \
-Cmfd2gUtil.f90 \
-HexAsyRayConst.f90 \
-DcplLogOut.f90 \
-readinpcard.f90 \
-HexNgh_MP.f90 \
-XeDyn.f90 \
-PreProcess.f90 \
-SetGeometry.f90 \
-AxialSp3_mod.f90 \
+homoXsGen.f90 \
+DeplInfoOut.f90 \
+ProcMAT_ISOTXS.f90 \
+GroupConstantMod.f90 \
+InitSubPlane.f90 \
+TYPEDEF_COMMON.f90 \
+CUDA_AXIAL.f90 \
+DeplType.f90 \
+MKL_FLATMOC.f90 \
+readISOTXS.f90 \
+ReadDeplFile.f90 \
+GammaSetRtVar.f90 \
+VolCorrection.f90 \
 cards.f90 \
-sol2d2g.f90 \
+FXRVAR_MOD.f90 \
+KineticParam.f90 \
+MPIComm_mod.f90 \
+GammaHomoXsGen.f90 \
+HexData.f90 \
+files.f90 \
+Cmfd2gUtil.f90 \
+CMFDComm_mod.f90 \
+MKL_3D.f90 \
+scalprods.f90 \
+SSPHfactorOUT.f90 \
+HexRayBasic.f90 \
+TranGcCmfd.f90 \
+depletion_mod.f90 \
+FastMocUtil.f90 \
+MCBasics.f90 \
+PhimOUT.f90 \
+GdDepl.f90 \
+HexGeo.f90 \
+facilu2g.f90 \
+CorePowerCal.f90 \
+BenchXs_mod.f90 \
+MKL_POWER.f90 \
+restart_mod.f90 \
+SPH_Mod.f90 \
+HexTLkg.f90 \
+TransientEtc.f90 \
+p1senm_mod.f90 \
+DcplCmfd_mod.f90 \
+MATRATH_mod.f90 \
+NullTransient.f90 \
+GammaMOCEtc.f90 \
+InitTH.f90 \
+nuclidmap.f90 \
+Cooling_mod.f90 \
+BasicOperation.f90 \
+RayTracingLinSrc.f90 \
+xslib_mod.f90 \
+SetAsyGeom.f90 \
+HexCelBasis.f90 \
+UserDefTH.f90 \
+EFFMAT0OUT.f90 \
+MKL_AXIAL.f90 \
+SubChCoupling_mod.f90 \
+GCGen.f90 \
+CUDA_NODAL.f90 \
+ApproxExp.f90 \
+RayTracingP1.f90 \
+SetThCell.f90 \
+HexType.f90 \
+TranCondMOC.f90 \
+CUDA_CMFD.f90 \
+DcplLogOut.f90 \
+MKL_DEPL.f90 \
+Sp3SenmOp_Mod.f90 \
+HexAsyRayIntSct.f90 \
+bicg2g.f90 \
+CSRMATRIX.f90 \
+BoronCoolant.f90 \
+MocEtc.f90 \
+GammaXsLib.f90 \
+HighOrderSC.f90 \
+TranMoc_mod.f90 \
+CUDA_SOLVER.f90 \
+DcplXsGen_Mod.f90 \
 MCDefine.f90 \
+GammaCMFD_mod.f90 \
+TranAxNUtil_mod.f90 \
+ioutil.f90 \
+FXRVARIATION.f90 \
+MKL_DAVIDSON.f90 \
+MatExp_Mod.f90 \
+GCHom.f90 \
+HexNgh_SP.f90 \
+UtilFunction.f90 \
+CadGeom_Mod.f90 \
+DirectSenm_mod.f90 \
+MKL_LINMOC.f90 \
+procgeom.f90 \
+RayTracing_Dcmp.f90 \
+GammaMOCSweep.f90 \
+XeDyn.f90 \
+facilu1d2g.f90 \
+DeplLib_mod.f90 \
+MCGapRect.f90 \
+MacXsLib.f90 \
+setRtSrc.f90 \
+GdDepl_mod.f90 \
+HexInit.f90 \
+initbicg2g.f90 \
+Cmfd2g_mod.f90 \
+AllocPdm.f90 \
+CMFD_COMMON.f90 \
+MCCMFD.f90 \
+solbicg2g.f90 \
+SetGeometry.f90 \
+HexCelBasis_Gap.f90 \
+XeDyn_mod.f90 \
+inflowMathUtil.f90 \
+DcplThPlnMOC.f90 \
+MCiterLog.f90 \
+MOCSweep.f90 \
+GCInit.f90 \
+HexGeoConst.f90 \
+initvar.f90 \
+CUDA_INIT.f90 \
+CMFDTally.f90 \
+MakeRays.f90 \
+sol1d2g.f90 \
+ScanInput.f90 \
+HexEffXsOut.f90 \
+XSec4MC.f90 \
+param.f90 \
+DcplCore_mod.f90 \
+IsotopeOut.f90 \
+PrepareXs.f90 \
+HexAsyRay.f90 \
+Init_Depl.f90 \
+Xsutil.f90 \
+CUDATypeDef.f90 \
+BiCGSTAB2g.f90 \
+PE_mod.f90 \
+SetCmfdLinearSystem.f90 \
+HexMain.f90 \
+SubGrpFspNM.f90 \
+CriticalSpec_mod.f90 \
+EffMGXsOut.f90 \
+MCVacRect.f90 \
+SubChGen_mod.f90 \
+Gamma_mod.f90 \
+XsPerturb_Mod.f90 \
+CmfdPowerMethod.f90 \
+BiCGSTAB.f90 \
+MocSolUpdt.f90 \
+setray_mod.f90 \
+Sp3TypeDef.f90 \
+HexCP.f90 \
+TranCmfd.f90 \
+CUDA_AXMOC.f90 \
+DcplThUtil.f90 \
+MCXsLib.f90 \
 ReadMesh.f90 \
-CmfdEtc.f90 \
 GammaMOC_mod.f90 \
+SubGrpFsp.f90 \
+itrcntl.f90 \
 CrCsp_mod.f90 \
-timer.f90 \
+MOC_COMMON.f90 \
+readinput.f90 \
+GCCon.f90 \
+InitDcpl.f90 \
+Transient_mod.f90 \
+CUDA_SYSTEM.f90 \
+DcplCmfd3d.f90 \
+InitializeMC.f90 \
+readinpcard.f90 \
+SetCellRay.f90 \
+GammaXSUtil.f90 \
+Transient_Driver.f90 \
+main.f90 \
+DeplEtc.f90 \
+MKL_INIT.f90 \
+OutputEdit.f90 \
+GC_mod.f90 \
 HexCmfd.f90 \
 ThFunction.f90 \
-MKL_POWER.f90 \
-ScanInput.f90 \
-ApproxExp.f90 \
-facilu1d2g.f90 \
-HexRayConst.f90 \
-MCGapRect.f90 \
-SSPHfactorOUT.f90 \
-CUDA_MOC.f90 \
-GammaSetRtVar.f90 \
-DcplMicXsFtn_mod.f90 \
-scalprods.f90 \
-HexGeo.f90 \
-TranCmfd_Driver.f90 \
-RayTracingLinSrc.f90 \
-GcCmfdAcc.f90 \
-DeplEtc.f90 \
-inflow.f90 \
-HexThOut.f90 \
-LsRadDecomp.f90 \
-SetAsyRay.f90 \
-CMFDComm_mod.f90 \
-GammaCMFD_mod.f90 \
-DcplCmfdXsGen.f90 \
-setray_mod.f90 \
-MCModular.f90 \
+CalRelPower.f90 \
+ESCOTTH_mod.f90 \
+MKL_NODAL.f90 \
+readLibGamma.f90 \
+ReorderLib.f90 \
+HexNgh_MP.f90 \
 TranCmfd_mod.f90 \
-MOC_COMMON.f90 \
-GCHom.f90 \
-CorePowerCal.f90 \
-initvar.f90 \
-HighOrderSC.f90 \
-MKL_BILU.f90 \
-SetPE.f90 \
-CUDA_COMMON.f90 \
-GammaXsLib.f90 \
-inputedit.f90 \
-FastMocUtil.f90 \
-sol1d2g.f90 \
-LU_mod.f90 \
-SubGrpFspNM.f90 \
-PrepareCMFD.f90 \
-BinOutPutEdit.f90 \
-GammaMOCSweep.f90 \
-DirectSenm_mod.f90 \
+geom.f90 \
+FuelConduction.f90 \
+LsRadDecomp.f90 \
+PrepareGamma.f90 \
+GCEDIT.f90 \
+HexCmfdConst.f90 \
 clfortran.f90 \
-AllocAxSol.f90 \
-HexUtil.f90 \
-XeDyn_Driver.f90 \
-MKL_DAVIDSON.f90 \
-SPH_Mod.f90 \
-CUDA_DRIVER.f90 \
-cmfd_mod.f90 \
-FXRVAR_MOD.f90 \
-MCP_Restart_Main.f90 \
-TranCmfd.f90 \
-ProcMAT_ISOTXS.f90 \
-CUDA_AXMOC.f90 \
+CUDA_MOC.f90 \
+AllocTh.f90 \
+CNTLROD_mod.f90 \
+PrepareCMFD.f90 \
+timer.f90 \
+SetPinGeom.f90 \
+HexChkInp.f90 \
+SubGrp_mod.f90 \
+initialize.f90 \
+GCADF.f90 \
+MCMap.f90 \
+MPIConfig_Mod.f90 \
+GammaRayTracing.f90 \
+HexNgh.f90 \
+minv2g.f90 \
+CorRayGen.f90 \
+B1_mod.f90 \
+PinXSout.f90 \
+sseig.f90 \
+SetAsyRay.f90 \
+HexOutputEdit.f90 \
+Tlkg_mod.f90 \
+precursor.f90 \
+GCCmfd_mod.f90 \
+MCFuelRect.f90 \
+MiscStructGeom.f90 \
 GroupConstantGenOld.f90 \
+cmfd_mod.f90 \
+CUDA_PCR.f90 \
+BiLU.f90 \
+PreProcess.f90 \
+SetRtLinSrc.f90 \
+HexTst.f90 \
+ThInfoOut.f90 \
+DcplTH_mod.f90 \
+MKL_CMFD.f90 \
+SetPE.f90 \
+GenFxrMacXs.f90 \
+inputedit.f90 \
+CrCspGen_mod.f90 \
+Boron_mod.f90 \
+OutputEditMC.f90 \
+sol2d2g.f90 \
+SteadyStateTH.f90 \
+HexAsyTypConst.f90 \
+TranMOC.f90 \
+CTFTH_mod.f90 \
+DcplPinXsWrt.f90 \
+LpShf_mod.f90 \
+SenmMatSolver_mod.f90 \
+GroupConstantGen.f90 \
+Th_mod.f90 \
+finalize.f90 \
+EffXsOutDepl.f90 \
+PostProc_ISOTXS.f90 \
+GcCmfdAcc.f90 \
+HexVtx.f90 \
+TypeDef.f90 \
+CUDA_DRIVER.f90 \
+Dcplsseig.f90 \
+MKL_FDM.f90 \
+rays.f90 \
+ReadXsec.f90 \
+GeomTreatment_mod.f90 \
+TranGcCmfd_mod.f90 \
+moc_mod.f90 \
 Depletion_Driver.f90 \
-HexGeoConst.f90 \
-TYPEDEF_COMMON.f90 \
-MakeRays.f90 
-
-SRCS_Fd1 = \
-sth2xc.F 
+LU_mod.f90 \
+MPIAxSolver_Mod.f90 \
+HexAsyConst.f90 \
+HexCorePowerCal.f90 \
+dmalloc.f90 \
+Cmfd2gAcc.f90 \
+AllocAxSol.f90 \
+EffXsOut.f90 \
+MKL_POLYMOC.f90 \
+setRTxs.f90 \
+ScanInput_include.f90 \
+HexPinConst.f90 \
+XeDyn_Driver.f90 \
+inflow.f90 \
+DcplCmfdXsGen.f90 \
+MCModular.f90 \
+ProcMat.f90 \
+GlobalCoreMap.f90 \
+HexCelBasis_Rod.f90 \
+core_mod.f90 \
+CUDA_AXRT.f90 \
+CP_mod.f90 \
+RNG.f90 \
+setCellrayBase.f90 \
+SetCentGeom.f90 \
+HexRayConst.f90 \
+TranMacXsLib.f90 \
+abi1d2g.f90 \
+GCCmfdUtil.f90 \
+MKL_BILU.f90 \
+MPIDcpl_mod.f90 
 
 SRCS_hd1 = \
 defines.h \
 CUDADEFINES.h 
 
+SRCS_Fd1 = \
+sth2xc.F 
+
 SRCS_Hd1 = \
 SP3DEFINES.H 
 
 OBJS_f90d1 = \
-SetCentGeom.o \
-CMFDTally.o \
-main.o \
-MCFuelRect.o \
-Xsutil.o \
-Mat2x2OP.o \
-CUDA_PCR.o \
-HexAsyRayIntSct.o \
-CrSearch_Driver.o \
-restart_mod.o \
-HexCelBasis_Gap.o \
-TranGcCmfd_mod.o \
-ProcMat.o \
-ReorderLib.o \
-BenchXs_mod.o \
-abi1d2g.o \
-MKL_3D.o \
-RayTracing_OMP.o \
-CUDA_AXIAL.o \
-GCCmfd_mod.o \
-DcplPinXsWrt.o \
-readbenchxs.o \
-HexEffXsOut.o \
-TransientEtc.o \
-PE_mod.o \
-SetRtLinSrc.o \
-B10Depl.o \
-geom.o \
-HexInit.o \
-MATRATH_mod.o \
-SenmMatSolver_mod.o \
-CalRelPower.o \
-GammaHomoXsGen.o \
-DeplLib_mod.o \
-procgeom.o \
-HexCmfdConst.o \
-SubGrpFsp.o \
-Material_Mod.o \
-GenFxrMacXs.o \
-Cooling_mod.o \
-core_mod.o \
-HexTst.o \
-IsotopeOut.o \
-SetCmfdLinearSystem.o \
-BoronCoolant.o \
-GammaMOCEtc.o \
-DeplInfoOut.o \
-readISOTXS.o \
-MKL_LINMOC.o \
-TranMacXsLib.o \
-MatExp_Mod.o \
-GdDepl_mod.o \
-CriticalSpec_mod.o \
+GetFSRCentroid.o \
+InitTransient.o \
 mtbl2g.o \
-InitDcpl.o \
-Init_Depl.o \
-Sp3SenmOp_Mod.o \
-CUDA_INIT.o \
-HexAsyRay_SngCel.o \
-banner.o \
-FuelConduction.o \
-MCTally.o \
-THFeedBack.o \
-PrepareGamma.o \
-CNTLROD_mod.o \
-GeomTreatment_mod.o \
-EFFMAT0OUT.o \
-cntl.o \
-AllocTh.o \
-InitSubPlane.o \
-UtilFunction.o \
-MKL_POLYMOC.o \
-Sp3TypeDef.o \
-CUDA_NODAL.o \
-facilu2g.o \
-EffXsOutDepl.o \
-MKL_FDM.o \
-XSec4MC.o \
-MPIConfig_Mod.o \
-CUDA_SYSTEM.o \
-HexAsyConst.o \
-ESCOTTH_mod.o \
-HexNgh_SP.o \
-TranCondMOC.o \
-MPIComm_mod.o \
-SubChCoupling_mod.o \
-B1_mod.o \
-minv2g.o \
-readLibGamma.o \
-MKL_FLATMOC.o \
-XeDyn_mod.o \
-MOCSweep.o \
-CUDA_CMFD.o \
-GroupConstantMod.o \
-DcplXsGen_Mod.o \
-setRtSrc.o \
-HexCelBasis_Rod.o \
-TranMOC.o \
-RNG.o \
-SetThCell.o \
-BasicOperation.o \
-LpShf_mod.o \
-RayTracingP1_OMP.o \
-CmfdPowerMethod.o \
-GCInit.o \
-DcplThUtil.o \
+CrCspGen_Driver.o \
+B10Depl.o \
+Material_Mod.o \
 vtk_mod.o \
-HexInput.o \
-Th_mod.o \
-NullTransient.o \
+RayTracing_OMP.o \
+HexThOut.o \
+TranCmfd_Driver.o \
+Depletion.o \
+MCTally.o \
 StemTBL_Mod.o \
-homoXsGen.o \
-HexTLkg.o \
-MCVacRect.o \
-ReadDeplFile.o \
-Boron_mod.o \
-GCGen.o \
-DcplTH_mod.o \
-subch_mod.o \
-HexNgh.o \
-ThInfoOut.o \
-MocSolUpdt.o \
-GammaRayTracing.o \
-DcplCmfd3d.o \
-inflowMathUtil.o \
-HexVtx.o \
-MCXsLib.o \
-SetCellRay.o \
-CSRMATRIX.o \
-Gamma_mod.o \
-ioutil.o \
+HexAsyRayConst.o \
+cntl.o \
+CmfdEtc.o \
+BinOutPutEdit.o \
+RayTracing.o \
+readbenchxs.o \
+RayTracingP1_OMP.o \
+HexInput.o \
+THFeedBack.o \
 DcmpRayGen.o \
-readinput.o \
-MKL_NODAL.o \
-TranMoc_Driver.o \
-PhimOUT.o \
-GCCon.o \
-DcplCore_mod.o \
-nuclidmap.o \
-HexRayBasic.o \
-MCiterLog.o \
-CUDA_AXRT.o \
-HexCP.o \
-bicg2g.o \
-GCCmfdUtil.o \
-xslib_mod.o \
-MKL_DEPL.o \
+DcplMicXsFtn_mod.o \
+MCP_Restart_Main.o \
 SubGrpEffXs.o \
-PrepareXs.o \
-CP_mod.o \
-GlobalCoreMap.o \
-CorRayGen.o \
-dmalloc.o \
-InitTH.o \
-TranAxNUtil_mod.o \
-MPIDcpl_mod.o \
-SetAsyGeom.o \
-CUDA_SOLVER.o \
-initbicg2g.o \
-FXRVARIATION.o \
-KineticParam.o \
-TranMoc_mod.o \
-MiscStructGeom.o \
-CadGeom_Mod.o \
-HexAsyRay.o \
-EffMGXsOut.o \
-precursor.o \
-HexCelBasis.o \
-Transient_mod.o \
-MocEtc.o \
-RayTracing_Dcmp.o \
-BiCGSTAB2g.o \
-p1senm_mod.o \
-MKL_INIT.o \
-XsPerturb_Mod.o \
-SteadyStateTH.o \
-Cmfd2g_mod.o \
-GdDepl.o \
-DeplType.o \
-solbicg2g.o \
-AllocPdm.o \
-HexChkInp.o \
-VolCorrection.o \
-OutputEditMC.o \
-SubChGen_mod.o \
-BiCGSTAB.o \
-depletion_mod.o \
-HexPinConst.o \
+GammaCMFDAcc.o \
+banner.o \
+CrSearch_Driver.o \
+AxialSp3_mod.o \
+Mat2x2OP.o \
+subch_mod.o \
+SetModRay.o \
+HexUtil.o \
+TranMoc_Driver.o \
+CUDA_COMMON.o \
+DcplPlnMOC.o \
 MCP_Util.o \
 RotRayGen.o \
-BiLU.o \
-GC_mod.o \
-Dcplsseig.o \
-sseig.o \
-HexOutputEdit.o \
-Transient_Driver.o \
-RayTracing.o \
-RayTracingP1.o \
-Depletion.o \
-files.o \
-HexMain.o \
-MCCMFD.o \
-ReadXsec.o \
-CTFTH_mod.o \
-GammaCMFDAcc.o \
-DcplThPlnMOC.o \
-setRTxs.o \
-HexData.o \
-Tlkg_mod.o \
-PostProc_ISOTXS.o \
-GetFSRCentroid.o \
-DcplCmfd_mod.o \
-initialize.o \
-HexCorePowerCal.o \
-MKL_AXIAL.o \
-SetModRay.o \
-CUDATypeDef.o \
-GammaXSUtil.o \
-moc_mod.o \
-CrCspGen_mod.o \
-setCellrayBase.o \
-MCMap.o \
-UserDefTH.o \
-PinXSout.o \
-GCEDIT.o \
-DcplPlnMOC.o \
-param.o \
-HexType.o \
-TypeDef.o \
-MKL_CMFD.o \
-SetPinGeom.o \
-CMFD_COMMON.o \
-HexAsyTypConst.o \
-finalize.o \
-GCADF.o \
-MCBasics.o \
-TranGcCmfd.o \
-OutputEdit.o \
-GroupConstantGen.o \
-CrCspGen_Driver.o \
-InitTransient.o \
+HexAsyRay_SngCel.o \
 TransientTH.o \
-MacXsLib.o \
-ScanInput_include.o \
-Cmfd2gAcc.o \
-itrcntl.o \
-EffXsOut.o \
-rays.o \
-InitializeMC.o \
-SubGrp_mod.o \
-MPIAxSolver_Mod.o \
-Cmfd2gUtil.o \
-HexAsyRayConst.o \
-DcplLogOut.o \
-readinpcard.o \
-HexNgh_MP.o \
-XeDyn.o \
-PreProcess.o \
-SetGeometry.o \
-AxialSp3_mod.o \
+homoXsGen.o \
+DeplInfoOut.o \
+ProcMAT_ISOTXS.o \
+GroupConstantMod.o \
+InitSubPlane.o \
+TYPEDEF_COMMON.o \
+CUDA_AXIAL.o \
+DeplType.o \
+MKL_FLATMOC.o \
+readISOTXS.o \
+ReadDeplFile.o \
+GammaSetRtVar.o \
+VolCorrection.o \
 cards.o \
-sol2d2g.o \
+FXRVAR_MOD.o \
+KineticParam.o \
+MPIComm_mod.o \
+GammaHomoXsGen.o \
+HexData.o \
+files.o \
+Cmfd2gUtil.o \
+CMFDComm_mod.o \
+MKL_3D.o \
+scalprods.o \
+SSPHfactorOUT.o \
+HexRayBasic.o \
+TranGcCmfd.o \
+depletion_mod.o \
+FastMocUtil.o \
+MCBasics.o \
+PhimOUT.o \
+GdDepl.o \
+HexGeo.o \
+facilu2g.o \
+CorePowerCal.o \
+BenchXs_mod.o \
+MKL_POWER.o \
+restart_mod.o \
+SPH_Mod.o \
+HexTLkg.o \
+TransientEtc.o \
+p1senm_mod.o \
+DcplCmfd_mod.o \
+MATRATH_mod.o \
+NullTransient.o \
+GammaMOCEtc.o \
+InitTH.o \
+nuclidmap.o \
+Cooling_mod.o \
+BasicOperation.o \
+RayTracingLinSrc.o \
+xslib_mod.o \
+SetAsyGeom.o \
+HexCelBasis.o \
+UserDefTH.o \
+EFFMAT0OUT.o \
+MKL_AXIAL.o \
+SubChCoupling_mod.o \
+GCGen.o \
+CUDA_NODAL.o \
+ApproxExp.o \
+RayTracingP1.o \
+SetThCell.o \
+HexType.o \
+TranCondMOC.o \
+CUDA_CMFD.o \
+DcplLogOut.o \
+MKL_DEPL.o \
+Sp3SenmOp_Mod.o \
+HexAsyRayIntSct.o \
+bicg2g.o \
+CSRMATRIX.o \
+BoronCoolant.o \
+MocEtc.o \
+GammaXsLib.o \
+HighOrderSC.o \
+TranMoc_mod.o \
+CUDA_SOLVER.o \
+DcplXsGen_Mod.o \
 MCDefine.o \
+GammaCMFD_mod.o \
+TranAxNUtil_mod.o \
+ioutil.o \
+FXRVARIATION.o \
+MKL_DAVIDSON.o \
+MatExp_Mod.o \
+GCHom.o \
+HexNgh_SP.o \
+UtilFunction.o \
+CadGeom_Mod.o \
+DirectSenm_mod.o \
+MKL_LINMOC.o \
+procgeom.o \
+RayTracing_Dcmp.o \
+GammaMOCSweep.o \
+XeDyn.o \
+facilu1d2g.o \
+DeplLib_mod.o \
+MCGapRect.o \
+MacXsLib.o \
+setRtSrc.o \
+GdDepl_mod.o \
+HexInit.o \
+initbicg2g.o \
+Cmfd2g_mod.o \
+AllocPdm.o \
+CMFD_COMMON.o \
+MCCMFD.o \
+solbicg2g.o \
+SetGeometry.o \
+HexCelBasis_Gap.o \
+XeDyn_mod.o \
+inflowMathUtil.o \
+DcplThPlnMOC.o \
+MCiterLog.o \
+MOCSweep.o \
+GCInit.o \
+HexGeoConst.o \
+initvar.o \
+CUDA_INIT.o \
+CMFDTally.o \
+MakeRays.o \
+sol1d2g.o \
+ScanInput.o \
+HexEffXsOut.o \
+XSec4MC.o \
+param.o \
+DcplCore_mod.o \
+IsotopeOut.o \
+PrepareXs.o \
+HexAsyRay.o \
+Init_Depl.o \
+Xsutil.o \
+CUDATypeDef.o \
+BiCGSTAB2g.o \
+PE_mod.o \
+SetCmfdLinearSystem.o \
+HexMain.o \
+SubGrpFspNM.o \
+CriticalSpec_mod.o \
+EffMGXsOut.o \
+MCVacRect.o \
+SubChGen_mod.o \
+Gamma_mod.o \
+XsPerturb_Mod.o \
+CmfdPowerMethod.o \
+BiCGSTAB.o \
+MocSolUpdt.o \
+setray_mod.o \
+Sp3TypeDef.o \
+HexCP.o \
+TranCmfd.o \
+CUDA_AXMOC.o \
+DcplThUtil.o \
+MCXsLib.o \
 ReadMesh.o \
-CmfdEtc.o \
 GammaMOC_mod.o \
+SubGrpFsp.o \
+itrcntl.o \
 CrCsp_mod.o \
-timer.o \
+MOC_COMMON.o \
+readinput.o \
+GCCon.o \
+InitDcpl.o \
+Transient_mod.o \
+CUDA_SYSTEM.o \
+DcplCmfd3d.o \
+InitializeMC.o \
+readinpcard.o \
+SetCellRay.o \
+GammaXSUtil.o \
+Transient_Driver.o \
+main.o \
+DeplEtc.o \
+MKL_INIT.o \
+OutputEdit.o \
+GC_mod.o \
 HexCmfd.o \
 ThFunction.o \
-MKL_POWER.o \
-ScanInput.o \
-ApproxExp.o \
-facilu1d2g.o \
-HexRayConst.o \
-MCGapRect.o \
-SSPHfactorOUT.o \
-CUDA_MOC.o \
-GammaSetRtVar.o \
-DcplMicXsFtn_mod.o \
-scalprods.o \
-HexGeo.o \
-TranCmfd_Driver.o \
-RayTracingLinSrc.o \
-GcCmfdAcc.o \
-DeplEtc.o \
-inflow.o \
-HexThOut.o \
-LsRadDecomp.o \
-SetAsyRay.o \
-CMFDComm_mod.o \
-GammaCMFD_mod.o \
-DcplCmfdXsGen.o \
-setray_mod.o \
-MCModular.o \
+CalRelPower.o \
+ESCOTTH_mod.o \
+MKL_NODAL.o \
+readLibGamma.o \
+ReorderLib.o \
+HexNgh_MP.o \
 TranCmfd_mod.o \
-MOC_COMMON.o \
-GCHom.o \
-CorePowerCal.o \
-initvar.o \
-HighOrderSC.o \
-MKL_BILU.o \
-SetPE.o \
-CUDA_COMMON.o \
-GammaXsLib.o \
-inputedit.o \
-FastMocUtil.o \
-sol1d2g.o \
-LU_mod.o \
-SubGrpFspNM.o \
-PrepareCMFD.o \
-BinOutPutEdit.o \
-GammaMOCSweep.o \
-DirectSenm_mod.o \
+geom.o \
+FuelConduction.o \
+LsRadDecomp.o \
+PrepareGamma.o \
+GCEDIT.o \
+HexCmfdConst.o \
 clfortran.o \
-AllocAxSol.o \
-HexUtil.o \
-XeDyn_Driver.o \
-MKL_DAVIDSON.o \
-SPH_Mod.o \
-CUDA_DRIVER.o \
-cmfd_mod.o \
-FXRVAR_MOD.o \
-MCP_Restart_Main.o \
-TranCmfd.o \
-ProcMAT_ISOTXS.o \
-CUDA_AXMOC.o \
+CUDA_MOC.o \
+AllocTh.o \
+CNTLROD_mod.o \
+PrepareCMFD.o \
+timer.o \
+SetPinGeom.o \
+HexChkInp.o \
+SubGrp_mod.o \
+initialize.o \
+GCADF.o \
+MCMap.o \
+MPIConfig_Mod.o \
+GammaRayTracing.o \
+HexNgh.o \
+minv2g.o \
+CorRayGen.o \
+B1_mod.o \
+PinXSout.o \
+sseig.o \
+SetAsyRay.o \
+HexOutputEdit.o \
+Tlkg_mod.o \
+precursor.o \
+GCCmfd_mod.o \
+MCFuelRect.o \
+MiscStructGeom.o \
 GroupConstantGenOld.o \
+cmfd_mod.o \
+CUDA_PCR.o \
+BiLU.o \
+PreProcess.o \
+SetRtLinSrc.o \
+HexTst.o \
+ThInfoOut.o \
+DcplTH_mod.o \
+MKL_CMFD.o \
+SetPE.o \
+GenFxrMacXs.o \
+inputedit.o \
+CrCspGen_mod.o \
+Boron_mod.o \
+OutputEditMC.o \
+sol2d2g.o \
+SteadyStateTH.o \
+HexAsyTypConst.o \
+TranMOC.o \
+CTFTH_mod.o \
+DcplPinXsWrt.o \
+LpShf_mod.o \
+SenmMatSolver_mod.o \
+GroupConstantGen.o \
+Th_mod.o \
+finalize.o \
+EffXsOutDepl.o \
+PostProc_ISOTXS.o \
+GcCmfdAcc.o \
+HexVtx.o \
+TypeDef.o \
+CUDA_DRIVER.o \
+Dcplsseig.o \
+MKL_FDM.o \
+rays.o \
+ReadXsec.o \
+GeomTreatment_mod.o \
+TranGcCmfd_mod.o \
+moc_mod.o \
 Depletion_Driver.o \
-HexGeoConst.o \
-TYPEDEF_COMMON.o \
-MakeRays.o 
-
-OBJS_Fd1 = \
-sth2xc.o 
+LU_mod.o \
+MPIAxSolver_Mod.o \
+HexAsyConst.o \
+HexCorePowerCal.o \
+dmalloc.o \
+Cmfd2gAcc.o \
+AllocAxSol.o \
+EffXsOut.o \
+MKL_POLYMOC.o \
+setRTxs.o \
+ScanInput_include.o \
+HexPinConst.o \
+XeDyn_Driver.o \
+inflow.o \
+DcplCmfdXsGen.o \
+MCModular.o \
+ProcMat.o \
+GlobalCoreMap.o \
+HexCelBasis_Rod.o \
+core_mod.o \
+CUDA_AXRT.o \
+CP_mod.o \
+RNG.o \
+setCellrayBase.o \
+SetCentGeom.o \
+HexRayConst.o \
+TranMacXsLib.o \
+abi1d2g.o \
+GCCmfdUtil.o \
+MKL_BILU.o \
+MPIDcpl_mod.o 
 
 OBJS_hd1 = \
 
+
+OBJS_Fd1 = \
+sth2xc.o 
 
 OBJS_Hd1 = \
 
 
 SRC_DIR_f90d1 = ../src/
 
-SRC_DIR_Fd1 = ../src/
-
 SRC_DIR_hd1 = ../src/
+
+SRC_DIR_Fd1 = ../src/
 
 SRC_DIR_Hd1 = ../src/
 OBJS_DIR = obj/Release/src/
@@ -706,12 +706,12 @@ CFLAGS = -Wall -ffast-math -O2 -cpp -fopenmp -ffree-line-length-none -fdefault-d
 LFLAGS = -s -fopenmp 
 LIBS = -lC:\Program Files\MPICH2\lib\libfmpich2g.a 
 
-VPATH = $(SRC_DIR_f90d1):$(OBJS_DIR):$(SRC_DIR_Fd1):$(OBJS_DIR):$(SRC_DIR_hd1):$(OBJS_DIR):$(SRC_DIR_Hd1):$(OBJS_DIR)
-OBJS = $(addprefix $(OBJS_DIR), $(OBJS_f90d1) $(OBJS_Fd1) $(OBJS_hd1) $(OBJS_Hd1))
+VPATH = $(SRC_DIR_f90d1):$(OBJS_DIR):$(SRC_DIR_hd1):$(OBJS_DIR):$(SRC_DIR_Fd1):$(OBJS_DIR):$(SRC_DIR_Hd1):$(OBJS_DIR)
+OBJS = $(addprefix $(OBJS_DIR), $(OBJS_f90d1) $(OBJS_hd1) $(OBJS_Fd1) $(OBJS_Hd1))
 
 all : $(EXE)
 
-$(EXE) : $(OBJS_f90d1) $(OBJS_Fd1) $(OBJS_hd1) $(OBJS_Hd1)
+$(EXE) : $(OBJS_f90d1) $(OBJS_hd1) $(OBJS_Fd1) $(OBJS_Hd1)
 	@mkdir -p $(EXE_DIR)
 	$(FC) -o $(EXE_DIR)$(EXE) $(OBJS) $(LFLAGS) $(LIBS)
 
@@ -719,13 +719,13 @@ $(OBJS_f90d1):
 	@mkdir -p $(OBJS_DIR)
 	$(FC) $(CFLAGS) -c $(SRC_DIR_f90d1)$(@:.o=.f90) -o $(OBJS_DIR)$@
 
-$(OBJS_Fd1):
-	@mkdir -p $(OBJS_DIR)
-	$(FC) $(CFLAGS) -c $(SRC_DIR_Fd1)$(@:.o=.F) -o $(OBJS_DIR)$@
-
 $(OBJS_hd1):
 	@mkdir -p $(OBJS_DIR)
 	$(FC) $(CFLAGS) -c $(SRC_DIR_hd1)$(@:.o=.h) -o $(OBJS_DIR)$@
+
+$(OBJS_Fd1):
+	@mkdir -p $(OBJS_DIR)
+	$(FC) $(CFLAGS) -c $(SRC_DIR_Fd1)$(@:.o=.F) -o $(OBJS_DIR)$@
 
 $(OBJS_Hd1):
 	@mkdir -p $(OBJS_DIR)
@@ -736,208 +736,45 @@ clean :
 	rm -f $(EXE_DIR)$(EXE)
 
 # Dependencies of files
-SetCentGeom.o: \
-    SetCentGeom.f90 \
+GetFSRCentroid.o: \
+    GetFSRCentroid.f90 \
     dmalloc.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+InitTransient.o: \
+    InitTransient.f90 \
+    dmalloc.o \
+    BasicOperation.o \
     BenchXs_mod.o \
-    cntl.o \
-    geom.o \
-    param.o \
-    SPH_Mod.o \
-    TypeDef.o \
-    xslib_mod.o
-CMFDTally.o: \
-    CMFDTally.f90 \
-    MCDefine.o \
-    param.o \
-    XSec4MC.o
-main.o: \
-    main.f90 \
     cntl.o \
     core_mod.o \
     geom.o \
-    InitializeMC.o \
-    MCModular.o \
-    MCP_Util.o \
-    MPIConfig_Mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    restart_mod.o \
-    timer.o
-MCFuelRect.o: \
-    MCFuelRect.f90 \
-    CMFDTally.o \
-    HighOrderSC.o \
-    MCBasics.o \
-    MCDefine.o \
-    MCTally.o \
-    param.o \
-    TypeDef.o
-Xsutil.o: \
-    Xsutil.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-Mat2x2OP.o: \
-    Mat2x2OP.f90
-CUDA_PCR.o: \
-    CUDA_PCR.f90 \
-    CUDA_COMMON.o \
-    PE_mod.o
-HexAsyRayIntSct.o: \
-    HexAsyRayIntSct.f90 \
-    HexData.o \
-    HexTst.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o
-CrSearch_Driver.o: \
-    CrSearch_Driver.f90 \
-    cntl.o \
-    CNTLROD_mod.o \
-    core_mod.o \
-    geom.o \
-    param.o \
-    PE_mod.o
-restart_mod.o: \
-    restart_mod.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-HexCelBasis_Gap.o: \
-    HexCelBasis_Gap.f90 \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o
-TranGcCmfd_mod.o: \
-    TranGcCmfd_mod.f90 \
-    cmfd_mod.o \
-    cntl.o \
-    itrcntl.o \
-    param.o \
-    TypeDef.o
-ProcMat.o: \
-    ProcMat.f90 \
-    dmalloc.o \
-    cntl.o \
-    ioutil.o \
-    Material_Mod.o \
-    nuclidmap.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    xslib_mod.o
-ReorderLib.o: \
-    ReorderLib.f90 \
-    dmalloc.o \
-    param.o \
-    xslib_mod.o \
-    Xsutil.o
-BenchXs_mod.o: \
-    BenchXs_mod.f90 \
-    dmalloc.o \
-    param.o \
-    TypeDef.o
-abi1d2g.o: \
-    abi1d2g.f90 \
-    bicg2g.o
-MKL_3D.o: \
-    MKL_3D.f90 \
-    CSRMATRIX.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    TYPEDEF_COMMON.o
-RayTracing_OMP.o: \
-    RayTracing_OMP.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    itrcntl.o \
-    moc_mod.o \
-    param.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
-CUDA_AXIAL.o: \
-    CUDA_AXIAL.f90 \
-    CUDA_AXMOC.o \
-    CUDA_COMMON.o \
-    CUDA_NODAL.o \
-    files.o \
-    ioutil.o \
-    param.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
-GCCmfd_mod.o: \
-    GCCmfd_mod.f90 \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-DcplPinXsWrt.o: \
-    DcplPinXsWrt.f90 \
-    geom.o \
-    param.o \
-    TypeDef.o
-readbenchxs.o: \
-    readbenchxs.f90 \
-    dmalloc.o \
-    BenchXs_mod.o \
-    cntl.o \
-    files.o \
-    inflowMathUtil.o \
-    cards.o \
-    ioutil.o \
-    param.o
-HexEffXsOut.o: \
-    HexEffXsOut.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    HexData.o \
-    HexUtil.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-TransientEtc.o: \
-    TransientEtc.f90 \
-    BasicOperation.o \
-    cmfd_mod.o \
-    cntl.o \
-    moc_mod.o \
     MPIAxSolver_Mod.o \
     MPIComm_mod.o \
     param.o \
+    PE_mod.o \
     Th_mod.o \
+    Transient_mod.o \
+    TranAxNUtil_mod.o \
     TranCmfd_mod.o \
+    TranMacXsLib.o \
     TypeDef.o
-PE_mod.o: \
-    PE_mod.f90 \
-    param.o \
-    TypeDef.o
-SetRtLinSrc.o: \
-    SetRtLinSrc.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    MacXsLib.o \
+mtbl2g.o: \
+    mtbl2g.f90 \
+    dmalloc.o
+CrCspGen_Driver.o: \
+    CrCspGen_Driver.f90 \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    CrCspGen_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
     param.o \
     PE_mod.o \
     TypeDef.o
@@ -954,666 +791,9 @@ B10Depl.o: \
     MPIComm_mod.o \
     param.o \
     TypeDef.o
-geom.o: \
-    geom.f90 \
-    param.o \
-    TypeDef.o
-HexInit.o: \
-    HexInit.f90 \
-    dmalloc.o \
-    cntl.o \
-    geom.o \
-    HexCmfd.o \
-    HexData.o \
-    HexGeoConst.o \
-    MPIConfig_Mod.o \
-    PE_mod.o \
-    rays.o
-MATRATH_mod.o: \
-    MATRATH_mod.f90 \
-    cntl.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o
-SenmMatSolver_mod.o: \
-    SenmMatSolver_mod.f90 \
-    Mat2x2OP.o \
-    Sp3TypeDef.o
-CalRelPower.o: \
-    CalRelPower.f90 \
-    BasicOperation.o \
-    cntl.o \
-    MacXsLib.o \
-    MPIComm_mod.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o
-GammaHomoXsGen.o: \
-    GammaHomoXsGen.f90 \
-    BasicOperation.o \
-    cntl.o \
-    GammaCMFD_mod.o \
-    Gamma_mod.o \
-    GammaXsLib.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o
-DeplLib_mod.o: \
-    DeplLib_mod.f90 \
-    DeplType.o \
-    MatExp_Mod.o \
-    param.o
-procgeom.o: \
-    procgeom.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    files.o \
-    geom.o \
-    GeomTreatment_mod.o \
-    cards.o \
-    ioutil.o \
-    Material_Mod.o \
-    param.o \
-    PE_mod.o \
-    SPH_Mod.o \
-    TypeDef.o \
-    xslib_mod.o
-HexCmfdConst.o: \
-    HexCmfdConst.f90 \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    MKL_3D.o \
-    param.o \
-    TypeDef.o \
-    TYPEDEF_COMMON.o
-SubGrpFsp.o: \
-    SubGrpFsp.f90 \
-    BasicOperation.o \
-    cntl.o \
-    CP_mod.o \
-    files.o \
-    ioutil.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    SubGrp_mod.o \
-    SubGrpFspNM.o \
-    Th_mod.o \
-    timer.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
 Material_Mod.o: \
     Material_Mod.f90 \
     param.o \
-    TypeDef.o
-GenFxrMacXs.o: \
-    GenFxrMacXs.f90 \
-    BasicOperation.o \
-    cntl.o \
-    GC_mod.o \
-    MacXsLib.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o
-Cooling_mod.o: \
-    Cooling_mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    depletion_mod.o \
-    DeplLib_mod.o \
-    DeplType.o \
-    MatExp_Mod.o \
-    nuclidmap.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-core_mod.o: \
-    core_mod.f90 \
-    param.o \
-    TypeDef.o
-HexTst.o: \
-    HexTst.f90 \
-    cntl.o \
-    core_mod.o \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    MKL_3D.o \
-    param.o \
-    PE_mod.o
-IsotopeOut.o: \
-    IsotopeOut.f90 \
-    depletion_mod.o \
-    files.o \
-    param.o \
-    TypeDef.o
-SetCmfdLinearSystem.o: \
-    SetCmfdLinearSystem.f90 \
-    BasicOperation.o \
-    cmfd_mod.o \
-    itrcntl.o \
-    param.o \
-    TypeDef.o
-BoronCoolant.o: \
-    BoronCoolant.f90 \
-    Boron_mod.o \
-    CrCsp_mod.o \
-    files.o \
-    ioutil.o \
-    MacXsLib.o \
-    nuclidmap.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-GammaMOCEtc.o: \
-    GammaMOCEtc.f90 \
-    cntl.o \
-    core_mod.o \
-    Gamma_mod.o \
-    GammaMOC_mod.o \
-    GammaXsLib.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-DeplInfoOut.o: \
-    DeplInfoOut.f90 \
-    BasicOperation.o \
-    cntl.o \
-    depletion_mod.o \
-    files.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-readISOTXS.o: \
-    readISOTXS.f90 \
-    cntl.o \
-    ioutil.o \
-    xslib_mod.o
-MKL_LINMOC.o: \
-    MKL_LINMOC.f90 \
-    MKL_3D.o \
-    TypeDef.o
-TranMacXsLib.o: \
-    TranMacXsLib.f90 \
-    BasicOperation.o \
-    ioutil.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-MatExp_Mod.o: \
-    MatExp_Mod.f90 \
-    BasicOperation.o
-GdDepl_mod.o: \
-    GdDepl_mod.f90 \
-    DeplType.o \
-    nuclidmap.o \
-    param.o \
-    TypeDef.o
-CriticalSpec_mod.o: \
-    CriticalSpec_mod.f90 \
-    B1_mod.o \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    depletion_mod.o \
-    MacXsLib.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-mtbl2g.o: \
-    mtbl2g.f90 \
-    dmalloc.o
-InitDcpl.o: \
-    InitDcpl.f90 \
-    dmalloc.o \
-    cmfd_mod.o \
-    cntl.o \
-    core_mod.o \
-    DcplCore_mod.o \
-    geom.o \
-    itrcntl.o \
-    MPIDcpl_mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    TypeDef.o
-Init_Depl.o: \
-    Init_Depl.f90 \
-    dmalloc.o \
-    cntl.o \
-    depletion_mod.o \
-    DeplLib_mod.o \
-    DeplType.o \
-    files.o \
-    GdDepl_mod.o \
-    MatExp_Mod.o \
-    nuclidmap.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-Sp3SenmOp_Mod.o: \
-    Sp3SenmOp_Mod.f90 \
-    Mat2x2OP.o \
-    Sp3TypeDef.o \
-    TypeDef.o
-CUDA_INIT.o: \
-    CUDA_INIT.f90 \
-    CMFD_COMMON.o \
-    cntl.o \
-    CUDA_AXMOC.o \
-    CUDA_COMMON.o \
-    CUDA_NODAL.o \
-    PE_mod.o \
-    TypeDef.o
-HexAsyRay_SngCel.o: \
-    HexAsyRay_SngCel.f90 \
-    files.o \
-    HexAsyRayConst.o \
-    HexAsyRayIntSct.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o \
-    PE_mod.o
-banner.o: \
-    banner.f90 \
-    files.o \
-    ioutil.o \
-    param.o
-FuelConduction.o: \
-    FuelConduction.f90 \
-    Th_mod.o \
-    LU_mod.o \
-    param.o \
-    StemTBL_Mod.o \
-    TypeDef.o
-sth2xc.o: \
-    sth2xc.F \
-    StemTBL_Mod.o
-MCTally.o: \
-    MCTally.f90 \
-    dmalloc.o \
-    files.o \
-    MCDefine.o \
-    MCMap.o \
-    MCXsLib.o
-THFeedBack.o: \
-    THFeedBack.f90 \
-    Boron_mod.o \
-    cntl.o \
-    CrCsp_mod.o \
-    files.o \
-    ioutil.o \
-    param.o \
-    StemTBL_Mod.o \
-    Th_mod.o \
-    timer.o \
-    TypeDef.o
-PrepareGamma.o: \
-    PrepareGamma.f90 \
-    dmalloc.o \
-    cntl.o \
-    GammaCMFD_mod.o \
-    Gamma_mod.o \
-    GammaMOC_mod.o \
-    moc_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-CNTLROD_mod.o: \
-    CNTLROD_mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    CrCsp_mod.o \
-    files.o \
-    cards.o \
-    ioutil.o \
-    itrcntl.o \
-    Material_Mod.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-GeomTreatment_mod.o: \
-    GeomTreatment_mod.f90 \
-    ioutil.o \
-    param.o \
-    TypeDef.o \
-    UtilFunction.o
-EFFMAT0OUT.o: \
-    EFFMAT0OUT.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-cntl.o: \
-    cntl.f90 \
-    param.o
-AllocTh.o: \
-    AllocTh.f90 \
-    dmalloc.o \
-    core_mod.o \
-    geom.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-InitSubPlane.o: \
-    InitSubPlane.f90 \
-    dmalloc.o \
-    cntl.o \
-    geom.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-UtilFunction.o: \
-    UtilFunction.f90 \
-    BasicOperation.o \
-    param.o \
-    TypeDef.o
-MKL_POLYMOC.o: \
-    MKL_POLYMOC.f90 \
-    MKL_3D.o \
-    PE_mod.o \
-    TypeDef.o
-Sp3TypeDef.o: \
-    Sp3TypeDef.f90 \
-    TypeDef.o
-CUDA_NODAL.o: \
-    CUDA_NODAL.f90 \
-    CUDA_COMMON.o
-facilu2g.o: \
-    facilu2g.f90 \
-    bicg2g.o \
-    mtbl2g.o
-EffXsOutDepl.o: \
-    EffXsOutDepl.f90 \
-    BasicOperation.o \
-    cntl.o \
-    DeplType.o \
-    files.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-MKL_FDM.o: \
-    MKL_FDM.f90 \
-    MKL_3D.o \
-    TypeDef.o
-XSec4MC.o: \
-    XSec4MC.f90 \
-    BenchXs_mod.o \
-    HighOrderSC.o \
-    MCDefine.o
-MPIConfig_Mod.o: \
-    MPIConfig_Mod.f90 \
-    dmalloc.o \
-    cntl.o \
-    geom.o \
-    HexData.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    UtilFunction.o
-CUDA_SYSTEM.o: \
-    CUDA_SYSTEM.f90 \
-    CUDA_COMMON.o \
-    CUDA_PCR.o
-HexAsyConst.o: \
-    HexAsyConst.f90 \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o
-ESCOTTH_mod.o: \
-    ESCOTTH_mod.f90 \
-    cntl.o \
-    geom.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    SubChCoupling_mod.o \
-    Th_mod.o \
-    TypeDef.o
-HexNgh_SP.o: \
-    HexNgh_SP.f90 \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    param.o
-TranCondMOC.o: \
-    TranCondMOC.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    Transient_mod.o \
-    TypeDef.o \
-    Xsutil.o
-MPIComm_mod.o: \
-    MPIComm_mod.f90 \
-    BasicOperation.o \
-    ioutil.o \
-    param.o \
-    timer.o \
-    UtilFunction.o
-SubChCoupling_mod.o: \
-    SubChCoupling_mod.f90 \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-B1_mod.o: \
-    B1_mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    LU_mod.o \
-    param.o \
-    TypeDef.o
-minv2g.o: \
-    minv2g.f90 \
-    dmalloc.o \
-    bicg2g.o
-readLibGamma.o: \
-    readLibGamma.f90 \
-    dmalloc.o \
-    Gamma_mod.o \
-    ioutil.o \
-    param.o
-MKL_FLATMOC.o: \
-    MKL_FLATMOC.f90 \
-    MKL_3D.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
-XeDyn_mod.o: \
-    XeDyn_mod.f90 \
-    cntl.o \
-    DeplType.o \
-    ioutil.o \
-    param.o \
-    TypeDef.o
-MOCSweep.o: \
-    MOCSweep.f90 \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    HexData.o \
-    ioutil.o \
-    itrcntl.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    SPH_Mod.o \
-    SubChCoupling_mod.o \
-    SubGrp_mod.o \
-    timer.o \
-    TypeDef.o \
-    xslib_mod.o
-CUDA_CMFD.o: \
-    CUDA_CMFD.f90 \
-    CMFD_COMMON.o \
-    cntl.o \
-    CUDA_COMMON.o \
-    CUDA_SOLVER.o \
-    CUDA_SYSTEM.o \
-    param.o \
-    TypeDef.o
-GroupConstantMod.o: \
-    GroupConstantMod.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-DcplXsGen_Mod.o: \
-    DcplXsGen_Mod.f90 \
-    BasicOperation.o \
-    cntl.o \
-    itrcntl.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o
-setRtSrc.o: \
-    setRtSrc.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    MacXsLib.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    Xsutil.o
-HexCelBasis_Rod.o: \
-    HexCelBasis_Rod.f90 \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o
-TranMOC.o: \
-    TranMOC.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    TranMoc_mod.o \
-    TypeDef.o
-RNG.o: \
-    RNG.f90
-SetThCell.o: \
-    SetThCell.f90 \
-    dmalloc.o \
-    cntl.o \
-    Material_Mod.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o
-BasicOperation.o: \
-    BasicOperation.f90 \
-    param.o
-LpShf_mod.o: \
-    LpShf_mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    Cooling_mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    Material_Mod.o \
-    MPIComm_mod.o \
-    param.o \
-    restart_mod.o \
-    TypeDef.o
-RayTracingP1_OMP.o: \
-    RayTracingP1_OMP.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    itrcntl.o \
-    moc_mod.o \
-    param.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
-CmfdPowerMethod.o: \
-    CmfdPowerMethod.f90 \
-    BasicOperation.o \
-    BiCGSTAB.o \
-    BiLU.o \
-    Boron_mod.o \
-    cmfd_mod.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIAxSolver_Mod.o \
-    MPIComm_mod.o \
-    MPIDcpl_mod.o \
-    param.o \
-    SubGrp_mod.o \
-    timer.o \
-    TypeDef.o
-GCInit.o: \
-    GCInit.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    depletion_mod.o \
-    GC_mod.o \
-    ioutil.o \
-    MacXsLib.o \
-    Material_Mod.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-DcplThUtil.o: \
-    DcplThUtil.f90 \
-    cntl.o \
-    DcplTH_mod.o \
-    Th_mod.o \
-    itrcntl.o \
-    param.o \
-    StemTBL_Mod.o \
     TypeDef.o
 vtk_mod.o: \
     vtk_mod.f90 \
@@ -1631,6 +811,139 @@ vtk_mod.o: \
     TypeDef.o \
     UtilFunction.o \
     Xsutil.o
+RayTracing_OMP.o: \
+    RayTracing_OMP.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    itrcntl.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+HexThOut.o: \
+    HexThOut.f90 \
+    HexData.o \
+    param.o \
+    TypeDef.o
+TranCmfd_Driver.o: \
+    TranCmfd_Driver.f90 \
+    BasicOperation.o \
+    BiCGSTAB.o \
+    BiLU.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIAxSolver_Mod.o \
+    param.o \
+    SubGrp_mod.o \
+    timer.o \
+    TranCmfd_mod.o \
+    TranGcCmfd_mod.o \
+    TypeDef.o
+Depletion.o: \
+    Depletion.f90 \
+    BasicOperation.o \
+    cntl.o \
+    depletion_mod.o \
+    DeplType.o \
+    GdDepl_mod.o \
+    MatExp_Mod.o \
+    moc_mod.o \
+    nuclidmap.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o \
+    Xsutil.o
+MCTally.o: \
+    MCTally.f90 \
+    dmalloc.o \
+    files.o \
+    MCDefine.o \
+    MCMap.o \
+    MCXsLib.o
+StemTBL_Mod.o: \
+    StemTBL_Mod.f90 \
+    param.o
+HexAsyRayConst.o: \
+    HexAsyRayConst.f90 \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    param.o
+cntl.o: \
+    cntl.f90 \
+    param.o
+CmfdEtc.o: \
+    CmfdEtc.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cmfd_mod.o \
+    core_mod.o \
+    MacXsLib.o \
+    MPIComm_mod.o \
+    param.o \
+    timer.o \
+    TypeDef.o
+BinOutPutEdit.o: \
+    BinOutPutEdit.f90 \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    depletion_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    xslib_mod.o
+RayTracing.o: \
+    RayTracing.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    itrcntl.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+readbenchxs.o: \
+    readbenchxs.f90 \
+    dmalloc.o \
+    BenchXs_mod.o \
+    cntl.o \
+    files.o \
+    inflowMathUtil.o \
+    cards.o \
+    ioutil.o \
+    param.o
+RayTracingP1_OMP.o: \
+    RayTracingP1_OMP.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    itrcntl.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
 HexInput.o: \
     HexInput.f90 \
     dmalloc.o \
@@ -1650,14 +963,527 @@ HexInput.o: \
     param.o \
     PE_mod.o \
     rays.o
-Th_mod.o: \
-    Th_mod.f90 \
+THFeedBack.o: \
+    THFeedBack.f90 \
+    Boron_mod.o \
+    cntl.o \
+    CrCsp_mod.o \
+    files.o \
+    ioutil.o \
+    param.o \
+    StemTBL_Mod.o \
+    Th_mod.o \
+    timer.o \
+    TypeDef.o
+DcmpRayGen.o: \
+    DcmpRayGen.f90 \
+    dmalloc.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+DcplMicXsFtn_mod.o: \
+    DcplMicXsFtn_mod.f90 \
+    BasicOperation.o \
+    cmfd_mod.o \
+    MacXsLib.o \
+    param.o \
+    TypeDef.o
+MCP_Restart_Main.o: \
+    MCP_Restart_Main.f90 \
+    files.o \
+    ioutil.o \
+    Material_Mod.o \
+    MCP_Util.o \
+    nuclidmap.o \
+    param.o \
+    PE_mod.o
+SubGrpEffXs.o: \
+    SubGrpEffXs.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    MacXsLib.o \
+    MPIComm_mod.o \
+    param.o \
+    SubGrp_mod.o \
+    Th_mod.o \
+    TypeDef.o
+GammaCMFDAcc.o: \
+    GammaCMFDAcc.f90 \
+    cntl.o \
+    CSRMATRIX.o \
+    GammaCMFD_mod.o \
+    Gamma_mod.o \
+    MKL_BILU.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o \
+    UtilFunction.o
+banner.o: \
+    banner.f90 \
+    files.o \
+    ioutil.o \
+    param.o
+CrSearch_Driver.o: \
+    CrSearch_Driver.f90 \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    geom.o \
+    param.o \
+    PE_mod.o
+AxialSp3_mod.o: \
+    AxialSp3_mod.f90 \
+    dmalloc.o \
+    DirectSenm_mod.o \
+    param.o \
+    SenmMatSolver_mod.o \
+    Sp3SenmOp_Mod.o \
+    Sp3TypeDef.o \
+    TypeDef.o
+Mat2x2OP.o: \
+    Mat2x2OP.f90
+subch_mod.o: \
+    subch_mod.f90 \
     dmalloc.o \
     cntl.o \
     MPIComm_mod.o \
     param.o \
+    SubChCoupling_mod.o \
+    TypeDef.o
+SetModRay.o: \
+    SetModRay.f90 \
+    GeomTreatment_mod.o \
+    ioutil.o \
+    param.o \
+    setray_mod.o \
     TypeDef.o \
     UtilFunction.o
+HexUtil.o: \
+    HexUtil.f90 \
+    HexData.o \
+    ioutil.o \
+    param.o
+TranMoc_Driver.o: \
+    TranMoc_Driver.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    SubGrp_mod.o \
+    timer.o \
+    TranMoc_mod.o \
+    TypeDef.o
+CUDA_COMMON.o: \
+    CUDA_COMMON.f90 \
+    CUDATypeDef.o \
+    PE_mod.o
+DcplPlnMOC.o: \
+    DcplPlnMOC.f90 \
+    BasicOperation.o \
+    cmfd_mod.o \
+    cntl.o \
+    DcplXsGen_Mod.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    MPIDcpl_mod.o \
+    param.o \
+    rays.o \
+    SubGrp_mod.o \
+    timer.o \
+    TypeDef.o
+MCP_Util.o: \
+    MCP_Util.f90 \
+    ioutil.o \
+    TypeDef.o
+RotRayGen.o: \
+    RotRayGen.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    geom.o \
+    ioutil.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o
+HexAsyRay_SngCel.o: \
+    HexAsyRay_SngCel.f90 \
+    files.o \
+    HexAsyRayConst.o \
+    HexAsyRayIntSct.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    param.o \
+    PE_mod.o
+TransientTH.o: \
+    TransientTH.f90 \
+    dmalloc.o \
+    cntl.o \
+    files.o \
+    Th_mod.o \
+    ioutil.o \
+    LU_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    StemTBL_Mod.o \
+    timer.o \
+    TypeDef.o
+homoXsGen.o: \
+    homoXsGen.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    MacXsLib.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o
+DeplInfoOut.o: \
+    DeplInfoOut.f90 \
+    BasicOperation.o \
+    cntl.o \
+    depletion_mod.o \
+    files.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+ProcMAT_ISOTXS.o: \
+    ProcMAT_ISOTXS.f90 \
+    dmalloc.o \
+    cntl.o \
+    ioutil.o \
+    Material_Mod.o \
+    nuclidmap.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    xslib_mod.o
+GroupConstantMod.o: \
+    GroupConstantMod.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+InitSubPlane.o: \
+    InitSubPlane.f90 \
+    dmalloc.o \
+    cntl.o \
+    geom.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+TYPEDEF_COMMON.o: \
+    TYPEDEF_COMMON.f90
+CUDA_AXIAL.o: \
+    CUDA_AXIAL.f90 \
+    CUDA_AXMOC.o \
+    CUDA_COMMON.o \
+    CUDA_NODAL.o \
+    files.o \
+    ioutil.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+DeplType.o: \
+    DeplType.f90 \
+    dmalloc.o \
+    MatExp_Mod.o
+MKL_FLATMOC.o: \
+    MKL_FLATMOC.f90 \
+    MKL_3D.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+readISOTXS.o: \
+    readISOTXS.f90 \
+    cntl.o \
+    ioutil.o \
+    xslib_mod.o
+ReadDeplFile.o: \
+    ReadDeplFile.f90 \
+    dmalloc.o \
+    DeplType.o \
+    ioutil.o \
+    MatExp_Mod.o
+GammaSetRtVar.o: \
+    GammaSetRtVar.f90 \
+    BasicOperation.o \
+    cntl.o \
+    Gamma_mod.o \
+    GammaXsLib.o \
+    param.o \
+    TypeDef.o
+VolCorrection.o: \
+    VolCorrection.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    param.o \
+    TypeDef.o
+cards.o: \
+    cards.f90
+FXRVAR_MOD.o: \
+    FXRVAR_MOD.f90
+KineticParam.o: \
+    KineticParam.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cmfd_mod.o \
+    cntl.o \
+    MacXsLib.o \
+    moc_mod.o \
+    param.o \
+    Th_mod.o \
+    TranMacXsLib.o \
+    TypeDef.o
+MPIComm_mod.o: \
+    MPIComm_mod.f90 \
+    BasicOperation.o \
+    ioutil.o \
+    param.o \
+    timer.o \
+    UtilFunction.o
+GammaHomoXsGen.o: \
+    GammaHomoXsGen.f90 \
+    BasicOperation.o \
+    cntl.o \
+    GammaCMFD_mod.o \
+    Gamma_mod.o \
+    GammaXsLib.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o
+HexData.o: \
+    HexData.f90 \
+    HexType.o
+files.o: \
+    files.f90
+Cmfd2gUtil.o: \
+    Cmfd2gUtil.f90 \
+    dmalloc.o \
+    BiCGSTAB2g.o \
+    Cmfd2g_mod.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    GCCmfd_mod.o \
+    geom.o \
+    ioutil.o \
+    Mat2x2OP.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+CMFDComm_mod.o: \
+    CMFDComm_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+MKL_3D.o: \
+    MKL_3D.f90 \
+    CSRMATRIX.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    TYPEDEF_COMMON.o
+scalprods.o: \
+    scalprods.f90
+SSPHfactorOUT.o: \
+    SSPHfactorOUT.f90 \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    param.o \
+    SPH_Mod.o \
+    TypeDef.o \
+    xslib_mod.o
+HexRayBasic.o: \
+    HexRayBasic.f90 \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    param.o
+TranGcCmfd.o: \
+    TranGcCmfd.f90 \
+    BasicOperation.o \
+    BiCGSTAB.o \
+    BiLU.o \
+    cmfd_mod.o \
+    cntl.o \
+    files.o \
+    GCCmfd_mod.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    param.o \
+    TranCmfd_mod.o \
+    TranGcCmfd_mod.o \
+    TypeDef.o
+depletion_mod.o: \
+    depletion_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    DeplType.o \
+    MatExp_Mod.o \
+    nuclidmap.o \
+    param.o \
+    TypeDef.o
+FastMocUtil.o: \
+    FastMocUtil.f90 \
+    dmalloc.o \
+    cntl.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o
+MCBasics.o: \
+    MCBasics.f90 \
+    BenchXs_mod.o \
+    core_mod.o \
+    MCDefine.o \
+    MCMap.o \
+    MCXsLib.o \
+    param.o \
+    RNG.o \
+    xslib_mod.o
+PhimOUT.o: \
+    PhimOUT.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+GdDepl.o: \
+    GdDepl.f90 \
+    BasicOperation.o \
+    depletion_mod.o \
+    DeplType.o \
+    GdDepl_mod.o \
+    Mat2x2OP.o \
+    MatExp_Mod.o \
+    nuclidmap.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+HexGeo.o: \
+    HexGeo.f90 \
+    geom.o \
+    HexAsyConst.o \
+    HexAsyTypConst.o \
+    HexData.o \
+    HexGeoConst.o \
+    HexNgh.o \
+    HexPinConst.o \
+    HexVtx.o \
+    param.o
+facilu2g.o: \
+    facilu2g.f90 \
+    bicg2g.o \
+    mtbl2g.o
+CorePowerCal.o: \
+    CorePowerCal.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+BenchXs_mod.o: \
+    BenchXs_mod.f90 \
+    dmalloc.o \
+    param.o \
+    TypeDef.o
+MKL_POWER.o: \
+    MKL_POWER.f90 \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MKL_3D.o \
+    MKL_BILU.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+restart_mod.o: \
+    restart_mod.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+SPH_Mod.o: \
+    SPH_Mod.f90 \
+    Material_Mod.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+HexTLkg.o: \
+    HexTLkg.f90 \
+    cntl.o \
+    HexData.o \
+    HexType.o \
+    param.o \
+    TypeDef.o
+TransientEtc.o: \
+    TransientEtc.f90 \
+    BasicOperation.o \
+    cmfd_mod.o \
+    cntl.o \
+    moc_mod.o \
+    MPIAxSolver_Mod.o \
+    MPIComm_mod.o \
+    param.o \
+    Th_mod.o \
+    TranCmfd_mod.o \
+    TypeDef.o
+p1senm_mod.o: \
+    p1senm_mod.f90 \
+    dmalloc.o \
+    param.o \
+    TypeDef.o
+DcplCmfd_mod.o: \
+    DcplCmfd_mod.f90 \
+    BasicOperation.o \
+    param.o \
+    TypeDef.o
+MATRATH_mod.o: \
+    MATRATH_mod.f90 \
+    cntl.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o
 NullTransient.o: \
     NullTransient.f90 \
     BasicOperation.o \
@@ -1675,41 +1501,126 @@ NullTransient.o: \
     Transient_mod.o \
     TranCmfd_mod.o \
     TypeDef.o
-StemTBL_Mod.o: \
-    StemTBL_Mod.f90 \
-    param.o
-homoXsGen.o: \
-    homoXsGen.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cmfd_mod.o \
+GammaMOCEtc.o: \
+    GammaMOCEtc.f90 \
     cntl.o \
     core_mod.o \
-    MacXsLib.o \
+    Gamma_mod.o \
+    GammaMOC_mod.o \
+    GammaXsLib.o \
+    MPIComm_mod.o \
     param.o \
+    TypeDef.o
+InitTH.o: \
+    InitTH.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    geom.o \
+    HexData.o \
+    HexGeoConst.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    StemTBL_Mod.o \
+    SubChCoupling_mod.o \
     Th_mod.o \
     TypeDef.o
-HexTLkg.o: \
-    HexTLkg.f90 \
+nuclidmap.o: \
+    nuclidmap.f90 \
+    dmalloc.o \
+    xslib_mod.o
+Cooling_mod.o: \
+    Cooling_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    depletion_mod.o \
+    DeplLib_mod.o \
+    DeplType.o \
+    MatExp_Mod.o \
+    nuclidmap.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+BasicOperation.o: \
+    BasicOperation.f90 \
+    param.o
+RayTracingLinSrc.o: \
+    RayTracingLinSrc.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    geom.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+xslib_mod.o: \
+    xslib_mod.f90 \
+    param.o
+SetAsyGeom.o: \
+    SetAsyGeom.f90 \
+    dmalloc.o \
+    BasicOperation.o \
     cntl.o \
+    geom.o \
+    cards.o \
+    ioutil.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+HexCelBasis.o: \
+    HexCelBasis.f90 \
+    geom.o \
     HexData.o \
     HexType.o \
-    param.o \
-    TypeDef.o
-MCVacRect.o: \
-    MCVacRect.f90 \
-    MCBasics.o \
-    MCDefine.o
-ReadDeplFile.o: \
-    ReadDeplFile.f90 \
-    dmalloc.o \
-    DeplType.o \
+    HexUtil.o \
     ioutil.o \
-    MatExp_Mod.o
-Boron_mod.o: \
-    Boron_mod.f90 \
+    param.o
+UserDefTH.o: \
+    UserDefTH.f90 \
+    dmalloc.o \
+    BasicOperation.o \
     cntl.o \
-    DeplType.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    param.o \
+    StemTBL_Mod.o \
+    Th_mod.o \
+    timer.o \
+    TypeDef.o
+EFFMAT0OUT.o: \
+    EFFMAT0OUT.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    MacXsLib.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+MKL_AXIAL.o: \
+    MKL_AXIAL.f90 \
+    CMFD_COMMON.o \
+    files.o \
+    ioutil.o \
+    MKL_3D.o \
+    MKL_FDM.o \
+    MKL_FLATMOC.o \
+    MKL_LINMOC.o \
+    MKL_NODAL.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+SubChCoupling_mod.o: \
+    SubChCoupling_mod.f90 \
+    MPIComm_mod.o \
     param.o \
     TypeDef.o
 GCGen.o: \
@@ -1724,106 +1635,175 @@ GCGen.o: \
     param.o \
     TypeDef.o \
     xslib_mod.o
-DcplTH_mod.o: \
-    DcplTH_mod.f90 \
-    BasicOperation.o \
-    cntl.o \
-    Th_mod.o \
-    itrcntl.o \
-    param.o \
-    StemTBL_Mod.o \
-    TypeDef.o
-subch_mod.o: \
-    subch_mod.f90 \
+CUDA_NODAL.o: \
+    CUDA_NODAL.f90 \
+    CUDA_COMMON.o
+ApproxExp.o: \
+    ApproxExp.f90 \
     dmalloc.o \
-    cntl.o \
-    MPIComm_mod.o \
-    param.o \
-    SubChCoupling_mod.o \
-    TypeDef.o
-HexNgh.o: \
-    HexNgh.f90 \
-    HexData.o \
-    HexType.o \
-    param.o
-ThInfoOut.o: \
-    ThInfoOut.f90 \
-    depletion_mod.o \
-    files.o \
-    ioutil.o \
-    param.o \
-    TypeDef.o
-MocSolUpdt.o: \
-    MocSolUpdt.f90 \
-    cmfd_mod.o \
-    cntl.o \
-    itrcntl.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-GammaRayTracing.o: \
-    GammaRayTracing.f90 \
-    dmalloc.o \
-    Gamma_mod.o \
-    GammaMOC_mod.o \
     moc_mod.o \
     param.o \
-    PE_mod.o \
-    timer.o \
     TypeDef.o
-DcplCmfd3d.o: \
-    DcplCmfd3d.f90 \
+RayTracingP1.o: \
+    RayTracingP1.f90 \
+    dmalloc.o \
     BasicOperation.o \
-    BiCGSTAB.o \
-    cmfd_mod.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o
+sth2xc.o: \
+    sth2xc.F \
+    StemTBL_Mod.o
+SetThCell.o: \
+    SetThCell.f90 \
+    dmalloc.o \
     cntl.o \
-    DcplCmfd_mod.o \
+    Material_Mod.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o
+HexType.o: \
+    HexType.f90 \
+    param.o
+TranCondMOC.o: \
+    TranCondMOC.f90 \
+    BasicOperation.o \
+    cntl.o \
     files.o \
     ioutil.o \
-    itrcntl.o \
-    MPIAxSolver_Mod.o \
+    MacXsLib.o \
+    moc_mod.o \
     MPIComm_mod.o \
     param.o \
-    timer.o \
+    Transient_mod.o \
+    TypeDef.o \
+    Xsutil.o
+CUDA_CMFD.o: \
+    CUDA_CMFD.f90 \
+    CMFD_COMMON.o \
+    cntl.o \
+    CUDA_COMMON.o \
+    CUDA_SOLVER.o \
+    CUDA_SYSTEM.o \
+    param.o \
     TypeDef.o
-inflowMathUtil.o: \
-    inflowMathUtil.f90
-HexVtx.o: \
-    HexVtx.f90 \
+DcplLogOut.o: \
+    DcplLogOut.f90 \
+    cntl.o \
+    core_mod.o \
+    DcplCore_mod.o \
+    DcplTH_mod.o \
+    DcplXsGen_Mod.o \
+    files.o \
     geom.o \
+    ioutil.o \
+    itrcntl.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    SubGrp_mod.o \
+    TypeDef.o
+MKL_DEPL.o: \
+    MKL_DEPL.f90
+Sp3SenmOp_Mod.o: \
+    Sp3SenmOp_Mod.f90 \
+    Mat2x2OP.o \
+    Sp3TypeDef.o \
+    TypeDef.o
+HexAsyRayIntSct.o: \
+    HexAsyRayIntSct.f90 \
     HexData.o \
     HexTst.o \
     HexType.o \
     HexUtil.o \
-    param.o
-MCXsLib.o: \
-    MCXsLib.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    HighOrderSC.o \
-    MacXsLib.o \
-    MCDefine.o \
-    TypeDef.o \
-    XSec4MC.o \
-    xslib_mod.o \
-    Xsutil.o
-SetCellRay.o: \
-    SetCellRay.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    geom.o \
-    GeomTreatment_mod.o \
     ioutil.o \
-    param.o \
-    setray_mod.o \
-    TypeDef.o
+    param.o
+bicg2g.o: \
+    bicg2g.f90 \
+    dmalloc.o \
+    mtbl2g.o
 CSRMATRIX.o: \
     CSRMATRIX.f90
-Gamma_mod.o: \
-    Gamma_mod.f90 \
-    CSRMATRIX.o
+BoronCoolant.o: \
+    BoronCoolant.f90 \
+    Boron_mod.o \
+    CrCsp_mod.o \
+    files.o \
+    ioutil.o \
+    MacXsLib.o \
+    nuclidmap.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+MocEtc.o: \
+    MocEtc.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    DcplXsGen_Mod.o \
+    files.o \
+    geom.o \
+    MacXsLib.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+GammaXsLib.o: \
+    GammaXsLib.f90 \
+    core_mod.o \
+    Gamma_mod.o \
+    GammaXSUtil.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+HighOrderSC.o: \
+    HighOrderSC.f90 \
+    BenchXs_mod.o \
+    cntl.o \
+    core_mod.o \
+    ioutil.o \
+    MCDefine.o \
+    RNG.o \
+    TypeDef.o
+TranMoc_mod.o: \
+    TranMoc_mod.f90 \
+    dmalloc.o \
+    cntl.o \
+    itrcntl.o \
+    param.o \
+    TypeDef.o
+CUDA_SOLVER.o: \
+    CUDA_SOLVER.f90 \
+    CUDA_COMMON.o \
+    CUDA_PCR.o \
+    timer.o
+DcplXsGen_Mod.o: \
+    DcplXsGen_Mod.f90 \
+    BasicOperation.o \
+    cntl.o \
+    itrcntl.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o
+MCDefine.o: \
+    MCDefine.f90 \
+    param.o
+GammaCMFD_mod.o: \
+    GammaCMFD_mod.f90 \
+    CSRMATRIX.o \
+    Gamma_mod.o \
+    param.o \
+    TypeDef.o
+TranAxNUtil_mod.o: \
+    TranAxNUtil_mod.f90 \
+    dmalloc.o \
+    cntl.o \
+    param.o \
+    Tlkg_mod.o \
+    TypeDef.o
 ioutil.o: \
     ioutil.f90 \
     cntl.o \
@@ -1832,128 +1812,421 @@ ioutil.o: \
     param.o \
     PE_mod.o \
     timer.o
-DcmpRayGen.o: \
-    DcmpRayGen.f90 \
+FXRVARIATION.o: \
+    FXRVARIATION.f90 \
     dmalloc.o \
-    moc_mod.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    FXRVAR_MOD.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
+    nuclidmap.o \
+    param.o \
+    PE_mod.o \
+    StemTBL_Mod.o \
+    Th_mod.o \
+    TypeDef.o
+MKL_DAVIDSON.o: \
+    MKL_DAVIDSON.f90 \
+    MKL_3D.o \
+    MKL_BILU.o \
     param.o \
     PE_mod.o \
     TypeDef.o
-readinput.o: \
-    readinput.f90 \
+MatExp_Mod.o: \
+    MatExp_Mod.f90 \
+    BasicOperation.o
+GCHom.o: \
+    GCHom.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    GC_mod.o \
+    MacXsLib.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+HexNgh_SP.o: \
+    HexNgh_SP.f90 \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    param.o
+UtilFunction.o: \
+    UtilFunction.f90 \
+    BasicOperation.o \
+    param.o \
+    TypeDef.o
+CadGeom_Mod.o: \
+    CadGeom_Mod.f90 \
+    TypeDef.o
+DirectSenm_mod.o: \
+    DirectSenm_mod.f90 \
+    Mat2x2OP.o \
+    SenmMatSolver_mod.o \
+    Sp3SenmOp_Mod.o \
+    Sp3TypeDef.o
+MKL_LINMOC.o: \
+    MKL_LINMOC.f90 \
+    MKL_3D.o \
+    TypeDef.o
+procgeom.o: \
+    procgeom.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    BenchXs_mod.o \
     cntl.o \
     files.o \
     geom.o \
-    HexInput.o \
+    GeomTreatment_mod.o \
     cards.o \
     ioutil.o \
-    MCP_Restart_Main.o \
-    MCP_Util.o \
-    MPIComm_mod.o \
+    Material_Mod.o \
     param.o \
     PE_mod.o \
-    readinpcard.o
-MKL_NODAL.o: \
-    MKL_NODAL.f90 \
-    MKL_3D.o \
-    TypeDef.o
-TranMoc_Driver.o: \
-    TranMoc_Driver.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    SubGrp_mod.o \
-    timer.o \
-    TranMoc_mod.o \
-    TypeDef.o
-PhimOUT.o: \
-    PhimOUT.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    moc_mod.o \
-    param.o \
+    SPH_Mod.o \
     TypeDef.o \
     xslib_mod.o
-GCCon.o: \
-    GCCon.f90 \
+RayTracing_Dcmp.o: \
+    RayTracing_Dcmp.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    geom.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+GammaMOCSweep.o: \
+    GammaMOCSweep.f90 \
     cntl.o \
-    GC_mod.o \
-    xslib_mod.o
-DcplCore_mod.o: \
-    DcplCore_mod.f90 \
+    core_mod.o \
+    files.o \
+    Gamma_mod.o \
+    GammaMOC_mod.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    param.o \
+    timer.o \
+    TypeDef.o
+XeDyn.o: \
+    XeDyn.f90 \
+    BasicOperation.o \
+    cntl.o \
+    depletion_mod.o \
+    DeplType.o \
+    files.o \
+    ioutil.o \
+    MacXsLib.o \
+    MPIComm_mod.o \
+    nuclidmap.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o \
+    XeDyn_mod.o \
+    xslib_mod.o \
+    Xsutil.o
+facilu1d2g.o: \
+    facilu1d2g.f90 \
+    bicg2g.o
+DeplLib_mod.o: \
+    DeplLib_mod.f90 \
+    DeplType.o \
+    MatExp_Mod.o \
+    param.o
+MCGapRect.o: \
+    MCGapRect.f90 \
+    CMFDTally.o \
+    cntl.o \
+    HighOrderSC.o \
+    MCBasics.o \
+    MCDefine.o \
+    param.o
+MacXsLib.o: \
+    MacXsLib.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    CrCsp_mod.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+setRtSrc.o: \
+    setRtSrc.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    MacXsLib.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    Xsutil.o
+GdDepl_mod.o: \
+    GdDepl_mod.f90 \
+    DeplType.o \
+    nuclidmap.o \
     param.o \
     TypeDef.o
-nuclidmap.o: \
-    nuclidmap.f90 \
+HexInit.o: \
+    HexInit.f90 \
     dmalloc.o \
+    cntl.o \
+    geom.o \
+    HexCmfd.o \
+    HexData.o \
+    HexGeoConst.o \
+    MPIConfig_Mod.o \
+    PE_mod.o \
+    rays.o
+initbicg2g.o: \
+    initbicg2g.f90 \
+    bicg2g.o \
+    mtbl2g.o
+Cmfd2g_mod.o: \
+    Cmfd2g_mod.f90 \
+    cmfd_mod.o \
+    GCCmfd_mod.o \
+    param.o \
+    TypeDef.o
+AllocPdm.o: \
+    AllocPdm.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    moc_mod.o \
+    MPIAxSolver_Mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    setray_mod.o \
+    SPH_Mod.o \
+    TypeDef.o \
     xslib_mod.o
-HexRayBasic.o: \
-    HexRayBasic.f90 \
+CMFD_COMMON.o: \
+    CMFD_COMMON.f90 \
+    BenchXs_mod.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    HexCmfd.o \
+    HexData.o \
+    MacXsLib.o \
+    MOC_COMMON.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    TYPEDEF_COMMON.o \
+    Xsutil.o
+MCCMFD.o: \
+    MCCMFD.f90 \
+    dmalloc.o \
+    bicg2g.o \
+    CMFDTally.o \
+    MCDefine.o \
+    mtbl2g.o
+solbicg2g.o: \
+    solbicg2g.f90 \
+    bicg2g.o \
+    mtbl2g.o \
+    scalprods.o
+SetGeometry.o: \
+    SetGeometry.f90 \
+    dmalloc.o \
+    cntl.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIConfig_Mod.o \
+    param.o \
+    PE_mod.o \
+    SetCentGeom.o
+HexCelBasis_Gap.o: \
+    HexCelBasis_Gap.f90 \
+    geom.o \
     HexData.o \
     HexType.o \
     HexUtil.o \
     ioutil.o \
     param.o
+XeDyn_mod.o: \
+    XeDyn_mod.f90 \
+    cntl.o \
+    DeplType.o \
+    ioutil.o \
+    param.o \
+    TypeDef.o
+inflowMathUtil.o: \
+    inflowMathUtil.f90
+DcplThPlnMOC.o: \
+    DcplThPlnMOC.f90 \
+    BasicOperation.o \
+    Boron_mod.o \
+    cntl.o \
+    DcplMicXsFtn_mod.o \
+    DcplTH_mod.o \
+    DcplXsGen_Mod.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    MPIDcpl_mod.o \
+    param.o \
+    rays.o \
+    SubGrp_mod.o \
+    TypeDef.o
 MCiterLog.o: \
     MCiterLog.f90 \
     files.o
-CUDA_AXRT.o: \
-    CUDA_AXRT.f90 \
-    CUDA_COMMON.o
-HexCP.o: \
-    HexCP.f90 \
-    BenchXs_mod.o \
-    cntl.o \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    Material_Mod.o \
-    moc_mod.o \
-    param.o \
-    rays.o \
-    setray_mod.o \
-    SPH_Mod.o \
-    TypeDef.o
-bicg2g.o: \
-    bicg2g.f90 \
-    dmalloc.o \
-    mtbl2g.o
-GCCmfdUtil.o: \
-    GCCmfdUtil.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cmfd_mod.o \
+MOCSweep.o: \
+    MOCSweep.f90 \
     cntl.o \
     core_mod.o \
-    GCCmfd_mod.o \
-    geom.o \
+    files.o \
+    HexData.o \
+    ioutil.o \
+    itrcntl.o \
+    moc_mod.o \
     MPIComm_mod.o \
     param.o \
-    PE_mod.o \
-    TypeDef.o
-xslib_mod.o: \
-    xslib_mod.f90 \
-    param.o
-MKL_DEPL.o: \
-    MKL_DEPL.f90
-SubGrpEffXs.o: \
-    SubGrpEffXs.f90 \
+    SPH_Mod.o \
+    SubChCoupling_mod.o \
+    SubGrp_mod.o \
+    timer.o \
+    TypeDef.o \
+    xslib_mod.o
+GCInit.o: \
+    GCInit.f90 \
     BasicOperation.o \
+    BenchXs_mod.o \
     cntl.o \
-    files.o \
+    depletion_mod.o \
+    GC_mod.o \
     ioutil.o \
+    MacXsLib.o \
+    Material_Mod.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+HexGeoConst.o: \
+    HexGeoConst.f90 \
+    geom.o \
+    HexData.o \
+    ioutil.o \
+    param.o \
+    PE_mod.o
+initvar.o: \
+    initvar.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    core_mod.o \
+    DcplCore_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
     MacXsLib.o \
     MPIComm_mod.o \
     param.o \
+    PE_mod.o \
+    rays.o \
     SubGrp_mod.o \
-    Th_mod.o \
+    TypeDef.o \
+    Xsutil.o
+CUDA_INIT.o: \
+    CUDA_INIT.f90 \
+    CMFD_COMMON.o \
+    cntl.o \
+    CUDA_AXMOC.o \
+    CUDA_COMMON.o \
+    CUDA_NODAL.o \
+    PE_mod.o \
+    TypeDef.o
+CMFDTally.o: \
+    CMFDTally.f90 \
+    MCDefine.o \
+    param.o \
+    XSec4MC.o
+MakeRays.o: \
+    MakeRays.f90 \
+    dmalloc.o \
+    cntl.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    MPIConfig_Mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    setray_mod.o
+sol1d2g.o: \
+    sol1d2g.f90 \
+    bicg2g.o
+ScanInput.o: \
+    ScanInput.f90 \
+    BenchXs_mod.o \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    CrCsp_mod.o \
+    depletion_mod.o \
+    DeplLib_mod.o \
+    files.o \
+    Gamma_mod.o \
+    geom.o \
+    HexData.o \
+    cards.o \
+    ioutil.o \
+    itrcntl.o \
+    Material_Mod.o \
+    MCP_Util.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    ReadXsec.o \
+    SubChCoupling_mod.o \
+    Transient_mod.o
+HexEffXsOut.o: \
+    HexEffXsOut.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    HexData.o \
+    HexUtil.o \
+    ioutil.o \
+    MacXsLib.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+XSec4MC.o: \
+    XSec4MC.f90 \
+    BenchXs_mod.o \
+    HighOrderSC.o \
+    MCDefine.o
+param.o: \
+    param.f90
+DcplCore_mod.o: \
+    DcplCore_mod.f90 \
+    param.o \
+    TypeDef.o
+IsotopeOut.o: \
+    IsotopeOut.f90 \
+    depletion_mod.o \
+    files.o \
+    param.o \
     TypeDef.o
 PrepareXs.o: \
     PrepareXs.f90 \
@@ -1977,136 +2250,6 @@ PrepareXs.o: \
     UtilFunction.o \
     XeDyn_mod.o \
     xslib_mod.o
-CP_mod.o: \
-    CP_mod.f90
-GlobalCoreMap.o: \
-    GlobalCoreMap.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    geom.o \
-    ioutil.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-CorRayGen.o: \
-    CorRayGen.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    geom.o \
-    param.o \
-    rays.o \
-    TypeDef.o
-dmalloc.o: \
-    dmalloc.f90
-InitTH.o: \
-    InitTH.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    geom.o \
-    HexData.o \
-    HexGeoConst.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    StemTBL_Mod.o \
-    SubChCoupling_mod.o \
-    Th_mod.o \
-    TypeDef.o
-TranAxNUtil_mod.o: \
-    TranAxNUtil_mod.f90 \
-    dmalloc.o \
-    cntl.o \
-    param.o \
-    Tlkg_mod.o \
-    TypeDef.o
-MPIDcpl_mod.o: \
-    MPIDcpl_mod.f90 \
-    DcplCore_mod.o \
-    files.o \
-    cards.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    UtilFunction.o
-SetAsyGeom.o: \
-    SetAsyGeom.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    geom.o \
-    cards.o \
-    ioutil.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-CUDA_SOLVER.o: \
-    CUDA_SOLVER.f90 \
-    CUDA_COMMON.o \
-    CUDA_PCR.o \
-    timer.o
-initbicg2g.o: \
-    initbicg2g.f90 \
-    bicg2g.o \
-    mtbl2g.o
-FXRVARIATION.o: \
-    FXRVARIATION.f90 \
-    dmalloc.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    FXRVAR_MOD.o \
-    geom.o \
-    ioutil.o \
-    itrcntl.o \
-    nuclidmap.o \
-    param.o \
-    PE_mod.o \
-    StemTBL_Mod.o \
-    Th_mod.o \
-    TypeDef.o
-KineticParam.o: \
-    KineticParam.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cmfd_mod.o \
-    cntl.o \
-    MacXsLib.o \
-    moc_mod.o \
-    param.o \
-    Th_mod.o \
-    TranMacXsLib.o \
-    TypeDef.o
-TranMoc_mod.o: \
-    TranMoc_mod.f90 \
-    dmalloc.o \
-    cntl.o \
-    itrcntl.o \
-    param.o \
-    TypeDef.o
-MiscStructGeom.o: \
-    MiscStructGeom.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    geom.o \
-    GeomTreatment_mod.o \
-    ioutil.o \
-    Material_Mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-CadGeom_Mod.o: \
-    CadGeom_Mod.f90 \
-    TypeDef.o
 HexAsyRay.o: \
     HexAsyRay.f90 \
     files.o \
@@ -2117,71 +2260,32 @@ HexAsyRay.o: \
     ioutil.o \
     param.o \
     PE_mod.o
-EffMGXsOut.o: \
-    EffMGXsOut.f90 \
-    BasicOperation.o \
+Init_Depl.o: \
+    Init_Depl.f90 \
+    dmalloc.o \
     cntl.o \
+    depletion_mod.o \
+    DeplLib_mod.o \
+    DeplType.o \
     files.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-precursor.o: \
-    precursor.f90 \
-    BenchXs_mod.o \
-    cntl.o \
-    MPIAxSolver_Mod.o \
-    param.o \
-    TranCmfd_mod.o \
-    TypeDef.o
-HexCelBasis.o: \
-    HexCelBasis.f90 \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o
-Transient_mod.o: \
-    Transient_mod.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    MacXsLib.o \
-    moc_mod.o \
-    MPIComm_mod.o \
+    GdDepl_mod.o \
+    MatExp_Mod.o \
+    nuclidmap.o \
     param.o \
     TypeDef.o \
-    Xsutil.o
-MocEtc.o: \
-    MocEtc.f90 \
+    xslib_mod.o
+Xsutil.o: \
+    Xsutil.f90 \
     dmalloc.o \
     BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    DcplXsGen_Mod.o \
-    files.o \
-    geom.o \
-    MacXsLib.o \
-    moc_mod.o \
-    MPIComm_mod.o \
     param.o \
-    PE_mod.o \
-    TypeDef.o
-RayTracing_Dcmp.o: \
-    RayTracing_Dcmp.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    geom.o \
-    moc_mod.o \
-    param.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
+    TypeDef.o \
+    xslib_mod.o
+CUDATypeDef.o: \
+    CUDATypeDef.f90 \
+    CSRMATRIX.o \
+    TypeDef.o \
+    TYPEDEF_COMMON.o
 BiCGSTAB2g.o: \
     BiCGSTAB2g.f90 \
     dmalloc.o \
@@ -2193,324 +2297,17 @@ BiCGSTAB2g.o: \
     param.o \
     timer.o \
     TypeDef.o
-p1senm_mod.o: \
-    p1senm_mod.f90 \
-    dmalloc.o \
+PE_mod.o: \
+    PE_mod.f90 \
     param.o \
     TypeDef.o
-MKL_INIT.o: \
-    MKL_INIT.f90 \
-    CMFD_COMMON.o \
-    cntl.o \
-    core_mod.o \
-    HexCmfdConst.o \
-    MKL_3D.o \
-    MKL_POWER.o \
-    MKL_FDM.o \
-    MKL_FLATMOC.o \
-    MKL_LINMOC.o \
-    MKL_NODAL.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-XsPerturb_Mod.o: \
-    XsPerturb_Mod.f90 \
-    dmalloc.o \
+SetCmfdLinearSystem.o: \
+    SetCmfdLinearSystem.f90 \
     BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    ioutil.o \
-    Material_Mod.o \
-    param.o \
-    TypeDef.o
-SteadyStateTH.o: \
-    SteadyStateTH.f90 \
-    BasicOperation.o \
-    cntl.o \
-    CTFTH_mod.o \
-    ESCOTTH_mod.o \
-    files.o \
-    Th_mod.o \
-    ioutil.o \
-    itrcntl.o \
-    LU_mod.o \
-    MATRATH_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    StemTBL_Mod.o \
-    subch_mod.o \
-    SubChCoupling_mod.o \
-    timer.o \
-    TypeDef.o \
-    UtilFunction.o
-Cmfd2g_mod.o: \
-    Cmfd2g_mod.f90 \
     cmfd_mod.o \
-    GCCmfd_mod.o \
-    param.o \
-    TypeDef.o
-GdDepl.o: \
-    GdDepl.f90 \
-    BasicOperation.o \
-    depletion_mod.o \
-    DeplType.o \
-    GdDepl_mod.o \
-    Mat2x2OP.o \
-    MatExp_Mod.o \
-    nuclidmap.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-DeplType.o: \
-    DeplType.f90 \
-    dmalloc.o \
-    MatExp_Mod.o
-solbicg2g.o: \
-    solbicg2g.f90 \
-    bicg2g.o \
-    mtbl2g.o \
-    scalprods.o
-AllocPdm.o: \
-    AllocPdm.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    cntl.o \
-    core_mod.o \
-    geom.o \
-    moc_mod.o \
-    MPIAxSolver_Mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    setray_mod.o \
-    SPH_Mod.o \
-    TypeDef.o \
-    xslib_mod.o
-HexChkInp.o: \
-    HexChkInp.f90 \
-    BenchXs_mod.o \
-    cntl.o \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    Material_Mod.o \
-    param.o
-VolCorrection.o: \
-    VolCorrection.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    param.o \
-    TypeDef.o
-OutputEditMC.o: \
-    OutputEditMC.f90 \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    Th_mod.o \
-    TypeDef.o
-SubChGen_mod.o: \
-    SubChGen_mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    ioutil.o \
-    Material_Mod.o \
-    param.o \
-    TypeDef.o \
-    UtilFunction.o
-BiCGSTAB.o: \
-    BiCGSTAB.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    BiLU.o \
-    cntl.o \
     itrcntl.o \
-    LsRadDecomp.o \
-    MPIComm_mod.o \
-    param.o \
-    timer.o \
-    TypeDef.o
-depletion_mod.o: \
-    depletion_mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    DeplType.o \
-    MatExp_Mod.o \
-    nuclidmap.o \
     param.o \
     TypeDef.o
-HexPinConst.o: \
-    HexPinConst.f90 \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    param.o
-MCP_Util.o: \
-    MCP_Util.f90 \
-    ioutil.o \
-    TypeDef.o
-RotRayGen.o: \
-    RotRayGen.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    geom.o \
-    ioutil.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o
-BiLU.o: \
-    BiLU.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    geom.o \
-    ioutil.o \
-    LsRadDecomp.o \
-    Mat2x2OP.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-GC_mod.o: \
-    GC_mod.f90 \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    CriticalSpec_mod.o \
-    files.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-Dcplsseig.o: \
-    Dcplsseig.f90 \
-    cntl.o \
-    core_mod.o \
-    DcplCore_mod.o \
-    DcplTH_mod.o \
-    DcplXsGen_Mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIDcpl_mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    SubGrp_mod.o \
-    Th_mod.o
-sseig.o: \
-    sseig.f90 \
-    Boron_mod.o \
-    cntl.o \
-    CNTLROD_mod.o \
-    core_mod.o \
-    CriticalSpec_mod.o \
-    depletion_mod.o \
-    FXRVARIATION.o \
-    files.o \
-    FXRVAR_MOD.o \
-    geom.o \
-    inflow.o \
-    ioutil.o \
-    itrcntl.o \
-    MKL_3D.o \
-    MKL_CMFD.o \
-    MOC_COMMON.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    SubChCoupling_mod.o \
-    SubGrp_mod.o \
-    Th_mod.o \
-    XeDyn_mod.o
-HexOutputEdit.o: \
-    HexOutputEdit.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    BinOutPutEdit.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    geom.o \
-    HexData.o \
-    HexThOut.o \
-    HexTst.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    SubGrp_mod.o \
-    Th_mod.o \
-    TypeDef.o \
-    vtk_mod.o
-Transient_Driver.o: \
-    Transient_Driver.f90 \
-    BasicOperation.o \
-    Boron_mod.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    SubGrp_mod.o \
-    Th_mod.o \
-    timer.o \
-    Transient_mod.o \
-    TranCmfd_mod.o \
-    TranMoc_mod.o \
-    TypeDef.o \
-    XsPerturb_Mod.o
-RayTracing.o: \
-    RayTracing.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    geom.o \
-    itrcntl.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-RayTracingP1.o: \
-    RayTracingP1.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o
-Depletion.o: \
-    Depletion.f90 \
-    BasicOperation.o \
-    cntl.o \
-    depletion_mod.o \
-    DeplType.o \
-    GdDepl_mod.o \
-    MatExp_Mod.o \
-    moc_mod.o \
-    nuclidmap.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o \
-    Xsutil.o
-files.o: \
-    files.f90
 HexMain.o: \
     HexMain.f90 \
     cntl.o \
@@ -2527,178 +2324,78 @@ HexMain.o: \
     ioutil.o \
     param.o \
     PE_mod.o
-MCCMFD.o: \
-    MCCMFD.f90 \
-    dmalloc.o \
-    bicg2g.o \
-    CMFDTally.o \
-    MCDefine.o \
-    mtbl2g.o
-ReadXsec.o: \
-    ReadXsec.f90 \
-    dmalloc.o \
-    cntl.o \
-    ioutil.o \
-    nuclidmap.o \
-    param.o \
-    SPH_Mod.o \
-    xslib_mod.o
-CTFTH_mod.o: \
-    CTFTH_mod.f90 \
+SubGrpFspNM.o: \
+    SubGrpFspNM.f90 \
     cntl.o \
     files.o \
-    geom.o \
     ioutil.o \
     MPIComm_mod.o \
     param.o \
-    SubChCoupling_mod.o \
-    Th_mod.o \
-    TypeDef.o
-GammaCMFDAcc.o: \
-    GammaCMFDAcc.f90 \
-    cntl.o \
-    CSRMATRIX.o \
-    GammaCMFD_mod.o \
-    Gamma_mod.o \
-    MKL_BILU.o \
-    param.o \
     PE_mod.o \
+    Th_mod.o \
     timer.o \
     TypeDef.o \
-    UtilFunction.o
-DcplThPlnMOC.o: \
-    DcplThPlnMOC.f90 \
+    xslib_mod.o \
+    Xsutil.o
+CriticalSpec_mod.o: \
+    CriticalSpec_mod.f90 \
+    B1_mod.o \
     BasicOperation.o \
-    Boron_mod.o \
+    BenchXs_mod.o \
     cntl.o \
-    DcplMicXsFtn_mod.o \
-    DcplTH_mod.o \
-    DcplXsGen_Mod.o \
+    depletion_mod.o \
+    MacXsLib.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+EffMGXsOut.o: \
+    EffMGXsOut.f90 \
+    BasicOperation.o \
+    cntl.o \
     files.o \
     ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    MPIDcpl_mod.o \
-    param.o \
-    rays.o \
-    SubGrp_mod.o \
-    TypeDef.o
-setRTxs.o: \
-    setRTxs.f90 \
-    BenchXs_mod.o \
-    core_mod.o \
     MacXsLib.o \
-    param.o \
-    PE_mod.o \
-    SPH_Mod.o \
-    TypeDef.o \
-    xslib_mod.o
-HexData.o: \
-    HexData.f90 \
-    HexType.o
-Tlkg_mod.o: \
-    Tlkg_mod.f90 \
-    param.o \
-    TypeDef.o
-PostProc_ISOTXS.o: \
-    PostProc_ISOTXS.f90 \
-    dmalloc.o \
-    nuclidmap.o \
-    xslib_mod.o
-GetFSRCentroid.o: \
-    GetFSRCentroid.f90 \
-    dmalloc.o \
     moc_mod.o \
     param.o \
-    PE_mod.o \
-    TypeDef.o
-DcplCmfd_mod.o: \
-    DcplCmfd_mod.f90 \
-    BasicOperation.o \
-    param.o \
-    TypeDef.o
-initialize.o: \
-    initialize.f90 \
-    cntl.o \
-    CNTLROD_mod.o \
-    core_mod.o \
-    DcplCore_mod.o \
-    files.o \
-    FXRVAR_MOD.o \
-    geom.o \
-    LpShf_mod.o \
-    MKL_INIT.o \
-    MOC_COMMON.o \
-    MPIConfig_Mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    SubChGen_mod.o \
-    vtk_mod.o
-HexCorePowerCal.o: \
-    HexCorePowerCal.f90 \
+    Th_mod.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+MCVacRect.o: \
+    MCVacRect.f90 \
+    MCBasics.o \
+    MCDefine.o
+SubChGen_mod.o: \
+    SubChGen_mod.f90 \
     dmalloc.o \
     BasicOperation.o \
-    CMFD_COMMON.o \
     cntl.o \
-    core_mod.o \
-    files.o \
-    HexData.o \
     ioutil.o \
-    MKL_3D.o \
-    MPIComm_mod.o \
+    Material_Mod.o \
     param.o \
-    TypeDef.o
-MKL_AXIAL.o: \
-    MKL_AXIAL.f90 \
-    CMFD_COMMON.o \
-    files.o \
-    ioutil.o \
-    MKL_3D.o \
-    MKL_FDM.o \
-    MKL_FLATMOC.o \
-    MKL_LINMOC.o \
-    MKL_NODAL.o \
-    param.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
-SetModRay.o: \
-    SetModRay.f90 \
-    GeomTreatment_mod.o \
-    ioutil.o \
-    param.o \
-    setray_mod.o \
     TypeDef.o \
     UtilFunction.o
-CUDATypeDef.o: \
-    CUDATypeDef.f90 \
-    CSRMATRIX.o \
-    TypeDef.o \
-    TYPEDEF_COMMON.o
-GammaXSUtil.o: \
-    GammaXSUtil.f90 \
+Gamma_mod.o: \
+    Gamma_mod.f90 \
+    CSRMATRIX.o
+XsPerturb_Mod.o: \
+    XsPerturb_Mod.f90 \
     dmalloc.o \
-    BasicOperation.o \
-    Gamma_mod.o \
-    param.o \
-    TypeDef.o
-moc_mod.o: \
-    moc_mod.f90 \
     BasicOperation.o \
     BenchXs_mod.o \
     cntl.o \
-    itrcntl.o \
-    MacXsLib.o \
+    ioutil.o \
+    Material_Mod.o \
     param.o \
-    PE_mod.o \
     TypeDef.o
-CrCspGen_mod.o: \
-    CrCspGen_mod.f90 \
-    dmalloc.o \
+CmfdPowerMethod.o: \
+    CmfdPowerMethod.f90 \
     BasicOperation.o \
     BiCGSTAB.o \
     BiLU.o \
+    Boron_mod.o \
     cmfd_mod.o \
     cntl.o \
     core_mod.o \
@@ -2707,323 +2404,219 @@ CrCspGen_mod.o: \
     itrcntl.o \
     MPIAxSolver_Mod.o \
     MPIComm_mod.o \
-    param.o \
-    timer.o \
-    TypeDef.o
-setCellrayBase.o: \
-    setCellrayBase.f90 \
-    dmalloc.o \
-    CadGeom_Mod.o \
-    GeomTreatment_mod.o \
-    param.o \
-    setray_mod.o \
-    TypeDef.o
-MCMap.o: \
-    MCMap.f90 \
-    BenchXs_mod.o \
-    geom.o \
-    HighOrderSC.o \
-    MCDefine.o \
-    MCXsLib.o \
-    param.o \
-    TypeDef.o \
-    XSec4MC.o
-UserDefTH.o: \
-    UserDefTH.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    StemTBL_Mod.o \
-    Th_mod.o \
-    timer.o \
-    TypeDef.o
-PinXSout.o: \
-    PinXSout.f90 \
-    BasicOperation.o \
-    cntl.o \
-    CNTLROD_mod.o \
-    core_mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-GCEDIT.o: \
-    GCEDIT.f90 \
-    depletion_mod.o \
-    FXRVARIATION.o \
-    FXRVAR_MOD.o \
-    GC_mod.o
-DcplPlnMOC.o: \
-    DcplPlnMOC.f90 \
-    BasicOperation.o \
-    cmfd_mod.o \
-    cntl.o \
-    DcplXsGen_Mod.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    moc_mod.o \
-    MPIComm_mod.o \
     MPIDcpl_mod.o \
     param.o \
-    rays.o \
     SubGrp_mod.o \
     timer.o \
     TypeDef.o
-param.o: \
-    param.f90
-HexType.o: \
-    HexType.f90 \
-    param.o
-TypeDef.o: \
-    TypeDef.f90
-MKL_CMFD.o: \
-    MKL_CMFD.f90 \
+BiCGSTAB.o: \
+    BiCGSTAB.f90 \
     dmalloc.o \
-    CMFD_COMMON.o \
+    BasicOperation.o \
+    BiLU.o \
+    cntl.o \
+    itrcntl.o \
+    LsRadDecomp.o \
+    MPIComm_mod.o \
+    param.o \
+    timer.o \
+    TypeDef.o
+MocSolUpdt.o: \
+    MocSolUpdt.f90 \
     cmfd_mod.o \
     cntl.o \
+    itrcntl.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+setray_mod.o: \
+    setray_mod.f90 \
+    dmalloc.o \
+    param.o \
+    TypeDef.o
+Sp3TypeDef.o: \
+    Sp3TypeDef.f90 \
+    TypeDef.o
+HexCP.o: \
+    HexCP.f90 \
+    BenchXs_mod.o \
+    cntl.o \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    Material_Mod.o \
+    moc_mod.o \
+    param.o \
+    rays.o \
+    setray_mod.o \
+    SPH_Mod.o \
+    TypeDef.o
+TranCmfd.o: \
+    TranCmfd.f90 \
+    BasicOperation.o \
+    cmfd_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    TranCmfd_mod.o \
+    TypeDef.o
+CUDA_AXMOC.o: \
+    CUDA_AXMOC.f90 \
+    CUDA_COMMON.o \
+    CUDA_AXRT.o \
+    MacXsLib.o \
+    timer.o \
+    TypeDef.o
+DcplThUtil.o: \
+    DcplThUtil.f90 \
+    cntl.o \
+    DcplTH_mod.o \
+    Th_mod.o \
+    itrcntl.o \
+    param.o \
+    StemTBL_Mod.o \
+    TypeDef.o
+MCXsLib.o: \
+    MCXsLib.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
     core_mod.o \
+    HighOrderSC.o \
+    MacXsLib.o \
+    MCDefine.o \
+    TypeDef.o \
+    XSec4MC.o \
+    xslib_mod.o \
+    Xsutil.o
+ReadMesh.o: \
+    ReadMesh.f90 \
+    dmalloc.o \
+    BenchXs_mod.o \
+    CadGeom_Mod.o \
+    cntl.o \
     files.o \
     geom.o \
     ioutil.o \
-    itrcntl.o \
-    MacXsLib.o \
-    MKL_3D.o \
-    MKL_AXIAL.o \
-    MKL_POWER.o \
-    MKL_DAVIDSON.o \
+    Material_Mod.o \
     param.o \
-    PE_mod.o \
-    SubGrp_mod.o \
-    timer.o \
     TypeDef.o
-SetPinGeom.o: \
-    SetPinGeom.f90 \
-    dmalloc.o \
+GammaMOC_mod.o: \
+    GammaMOC_mod.f90 \
     cntl.o \
-    geom.o \
-    GeomTreatment_mod.o \
+    Gamma_mod.o \
     param.o \
     TypeDef.o
-CMFD_COMMON.o: \
-    CMFD_COMMON.f90 \
+SubGrpFsp.o: \
+    SubGrpFsp.f90 \
+    BasicOperation.o \
+    cntl.o \
+    CP_mod.o \
+    files.o \
+    ioutil.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    SubGrp_mod.o \
+    SubGrpFspNM.o \
+    Th_mod.o \
+    timer.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+itrcntl.o: \
+    itrcntl.f90 \
+    param.o
+CrCsp_mod.o: \
+    CrCsp_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    Boron_mod.o \
+    cntl.o \
+    files.o \
+    cards.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    nuclidmap.o \
+    param.o \
+    TypeDef.o \
+    UtilFunction.o
+MOC_COMMON.o: \
+    MOC_COMMON.f90 \
     BenchXs_mod.o \
-    cmfd_mod.o \
     cntl.o \
     core_mod.o \
-    geom.o \
-    HexCmfd.o \
-    HexData.o \
+    CUDA_COMMON.o \
+    files.o \
+    ioutil.o \
     MacXsLib.o \
-    MOC_COMMON.o \
+    MPIComm_mod.o \
     param.o \
     PE_mod.o \
     TypeDef.o \
     TYPEDEF_COMMON.o \
     Xsutil.o
-HexAsyTypConst.o: \
-    HexAsyTypConst.f90 \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    param.o
-finalize.o: \
-    finalize.f90 \
+readinput.o: \
+    readinput.f90 \
     cntl.o \
-    core_mod.o \
     files.o \
     geom.o \
+    HexInput.o \
+    cards.o \
     ioutil.o \
-    itrcntl.o \
-    MKL_3D.o \
+    MCP_Restart_Main.o \
+    MCP_Util.o \
     MPIComm_mod.o \
-    MPIConfig_Mod.o \
     param.o \
     PE_mod.o \
-    timer.o \
-    TypeDef.o
-GCADF.o: \
-    GCADF.f90 \
+    readinpcard.o
+GCCon.o: \
+    GCCon.f90 \
+    cntl.o \
     GC_mod.o \
-    TypeDef.o
-MCBasics.o: \
-    MCBasics.f90 \
-    BenchXs_mod.o \
-    core_mod.o \
-    MCDefine.o \
-    MCMap.o \
-    MCXsLib.o \
-    param.o \
-    RNG.o \
     xslib_mod.o
-TranGcCmfd.o: \
-    TranGcCmfd.f90 \
-    BasicOperation.o \
-    BiCGSTAB.o \
-    BiLU.o \
+InitDcpl.o: \
+    InitDcpl.f90 \
+    dmalloc.o \
     cmfd_mod.o \
     cntl.o \
-    files.o \
-    GCCmfd_mod.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    TranCmfd_mod.o \
-    TranGcCmfd_mod.o \
-    TypeDef.o
-OutputEdit.o: \
-    OutputEdit.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
-    BinOutPutEdit.o \
-    cntl.o \
     core_mod.o \
-    depletion_mod.o \
-    files.o \
+    DcplCore_mod.o \
     geom.o \
-    ioutil.o \
-    MPIComm_mod.o \
+    itrcntl.o \
+    MPIDcpl_mod.o \
     param.o \
     PE_mod.o \
     rays.o \
-    Th_mod.o \
-    TypeDef.o \
-    vtk_mod.o \
-    Xsutil.o
-GroupConstantGen.o: \
-    GroupConstantGen.f90 \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    CriticalSpec_mod.o \
-    files.o \
-    GC_mod.o \
-    GroupConstantMod.o \
-    MacXsLib.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-CrCspGen_Driver.o: \
-    CrCspGen_Driver.f90 \
-    cntl.o \
-    CNTLROD_mod.o \
-    core_mod.o \
-    CrCspGen_mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
     TypeDef.o
-InitTransient.o: \
-    InitTransient.f90 \
-    dmalloc.o \
+Transient_mod.o: \
+    Transient_mod.f90 \
     BasicOperation.o \
     BenchXs_mod.o \
     cntl.o \
-    core_mod.o \
-    geom.o \
+    MacXsLib.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+CUDA_SYSTEM.o: \
+    CUDA_SYSTEM.f90 \
+    CUDA_COMMON.o \
+    CUDA_PCR.o
+DcplCmfd3d.o: \
+    DcplCmfd3d.f90 \
+    BasicOperation.o \
+    BiCGSTAB.o \
+    cmfd_mod.o \
+    cntl.o \
+    DcplCmfd_mod.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
     MPIAxSolver_Mod.o \
     MPIComm_mod.o \
     param.o \
-    PE_mod.o \
-    Th_mod.o \
-    Transient_mod.o \
-    TranAxNUtil_mod.o \
-    TranCmfd_mod.o \
-    TranMacXsLib.o \
-    TypeDef.o
-TransientTH.o: \
-    TransientTH.f90 \
-    dmalloc.o \
-    cntl.o \
-    files.o \
-    Th_mod.o \
-    ioutil.o \
-    LU_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    StemTBL_Mod.o \
     timer.o \
-    TypeDef.o
-MacXsLib.o: \
-    MacXsLib.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    CrCsp_mod.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-ScanInput_include.o: \
-    ScanInput_include.f90 \
-    cntl.o \
-    CNTLROD_mod.o \
-    core_mod.o \
-    CrCsp_mod.o \
-    files.o \
-    geom.o \
-    cards.o \
-    ioutil.o \
-    itrcntl.o \
-    Material_Mod.o \
-    MCP_Util.o \
-    MPIComm_mod.o \
-    nuclidmap.o \
-    param.o \
-    PE_mod.o \
-    Transient_mod.o
-Cmfd2gAcc.o: \
-    Cmfd2gAcc.f90 \
-    BasicOperation.o \
-    BiCGSTAB2g.o \
-    BiCGSTAB.o \
-    BiLU.o \
-    Cmfd2g_mod.o \
-    cmfd_mod.o \
-    cntl.o \
-    files.o \
-    GCCmfd_mod.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-itrcntl.o: \
-    itrcntl.f90 \
-    param.o
-EffXsOut.o: \
-    EffXsOut.f90 \
-    BasicOperation.o \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    MacXsLib.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o \
-    Xsutil.o
-rays.o: \
-    rays.f90 \
-    param.o \
     TypeDef.o
 InitializeMC.o: \
     InitializeMC.f90 \
@@ -3041,71 +2634,6 @@ InitializeMC.o: \
     rays.o \
     SubChGen_mod.o \
     vtk_mod.o
-SubGrp_mod.o: \
-    SubGrp_mod.f90 \
-    cntl.o \
-    param.o \
-    TypeDef.o
-MPIAxSolver_Mod.o: \
-    MPIAxSolver_Mod.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    cmfd_mod.o \
-    CMFDComm_mod.o \
-    cntl.o \
-    files.o \
-    geom.o \
-    HexTLkg.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    p1senm_mod.o \
-    param.o \
-    AxialSp3_mod.o \
-    timer.o \
-    Tlkg_mod.o \
-    TranAxNUtil_mod.o \
-    TypeDef.o \
-    UtilFunction.o
-Cmfd2gUtil.o: \
-    Cmfd2gUtil.f90 \
-    dmalloc.o \
-    BiCGSTAB2g.o \
-    Cmfd2g_mod.o \
-    cmfd_mod.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    GCCmfd_mod.o \
-    geom.o \
-    ioutil.o \
-    Mat2x2OP.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-HexAsyRayConst.o: \
-    HexAsyRayConst.f90 \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    param.o
-DcplLogOut.o: \
-    DcplLogOut.f90 \
-    cntl.o \
-    core_mod.o \
-    DcplCore_mod.o \
-    DcplTH_mod.o \
-    DcplXsGen_Mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    itrcntl.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    SubGrp_mod.o \
-    TypeDef.o
 readinpcard.o: \
     readinpcard.f90 \
     dmalloc.o \
@@ -3138,268 +2666,59 @@ readinpcard.o: \
     TypeDef.o \
     XeDyn_mod.o \
     xslib_mod.o
-HexNgh_MP.o: \
-    HexNgh_MP.f90 \
-    HexData.o \
-    HexType.o
-XeDyn.o: \
-    XeDyn.f90 \
+SetCellRay.o: \
+    SetCellRay.f90 \
+    dmalloc.o \
     BasicOperation.o \
-    cntl.o \
-    depletion_mod.o \
-    DeplType.o \
-    files.o \
-    ioutil.o \
-    MacXsLib.o \
-    MPIComm_mod.o \
-    nuclidmap.o \
-    param.o \
-    Th_mod.o \
-    TypeDef.o \
-    XeDyn_mod.o \
-    xslib_mod.o \
-    Xsutil.o
-PreProcess.o: \
-    PreProcess.f90 \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    MCP_Util.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    Th_mod.o
-SetGeometry.o: \
-    SetGeometry.f90 \
-    dmalloc.o \
-    cntl.o \
-    files.o \
     geom.o \
+    GeomTreatment_mod.o \
     ioutil.o \
-    MPIConfig_Mod.o \
     param.o \
-    PE_mod.o \
-    SetCentGeom.o
-AxialSp3_mod.o: \
-    AxialSp3_mod.f90 \
-    dmalloc.o \
-    DirectSenm_mod.o \
-    param.o \
-    SenmMatSolver_mod.o \
-    Sp3SenmOp_Mod.o \
-    Sp3TypeDef.o \
+    setray_mod.o \
     TypeDef.o
-cards.o: \
-    cards.f90
-sol2d2g.o: \
-    sol2d2g.f90 \
-    bicg2g.o
-MCDefine.o: \
-    MCDefine.f90 \
-    param.o
-ReadMesh.o: \
-    ReadMesh.f90 \
+GammaXSUtil.o: \
+    GammaXSUtil.f90 \
     dmalloc.o \
-    BenchXs_mod.o \
-    CadGeom_Mod.o \
-    cntl.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    Material_Mod.o \
-    param.o \
-    TypeDef.o
-CmfdEtc.o: \
-    CmfdEtc.f90 \
     BasicOperation.o \
-    BenchXs_mod.o \
-    cmfd_mod.o \
-    core_mod.o \
-    MacXsLib.o \
-    MPIComm_mod.o \
-    param.o \
-    timer.o \
-    TypeDef.o
-GammaMOC_mod.o: \
-    GammaMOC_mod.f90 \
-    cntl.o \
     Gamma_mod.o \
     param.o \
     TypeDef.o
-CrCsp_mod.o: \
-    CrCsp_mod.f90 \
-    dmalloc.o \
+Transient_Driver.o: \
+    Transient_Driver.f90 \
     BasicOperation.o \
     Boron_mod.o \
     cntl.o \
-    files.o \
-    cards.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    nuclidmap.o \
-    param.o \
-    TypeDef.o \
-    UtilFunction.o
-timer.o: \
-    timer.f90
-HexCmfd.o: \
-    HexCmfd.f90 \
-    dmalloc.o \
-    HexData.o \
-    HexUtil.o \
-    TypeDef.o \
-    TYPEDEF_COMMON.o
-ThFunction.o: \
-    ThFunction.f90 \
-    cntl.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-MKL_POWER.o: \
-    MKL_POWER.f90 \
-    files.o \
-    geom.o \
-    ioutil.o \
-    MKL_3D.o \
-    MKL_BILU.o \
-    param.o \
-    PE_mod.o \
-    timer.o \
-    TypeDef.o
-ScanInput.o: \
-    ScanInput.f90 \
-    BenchXs_mod.o \
-    cntl.o \
-    CNTLROD_mod.o \
     core_mod.o \
-    CrCsp_mod.o \
-    depletion_mod.o \
-    DeplLib_mod.o \
     files.o \
-    Gamma_mod.o \
     geom.o \
-    HexData.o \
-    cards.o \
     ioutil.o \
     itrcntl.o \
-    Material_Mod.o \
-    MCP_Util.o \
     MPIComm_mod.o \
     param.o \
     PE_mod.o \
-    ReadXsec.o \
-    SubChCoupling_mod.o \
-    Transient_mod.o
-ApproxExp.o: \
-    ApproxExp.f90 \
-    dmalloc.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o
-facilu1d2g.o: \
-    facilu1d2g.f90 \
-    bicg2g.o
-HexRayConst.o: \
-    HexRayConst.f90 \
-    geom.o \
-    HexData.o \
-    HexType.o \
-    HexUtil.o \
-    ioutil.o \
-    moc_mod.o \
-    param.o
-MCGapRect.o: \
-    MCGapRect.f90 \
-    CMFDTally.o \
-    cntl.o \
-    HighOrderSC.o \
-    MCBasics.o \
-    MCDefine.o \
-    param.o
-SSPHfactorOUT.o: \
-    SSPHfactorOUT.f90 \
-    cntl.o \
-    files.o \
-    ioutil.o \
-    param.o \
-    SPH_Mod.o \
-    TypeDef.o \
-    xslib_mod.o
-CUDA_MOC.o: \
-    CUDA_MOC.f90 \
-    cntl.o \
-    CUDA_COMMON.o \
-    param.o
-GammaSetRtVar.o: \
-    GammaSetRtVar.f90 \
-    BasicOperation.o \
-    cntl.o \
-    Gamma_mod.o \
-    GammaXsLib.o \
-    param.o \
-    TypeDef.o
-DcplMicXsFtn_mod.o: \
-    DcplMicXsFtn_mod.f90 \
-    BasicOperation.o \
-    cmfd_mod.o \
-    MacXsLib.o \
-    param.o \
-    TypeDef.o
-scalprods.o: \
-    scalprods.f90
-HexGeo.o: \
-    HexGeo.f90 \
-    geom.o \
-    HexAsyConst.o \
-    HexAsyTypConst.o \
-    HexData.o \
-    HexGeoConst.o \
-    HexNgh.o \
-    HexPinConst.o \
-    HexVtx.o \
-    param.o
-TranCmfd_Driver.o: \
-    TranCmfd_Driver.f90 \
-    BasicOperation.o \
-    BiCGSTAB.o \
-    BiLU.o \
-    cmfd_mod.o \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIAxSolver_Mod.o \
-    param.o \
+    rays.o \
     SubGrp_mod.o \
+    Th_mod.o \
     timer.o \
+    Transient_mod.o \
     TranCmfd_mod.o \
-    TranGcCmfd_mod.o \
-    TypeDef.o
-RayTracingLinSrc.o: \
-    RayTracingLinSrc.f90 \
-    dmalloc.o \
-    BasicOperation.o \
+    TranMoc_mod.o \
+    TypeDef.o \
+    XsPerturb_Mod.o
+main.o: \
+    main.f90 \
+    cntl.o \
+    core_mod.o \
     geom.o \
-    moc_mod.o \
+    InitializeMC.o \
+    MCModular.o \
+    MCP_Util.o \
+    MPIConfig_Mod.o \
     param.o \
     PE_mod.o \
-    TypeDef.o
-GcCmfdAcc.o: \
-    GcCmfdAcc.f90 \
-    BasicOperation.o \
-    BiCGSTAB.o \
-    BiLU.o \
-    cmfd_mod.o \
-    cntl.o \
-    files.o \
-    GCCmfd_mod.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
+    rays.o \
+    restart_mod.o \
+    timer.o
 DeplEtc.o: \
     DeplEtc.f90 \
     BasicOperation.o \
@@ -3419,17 +2738,120 @@ DeplEtc.o: \
     PE_mod.o \
     TypeDef.o \
     XeDyn_mod.o
-inflow.o: \
-    inflow.f90 \
+MKL_INIT.o: \
+    MKL_INIT.f90 \
+    CMFD_COMMON.o \
     cntl.o \
-    MacXsLib.o \
-    moc_mod.o \
+    core_mod.o \
+    HexCmfdConst.o \
+    MKL_3D.o \
+    MKL_POWER.o \
+    MKL_FDM.o \
+    MKL_FLATMOC.o \
+    MKL_LINMOC.o \
+    MKL_NODAL.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+OutputEdit.o: \
+    OutputEdit.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    BinOutPutEdit.o \
+    cntl.o \
+    core_mod.o \
+    depletion_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    Th_mod.o \
+    TypeDef.o \
+    vtk_mod.o \
+    Xsutil.o
+GC_mod.o: \
+    GC_mod.f90 \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    CriticalSpec_mod.o \
+    files.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+HexCmfd.o: \
+    HexCmfd.f90 \
+    dmalloc.o \
+    HexData.o \
+    HexUtil.o \
+    TypeDef.o \
+    TYPEDEF_COMMON.o
+ThFunction.o: \
+    ThFunction.f90 \
+    cntl.o \
+    MPIComm_mod.o \
     param.o \
     TypeDef.o
-HexThOut.o: \
-    HexThOut.f90 \
-    HexData.o \
+CalRelPower.o: \
+    CalRelPower.f90 \
+    BasicOperation.o \
+    cntl.o \
+    MacXsLib.o \
+    MPIComm_mod.o \
     param.o \
+    Th_mod.o \
+    TypeDef.o
+ESCOTTH_mod.o: \
+    ESCOTTH_mod.f90 \
+    cntl.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    SubChCoupling_mod.o \
+    Th_mod.o \
+    TypeDef.o
+MKL_NODAL.o: \
+    MKL_NODAL.f90 \
+    MKL_3D.o \
+    TypeDef.o
+readLibGamma.o: \
+    readLibGamma.f90 \
+    dmalloc.o \
+    Gamma_mod.o \
+    ioutil.o \
+    param.o
+ReorderLib.o: \
+    ReorderLib.f90 \
+    dmalloc.o \
+    param.o \
+    xslib_mod.o \
+    Xsutil.o
+HexNgh_MP.o: \
+    HexNgh_MP.f90 \
+    HexData.o \
+    HexType.o
+TranCmfd_mod.o: \
+    TranCmfd_mod.f90 \
+    dmalloc.o \
+    cmfd_mod.o \
+    cntl.o \
+    itrcntl.o \
+    param.o \
+    TypeDef.o
+geom.o: \
+    geom.f90 \
+    param.o \
+    TypeDef.o
+FuelConduction.o: \
+    FuelConduction.f90 \
+    Th_mod.o \
+    LU_mod.o \
+    param.o \
+    StemTBL_Mod.o \
     TypeDef.o
 LsRadDecomp.o: \
     LsRadDecomp.f90 \
@@ -3438,24 +2860,840 @@ LsRadDecomp.o: \
     param.o \
     TypeDef.o \
     UtilFunction.o
+PrepareGamma.o: \
+    PrepareGamma.f90 \
+    dmalloc.o \
+    cntl.o \
+    GammaCMFD_mod.o \
+    Gamma_mod.o \
+    GammaMOC_mod.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+GCEDIT.o: \
+    GCEDIT.f90 \
+    depletion_mod.o \
+    FXRVARIATION.o \
+    FXRVAR_MOD.o \
+    GC_mod.o
+HexCmfdConst.o: \
+    HexCmfdConst.f90 \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    MKL_3D.o \
+    param.o \
+    TypeDef.o \
+    TYPEDEF_COMMON.o
+clfortran.o: \
+    clfortran.f90
+CUDA_MOC.o: \
+    CUDA_MOC.f90 \
+    cntl.o \
+    CUDA_COMMON.o \
+    param.o
+AllocTh.o: \
+    AllocTh.f90 \
+    dmalloc.o \
+    core_mod.o \
+    geom.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+CNTLROD_mod.o: \
+    CNTLROD_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    CrCsp_mod.o \
+    files.o \
+    cards.o \
+    ioutil.o \
+    itrcntl.o \
+    Material_Mod.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+PrepareCMFD.o: \
+    PrepareCMFD.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    BiCGSTAB.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    HexData.o \
+    LsRadDecomp.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    TypeDef.o \
+    Xsutil.o
+timer.o: \
+    timer.f90
+SetPinGeom.o: \
+    SetPinGeom.f90 \
+    dmalloc.o \
+    cntl.o \
+    geom.o \
+    GeomTreatment_mod.o \
+    param.o \
+    TypeDef.o
+HexChkInp.o: \
+    HexChkInp.f90 \
+    BenchXs_mod.o \
+    cntl.o \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    Material_Mod.o \
+    param.o
+SubGrp_mod.o: \
+    SubGrp_mod.f90 \
+    cntl.o \
+    param.o \
+    TypeDef.o
+initialize.o: \
+    initialize.f90 \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    DcplCore_mod.o \
+    files.o \
+    FXRVAR_MOD.o \
+    geom.o \
+    LpShf_mod.o \
+    MKL_INIT.o \
+    MOC_COMMON.o \
+    MPIConfig_Mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    SubChGen_mod.o \
+    vtk_mod.o
+GCADF.o: \
+    GCADF.f90 \
+    GC_mod.o \
+    TypeDef.o
+MCMap.o: \
+    MCMap.f90 \
+    BenchXs_mod.o \
+    geom.o \
+    HighOrderSC.o \
+    MCDefine.o \
+    MCXsLib.o \
+    param.o \
+    TypeDef.o \
+    XSec4MC.o
+MPIConfig_Mod.o: \
+    MPIConfig_Mod.f90 \
+    dmalloc.o \
+    cntl.o \
+    geom.o \
+    HexData.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    UtilFunction.o
+GammaRayTracing.o: \
+    GammaRayTracing.f90 \
+    dmalloc.o \
+    Gamma_mod.o \
+    GammaMOC_mod.o \
+    moc_mod.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+HexNgh.o: \
+    HexNgh.f90 \
+    HexData.o \
+    HexType.o \
+    param.o
+minv2g.o: \
+    minv2g.f90 \
+    dmalloc.o \
+    bicg2g.o
+CorRayGen.o: \
+    CorRayGen.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    geom.o \
+    param.o \
+    rays.o \
+    TypeDef.o
+B1_mod.o: \
+    B1_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    LU_mod.o \
+    param.o \
+    TypeDef.o
+PinXSout.o: \
+    PinXSout.f90 \
+    BasicOperation.o \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MacXsLib.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+sseig.o: \
+    sseig.f90 \
+    Boron_mod.o \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    CriticalSpec_mod.o \
+    depletion_mod.o \
+    FXRVARIATION.o \
+    files.o \
+    FXRVAR_MOD.o \
+    geom.o \
+    inflow.o \
+    ioutil.o \
+    itrcntl.o \
+    MKL_3D.o \
+    MKL_CMFD.o \
+    MOC_COMMON.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    SubChCoupling_mod.o \
+    SubGrp_mod.o \
+    Th_mod.o \
+    XeDyn_mod.o
 SetAsyRay.o: \
     SetAsyRay.f90 \
     GeomTreatment_mod.o \
     param.o \
     TypeDef.o
-CMFDComm_mod.o: \
-    CMFDComm_mod.f90 \
+HexOutputEdit.o: \
+    HexOutputEdit.f90 \
     dmalloc.o \
     BasicOperation.o \
+    BinOutPutEdit.o \
     cntl.o \
+    core_mod.o \
+    files.o \
+    geom.o \
+    HexData.o \
+    HexThOut.o \
+    HexTst.o \
     ioutil.o \
     MPIComm_mod.o \
     param.o \
+    PE_mod.o \
+    SubGrp_mod.o \
+    Th_mod.o \
+    TypeDef.o \
+    vtk_mod.o
+Tlkg_mod.o: \
+    Tlkg_mod.f90 \
+    param.o \
     TypeDef.o
-GammaCMFD_mod.o: \
-    GammaCMFD_mod.f90 \
-    CSRMATRIX.o \
-    Gamma_mod.o \
+precursor.o: \
+    precursor.f90 \
+    BenchXs_mod.o \
+    cntl.o \
+    MPIAxSolver_Mod.o \
+    param.o \
+    TranCmfd_mod.o \
+    TypeDef.o
+GCCmfd_mod.o: \
+    GCCmfd_mod.f90 \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+MCFuelRect.o: \
+    MCFuelRect.f90 \
+    CMFDTally.o \
+    HighOrderSC.o \
+    MCBasics.o \
+    MCDefine.o \
+    MCTally.o \
+    param.o \
+    TypeDef.o
+MiscStructGeom.o: \
+    MiscStructGeom.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    GeomTreatment_mod.o \
+    ioutil.o \
+    Material_Mod.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+GroupConstantGenOld.o: \
+    GroupConstantGenOld.f90 \
+    BasicOperation.o \
+    cntl.o \
+    CriticalSpec_mod.o \
+    files.o \
+    GroupConstantMod.o \
+    param.o \
+    TypeDef.o \
+    xslib_mod.o
+cmfd_mod.o: \
+    cmfd_mod.f90 \
+    param.o \
+    TypeDef.o
+CUDA_PCR.o: \
+    CUDA_PCR.f90 \
+    CUDA_COMMON.o \
+    PE_mod.o
+BiLU.o: \
+    BiLU.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    geom.o \
+    ioutil.o \
+    LsRadDecomp.o \
+    Mat2x2OP.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+PreProcess.o: \
+    PreProcess.f90 \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    MCP_Util.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    Th_mod.o
+SetRtLinSrc.o: \
+    SetRtLinSrc.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    MacXsLib.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+HexTst.o: \
+    HexTst.f90 \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    MKL_3D.o \
+    param.o \
+    PE_mod.o
+ThInfoOut.o: \
+    ThInfoOut.f90 \
+    depletion_mod.o \
+    files.o \
+    ioutil.o \
+    param.o \
+    TypeDef.o
+DcplTH_mod.o: \
+    DcplTH_mod.f90 \
+    BasicOperation.o \
+    cntl.o \
+    Th_mod.o \
+    itrcntl.o \
+    param.o \
+    StemTBL_Mod.o \
+    TypeDef.o
+MKL_CMFD.o: \
+    MKL_CMFD.f90 \
+    dmalloc.o \
+    CMFD_COMMON.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
+    MacXsLib.o \
+    MKL_3D.o \
+    MKL_AXIAL.o \
+    MKL_POWER.o \
+    MKL_DAVIDSON.o \
+    param.o \
+    PE_mod.o \
+    SubGrp_mod.o \
+    timer.o \
+    TypeDef.o
+SetPE.o: \
+    SetPE.f90
+GenFxrMacXs.o: \
+    GenFxrMacXs.f90 \
+    BasicOperation.o \
+    cntl.o \
+    GC_mod.o \
+    MacXsLib.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o
+inputedit.o: \
+    inputedit.f90 \
+    cntl.o \
+    core_mod.o \
+    geom.o \
+    ioutil.o \
+    param.o \
+    rays.o \
+    TypeDef.o \
+    xslib_mod.o
+CrCspGen_mod.o: \
+    CrCspGen_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    BiCGSTAB.o \
+    BiLU.o \
+    cmfd_mod.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIAxSolver_Mod.o \
+    MPIComm_mod.o \
+    param.o \
+    timer.o \
+    TypeDef.o
+Boron_mod.o: \
+    Boron_mod.f90 \
+    cntl.o \
+    DeplType.o \
+    param.o \
+    TypeDef.o
+OutputEditMC.o: \
+    OutputEditMC.f90 \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    Th_mod.o \
+    TypeDef.o
+sol2d2g.o: \
+    sol2d2g.f90 \
+    bicg2g.o
+SteadyStateTH.o: \
+    SteadyStateTH.f90 \
+    BasicOperation.o \
+    cntl.o \
+    CTFTH_mod.o \
+    ESCOTTH_mod.o \
+    files.o \
+    Th_mod.o \
+    ioutil.o \
+    itrcntl.o \
+    LU_mod.o \
+    MATRATH_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    StemTBL_Mod.o \
+    subch_mod.o \
+    SubChCoupling_mod.o \
+    timer.o \
+    TypeDef.o \
+    UtilFunction.o
+HexAsyTypConst.o: \
+    HexAsyTypConst.f90 \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    param.o
+TranMOC.o: \
+    TranMOC.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    TranMoc_mod.o \
+    TypeDef.o
+CTFTH_mod.o: \
+    CTFTH_mod.f90 \
+    cntl.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    param.o \
+    SubChCoupling_mod.o \
+    Th_mod.o \
+    TypeDef.o
+DcplPinXsWrt.o: \
+    DcplPinXsWrt.f90 \
+    geom.o \
+    param.o \
+    TypeDef.o
+LpShf_mod.o: \
+    LpShf_mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cntl.o \
+    Cooling_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    Material_Mod.o \
+    MPIComm_mod.o \
+    param.o \
+    restart_mod.o \
+    TypeDef.o
+SenmMatSolver_mod.o: \
+    SenmMatSolver_mod.f90 \
+    Mat2x2OP.o \
+    Sp3TypeDef.o
+GroupConstantGen.o: \
+    GroupConstantGen.f90 \
+    BasicOperation.o \
+    cntl.o \
+    core_mod.o \
+    CriticalSpec_mod.o \
+    files.o \
+    GC_mod.o \
+    GroupConstantMod.o \
+    MacXsLib.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+Th_mod.o: \
+    Th_mod.f90 \
+    dmalloc.o \
+    cntl.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o \
+    UtilFunction.o
+finalize.o: \
+    finalize.f90 \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
+    MKL_3D.o \
+    MPIComm_mod.o \
+    MPIConfig_Mod.o \
+    param.o \
+    PE_mod.o \
+    timer.o \
+    TypeDef.o
+EffXsOutDepl.o: \
+    EffXsOutDepl.f90 \
+    BasicOperation.o \
+    cntl.o \
+    DeplType.o \
+    files.o \
+    ioutil.o \
+    MacXsLib.o \
+    moc_mod.o \
+    param.o \
+    Th_mod.o \
+    TypeDef.o \
+    xslib_mod.o \
+    Xsutil.o
+PostProc_ISOTXS.o: \
+    PostProc_ISOTXS.f90 \
+    dmalloc.o \
+    nuclidmap.o \
+    xslib_mod.o
+GcCmfdAcc.o: \
+    GcCmfdAcc.f90 \
+    BasicOperation.o \
+    BiCGSTAB.o \
+    BiLU.o \
+    cmfd_mod.o \
+    cntl.o \
+    files.o \
+    GCCmfd_mod.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+HexVtx.o: \
+    HexVtx.f90 \
+    geom.o \
+    HexData.o \
+    HexTst.o \
+    HexType.o \
+    HexUtil.o \
+    param.o
+TypeDef.o: \
+    TypeDef.f90
+CUDA_DRIVER.o: \
+    CUDA_DRIVER.f90 \
+    CMFD_COMMON.o \
+    cntl.o \
+    core_mod.o \
+    CUDA_AXIAL.o \
+    CUDA_CMFD.o \
+    CUDA_INIT.o \
+    CUDA_COMMON.o \
+    CUDA_MOC.o \
+    files.o \
+    ioutil.o \
+    itrcntl.o \
+    MOC_COMMON.o \
+    moc_mod.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    SPH_Mod.o \
+    SubGrp_mod.o \
+    SubGrpFspNM.o \
+    Th_mod.o \
+    timer.o \
+    TypeDef.o \
+    xslib_mod.o
+Dcplsseig.o: \
+    Dcplsseig.f90 \
+    cntl.o \
+    core_mod.o \
+    DcplCore_mod.o \
+    DcplTH_mod.o \
+    DcplXsGen_Mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIDcpl_mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    SubGrp_mod.o \
+    Th_mod.o
+MKL_FDM.o: \
+    MKL_FDM.f90 \
+    MKL_3D.o \
+    TypeDef.o
+rays.o: \
+    rays.f90 \
+    param.o \
+    TypeDef.o
+ReadXsec.o: \
+    ReadXsec.f90 \
+    dmalloc.o \
+    cntl.o \
+    ioutil.o \
+    nuclidmap.o \
+    param.o \
+    SPH_Mod.o \
+    xslib_mod.o
+GeomTreatment_mod.o: \
+    GeomTreatment_mod.f90 \
+    ioutil.o \
+    param.o \
+    TypeDef.o \
+    UtilFunction.o
+TranGcCmfd_mod.o: \
+    TranGcCmfd_mod.f90 \
+    cmfd_mod.o \
+    cntl.o \
+    itrcntl.o \
+    param.o \
+    TypeDef.o
+moc_mod.o: \
+    moc_mod.f90 \
+    BasicOperation.o \
+    BenchXs_mod.o \
+    cntl.o \
+    itrcntl.o \
+    MacXsLib.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+Depletion_Driver.o: \
+    Depletion_Driver.f90 \
+    Boron_mod.o \
+    cntl.o \
+    core_mod.o \
+    CriticalSpec_mod.o \
+    depletion_mod.o \
+    DeplLib_mod.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    param.o \
+    PE_mod.o \
+    rays.o \
+    restart_mod.o \
+    SubGrp_mod.o \
+    Th_mod.o \
+    timer.o \
+    XeDyn_mod.o
+LU_mod.o: \
+    LU_mod.f90 \
+    param.o
+MPIAxSolver_Mod.o: \
+    MPIAxSolver_Mod.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    cmfd_mod.o \
+    CMFDComm_mod.o \
+    cntl.o \
+    files.o \
+    geom.o \
+    HexTLkg.o \
+    ioutil.o \
+    MPIComm_mod.o \
+    p1senm_mod.o \
+    param.o \
+    AxialSp3_mod.o \
+    timer.o \
+    Tlkg_mod.o \
+    TranAxNUtil_mod.o \
+    TypeDef.o \
+    UtilFunction.o
+HexAsyConst.o: \
+    HexAsyConst.f90 \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    param.o
+HexCorePowerCal.o: \
+    HexCorePowerCal.f90 \
+    dmalloc.o \
+    BasicOperation.o \
+    CMFD_COMMON.o \
+    cntl.o \
+    core_mod.o \
+    files.o \
+    HexData.o \
+    ioutil.o \
+    MKL_3D.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+dmalloc.o: \
+    dmalloc.f90
+Cmfd2gAcc.o: \
+    Cmfd2gAcc.f90 \
+    BasicOperation.o \
+    BiCGSTAB2g.o \
+    BiCGSTAB.o \
+    BiLU.o \
+    Cmfd2g_mod.o \
+    cmfd_mod.o \
+    cntl.o \
+    files.o \
+    GCCmfd_mod.o \
+    ioutil.o \
+    itrcntl.o \
+    MPIComm_mod.o \
+    param.o \
+    TypeDef.o
+AllocAxSol.o: \
+    AllocAxSol.f90 \
+    dmalloc.o \
+    core_mod.o \
+    geom.o \
+    MPIAxSolver_Mod.o \
+    p1senm_mod.o \
+    param.o \
+    PE_mod.o \
+    AxialSp3_mod.o \
+    TypeDef.o
+EffXsOut.o: \
+    EffXsOut.f90 \
+    BasicOperation.o \
+    cntl.o \
+    files.o \
+    ioutil.o \
+    MacXsLib.o \
+    moc_mod.o \
+    param.o \
+    TypeDef.o \
+    Xsutil.o
+MKL_POLYMOC.o: \
+    MKL_POLYMOC.f90 \
+    MKL_3D.o \
+    PE_mod.o \
+    TypeDef.o
+setRTxs.o: \
+    setRTxs.f90 \
+    BenchXs_mod.o \
+    core_mod.o \
+    MacXsLib.o \
+    param.o \
+    PE_mod.o \
+    SPH_Mod.o \
+    TypeDef.o \
+    xslib_mod.o
+ScanInput_include.o: \
+    ScanInput_include.f90 \
+    cntl.o \
+    CNTLROD_mod.o \
+    core_mod.o \
+    CrCsp_mod.o \
+    files.o \
+    geom.o \
+    cards.o \
+    ioutil.o \
+    itrcntl.o \
+    Material_Mod.o \
+    MCP_Util.o \
+    MPIComm_mod.o \
+    nuclidmap.o \
+    param.o \
+    PE_mod.o \
+    Transient_mod.o
+HexPinConst.o: \
+    HexPinConst.f90 \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    param.o
+XeDyn_Driver.o: \
+    XeDyn_Driver.f90 \
+    cntl.o \
+    core_mod.o \
+    CriticalSpec_mod.o \
+    depletion_mod.o \
+    DeplType.o \
+    files.o \
+    geom.o \
+    ioutil.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o \
+    XeDyn_mod.o
+inflow.o: \
+    inflow.f90 \
+    cntl.o \
+    MacXsLib.o \
+    moc_mod.o \
     param.o \
     TypeDef.o
 DcplCmfdXsGen.o: \
@@ -3471,11 +3709,6 @@ DcplCmfdXsGen.o: \
     TypeDef.o \
     UtilFunction.o \
     Xsutil.o
-setray_mod.o: \
-    setray_mod.f90 \
-    dmalloc.o \
-    param.o \
-    TypeDef.o
 MCModular.o: \
     MCModular.f90 \
     BenchXs_mod.o \
@@ -3503,343 +3736,110 @@ MCModular.o: \
     SubGrp_mod.o \
     TypeDef.o \
     XSec4MC.o
-TranCmfd_mod.o: \
-    TranCmfd_mod.f90 \
+ProcMat.o: \
+    ProcMat.f90 \
     dmalloc.o \
-    cmfd_mod.o \
     cntl.o \
-    itrcntl.o \
-    param.o \
-    TypeDef.o
-MOC_COMMON.o: \
-    MOC_COMMON.f90 \
-    BenchXs_mod.o \
-    cntl.o \
-    core_mod.o \
-    CUDA_COMMON.o \
-    files.o \
     ioutil.o \
-    MacXsLib.o \
-    MPIComm_mod.o \
+    Material_Mod.o \
+    nuclidmap.o \
     param.o \
     PE_mod.o \
     TypeDef.o \
-    TYPEDEF_COMMON.o \
-    Xsutil.o
-GCHom.o: \
-    GCHom.f90 \
+    xslib_mod.o
+GlobalCoreMap.o: \
+    GlobalCoreMap.f90 \
+    dmalloc.o \
     BasicOperation.o \
+    cntl.o \
+    geom.o \
+    ioutil.o \
+    param.o \
+    PE_mod.o \
+    TypeDef.o
+HexCelBasis_Rod.o: \
+    HexCelBasis_Rod.f90 \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    param.o
+core_mod.o: \
+    core_mod.f90 \
+    param.o \
+    TypeDef.o
+CUDA_AXRT.o: \
+    CUDA_AXRT.f90 \
+    CUDA_COMMON.o
+CP_mod.o: \
+    CP_mod.f90
+RNG.o: \
+    RNG.f90
+setCellrayBase.o: \
+    setCellrayBase.f90 \
+    dmalloc.o \
+    CadGeom_Mod.o \
+    GeomTreatment_mod.o \
+    param.o \
+    setray_mod.o \
+    TypeDef.o
+SetCentGeom.o: \
+    SetCentGeom.f90 \
+    dmalloc.o \
     BenchXs_mod.o \
     cntl.o \
-    GC_mod.o \
-    MacXsLib.o \
+    geom.o \
     param.o \
-    Th_mod.o \
+    SPH_Mod.o \
+    TypeDef.o \
+    xslib_mod.o
+HexRayConst.o: \
+    HexRayConst.f90 \
+    geom.o \
+    HexData.o \
+    HexType.o \
+    HexUtil.o \
+    ioutil.o \
+    moc_mod.o \
+    param.o
+TranMacXsLib.o: \
+    TranMacXsLib.f90 \
+    BasicOperation.o \
+    ioutil.o \
+    param.o \
     TypeDef.o \
     xslib_mod.o \
     Xsutil.o
-CorePowerCal.o: \
-    CorePowerCal.f90 \
+abi1d2g.o: \
+    abi1d2g.f90 \
+    bicg2g.o
+GCCmfdUtil.o: \
+    GCCmfdUtil.f90 \
     dmalloc.o \
     BasicOperation.o \
-    cntl.o \
-    files.o \
-    MPIComm_mod.o \
-    param.o \
-    TypeDef.o
-initvar.o: \
-    initvar.f90 \
-    BasicOperation.o \
-    BenchXs_mod.o \
+    cmfd_mod.o \
     cntl.o \
     core_mod.o \
-    DcplCore_mod.o \
-    files.o \
+    GCCmfd_mod.o \
     geom.o \
-    ioutil.o \
-    itrcntl.o \
-    MacXsLib.o \
     MPIComm_mod.o \
     param.o \
     PE_mod.o \
-    rays.o \
-    SubGrp_mod.o \
-    TypeDef.o \
-    Xsutil.o
-HighOrderSC.o: \
-    HighOrderSC.f90 \
-    BenchXs_mod.o \
-    cntl.o \
-    core_mod.o \
-    ioutil.o \
-    MCDefine.o \
-    RNG.o \
     TypeDef.o
 MKL_BILU.o: \
     MKL_BILU.f90 \
     MKL_3D.o
-SetPE.o: \
-    SetPE.f90
-CUDA_COMMON.o: \
-    CUDA_COMMON.f90 \
-    CUDATypeDef.o \
-    PE_mod.o
-GammaXsLib.o: \
-    GammaXsLib.f90 \
-    core_mod.o \
-    Gamma_mod.o \
-    GammaXSUtil.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-inputedit.o: \
-    inputedit.f90 \
-    cntl.o \
-    core_mod.o \
-    geom.o \
-    ioutil.o \
-    param.o \
-    rays.o \
-    TypeDef.o \
-    xslib_mod.o
-FastMocUtil.o: \
-    FastMocUtil.f90 \
-    dmalloc.o \
-    cntl.o \
-    moc_mod.o \
-    param.o \
-    TypeDef.o
-sol1d2g.o: \
-    sol1d2g.f90 \
-    bicg2g.o
-LU_mod.o: \
-    LU_mod.f90 \
-    param.o
-SubGrpFspNM.o: \
-    SubGrpFspNM.f90 \
-    cntl.o \
+MPIDcpl_mod.o: \
+    MPIDcpl_mod.f90 \
+    DcplCore_mod.o \
     files.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    Th_mod.o \
-    timer.o \
-    TypeDef.o \
-    xslib_mod.o \
-    Xsutil.o
-PrepareCMFD.o: \
-    PrepareCMFD.f90 \
-    dmalloc.o \
-    BasicOperation.o \
-    BiCGSTAB.o \
-    cmfd_mod.o \
-    cntl.o \
-    core_mod.o \
-    geom.o \
-    HexData.o \
-    LsRadDecomp.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    TypeDef.o \
-    Xsutil.o
-BinOutPutEdit.o: \
-    BinOutPutEdit.f90 \
-    BasicOperation.o \
-    cntl.o \
-    core_mod.o \
-    depletion_mod.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    xslib_mod.o
-GammaMOCSweep.o: \
-    GammaMOCSweep.f90 \
-    cntl.o \
-    core_mod.o \
-    files.o \
-    Gamma_mod.o \
-    GammaMOC_mod.o \
-    ioutil.o \
-    itrcntl.o \
-    MPIComm_mod.o \
-    param.o \
-    timer.o \
-    TypeDef.o
-DirectSenm_mod.o: \
-    DirectSenm_mod.f90 \
-    Mat2x2OP.o \
-    SenmMatSolver_mod.o \
-    Sp3SenmOp_Mod.o \
-    Sp3TypeDef.o
-clfortran.o: \
-    clfortran.f90
-AllocAxSol.o: \
-    AllocAxSol.f90 \
-    dmalloc.o \
-    core_mod.o \
-    geom.o \
-    MPIAxSolver_Mod.o \
-    p1senm_mod.o \
-    param.o \
-    PE_mod.o \
-    AxialSp3_mod.o \
-    TypeDef.o
-HexUtil.o: \
-    HexUtil.f90 \
-    HexData.o \
-    ioutil.o \
-    param.o
-XeDyn_Driver.o: \
-    XeDyn_Driver.f90 \
-    cntl.o \
-    core_mod.o \
-    CriticalSpec_mod.o \
-    depletion_mod.o \
-    DeplType.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    XeDyn_mod.o
-MKL_DAVIDSON.o: \
-    MKL_DAVIDSON.f90 \
-    MKL_3D.o \
-    MKL_BILU.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o
-SPH_Mod.o: \
-    SPH_Mod.f90 \
-    Material_Mod.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-CUDA_DRIVER.o: \
-    CUDA_DRIVER.f90 \
-    CMFD_COMMON.o \
-    cntl.o \
-    core_mod.o \
-    CUDA_AXIAL.o \
-    CUDA_CMFD.o \
-    CUDA_INIT.o \
-    CUDA_COMMON.o \
-    CUDA_MOC.o \
-    files.o \
-    ioutil.o \
-    itrcntl.o \
-    MOC_COMMON.o \
-    moc_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    PE_mod.o \
-    SPH_Mod.o \
-    SubGrp_mod.o \
-    SubGrpFspNM.o \
-    Th_mod.o \
-    timer.o \
-    TypeDef.o \
-    xslib_mod.o
-cmfd_mod.o: \
-    cmfd_mod.f90 \
-    param.o \
-    TypeDef.o
-FXRVAR_MOD.o: \
-    FXRVAR_MOD.f90
-MCP_Restart_Main.o: \
-    MCP_Restart_Main.f90 \
-    files.o \
-    ioutil.o \
-    Material_Mod.o \
-    MCP_Util.o \
-    nuclidmap.o \
-    param.o \
-    PE_mod.o
-TranCmfd.o: \
-    TranCmfd.f90 \
-    BasicOperation.o \
-    cmfd_mod.o \
-    MPIComm_mod.o \
-    param.o \
-    TranCmfd_mod.o \
-    TypeDef.o
-ProcMAT_ISOTXS.o: \
-    ProcMAT_ISOTXS.f90 \
-    dmalloc.o \
-    cntl.o \
-    ioutil.o \
-    Material_Mod.o \
-    nuclidmap.o \
-    param.o \
-    PE_mod.o \
-    TypeDef.o \
-    xslib_mod.o
-CUDA_AXMOC.o: \
-    CUDA_AXMOC.f90 \
-    CUDA_COMMON.o \
-    CUDA_AXRT.o \
-    MacXsLib.o \
-    timer.o \
-    TypeDef.o
-GroupConstantGenOld.o: \
-    GroupConstantGenOld.f90 \
-    BasicOperation.o \
-    cntl.o \
-    CriticalSpec_mod.o \
-    files.o \
-    GroupConstantMod.o \
-    param.o \
-    TypeDef.o \
-    xslib_mod.o
-Depletion_Driver.o: \
-    Depletion_Driver.f90 \
-    Boron_mod.o \
-    cntl.o \
-    core_mod.o \
-    CriticalSpec_mod.o \
-    depletion_mod.o \
-    DeplLib_mod.o \
-    files.o \
-    geom.o \
+    cards.o \
     ioutil.o \
     itrcntl.o \
     MPIComm_mod.o \
     param.o \
     PE_mod.o \
-    rays.o \
-    restart_mod.o \
-    SubGrp_mod.o \
-    Th_mod.o \
-    timer.o \
-    XeDyn_mod.o
-HexGeoConst.o: \
-    HexGeoConst.f90 \
-    geom.o \
-    HexData.o \
-    ioutil.o \
-    param.o \
-    PE_mod.o
-TYPEDEF_COMMON.o: \
-    TYPEDEF_COMMON.f90
-MakeRays.o: \
-    MakeRays.f90 \
-    dmalloc.o \
-    cntl.o \
-    files.o \
-    geom.o \
-    ioutil.o \
-    MPIComm_mod.o \
-    MPIConfig_Mod.o \
-    param.o \
-    PE_mod.o \
-    rays.o \
-    setray_mod.o
+    TypeDef.o \
+    UtilFunction.o
 

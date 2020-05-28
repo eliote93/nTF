@@ -248,36 +248,37 @@ END SUBROUTINE HexSetHcPinSlf_MP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetHcPinNgh()
 
-USE PARAM,   ONLY : ZERO, VoidCell, RefCell, TRUE, FALSE
+USE PARAM,   ONLY : ZERO, VoidCell, RefCell, TRUE, FALSE, HALF
 USE HexType, ONLY : Type_HexCmfdPin
-USE HexData, ONLY : hcPin, nhcPin, hLgc, cBndyEq
+USE HexData, ONLY : hcPin, nhcPin, hLgc, cBndyEq, hAsy, hAsyTypInfo, Sq3
 USE HexUtil, ONLY : SetEqn, ChkPtEqn, ChkSamePts, SetPtsPri
 
 IMPLICIT NONE
 
 INTEGER :: iPin, jPin, iBndy, jBndy, nNgh, iPri
 LOGICAL :: lChk, lChk01, lChk02, lChk03, lChk04, lChk05, lNgh
-REAL    :: Cnt(2), PtsSlf(2, 2), PtsNgh(2, 2), EqnSlf(3), Lgh
+REAL    :: Cnt(2), PtsSlf(2, 2), PtsNgh(2, 2), EqnSlf(3), Lgh, EqnTst(3)
 
 TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc, jPin_Loc
 ! ----------------------------------------------------
+
+Cnt    = ZERO
+Lgh    = hAsyTypInfo(hAsy(1)%AsyTyp)%pPch
+EqnTst = SetEqn([Lgh, ZERO], [Lgh * HALF, -Lgh * HALF * Sq3], Cnt)
 
 !$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, &
 !$OMP                  jPin_Loc, jBndy, PtsNgh, Lgh)
 !$OMP DO SCHEDULE(GUIDED)
 DO iPin = 1, nhcPin
   cPin_Loc => hcPin(iPin)
-
+  
   nNgh = 0
   ! ----------------------------
   DO iBndy = 1, cPin_Loc%nBndy
     EqnSlf(1:3)    = cPin_Loc%BdEqn(1:3, iBndy)
     PtsSlf(1:2, 1) = cPin_Loc%BdPts(1:2, iBndy)
     PtsSlf(1:2, 2) = cPin_Loc%BdPts(1:2, iBndy + 1)
-
-    iPri = SetPtsPri(PtsSlf(1:2, 1:2))
-    lNgh = FALSE
-
+    
     lChk01 = ChkPtEqn(PtsSlf(1:2, 1), cBndyEq(1:3, 1)) .AND. ChkPtEqn(PtsSlf(1:2, 2), cBndyEq(1:3, 1))
     lChk02 = ChkPtEqn(PtsSlf(1:2, 1), cBndyEq(1:3, 2)) .AND. ChkPtEqn(PtsSlf(1:2, 2), cBndyEq(1:3, 2))
     lChk   = hLgc%l060 .AND. (lChk01 .OR. lChk02)
@@ -286,82 +287,95 @@ DO iPin = 1, nhcPin
     ! ----------------------------
     IF (lChk .AND. hLgc%lAzmRef) THEN
       nNgh = nNgh + 1
-
+      
       cPin_Loc%NghPin(nNgh) = RefCell
       cPin_Loc%NghBd (nNgh) = iBndy
       cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-
+      
       CYCLE
     END IF
-
+    
     IF (lChk .AND. hLgc%lAzmRot) THEN
+      IF (ChkPtEqn(PtsSlf(1:2, 1), EqnTst) .OR. ChkPtEqn(PtsSlf(1:2, 2), EqnTst)) THEN
+        nNgh = nNgh + 1
+        
+        cPin_Loc%NghPin(nNgh) = RefCell
+        cPin_Loc%NghBd (nNgh) = iBndy
+        cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
+        
+        CYCLE
+      END IF
+      
       PtsSlf = CalRotPt(EqnSlf, PtsSlf)
       EqnSlf = SetEqn(PtsSlf(1:2, 1), PtsSlf(1:2, 2), Cnt) ! Cnt is meaningless
     END IF
+    
+    iPri = SetPtsPri(PtsSlf(1:2, 1:2))
+    lNgh = FALSE
     ! ----------------------------
     !      2. CP - CP
     ! ----------------------------
     DO jPin = 1, nhcPin
       IF (iPin .EQ. jPin) CYCLE
-
+      
       jPin_Loc => hcPin(jPin)
-
+      
       DO jBndy = 1, jPin_Loc%nBndy
         PtsNgh(1:2, 1) = jPin_Loc%BdPts(1:2, jBndy)
         PtsNgh(1:2, 2) = jPin_Loc%BdPts(1:2, jBndy+1)
-
+        
         lChk01 = ChkPtEqn(PtsNgh(1:2, 1), EqnSlf(1:3))
         lChk02 = ChkPtEqn(PtsNgh(1:2, 2), EqnSlf(1:3))
         lChk03 = lChk01 .AND. lChk02
-
+        
         IF (.NOT. lChk03) CYCLE
-
+        
         lChk01 = ChkSamePts(PtsSlf(1:2, 1), PtsNgh(1:2, 1))
         lChk02 = ChkSamePts(PtsSlf(1:2, 2), PtsNgh(1:2, 2))
         lChk03 = lChk01 .AND. lChk02
-
+        
         lChk01 = ChkSamePts(PtsSlf(1:2, 1), PtsNgh(1:2, 2))
         lChk02 = ChkSamePts(PtsSlf(1:2, 2), PtsNgh(1:2, 1))
         lChk04 = lChk01 .AND. lChk02
-
+        
         ! Exact Ngh
         IF (lChk03 .OR. lChk04) THEN
           nNgh = nNgh + 1
           lNgh = TRUE
-
+          
           cPin_Loc%NghPin(nNgh) = jPin
           cPin_Loc%NghBd (nNgh) = iBndy
           cPin_Loc%NghSuf(nNgh) = jBndy
           cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-
+          
           EXIT
         END IF
-
+        
         Lgh = CalNghSegLgh(PtsSlf, PtsNgh, iPri)
-
+        
         IF (Lgh < 1E-3) CYCLE ! ARTIBRARY
-
+        
         ! Segment Ngh
         nNgh = nNgh + 1
         lNgh = TRUE
-
+        
         cPin_Loc%NghPin(nNgh) = jPin
         cPin_Loc%NghBd (nNgh) = iBndy
         cPin_Loc%NghSuf(nNgh) = jBndy
         cPin_Loc%NghLgh(nNgh) = Lgh
       END DO
     END DO
-
+    
     IF (lNgh) CYCLE
     ! ----------------------------
     !      3. Core VAC bndy
     ! ----------------------------
     nNgh = nNgh + 1
-
+    
     cPin_Loc%NghPin(nNgh) = VoidCell
     cPin_Loc%NghBd (nNgh) = iBndy
     cPin_Loc%NghLgh(nNgh) = cPin_Loc%BdLgh(iBndy)
-
+    
     IF (hLgc%iSym > 3) cPin_Loc%NghPin(nNgh) = RefCell ! Sng Asy / Cel
     IF (hLgc%lRadRef)  cPin_Loc%NghPin(nNgh) = RefCell ! REF on Radial direction
     IF (lChk)          cPin_Loc%NghPin(nNgh) = RefCell ! Ngh Pin = Self Pin with Azm ROT
