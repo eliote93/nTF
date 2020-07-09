@@ -27,6 +27,7 @@ IMPLICIT NONE
 
 INTEGER :: iPin, ipTyp, iAsy
 ! ----------------------------------------------------
+
 CALL HexCPCelInfo
 
 DO iPin = 1, nHexPin

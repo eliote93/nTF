@@ -66,13 +66,13 @@ IF(PE%MASTER) THEN
   CALL message(io8, FALSE, TRUE, MESG)
   Write(mesg, 111)  'CMFD MG =', TimeChk%CmfdTime, 'Sec', ',', 'N =', ItrCntl%Cmfdit
   CALL message(io8, FALSE, TRUE, MESG)
-  #ifdef __INTEL_MKL
+#ifdef __INTEL_MKL
   IF (mklCntl%lGcCMFD) Write(mesg, 111)  'CMFD CG =', 0., 'Sec', ',', 'N =', ItrCntl%GcCMFDIt
   CALL message(io8, FALSE, TRUE, MESG)
-  #else
+#else
   IF (nTracerCntl%lGcCMFD) Write(mesg, 111)  'CMFD CG =', 0., 'Sec', ',', 'N =', ItrCntl%GcCMFDIt
   CALL message(io8, FALSE, TRUE, MESG)
-  #endif
+#endif
   IF (PE%lMKL .OR. PE%lCUDACMFD) THEN
     Write(mesg, 111)  'CMFD Init =', TimeChk%CmfdInitTime, 'Sec', ','
     CALL message(io8, FALSE, TRUE, MESG)

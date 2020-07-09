@@ -35,6 +35,8 @@ nFxrMax = 0
 
 IF(nTracerCntl%lHex) THEN
   DO icel = 1, nInf
+    IF (.NOT. Cell(icel)%luse) CYCLE
+    
     nFxrMax = max(nFxrMax, Cell(icel)%nFxr)
   END DO
   

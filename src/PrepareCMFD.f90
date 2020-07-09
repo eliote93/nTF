@@ -149,6 +149,8 @@ ENDIF
 
 nFxrMax = 0
 DO i = 1, nEd
+  IF (.NOT. Core%CellInfo(i)%luse) CYCLE
+  
   nFxrMax = MAX(nFxrMax, Core%CellInfo(i)%nFxr)
 ENDDO
 DO i = 1, nFxrMax
