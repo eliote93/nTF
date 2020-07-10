@@ -197,6 +197,22 @@ CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 
 NULLIFY(PIN, ResVarPin, CellINfo, myFxr, myPin, myCell)
 
+! TST
+!INQUIRE (file = "Tst.out", Number = itst)
+!
+!IF (itst .LT. 0) OPEN (unit = 444, file = "Tst.out")
+!
+!WRITE (444, '(4X, 300(102X, I2))') (ig, ig = 10, 25)
+!WRITE (444, '(4X, 300(11X, I2))') (mod(ig,8), ig = 1, 208)
+!
+!DO ifxr = 1, Core%nCoreFXR
+!  IF (.NOT. associated(Fxr(ifxr, 1)%ftadj)) CYCLE
+!  
+!  WRITE (444, '(I4, 200(X, F12.5))') ifxr, Fxr(ifxr, 1)%ftadj(1:8, 10:25)
+!END DO
+!
+!STOP
+
 END SUBROUTINE
 
 SUBROUTINE FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)

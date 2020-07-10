@@ -79,10 +79,13 @@ INTEGER :: nitermax, nitermin
 REAL :: eigconv, psiconv, resconv
 
 !Local Variable
-INTEGER :: ig, iz, ib, ie, i, l, ITER, jsweep, InIter, nInIter
+INTEGER :: ig, iz, ib, ie, i, l, ITER, jsweep, InIter, nInIter, itst, ireg
 INTEGER :: myzb, myze
 INTEGER :: nFsr, nxy, nxya, nbd, nModRay, nPhiAngSv, nPolarAngle, nGroupInfo
 INTEGER :: GrpBeg, GrpEnd
+
+INTEGER, SAVE :: ntst = 0
+
 REAL :: psipsi, psipsid, eigerr,fiserr, peigv, reserr, errdat(3)
 REAL :: TimeRt1gBeg, TimeRt1gEnd, TimeRtElapsed, TimeNodeElapsed, MocTimeBeg, MocTimeEnd
 REAL :: TimeRtngBeg, TimeRtngEnd, TimeRtngElapsed(2)

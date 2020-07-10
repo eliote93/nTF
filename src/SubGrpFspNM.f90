@@ -36,7 +36,7 @@ TYPE(GroupInfo_Type) :: GroupInfo
 
 INTEGER :: ig, iz, ilv, iter, itersum, itermax
 INTEGER :: ng, nlv, nFsr, nFxr, nPhiAngSv, nPolarAngle
-INTEGER :: gb, ge, myzb, myze
+INTEGER :: gb, ge, myzb, myze, itst, ifxr
 REAL :: errmax, Tbeg, Tend, rtTbeg, rtTend
 REAL, POINTER :: phis(:, :), phisd(:, :), PhiAngIn(:, :, :)
 REAL, POINTER :: Siglp(:, :), xst(:, :), src(:, :)
