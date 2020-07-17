@@ -196,11 +196,13 @@ DO ipin = xyb, xye
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    
     IF(lxslib) THEN
       CALL MacXsBase(XSMac(tid), Fxr(ifxr), 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
       DO ig = 1, ng
         lres = lresogrp(ig) .and. Fxr(ifxr)%lres
         lress = lres .and. lRST
+        
         IF(lres) XsMac(tid)%XsMacA(ig) = XsMac(tid)%XsMacA(ig) * Fxr(ifxr)%fresoa(ig)
         IF(lTrCorrection) THEN
           CALL BaseMacSTr(XsMac(tid), Fxr(ifxr), ig, ng, TRUE)  
@@ -210,6 +212,7 @@ DO ipin = xyb, xye
           IF(lress) XsMac(tid)%XsMacS(ig) = XsMac(tid)%XsMacS(ig) * Fxr(ifxr)%fresos(ig)
           xsmactr(ig) = XsMac(tid)%XsMacA(ig) + XsMac(tid)%XsMacs(ig)
         ENDIF
+        
 #ifdef inflow      
         xsmactr(ig) = xsmactr(ig) + fxr(ifxr)%Delinflow(ig)
 #endif
@@ -222,6 +225,7 @@ DO ipin = xyb, xye
             ELSE
               SPHfac(ig,j)=CellInfo(icel)%SPHfactor(j,ig)
             ENDIF
+            
             xsmactr(ig)=xsmactr(ig)*SPHfac(ig,j)
           ENDIF
         ENDDO

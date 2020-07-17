@@ -328,7 +328,7 @@ END DO
 ! ----------------------------------------------------
 !               02. CAL : dhat, dtil
 ! ----------------------------------------------------
-!$OMP PARALLEL PRIVATE(ipin_map, ineighpin, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jfdm, albedo, smy, iNgh, jNgh)
+!$OMP PARALLEL PRIVATE(ipin_map, ineighpin, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jfdm, albedo, smy, iNgh, jNgh)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
 DO igc = 1, ngc
   DO izf = 1, nzCMFD

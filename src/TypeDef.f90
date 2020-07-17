@@ -196,11 +196,11 @@ type cell_type
   logical :: lgap
   logical :: lcad = .FALSE.
   logical :: lhole = .FALSE.
-  INTEGER :: nDivAzi                              !Azimuthal Division
-  INTEGER :: nBd
-  INTEGER :: nFSR
-  INTEGER :: nFXR
-  INTEGER :: nCellRay                     !
+  INTEGER :: nDivAzi = 0                              !Azimuthal Division
+  INTEGER :: nBd = 0
+  INTEGER :: nFSR = 0
+  INTEGER :: nFXR = 0
+  INTEGER :: nCellRay = 0
   INTEGER :: EdgeCellIdx(0:3) = 0
   INTEGER :: GapType
   INTEGER :: icel0
@@ -229,7 +229,9 @@ type cell_type
   INTEGER,POINTER :: matidx(:)
   REAL,POINTER :: matrad(:),rad_cp(:),fxrvol(:),q_cp(:)
   INTEGER :: nreg_cp,nmat,nmodfxr,cldfxridx,nfueldiv,ngapdiv,ncladdiv,srdidx,ibfuel,iefuel
-  REAL :: fuelgapcldvol,invnmodfxr,FuelRefTEMP0,FuelRad0,U238ND0,MODXSV0
+  REAL :: fuelgapcldvol,invnmodfxr,FuelRefTEMP0,FuelRad0,U238ND0
+  
+  REAL :: MODXSV0 = 0._8
 END type
 
 !Rad Decomposition

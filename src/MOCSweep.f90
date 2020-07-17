@@ -314,6 +314,7 @@ DO iz = myzb, myze
                                  l3dim, lxslib, lscat1, FALSE)
         ENDIF
       ENDIF
+      
       IF (.NOT. nTracerCntl%lDomainDcmp) THEN
         IF (.NOT. nTracerCntl%lLinSrcCASMO) THEN
           IF (.NOT. lscat1) THEN

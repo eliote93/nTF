@@ -599,6 +599,7 @@ Module SPH_Mod
         TYPE(SPHvar_type),POINTER :: svr
         
         IF (.not.CellInfo(icel)%lfuel) return ! Only Fuel Pin (Do not consider surrounding effect)
+        
         svr=>SPHvar(ispf)
 !  1. nuclides(iso) IDs and average number density in fuel region...
         idiso_c_avg=0; niso=1
@@ -727,8 +728,10 @@ Module SPH_Mod
                 DO k = 1, ndiv(j)
                     ifxr = ifxr + 1
                     i = CellInfo(icel)%nFXR-ifxr+1 ! from inside to outside
+                    
                     CALL calcSPH(ispf,pltrad_c,modxsv_c,U238ND,Temp,Mixture(imat)%idiso(1:niso),Mixture(imat)%pnum(1:niso),&
                          Mixture(imat)%niso,CellInfo(icel)%nFXR,nSPHreg_interp,srdidx,ig-nofghel,sphf_interp(1:CellInfo(icel)%nFXR))
+                                        
                     CellInfo(icel)%SPHfactor(i,ig)=sphf_interp(i)
                 ENDDO
             ENDDO
