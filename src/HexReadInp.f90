@@ -36,9 +36,9 @@ DO WHILE(TRUE)
   ! ----------------------------------------------------
   !               01. CHK : Valid Input
   ! ----------------------------------------------------
-  IF(probe.eq.BANG) cycle;     IF(probe.eq.POUND) cycle
-  IF(oneline.eq.BLANK) cycle;  IF(IFnumeric(oneline)) cycle
-  IF(probe.eq.DOT) exit;       IF(probe.eq.SLASH) exit
+  IF (probe   .EQ. BANG)  CYCLE; IF (probe .EQ. POUND)   CYCLE
+  IF (oneline .EQ. BLANK) CYCLE; IF (IFnumeric(oneline)) CYCLE
+  IF (probe   .EQ. DOT)   EXIT;  IF (probe .EQ. SLASH)   EXIT
   
   READ (oneline, *) cardname
   CALL toupper(cardname)
@@ -55,7 +55,7 @@ DO WHILE(TRUE)
     !      3. PITCH
     ! ----------------------------
     CASE(3)
-      IF(nLineField .ne. 1) CALL terminate("PITCH")
+      IF(nLineField .NE. 1) CALL terminate("PITCH")
       
       READ (oneline,*) ASTRING, aoF2F
       
@@ -68,7 +68,7 @@ DO WHILE(TRUE)
       CALL dmalloc(HzInv, nz)
       
       READ (oneline, *) astring, (hz(k), k = 1, nz)
-      HzInv = 1. / Hz
+      HzInv = ONE / Hz
     ! ----------------------------
     !      5. ALBEDO
     ! ----------------------------
@@ -149,6 +149,14 @@ DO WHILE(TRUE)
       dataline = oneline(i:256)
       
       CALL HexRead_Opt(dataline)
+    ! ----------------------------
+    !     26. Corner Stiffener
+    ! ----------------------------
+    CASE (26)
+      i = icolfield(oneline, 2)
+      dataline = oneline(i:256)
+      
+      CALL HexRead_CrnStff(dataline)
   END SELECT
 END DO
 

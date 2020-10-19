@@ -16,7 +16,8 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexInitInp()
 
-use geom,    ONLY : nZ, nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp
+USE allocs
+USE geom,    ONLY : nZ, nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp
 USE HexData, ONLY : RodPin, GapPin, hCel, gCel, hAsy, hAsyTypInfo, hVss
 
 IMPLICIT NONE
@@ -37,14 +38,14 @@ ALLOCATE (hAsyTypInfo (nAsyType0))
 ALLOCATE (hVss        (nVssTyp))
 
 DO iPin = 1, nPinType
-  ALLOCATE (RodPin(iPin)%iCel (nZ))
+  CALL dmalloc(RodPin(iPin)%iCel, nZ)
     
   RodPin(iPin)%lRod = TRUE
   RodPin(iPin)%iCel = 0
 END DO
 
 DO iPin = 1, nGapPinType
-  ALLOCATE (GapPin(iPin)%iCel (nZ))
+  CALL dmalloc(GapPin(iPin)%iCel, nZ)
   
   GapPin(iPin)%lGap = TRUE
   GapPin(iPin)%iCel = 0
@@ -84,8 +85,8 @@ nDataField = len_trim(dataline)
 
 CALL fndchara(dataline, ipos, nspt, SLASH)
 
-IF (nSpt .NE. 5)          CALL terminate("ROD CEL SLASH")
-IF (hCel_Loc%nFXR .NE. 0) CALL terminate("OVERLAPPED CEL INPUT")
+IF (nSpt .NE. 5)          CALL terminate("WRONG [CELL] - ROD CEL SLASH")
+IF (hCel_Loc%nFXR .NE. 0) CALL terminate("WRONG [CELL] - OVERLAPPED CEL INPUT")
 
 nData = nfieldto(dataline, SLASH) ! Number of FXR including Mod
 hCel_Loc%nFXR = nData
@@ -93,9 +94,9 @@ hCel_Loc%nFXR = nData
 mData = nfieldto(dataline(ipos(2)+1:nDataField), SLASH)
 tData = nfieldto(dataline(ipos(1)+1:nDataField), SLASH)
 
-IF (nData .NE. mData)        CALL terminate("# of FXRS")
-IF (nData .NE. tData)        CALL terminate("# of FXRS")
-IF (hCel_Loc%nFXR > nMaxFXR) CALL terminate("NMAXFXR")
+IF (nData .NE. mData)        CALL terminate("WRONG [CELL] - # of FXRS")
+IF (nData .NE. tData)        CALL terminate("WRONG [CELL] - # of FXRS")
+IF (hCel_Loc%nFXR > nMaxFXR) CALL terminate("WRONG [CELL] - NMAXFXR")
 
 READ (dataline(ipos(5)+1:nDataField),*) hCel_Loc%aiF2F
 READ (dataline(ipos(4)+1:nDataField),*) hCel_Loc%pF2F
@@ -153,7 +154,7 @@ CALL fndchara(dataline, ipos, nSpt, SLASH)
 
 gCel_Loc => gCel(iCel)
 
-IF (gCel_Loc%nFXR .NE. 0) CALL terminate("OVERLAPPED GAP CEL INPUT")
+IF (gCel_Loc%nFXR .NE. 0) CALL terminate("WRONG [GAP_CELL] - OVERLAPPED GAP CEL INPUT")
 ! ----------------------------------------------------
 !               01. CASE : One FXR
 ! ----------------------------------------------------
@@ -176,7 +177,7 @@ CASE (5)
   ndata = nfieldto(dataline, SLASH) ! Number of FXR including Mod
   gCel_Loc%nFXR = ndata
   
-  IF (gCel_Loc%nFXR > nMaxFXR) CALL terminate("NMAXFXR")
+  IF (gCel_Loc%nFXR > nMaxFXR) CALL terminate("WRONG [GAP_CELL] - NMAXFXR")
   
   READ (dataline(ipos(5)+1:nDataField),*) gCel_Loc%aiF2F
   READ (dataline(ipos(4)+1:nDataField),*) gCel_Loc%pF2F
@@ -192,7 +193,7 @@ CASE (5)
   
   gCel_Loc%xHgt(1) = (aoF2F - gCel_Loc%aiF2F) * HALF
 CASE DEFAULT
-  CALL terminate("OVERLAPPED PIN INPUT")
+  CALL terminate("WRONG [GAP_CELL] - OVERLAPPED PIN INPUT")
 END SELECT
 
 NULLIFY (gCel_Loc)
@@ -221,7 +222,7 @@ dataline = dataline0
 READ (dataline,*) iPin
 READ (dataline,*) (ii(iz),iz = 1, nZ + 1)
 
-IF (RodPin(iPin)%iCel(1) .NE. 0) CALL terminate("OVERLAPPED GAP PIN INPUT")
+IF (RodPin(iPin)%iCel(1) .NE. 0) CALL terminate("WRONG [PIN] - OVERLAPPED GAP PIN INPUT")
 
 DO iz = 1, nZ
   RodPin(iPin)%iCel(iz) = ii(iz + 1)
@@ -251,7 +252,7 @@ dataline = dataline0
 READ (dataline,*) iPin
 READ (dataline,*) (ii(iz),iz = 1, nZ + 1)
 
-IF (GapPin(iPin)%iCel(1) .NE. 0) CALL terminate("OVERLAPPED GAP PIN INPUT")
+IF (GapPin(iPin)%iCel(1) .NE. 0) CALL terminate("WRONG [GAP_PIN] - OVERLAPPED GAP PIN INPUT")
 
 DO iz = 1, nZ
   GapPin(iPin)%iCel(iz) = ii(iz + 1)
@@ -293,14 +294,14 @@ dataline = dataline0
 ! ----------------------------------------------------
 READ (dataline,*) iAsy, Azm
 
-IF (Azm .NE. 360) CALL terminate("HEX ASY AZM")
+IF (Azm .NE. 360) CALL terminate("WRONG [ASSEMBLY] - HEX ASY AZM")
 
 aInf_Loc => hAsyTypInfo(iAsy)
 
 nDataField = len_trim(dataline)
 CALL fndchara(dataline, ipos, nSpt, SLASH)
 
-IF (aInf_Loc%nPin .NE. 0) CALL terminate("OVERLAPPED ASY INPUT")
+IF (aInf_Loc%nPin .NE. 0) CALL terminate("WRONG [ASSEMBLY] - OVERLAPPED ASY INPUT")
 ! ----------------------------------------------------
 !               02. CASE : Sng Cel
 ! ----------------------------------------------------
@@ -310,11 +311,11 @@ IF (nSpt .EQ. 1) THEN
   READ (indev,'(a256)') oneline
   READ (oneline, *) ii(1)
   
-  IF (iCase .NE. 1) CALL terminate("ASY TYPE INPUT")
+  IF (iCase .NE. 1) CALL terminate("WRONG [ASSEMBLY] - ASY TYPE INPUT")
   
   aInf_Loc%nPin = 1
   
-  ALLOCATE (aInf_Loc%PinIdx (1, 1))
+  CALL dmalloc(aInf_Loc%PinIdx, 1, 1)
   
   aInf_Loc%PinIdx = ii(1)
   aInf_Loc%pF2F   = hCel(ii(1))%pF2F
@@ -326,7 +327,7 @@ END IF
 ! ----------------------------------------------------
 !               03. READ : Asy Data
 ! ----------------------------------------------------
-IF (nSpt .NE. 4) CALL terminate("ASY INPUT")
+IF (nSpt .NE. 4) CALL terminate("WRONG [ASSEMBLY] - ASY INPUT")
 
 READ (dataline(ipos(4)+1:nDataField),*) aInf_Loc%aiF2F
 READ (dataline(ipos(3)+1:nDataField),*) aInf_Loc%pF2F
@@ -338,7 +339,7 @@ aInf_Loc%aiPch = aInf_Loc%aiF2F * Sq3Inv
 ! ----------------------------------------------------
 !               04. READ : Pin Data
 ! ----------------------------------------------------
-ALLOCATE (aInf_Loc%PinIdx (2*aInf_Loc%nPin-1, 2*aInf_Loc%nPin-1)); aInf_Loc%PinIdx = 0
+CALL dmalloc(aInf_Loc%PinIdx, 2*aInf_Loc%nPin-1, 2*aInf_Loc%nPin-1)
 
 jfr = 0
 jto = aInf_Loc%nPin
@@ -357,7 +358,7 @@ DO i = 1, 2 * aInf_Loc%nPin - 1
     EXIT
   END IF
   
-  IF (n .NE. jto) CALL terminate("ASY INPUT MATRIX")
+  IF (n .NE. jto) CALL terminate("WRONG [ASSEMBLY] - ASY INPUT MATRIX")
   
   DO j = 1, jto
     k = j + jfr
@@ -382,6 +383,7 @@ END SUBROUTINE HexRead_Asy
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_Core(indev, dataline0)
 
+USE allocs
 USE geom,    ONLY : Core, Albedo, nAsyType0, nZ, nPinType, nGapPinType
 USE ioutil,  ONLY : toupper
 USE HexUtil, ONLY : HexChkRange_INT
@@ -403,7 +405,7 @@ LOGICAL :: Master
 LOGICAL, SAVE :: lfirst = TRUE
 ! ----------------------------------------------------
 
-IF (.NOT. lfirst) CALL terminate ("[RAD_CONF] INPUTTED MORE THAN ONE ")
+IF (.NOT. lfirst) CALL terminate ("WRONG [RAD_CONF] - INPUTTED MORE THAN ONE ")
 
 lfirst   = FALSE
 dataline = dataline0
@@ -427,9 +429,7 @@ ELSE
   hLgc%lAzmRot = dataline2 .EQ. 'ROT'
 END IF
 
-ALLOCATE (hCore (Core%nya, Core%nya))
-
-hCore = 0
+CALL dmalloc(hCore, Core%nya, Core%nya)
 ! ----------------------------------------------------
 !               CASE : Sng Asy
 ! ----------------------------------------------------
@@ -438,8 +438,8 @@ IF (Core%nya .EQ. 1) THEN
   hLgc%l360    = TRUE
   hLgc%iSym    = 4
   
-  ALLOCATE (Asy2Dto1Dmap (0:2, 0:2))
-  ALLOCATE (Asy1Dto2Dmap (2, 1))
+  CALL dmalloc0(Asy2Dto1Dmap, 0, 2, 0, 2)
+  CALL dmalloc (Asy1Dto2Dmap, 2, 1)
   
   Asy2Dto1Dmap = 0
   Asy1Dto2Dmap = 0
@@ -469,12 +469,9 @@ ELSE IF (iAng .EQ. 360) THEN
   hLgc%l360  = TRUE
   hLgc%iSym  = 3
   
-  ALLOCATE (Asy2Dto1Dmap (0:2 * nAsyCore, 0:2 * nAsyCore))
-  ALLOCATE (Asy1Dto2Dmap (2, nAsyTot))
-  
-  Asy2Dto1Dmap = 0
-  Asy1Dto2Dmap = 0
-  
+  CALL dmalloc0(Asy2Dto1Dmap, 0, 2 * nAsyCore, 0, 2 * nAsyCore)
+  CALL dmalloc (Asy1Dto2Dmap, 2, nAsyTot)
+    
   jfr = 0
   jto = nAsyCore
 
@@ -520,12 +517,9 @@ ELSE IF (iAng .EQ. 120) THEN
   hLgc%l120  = TRUE
   hLgc%iSym  = 2
   
-  ALLOCATE (Asy2Dto1Dmap (0:nAsyCore+1, 0:nAsyCore+1))
-  ALLOCATE (Asy1Dto2Dmap (2, nAsyTot))
-  
-  Asy2Dto1Dmap = 0
-  Asy1Dto2Dmap = 0
-  
+  CALL dmalloc0(Asy2Dto1Dmap, 0, nAsyCore+1, 0, nAsyCore+1)
+  CALL dmalloc (Asy1Dto2Dmap, 2, nAsyTot)
+    
   jto = nAsyCore
   
   DO i = 1, Core%nya
@@ -562,12 +556,9 @@ ELSE IF (iAng .EQ. 60) THEN
   hLgc%l060  = TRUE
   hLgc%iSym  = 1
   
-  ALLOCATE (Asy2Dto1Dmap (0:nAsyCore+1, 0:nAsyCore+1))
-  ALLOCATE (Asy1Dto2Dmap (2, nAsyTot))
-  
-  Asy2Dto1Dmap = 0
-  Asy1Dto2Dmap = 0
-  
+  CALL dmalloc0(Asy2Dto1Dmap, 0, nAsyCore+1, 0, nAsyCore+1)
+  CALL dmalloc (Asy1Dto2Dmap, 2, nAsyTot)
+    
   jfr = 0
   jto = nAsyCore
   
@@ -601,7 +592,7 @@ ELSE IF (iAng .EQ. 60) THEN
     jto = jto - 1
   END DO
 ELSE
-  CALL terminate("CORE SYMMETRY")
+  CALL terminate("WRONG [RAD_CONF] - CORE SYMMETRY")
 END IF
 
 nhAsy = nAsy
@@ -611,7 +602,7 @@ nhAsy = nAsy
 DO iAsy = 1, nhAsy
   jAsy = hCore(Asy1Dto2DMap(1, iAsy), Asy1Dto2DMap(2, iAsy))
   
-  CALL HexChkRange_INT(jAsy, 1, nAsyType0, "CORE ASY INPUT")
+  CALL HexChkRange_INT(jAsy, 1, nAsyType0, "WRONG [RAD_CONF] - CORE ASY INPUT")
   
   hAsyTypInfo(jAsy)%luse = TRUE
   
@@ -726,7 +717,7 @@ CASE (3)
   
   READ (dataline, *) Tmp, hVss(iVss)%Cnt(1), hVss(iVss)%Cnt(2)
 CASE DEFAULT
-  CALL terminate("VESSEL SLASH")
+  CALL terminate("WRONG [VSS] - VESSEL SLASH")
 END SELECT
 ! ----------------------------------------------------
 
@@ -752,7 +743,7 @@ dataline  = dataline0
 nDataField = len_trim(dataline)
 CALL fndchara(dataline, ipos, nSpt, SLASH)
 
-IF (nSpt .NE. 2) CALL terminate("WRONG VYGORODKA INPUT")
+IF (nSpt .NE. 2) CALL terminate("WRONG [VYG] - WRONG VYGORODKA INPUT")
 
 READ (dataline(ipos(2)+1:nDataField), *) vzSt, vzEd
 READ (dataline(ipos(1)+1:nDataField), *) vMat1, vMat2, vFXR
@@ -803,6 +794,28 @@ nTracerCntl%lCMFD = lCMFD
 ! ----------------------------------------------------
 
 END SUBROUTINE HexRead_Opt
+! ------------------------------------------------------------------------------------------------------------
+!                                     13. HEX READ : Corner Stiffener
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexRead_CrnStff(dataline0)
+
+USE HexData, ONLY : csMat, csWdth, csLgh
+USE ioutil,  ONLY : nfields
+
+IMPLICIT NONE
+
+CHARACTER(256), INTENT(IN) :: dataline0
+CHARACTER(512) :: dataline
+! ----------------------------------------------------
+
+dataline = dataline0
+
+IF (nfields(dataline) .NE. 3) CALL terminate("WRONG [CRN_STFF]")
+
+READ (dataline, *) csMat, csWdth, csLgh
+! ----------------------------------------------------
+
+END SUBROUTINE HexRead_CrnStff
 ! ------------------------------------------------------------------------------------------------------------
 
 END MODULE HexInpCard

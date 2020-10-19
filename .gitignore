@@ -1,7 +1,6 @@
 # Execution
 *.inp
 *.INP
-*.out
 
 #build
 *.pdb

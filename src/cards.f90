@@ -15,7 +15,7 @@ equivalence (sc(1),oneline)
 
 INTEGER ::  ncard(nblock)
 data ncard/ 1,  2, 20, 29, 3,            & !CASEID    STATE      XSEC      OPTION     MATERIAL
-           25, 20,  6, 12, 8,            & !GEOM      TH         TRAN      DEPL       BRANCH
+           26, 20,  6, 12, 8,            & !GEOM      TH         TRAN      DEPL       BRANCH
            24,  7,  5, 2,  9,            & !EDIT      DECOUPLE   PARALLEL  VISUAL     LP_SHF  !--- BYS edit : # of EDIT card
             9,  4,  3, 4,  6,            & !CNTLROD   CUSPING    XEDYN     CONV       MCP_RESTART
             4, 13, 10, 14, 3/              !SUBCH_OP  MKL        CUDA      GCGEN      NTIG_RESTART
@@ -44,12 +44,13 @@ data cards/   'RESTART'   ,29*' '                                               
       ,'AFSS'       ,'NODALOPT'  ,'MULTIGRID' ,'GRIDSTR'   ,1*''                   &
 !  5  MATERIAL 3                                                                   &
       ,'MIXTURE'    ,'TRISO'    ,'INCLUDE'    ,27*''                               &
-!  6  GEOM    24                                                                   &
+!  6  GEOM    26                                                                   &
       ,'HEX'        ,'NPINS'     ,'PITCH'     ,'AX_MESH'   ,'ALBEDO'               &
       ,'STRUCT'     ,'CELL'      ,'GAP'       ,'PIN'       ,'ASSEMBLY'             &
       ,'RAD_CONF'   ,'CAD_CELL'  ,'GAP_CELL'  ,'GAP_PIN'   ,'GAP_ASY'              &
       ,'RING_STRUCT','BAFFLE'    ,'BARREL'    ,'INCLUDE'   ,'HGAP'                 &
-      ,'VESSEL'     ,'VYGORODKA' ,'HEXOPT'    ,'NTIG'      ,'BASECELL', 5*' '      &
+      ,'VESSEL'     ,'VYGORODKA' ,'HEXOPT'    ,'NTIG'      ,'BASECELL'             &
+      ,'CRN_STFF',  4*' '                                                          &
 !  7  TH    20                                                                     &
       ,'PIN_DIM'    ,'NRING_COND','EFF_DOPLT' ,'KCOND_FUEL','RHOCP_FUEL'           &
       ,'KCOND_CLAD' ,'RHOCP_CLAD','STEAM_TBL' ,'SIMPLE_TH' ,'CHGRP'                &
