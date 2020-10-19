@@ -232,8 +232,9 @@
 		<File RelativePath=".\src\HexChkInp.f90"/>
 		<File RelativePath=".\src\HexCorePowerCal.f90"/>
 		<File RelativePath=".\src\HexEffXsOut.f90"/>
-		<File RelativePath=".\src\HexInput.f90"/>
+		<File RelativePath=".\src\HexInpCard.f90"/>
 		<File RelativePath=".\src\HexOutputEdit.f90"/>
+		<File RelativePath=".\src\HexReadInp.f90"/>
 		<File RelativePath=".\src\HexThOut.f90"/></Filter>
 		<Filter Name="Ray">
 		<File RelativePath=".\src\HexAsyRay.f90"/>
@@ -475,6 +476,10 @@
 		<Filter Name="BenchmarkXS">
 		<File RelativePath=".\src\BenchXs_mod.f90"/>
 		<File RelativePath=".\src\readbenchxs.f90"/></Filter>
+		<Filter Name="ISOTXS">
+		<File RelativePath=".\src\PostProc_ISOTXS.f90"/>
+		<File RelativePath=".\src\ProcMAT_ISOTXS.f90"/>
+		<File RelativePath=".\src\readISOTXS.f90"/></Filter>
 		<Filter Name="LibXS">
 		<File RelativePath=".\src\MacXsLib.f90"/>
 		<File RelativePath=".\src\Material_Mod.f90"/>
@@ -484,10 +489,6 @@
 		<File RelativePath=".\src\SPH_Mod.f90"/>
 		<File RelativePath=".\src\TranMacXsLib.f90"/>
 		<File RelativePath=".\src\xslib_mod.f90"/></Filter>
-		<Filter Name="ISOTXS">
-		<File RelativePath=".\src\PostProc_ISOTXS.f90"/>
-		<File RelativePath=".\src\ProcMAT_ISOTXS.f90"/>
-		<File RelativePath=".\src\readISOTXS.f90"/></Filter>
 		<Filter Name="VTK">
 		<File RelativePath=".\src\vtk_mod.f90"/></Filter>
 		<File RelativePath=".\src\inflow.f90"/>

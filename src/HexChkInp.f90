@@ -1,11 +1,3 @@
-MODULE HexChk
-
-USE ioutil,  ONLY : terminate
-USE HexUtil, ONLY : HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
-
-IMPLICIT NONE
-
-CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX CHK : Input
 ! ------------------------------------------------------------------------------------------------------------
@@ -14,7 +6,7 @@ SUBROUTINE HexChkInp()
 USE CNTL,    ONLY : nTracerCntl
 USE PARAM,   ONLY : TRUE, FALSE
 USE geom,    ONLY : nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp, nZ
-USE HexUtil, ONLY : ChkSameVal
+USE HexUtil, ONLY : ChkSameVal, HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
 USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexAsyTypInfo
 USE IOUTIL,  ONLY : terminate
 USE HexData
@@ -190,7 +182,9 @@ SUBROUTINE HexChkCelBss()
 
 USE geom,    ONLY : nAsyType0, nPinType, nGapType, nZ
 USE CNTL,    ONLY : nTracerCntl
+USE ioutil,  ONLY : terminate
 USE HexData, ONLY : ncBss, hCelBss, ngBss, gCelBss, hCel, gCel, RodPin, GapPin
+USE HexUtil, ONLY : HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
 
 IMPLICIT NONE
 
@@ -235,5 +229,3 @@ END DO
 
 END SUBROUTINE HexChkCelBss
 ! ------------------------------------------------------------------------------------------------------------
-  
-END MODULE HexChk

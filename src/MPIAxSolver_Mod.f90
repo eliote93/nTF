@@ -398,7 +398,6 @@ USE CMFDComm_mod,     ONLY : CommPinXS_Type,                                    
 USE TIMER,            ONLY : nTracer_dclock, TimeChk
 USE BasicOperation,   ONLY : CP_VA
 USE CNTL,             ONLY : nTracerCntl
-USE HexTLkg,          ONLY : HexRadTlkgUpdt, HexStabGapPinLkg
 USE OMP_LIB
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core

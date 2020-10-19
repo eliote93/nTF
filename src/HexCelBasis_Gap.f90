@@ -1,8 +1,3 @@
-MODULE HexCelBasis_Gap
-  
-IMPLICIT NONE
-  
-CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Gap Cel Bss
 ! ------------------------------------------------------------------------------------------------------------
@@ -19,7 +14,7 @@ USE HexUtil, ONLY : HexChkRange_INT
 IMPLICIT NONE
 
 INTEGER :: igCel, jgCel, kgCel, igBss, iMsh, jgPin
-LOGICAL :: lNewBss
+LOGICAL :: lNewBss, HexCompNewGapBss
 ! ----------------------------------------------------
 
 IF (hLgc%lSngCel) RETURN
@@ -230,7 +225,7 @@ USE HexData, ONLY : Sq3Inv, gCelBss
 IMPLICIT NONE
 
 INTEGER :: igBss
-INTEGER :: iFXR, jFXR, iSub, jSub, iMsh, jMsh, nMsh
+INTEGER :: iFXR, jFXR, iSub, jSub, iMsh, jMsh, nMsh, HexCalNumVtxHor
 
 REAL :: Vol, Tmp, Hgt, aiPch
 
@@ -352,5 +347,3 @@ GapPin(igPin)%iCel(1:nZ) = GapPin(jgPin)%iCel(1:nZ)
 
 END SUBROUTINE HexPushGapPin
 ! ------------------------------------------------------------------------------------------------------------
-
-END MODULE HexCelBasis_Gap

@@ -20,7 +20,6 @@ USE SUBGRP_MOD,  ONLY : FxrChiGen
 
 USE HexTst,  ONLY : HexChkEffXs
 USE HexData, ONLY : hLgc
-USE HexThOut
 
 #ifdef MPI_ENV
 USE MpiComm_mod, ONLY : BCAST, MPI_SYNC

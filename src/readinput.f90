@@ -12,7 +12,6 @@ USE ReadInpCard
 USE CNTL,           ONLY : nTracerCntl
 USE PE_MOD,         ONLY : PE
 USE Geom,           ONLY : Core
-USE HexInput,       ONLY : HexReadInp
 
 #ifdef MPI_ENV
 USE MPIComm_Mod,    ONLY : MPIWaitTurn,  MPI_SYNC
