@@ -14,6 +14,7 @@ module allocs
     module procedure mallocf3
     module procedure mallocd3
     module procedure malloci3
+    module procedure mallocl3
     module procedure mallocf4
     module procedure mallocd4
     module procedure malloci4
@@ -131,6 +132,14 @@ module allocs
     INTEGER,pointer :: a(:,:,:)
     allocate(a(n1,n2,n3))
     a=0
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
+    !
+    SUBROUTINE mallocl3(a,n1,n2,n3)
+
+    LOGICAL,pointer :: a(:,:,:)
+    allocate(a(n1,n2,n3))
+    a=.FALSE.
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
     !

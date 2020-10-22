@@ -67,6 +67,7 @@ END SUBROUTINE HexSetRayPinDat
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRayRodCel_12(RayCel, icBss)
 
+USE allocs
 USE PARAM,   ONLY : PI, HALF, ONE, ZERO
 USE ioutil,  ONLY : terminate
 USE HexType, ONLY : Type_HexRayCel, Type_HexRodCelBss
@@ -96,13 +97,15 @@ nMsh = hBss_Loc%nMsh
 
 RodCel => RayCel(1)
 
-ALLOCATE (RodCel%Eqn   (5, 5 + nSub)); RodCel%Eqn       = ZERO
-ALLOCATE (RodCel%iEqnCor  (5 + nSub)); RodCel%iEqnCor   = 1 ! NOTICE : x-cor
-ALLOCATE (RodCel%nMshEqn      (nMsh)); RodCel%nMshEqn   = 0
-ALLOCATE (RodCel%MshEqnLst (4, nMsh)); RodCel%MshEqnLst = 0 
-ALLOCATE (RodCel%MshEqnVal (4, nMsh)); RodCel%MshEqnVal = ZERO
+CALL dmalloc(RodCel%Eqn,  5, 5 + nSub)
+CALL dmalloc(RodCel%iEqnCor, 5 + nSub)
 
-RodCel%nMsh = hBss_Loc%nMsh
+CALL dmalloc(RodCel%nMshEqn,      nMsh)
+CALL dmalloc(RodCel%MshEqnLst, 4, nMsh)
+CALL dmalloc(RodCel%MshEqnVal, 4, nMsh)
+
+RodCel%iEqnCor = 1 ! NOTICE : x-cor
+RodCel%nMsh    = hBss_Loc%nMsh
 ! ----------------------------------------------------
 !               01. SET : Rod Cel Eqn
 ! ----------------------------------------------------
@@ -168,7 +171,7 @@ END DO
 ! ----------------------------------------------------
 !               03. SET : Fsr Idx
 ! ----------------------------------------------------
-ALLOCATE (RodCel%MshIdx (7, nMsh)); RodCel%MshIdx = 0
+CALL dmalloc(RodCel%MshIdx, 7, nMsh)
 
 iMsh = 0
 
@@ -214,6 +217,7 @@ END SUBROUTINE HexSetRayRodCel_12
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRayGapCel(RayCel, icBss)
 
+USE allocs
 USE HexType, ONLY : Type_HexRayCel, Type_HexGapCelBss
 USE PARAM,   ONLY : ZERO, ONE, PI, HALF
 USE HexData, ONLY : Sq3, PI_6
@@ -240,14 +244,15 @@ gHor = gBss_Loc%nVtxHor * 2 - 4
 nSub = gBss_Loc%nSub
 nMsh = gHor * nSub
 
-ALLOCATE (GapCel%Eqn  (5, nSub + gHor - 2)); GapCel%Eqn     = ZERO
-ALLOCATE (GapCel%iEqnCor (nSub + gHor - 2)); GapCel%iEqnCor = 1
+CALL dmalloc(GapCel%Eqn,  5, nSub + gHor - 2)
+CALL dmalloc(GapCel%iEqnCor, nSub + gHor - 2)
 
-ALLOCATE (GapCel%nMshEqn      (nMsh)); GapCel%nMshEqn   = 0
-ALLOCATE (GapCel%MshEqnLst (4, nMsh)); GapCel%MshEqnLst = 0 
-ALLOCATE (GapCel%MshEqnVal (4, nMsh)); GapCel%MshEqnVal = ZERO
+CALL dmalloc(GapCel%nMshEqn,      nMsh)
+CALL dmalloc(GapCel%MshEqnLst, 4, nMsh)
+CALL dmalloc(GapCel%MshEqnVal, 4, nMsh)
 
-GapCel%nMsh = nMsh
+GapCel%iEqnCor = 1 ! NOTICE : x-cor
+GapCel%nMsh    = nMsh
 ! ----------------------------------------------------
 !               01. SET : Gap Cel Eqn - NE
 ! ----------------------------------------------------
@@ -312,7 +317,7 @@ END DO
 ! ----------------------------------------------------
 !               04. SET : Msh Idx
 ! ----------------------------------------------------
-ALLOCATE (GapCel%MshIdx (8:10, nMsh)); GapCel%MshIdx = 0
+CALL dmalloc0(GapCel%MshIdx, 8, 10, 1, nMsh)
 
 iMsh = 0 ! Msh Idx
 jMsh = 0 ! Msh Idx in iVtx = 8  : Gap 01 (NE & L)

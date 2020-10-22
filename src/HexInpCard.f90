@@ -41,14 +41,12 @@ DO iPin = 1, nPinType
   CALL dmalloc(RodPin(iPin)%iCel, nZ)
     
   RodPin(iPin)%lRod = TRUE
-  RodPin(iPin)%iCel = 0
 END DO
 
 DO iPin = 1, nGapPinType
   CALL dmalloc(GapPin(iPin)%iCel, nZ)
   
   GapPin(iPin)%lGap = TRUE
-  GapPin(iPin)%iCel = 0
 END DO
 ! ----------------------------------------------------
 
@@ -440,10 +438,7 @@ IF (Core%nya .EQ. 1) THEN
   
   CALL dmalloc0(Asy2Dto1Dmap, 0, 2, 0, 2)
   CALL dmalloc (Asy1Dto2Dmap, 2, 1)
-  
-  Asy2Dto1Dmap = 0
-  Asy1Dto2Dmap = 0
-  
+    
   Asy2Dto1Dmap(1,1) = 1
   Asy1Dto2Dmap(:,1) = 1
   

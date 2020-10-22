@@ -63,6 +63,7 @@ END SUBROUTINE HexCPnT
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCPCelInfo()
 
+USE allocs
 USE TYPEDEF,      ONLY : cell_type
 USE param,        ONLY : TRUE, FALSE, HALF, ZERO
 USE GEOM,         ONLY : CellInfo, nCellType, nGapType
@@ -124,10 +125,10 @@ DO iCel = 1, nCellType
     ! ----------------------------
     !      1. Basic
     ! ----------------------------
-    ALLOCATE (Cel_Loc%nFSRinFXR     (nSub))
-    ALLOCATE (Cel_Loc%Vol           (0:nSub - 1)) ! Need to be changed into FSR unit
-    ALLOCATE (Cel_Loc%iReg          (nSub * nFSRinSub))
-    ALLOCATE (Cel_Loc%MapFxr2FsrIdx (nFSRinSub, nSub))
+    CALL dmalloc(Cel_Loc%nFSRinFXR, nSub)
+    CALL dmalloc0(Cel_Loc%Vol, 0, nSub- 1) ! Need to be changed into FSR unit
+    CALL dmalloc(Cel_Loc%iReg, nSub * nFSRinSub)
+    CALL dmalloc(Cel_Loc%MapFxr2FsrIdx, nFSRinSub, nSub)
     
     Cel_Loc%luse   = TRUE
     Cel_Loc%lfuel  = FALSE
@@ -145,10 +146,8 @@ DO iCel = 1, nCellType
     Cel_Loc%Geom%lCircle = TRUE
     Cel_Loc%Geom%nCircle = nSub - 1 ! # of Sub-Rings
     
-    ALLOCATE (Cel_Loc%geom%Circle (3, Cel_Loc%geom%nCircle))
-    
-    Cel_Loc%geom%Circle = ZERO
-    
+    CALL dmalloc(Cel_Loc%geom%Circle, 3, Cel_Loc%geom%nCircle)
+        
     DO iSub = 1, Cel_Loc%Geom%nCircle
       Cel_Loc%geom%Circle(3, iSub) = cBs_Loc%sRad(iSub + 1)
     END DO
@@ -197,10 +196,10 @@ DO iCel = 1, nGapType
     ! ----------------------------
     !      1. Basic
     ! ----------------------------
-    ALLOCATE (Cel_Loc%Vol           (nFSRinSub * nSub)) ! FSR unit
-    ALLOCATE (Cel_Loc%iReg          (nFSRinSub * nSub))
-    ALLOCATE (Cel_Loc%nFSRinFXR     (nSub))
-    ALLOCATE (Cel_Loc%MapFxr2FsrIdx (nFSRinSub, nSub))
+    CALL dmalloc(Cel_Loc%Vol,           nFSRinSub * nSub) ! FSR unit
+    CALL dmalloc(Cel_Loc%iReg,          nFSRinSub * nSub)
+    CALL dmalloc(Cel_Loc%nFSRinFXR,     nSub)
+    CALL dmalloc(Cel_Loc%MapFxr2FsrIdx, nFSRinSub, nSub)
     
     Cel_Loc%luse   = TRUE
     Cel_Loc%lfuel  = FALSE
@@ -289,7 +288,7 @@ DO iCel = 1, nCellType
     
     nFSRinSub = nSct / rnFSRinSub(iDir)
     
-    ALLOCATE (Cel_Loc%Vol (Cel_Loc%nFSR))
+    CALL dmalloc(Cel_Loc%Vol, Cel_Loc%nFSR)
     
     jFSR = 0
     
@@ -313,6 +312,7 @@ END SUBROUTINE HexCPCelInfo
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCalcCellSSPH(icTyp)
 
+USE allocs
 USE TYPEDEF,      ONLY : cell_type
 USE param,        ONLY : ZERO, PI, INVPI, FALSE, TRUE
 USE GEOM,         ONLY : CellInfo
@@ -403,8 +403,8 @@ Cel_Loc => CellInfo(jCel)
 
 Cel_Loc%nmat = nmat
 
-ALLOCATE (Cel_Loc%matidx (nmat))
-ALLOCATE (Cel_Loc%matrad (nmat))
+CALL dmalloc(Cel_Loc%matidx, nmat)
+CALL dmalloc(Cel_Loc%matrad, nmat)
 
 Cel_Loc%matidx(1:nmat) = imat(1:nmat)
 Cel_Loc%matrad(1:nmat) = irad(1:nmat)
@@ -414,10 +414,8 @@ nreg = sum(idiv(1:nmat))
 ! Sub-ring Data
 Cel_Loc%nreg_cp = nreg
 
-ALLOCATE (Cel_Loc%rad_cp (nreg))
-ALLOCATE (Cel_Loc%fxrvol (nreg))
-
-Cel_Loc%rad_cp = 0._8
+CALL dmalloc(Cel_Loc%rad_cp, nreg)
+CALL dmalloc(Cel_Loc%fxrvol, nreg)
 
 vol = 0._8
 k   = 1
@@ -523,10 +521,10 @@ DO iDir = 2, pnRod
   
   IF (.NOT. CeL_CP%luse) CYCLE
   
-  ALLOCATE (Cel_CP%matidx (nmat))
-  ALLOCATE (Cel_CP%matrad (nmat))
-  ALLOCATE (Cel_CP%rad_cp (nreg))
-  ALLOCATE (Cel_CP%fxrvol (nreg))
+  CALL dmalloc(Cel_CP%matidx, nmat)
+  CALL dmalloc(Cel_CP%matrad, nmat)
+  CALL dmalloc(Cel_CP%rad_cp, nreg)
+  CALL dmalloc(Cel_CP%fxrvol, nreg)
   
   Cel_CP%nmat     = Cel_Loc%nmat
   Cel_CP%matidx   = Cel_Loc%matidx
@@ -584,6 +582,7 @@ END SUBROUTINE HexCalcCellSSPH
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCPPin(iPin)
 
+USE allocs
 USE TYPEDEF, ONLY : pin_type
 USE GEOM,    ONLY : Core, Pin, nZ, nCellType, nGapType, CellInfo, AsyInfo
 USE HexType, ONLY : Type_HexPinInfo
@@ -615,8 +614,8 @@ Pin_Loc%FxrIdxSt = Inf_Loc%FxrIdxSt
 ! ----------------------------------------------------
 !               02. SET : Cel
 ! ----------------------------------------------------
-ALLOCATE (Pin_Loc%Cell    (nZ))
-ALLOCATE (Pin_Loc%hCelGeo (nZ))
+CALL dmalloc(Pin_Loc%Cell,    nZ)
+CALL dmalloc(Pin_Loc%hCelGeo, nZ)
 
 DO iz = 1, nZ
   ! ----------------------------
@@ -652,7 +651,7 @@ END IF
 ! ----------------------------------------------------
 !               03. SET : LOGICAL
 ! ----------------------------------------------------
-ALLOCATE(Pin(iPin)%lMOX (Core%nz))
+CALL dmalloc(Pin(iPin)%lMOX, Core%nz)
 
 DO iz = 1, Core%nz
   iCel = Pin(iPin)%Cell(iz)
@@ -679,6 +678,7 @@ END SUBROUTINE HexCPPin
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE ConvertRay()
 
+USE allocs
 USE PARAM,    ONLY : PI, VoidCell
 USE Geom,     ONLY : Core, Albedo
 USE Rays,     ONLY : RayInfo, PolarAngle, AziAngle, RotRay, CoreRay, AsyRay
@@ -702,8 +702,9 @@ RayInfo%nCoreRay = ncRay
 RayInfo%nRotRay  = nRotRay
 
 RayInfo%nPhiAngSv = 2*RayInfo%nRotRay + 1
-ALLOCATE (RayInfo%PhiAngInSvIdx  (RayInfo%nRotRay, 2))
-ALLOCATE (RayInfo%PhiAngOutSvIdx (RayInfo%nRotRay, 2))
+
+CALL dmalloc(RayInfo%PhiAngInSvIdx,  RayInfo%nRotRay, 2)
+CALL dmalloc(RayInfo%PhiAngOutSvIdx, RayInfo%nRotRay, 2)
 
 IF (Albedo(2) .EQ. VoidCell) THEN
   RayInfo%PhiAngInSvIdx = 1
@@ -725,15 +726,15 @@ END IF
 ! ----------------------------------------------------
 RayInfo%nAziAngle = nAzmAng
 
-ALLOCATE(AziANgle (RayInfo%nAziAngle * 2))
+ALLOCATE (AziANgle (RayInfo%nAziAngle * 2))
 
 DO iAzm = 1, RayInfo%nAziAngle
-  AziAngle(iAzm)%Ang     = AzmAng(iAzm)
-  AziAngle(iAzm)%Del     = AzmDel(iAzm)
-  AziAngle(iAzm)%sinv    = AzmSin(iAzm)
-  AziAngle(iAzm)%cosv    = AzmCos(iAzm)
-  AziAngle(iAzm)%tanv    = AzmTan(iAzm)
-  AziAngle(iAzm)%Weight  = AzmWgt(iAzm)
+  AziAngle(iAzm)%Ang    = AzmAng(iAzm)
+  AziAngle(iAzm)%Del    = AzmDel(iAzm)
+  AziAngle(iAzm)%sinv   = AzmSin(iAzm)
+  AziAngle(iAzm)%cosv   = AzmCos(iAzm)
+  AziAngle(iAzm)%tanv   = AzmTan(iAzm)
+  AziAngle(iAzm)%Weight = AzmWgt(iAzm)
 END DO
 
 DO iAzm = 1, RayInfo%nAziAngle
@@ -756,7 +757,7 @@ CALL SetPolarRayAngle(PolarAngle, RayInfo)
 ! ----------------------------------------------------
 !                4. Ray Info % RayInfo 4 CMFD - Rough
 ! ----------------------------------------------------
-ALLOCATE(RayInfo%RayInfo4CMFD)
+ALLOCATE (RayInfo%RayInfo4CMFD)
 
 RayInfo%RayInfo4CMFD%nRotRay   = nRotRay
 RayInfo%RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
@@ -784,7 +785,7 @@ IMPLICIT NONE
 ! ----------------------------------------------------
 
 IF (nTracerCntl%libtyp .EQ. 1) THEN
-  ALLOCATE(Mixture (nxsltype))
+  ALLOCATE (Mixture (nxsltype))
 
   Mixture(1:nxsltype)%lfuel = TRUE
   Mixture(1:nxsltype)%lGd   = FALSE

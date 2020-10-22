@@ -43,6 +43,7 @@ END SUBROUTINE HexSetHcPin
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetHcPinSlf_SP()
 
+USE allocs
 USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexCmfdPin
 USE HexData, ONLY : nhAsy, hAsy, hAsyTypInfo, nHexPin, hcPin, hPinInfo, spTypNumNgh, nhcPin
 USE HexUtil, ONLY : SetEqn, FindCnt
@@ -59,7 +60,7 @@ TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 TYPE(Type_HexCmfdPin),    POINTER :: cPin_Loc
 ! ----------------------------------------------------
 
-ALLOCATE (PinMap (nHexPin)); PinMap = 0
+CALL dmalloc(PinMap, nHexPin)
 
 nPin = 0
 
@@ -149,6 +150,7 @@ END SUBROUTINE HexSetHcPinSlf_SP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetHcPinSlf_MP()
 
+USE allocs
 USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexCmfdPin
 USE HexData, ONLY : nhAsy, hAsy, hAsyTypInfo, nHexPin, hcPin, hPinInfo, mpTypNumNgh, nhcPin
 USE HexUtil, ONLY : SetEqn, FindCnt
@@ -165,7 +167,7 @@ TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 TYPE(Type_HexCmfdPin),    POINTER :: cPin_Loc
 ! ----------------------------------------------------
 
-ALLOCATE (PinMap (nHexPin)); PinMap = 0
+CALL dmalloc(PinMap, nHexPin)
 
 nhcPin = nHexPin
 
@@ -474,6 +476,7 @@ END FUNCTION CalNghSegLgh
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCPSuperPin(CoreInfo, superPin, nxy, lSuperpin)
 
+USE allocs
 USE PARAM,          ONLY : TRUE, FALSE
 USE TYPEDEF,        ONLY : CoreInfo_Type, Cell_Type, Pin_Type
 USE HexType,        ONLY : Type_HexCmfdPin
@@ -515,7 +518,7 @@ DO ixy = 1, nxy
   ! CP
   sPin_Loc%nxy = cPin_Loc%nmPin
 
-  ALLOCATE(sPin_Loc%pin(3))
+  CALL dmalloc(sPin_Loc%pin, 3)
 
   ! SELF
   sPin_Loc%pin             = cPin_Loc%mpIdx  ! MOC Pin
@@ -542,10 +545,8 @@ Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
 DO ixy = 1, nxy
-  ALLOCATE(superPin(ixy)%lFuel(CoreInfo%nz))
-
-  superPin(ixy)%lFuel = FALSE
-
+  CALL dmalloc(superPin(ixy)%lFuel, CoreInfo%nz)
+  
   DO iz = 1, CoreInfo%nz
     DO jxy = 1, superPin(ixy)%nxy
       iPin = superPin(ixy)%pin(jxy)
@@ -579,6 +580,7 @@ END SUBROUTINE HexCPSuperPin
 #ifdef __INTEL_MKL
 SUBROUTINE HexSetGlobalPin(CoreInfo, FmInfo)
 
+USE allocs
 USE MKL_3D
 USE PARAM,   ONLY : TRUE, FALSE
 USE HexData, ONLY : nhcPin
@@ -606,12 +608,12 @@ Fxr      => FmInfo%Fxr
 Pin      => CoreInfo%Pin
 Cell     => CoreInfo%CellInfo
 
-ALLOCATE (mklGeom%pinMap           (nhcPin))
-ALLOCATE (mklGeom%pinMapRev     (-1:nhcPin))
-ALLOCATE (mklGeom%PinVolFm         (nhcPin, nzCMFD))
-ALLOCATE (mklGeom%lRefPin          (nhcPin))
-ALLOCATE (mklGeom%lRefCell (nzCMFD, nhcPin))
-ALLOCATE (mklGeom%lH2OCell (nzCMFD, nhcPin))
+CALL dmalloc (mklGeom%pinMap,           nhcPin)
+CALL dmalloc0(mklGeom%pinMapRev, -1,    nhcPin)
+CALL dmalloc (mklGeom%PinVolFm,         nhcPin, nzCMFD)
+CALL dmalloc (mklGeom%lRefPin,          nhcPin)
+CALL dmalloc (mklGeom%lRefCell, nzCMFD, nhcPin)
+CALL dmalloc (mklGeom%lH2OCell, nzCMFD, nhcPin)
 
 ! Pin Map
 mklGeom%pinMapRev(-1) = -1

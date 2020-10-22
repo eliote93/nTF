@@ -38,7 +38,7 @@ CALL HexRayInfo4CmfdGen(RayInfo, RayInfo4Cmfd)
 nAziAng = RayInfo%nAziAngle
 nRotRay = RayInfo%nRotRay
 
-CALL Dmalloc0(RayInfo%RotRayAziList, 0, nRotRay, 1, nAziAng / 2)
+CALL dmalloc0(RayInfo%RotRayAziList, 0, nRotRay, 1, nAziAng / 2)
 
 nRay = nRotRay / (nAziAng / 2)
 

@@ -100,6 +100,7 @@ END SUBROUTINE HexSetGapCelBss
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPushGapCelBss(ggCelBss, ggCel, iB, iG)
 
+USE allocs
 USE PARAM,   ONLY : ZERO
 USE GEOM,    ONLY : nGapType
 USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss
@@ -124,13 +125,12 @@ ggCelBss%aiF2F = ggCel%aiF2F
 ggCelBss%xHgt(1:ggCel%nFXR) = ggCel%xHgt(1:ggCel%nFXR)
 ggCelBss%xDiv(1:ggCel%nFXR) = ggCel%xDiv(1:ggCel%nFXR)
 
-ALLOCATE (ggCelBss%iCel (nGapType))
+CALL dmalloc(ggCelBss%iCel, nGapType)
 
 ggCelBss%nCel    = 1
-ggCelBss%iCel    = 0
 ggCelBss%iCel(1) = iG
 
-ALLOCATE (ggCelBss%sHgt (ggCelBss%nSub + 1))
+CALL dmalloc(ggCelBss%sHgt, ggCelBss%nSub + 1)
 
 ggCelBss%sHgt = ZERO
 ! ----------------------------------------------------
@@ -218,6 +218,7 @@ END FUNCTION HexCalNumVtxHor
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetGapBssSubRng(igBss)
 
+USE allocs
 USE PARAM,   ONLY : HALF, ZERO
 USE HexType, ONLY : Type_HexGapCelBss
 USE HexData, ONLY : Sq3Inv, gCelBss
@@ -240,7 +241,7 @@ gBss_Loc%nVtxHor = HexCalNumVtxHor(gBss_Loc%aiF2F, gBss_Loc%pF2F, gBss_Loc%nPin,
 gBss_Loc%nMsh01  = gBss_Loc%nSub * gBss_Loc%nVtxHor
 gBss_Loc%nMsh02  = gBss_Loc%nSub * gBss_Loc%nHor / 2
 
-ALLOCATE (gBss_Loc%sVol (2, max(gBss_Loc%nMsh01, gBss_Loc%nMsh02))); gBss_Loc%sVol = ZERO
+CALL dmalloc(gBss_Loc%sVol, 2, max(gBss_Loc%nMsh01, gBss_Loc%nMsh02))
 ! ----------------------------------------------------
 !               02. sHgt
 ! ----------------------------------------------------
@@ -328,6 +329,7 @@ END SUBROUTINE HexPushGapCel
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPushGapPin(igPin, jgPin)
 
+USE allocs
 USE PARAM,   ONLY : TRUE
 USE geom,    ONLY : nZ
 USE HexData, ONLY : GapPin
@@ -340,7 +342,7 @@ INTEGER :: igPin, jgPin
 GapPin(igPin)%luse = TRUE
 GapPin(igPin)%lGap = TRUE
 
-ALLOCATE (GapPin(igPin)%iCel (nZ))
+CALL dmalloc(GapPin(igPin)%iCel, nZ)
 
 GapPin(igPin)%iCel(1:nZ) = GapPin(jgPin)%iCel(1:nZ)
 ! ----------------------------------------------------

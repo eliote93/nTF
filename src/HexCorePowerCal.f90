@@ -1,6 +1,7 @@
 #include <defines.h>
 SUBROUTINE HexCorePowerCal(Core, CmInfo, PowerDist, ng, nTracerCntl, PE)
 
+USE allocs
 USE PARAM,          ONLY : ZERO, lTransient, FALSE, TRUE
 USE ioutil,         ONLY : terminate
 USE TYPEDEF,        ONLY : CoreInfo_Type,   CMInfo_Type,   PowerDist_Type,     PE_TYPE,   &
@@ -83,21 +84,14 @@ DO iAsy = 1, nAsyType
   nxymax = max(AsyInfo(iAsy)%nxy, nxymax)
 END DO
 
-IF(Master) THEN
-  ALLOCATE (PowerDist%PinPower2D   (nxymax, nxya))
-  ALLOCATE (PowerDist%PinPower3D   (nxymax, nxya, nz))
-  ALLOCATE (PowerDist%AsyPower2D   (nxya))
-  ALLOCATE (PowerDist%AsyPower3D   (nz, nxya))
-  ALLOCATE (PowerDist%Axial1DPower (nz))
-  
-  PowerDist%PinPower2D   = ZERO
-  PowerDist%PinPower3D   = ZERO
-  PowerDist%AsyPower2D   = ZERO
-  PowerDist%AsyPower3D   = ZERO
-  PowerDist%Axial1DPower = ZERO
+IF (Master) THEN
+  CALL dmalloc(PowerDist%PinPower2D,   nxymax, nxya)
+  CALL dmalloc(PowerDist%PinPower3D,   nxymax, nxya, nz)
+  CALL dmalloc(PowerDist%AsyPower2D,   nxya)
+  CALL dmalloc(PowerDist%AsyPower3D,   nz, nxya)
+  CALL dmalloc(PowerDist%Axial1DPower, nz)
 ELSE
-  ALLOCATE(PowerDist%PinPower3D (nxymax, nxya, myzb:myze))
-  PowerDist%PinPower3D = ZERO
+  CALL dmalloc0(PowerDist%PinPower3D, 1, nxymax, 1, nxya, myzb, myze)
 END IF
 ! ----------------------------------------------------
 !               01. SET : Cm Info % Pin XS

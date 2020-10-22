@@ -70,6 +70,7 @@ END SUBROUTINE HexSetAlbedo
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetCore()
 
+USE allocs
 USE geom,    ONLY : nxy, nZ, nAsyType0, nPinType, Core, Asy, AsyInfo, AsyVol, PinInfo, &
                     hz, hzInv, nzFm, hzFm, hzFmInv, nSubPlane, SubPlaneMap, SubPlaneRange
 USE PE_MOD,  ONLY : PE
@@ -99,8 +100,8 @@ ALLOCATE (AsyVol   (nhAsy, nZ))
 ALLOCATE (hPinInfo (nHexPin))
 
 DO iPin = 1, nHexPin
-  ALLOCATE (hPinInfo(iPin)%Vol   (nZ))
-  ALLOCATE (hPinInfo(iPin)%VolFm (nZ))
+  CALL dmalloc(hPinInfo(iPin)%Vol,   nZ)
+  CALL dmalloc(hPinInfo(iPin)%VolFm, nZ)
 END DO
 ! ----------------------------------------------------
 !                2. SET : Ax
@@ -136,7 +137,7 @@ DO iAsy = 1, nhAsy
   
   AsyInfo(iAsyTyp)%nxy = hAsyTypInfo(iAsyTyp)%nTotPin(1)
   
-  ALLOCATE (Asy(iAsy)%GlobalPinIdx (AsyInfo(iAsyTyp)%nxy))
+  CALL dmalloc(Asy(iAsy)%GlobalPinIdx, AsyInfo(iAsyTyp)%nxy)
   
   Asy(iAsy)%GlobalPinIdx(:) = -1
   ! ------------------------

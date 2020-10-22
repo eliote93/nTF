@@ -209,6 +209,7 @@ END SUBROUTINE HexSetPinFSR
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetVss()
 
+USE allocs
 USE PARAM,   ONLY : FALSE, TRUE
 USE geom,    ONLY : nVssTyp, nCellType, nGapType, nPinType, nGapPinType, nZ
 USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexPin
@@ -222,19 +223,17 @@ INTEGER :: nhc0, ngc0, nhp0, ngp0
 
 REAL :: Lgh, Cnt(2)
 
-LOGICAL, POINTER :: lvssCel(:, :, :)
-LOGICAL, POINTER :: lvssPin(:, :, :)
-INTEGER, POINTER :: aux01(:, :, :)
-INTEGER, POINTER :: aux02(:, :, :)
+LOGICAL, POINTER, DIMENSION(:,:,:) :: lvssCel, lvssPin
+INTEGER, POINTER, DIMENSION(:,:,:):: aux01, aux02
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVss) RETURN
 
-ALLOCATE (lvssCel (nVssTyp, max(nCellType, nGapType),    2)); lvssCel = FALSE
-ALLOCATE (lvssPin (nVssTyp, max(nPinType,  nGapPinType), 2)); lvssPin = FAlSE
+CALL dmalloc(lvssCel, nVssTyp, max(nCellType, nGapType),    2)
+CALL dmalloc(lvssPin, nVssTyp, max(nPinType,  nGapPinType), 2)
 
-ALLOCATE (aux01 (nVssTyp, max(nCellType, nGapType),    2)); aux01 = 0
-ALLOCATE (aux02 (nVssTyp, max(nPinType,  nGapPinType), 2)); aux02 = 0
+CALL dmalloc(aux01, nVssTyp, max(nCellType, nGapType),    2)
+CALL dmalloc(aux02, nVssTyp, max(nPinType,  nGapPinType), 2)
 
 nhc0 = nCellType
 ngc0 = nGapType
@@ -330,7 +329,7 @@ DO iTyp = 1, nhp0
     RodPin(nPinType)%lGap    = FALSE
     RodPin(nPinType)%nFsrMax = RodPin(iTyp)%nFsrMax
     
-    ALLOCATE (RodPin(nPinType)%iCel (nZ))
+    CALL dmalloc(RodPin(nPinType)%iCel, nZ)
     
     RodPin(nPinType)%iCel(1:nZ) = RodPin(iTyp)%iCel(1:nZ)
     
@@ -353,7 +352,7 @@ DO iTyp = 1, ngp0
     GapPin(nGapPinType)%lGap    = TRUE
     GapPin(nGapPinType)%nFsrMax = GapPin(iTyp)%nFsrMax
     
-    ALLOCATE (GapPin(nGapPinType)%iCel (nZ))
+    CALL dmalloc(GapPin(nGapPinType)%iCel, nZ)
     
     GapPin(nGapPinType)%iCel(1:nZ) = GapPin(iTyp)%iCel(1:nZ)
     

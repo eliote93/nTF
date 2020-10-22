@@ -4,6 +4,7 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexProcessEffXs(Core, FmInfo, ThInfo, GroupInfo, nTracerCntl, PE)
 
+USE allocs
 USE PARAM
 USE TYPEDEF
 USE ioutil
@@ -51,14 +52,14 @@ Pin      => Core%Pin
 CellInfo => Core%CellInfo
 ng        = GroupInfo%ng
 
-ALLOCATE(OutXSA   (200, ng, nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(OutXSS   (200, ng, nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(OutXSStr (200, ng, nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(OutXSF   (200, ng, nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(OutXSNF  (200, ng, nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(OutFlux       (ng, nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(Area              (nTracerCntl%OutpCntl%nRegXsOut))
-ALLOCATE(NUM      (200,     nTracerCntl%OutpCntl%nRegXsOut))
+CALL dmalloc(OutXSA,   200, ng, nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(OutXSS,   200, ng, nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(OutXSStr, 200, ng, nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(OutXSF,   200, ng, nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(OutXSNF,  200, ng, nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(OutFlux,       ng, nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(Area,              nTracerCntl%OutpCntl%nRegXsOut)
+CALL dmalloc(NUM,      200,     nTracerCntl%OutpCntl%nRegXsOut)
 ! ----------------------------------------------------
 !               01. SET : Eff XS
 ! ----------------------------------------------------
@@ -83,13 +84,13 @@ DO i = 1, nTracerCntl%OutpCntl%nRegXsOut
   !      1. CASE : Asy
   ! ----------------------------
   IF (nTracerCntl%OutpCntl%RegXsOutASM(i)) THEN
-    ALLOCATE (pinOutXSA   (200, ng))
-    ALLOCATE (pinOutXSS   (200, ng))
-    ALLOCATE (pinOutXSStr (200, ng))
-    ALLOCATE (pinOutXSF   (200, ng))
-    ALLOCATE (pinOutXSNF  (200, ng))
-    ALLOCATE (pinOutFlux       (ng))
-    ALLOCATE (pinNum      (200))
+    CALL dmalloc(pinOutXSA,   200, ng)
+    CALL dmalloc(pinOutXSS,   200, ng)
+    CALL dmalloc(pinOutXSStr, 200, ng)
+    CALL dmalloc(pinOutXSF,   200, ng)
+    CALL dmalloc(pinOutXSNF,  200, ng)
+    CALL dmalloc(pinOutFlux,       ng)
+    CALL dmalloc(pinNum,      200)
     
     nPin    = hAsy(ixya)%nTotPin
     AREA(i) = 0
@@ -243,6 +244,7 @@ END SUBROUTINE HexProcessEffXs
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexFxrXSCnds_Numerator(Core, FmInfo, ThInfo, GroupInfo,nTracerCntl, PE, OutXSA, OutXSS, OutXSStr,OutXsF,OutXSNF,OutFlux,Num,AREA,i,ir1,ir2,ixy,iz,ng)
 
+USE allocs
 USE PARAM, only : CKELVIN
 USE TYPEDEF
 USE CNTL, ONLY : nTracerCntl_Type
@@ -305,12 +307,9 @@ DO ir = ir1, ir2
   niso   = myFxr%niso
   idiso => myFxr%idiso
   
-  ALLOCATE (IsoXsMacfold  (niso,ng))
-  ALLOCATE (IsoXsMacNfold (niso,ng))
-  
-  IsoXsMacfold  = 0
-  IsoXsMacNfold = 0
-  
+  CALL dmalloc(IsoXsMacfold,  niso, ng)
+  CALL dmalloc(IsoXsMacNfold, niso, ng)
+    
   pnum => myFxr%pnum
   lres  = myFxr%lres
   

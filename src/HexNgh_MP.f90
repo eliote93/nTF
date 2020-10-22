@@ -3,6 +3,7 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetAsyTypMPngh(iaTyp)
 
+USE allocs
 USE HexType, ONLY : Type_HexAsyTypInfo
 USE HexData, ONLY : hAsyTypInfo, nGeoTyp, mpTypNumNgh
 
@@ -18,11 +19,13 @@ aInf_Loc => hAsyTypInfo(iaTyp)
 
 nTot = aInf_Loc%nTotPin(1)
 
-ALLOCATE (aInf_Loc%cpSlfMPnum       (nGeoTyp, nTot)); aInf_Loc%cpSlfMPnum = 1
-ALLOCATE (aInf_Loc%cpSlfMPidx    (3, nGeoTyp, nTot)); aInf_Loc%cpSlfMPidx = 0
-ALLOCATE (aInf_Loc%cpSufMPidx (2, 6, nGeoTyp, nTot)); aInf_Loc%cpSufMPidx = 0
-ALLOCATE (aInf_Loc%cpSufMPsuf (2, 6, nGeoTyp, nTot)); aInf_Loc%cpSufMPsuf = 0
-ALLOCATE (aInf_Loc%cpSufMPnum    (6, nGeoTyp, nTot)); aInf_Loc%cpSufMPnum = 0
+CALL dmalloc(aInf_Loc%cpSlfMPnum,       nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cpSlfMPidx,    3, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cpSufMPidx, 2, 6, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cpSufMPsuf, 2, 6, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cpSufMPnum,    6, nGeoTyp, nTot)
+
+aInf_Loc%cpSlfMPnum = 1 ! Self
 ! ----------------------------------------------------
 !               01. SET : Self Data
 ! ----------------------------------------------------

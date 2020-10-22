@@ -187,6 +187,7 @@ END SUBROUTINE HexSetAsyTypVtxTyp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetAsyTypPinVtx(iAsyTyp)
 
+USE allocs
 USE PARAM,   ONLY : ZERO, PI, HALF
 USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexGeoTypInfo
 USE HexData, ONLY : hAsyTypInfo, hGeoTypInfo, nGeoTyp, Sq3, PI_2, PI_3, PI_6, mpTypNumNgh, spTypNumNgh, hLgc
@@ -224,8 +225,8 @@ nRod = aInf_Loc%nRodPin(1)
 nTot = aInf_Loc%nTotPin(1)
 nPin = aInf_Loc%nPin
 
-ALLOCATE (aInf_Loc%PinVtxTyp (nGeoTyp, nTot)); aInf_Loc%PinVtxTyp = 0
-ALLOCATE (aInf_Loc%PinVtxAng (nGeoTyp, nTot)); aInf_Loc%PinVtxAng = ZERO
+CALL dmalloc(aInf_Loc%PinVtxTyp, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%PinVtxAng, nGeoTyp, nTot)
 
 cBndyEq = ZERO
 
@@ -382,8 +383,8 @@ END DO
 mpTypPts = aInf_Loc%mpTypPts
 spTypPts = aInf_Loc%spTypPts
  
-ALLOCATE (aInf_Loc%mpVtx (2, 7, nGeoTyp, nTot)); aInf_Loc%mpVtx = ZERO
-ALLOCATE (aInf_Loc%spVtx (2, 7, nGeoTyp, nRod)); aInf_Loc%spVtx = ZERO
+CALL dmalloc(aInf_Loc%mpVtx, 2, 7, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%spVtx, 2, 7, nGeoTyp, nRod)
 
 DO iPin = 1, nTot
   DO iGeo = 1, nGeoTyp
@@ -420,6 +421,7 @@ END SUBROUTINE HexSetAsyTypPinVtx
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetSngCelVtx()
 
+USE allocs
 USE PARAM,   ONLY : ZERO, HALF
 USE geom,    ONLY : nAsyType0
 USE HexType, ONLY : Type_HexAsyTypInfo
@@ -438,13 +440,13 @@ END DO
 
 aInf_Loc => hAsyTypInfo(iaTyp) ! # of used haTyp must be 1 for Sng Cel
 
-ALLOCATE (aInf_Loc%PinVtxTyp (1, 1))
-ALLOCATE (aInf_Loc%PinVtxAng (1, 1))
+CALL dmalloc(aInf_Loc%PinVtxTyp, 1, 1)
+CALL dmalloc(aInf_Loc%PinVtxAng, 1, 1)
 
 aInf_Loc%PinVtxTyp(1, 1) = 3
 aInf_Loc%PinVtxAng(1, 1) = ZERO
 
-ALLOCATE (aInf_Loc%mpVtx (2, 7, 1, 1))
+CALL dmalloc(aInf_Loc%mpVtx, 2, 7, 1, 1)
 
 aInf_Loc%mpVtx(1:2, 1:7, 1, 1) = AsyVtx(1:2, 1:7)
 

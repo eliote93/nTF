@@ -52,7 +52,7 @@ END DO
 ! ----------------------------------------------------
 !               02. FIND : Nxt mRay
 ! ----------------------------------------------------
-ALLOCATE(hcRay_Loc (nhAsy * NumMRay(0)))
+ALLOCATE (hcRay_Loc (nhAsy * NumMRay(0)))
 
 ncRay = 0
 
@@ -126,7 +126,7 @@ DO iAng = 1, nAzmAng
   END DO
 END DO
 
-ALLOCATE (hcRay(ncRay))
+ALLOCATE (hcRay (ncRay))
 ! ----------------------------------------------------
 !               03. CP : hcRay
 ! ----------------------------------------------------

@@ -73,7 +73,7 @@ ALLOCATE (RayInfo4CMFD)
 RayInfo4CMFD%nRotRay   = nRotRay
 RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
 
-CALL DMALLOC(RayInfo4CMFD%RotRayInOutCell, nRotRay, 2)
+CALL dmalloc(RayInfo4CMFD%RotRayInOutCell, nRotRay, 2)
 
 DO iRotRay = 1, nRotRay
   ncRay = hRotRay(iRotRay)%ncRay

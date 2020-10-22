@@ -78,6 +78,7 @@ END SUBROUTINE HexSetRodCelBss
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPushRodCelBss(hhCelBss, hhCel, iB, iC)
 
+USE allocs
 USE PARAM,   ONLY : ZERO
 USE GEOM,    ONLY : nCellType
 USE HexType, ONLY : Type_HexRodCel, Type_HexRodCelBss
@@ -107,19 +108,16 @@ hhCelBss%xDiv(1:hhCel%nFXR) = hhCel%xDiv(1:hhCel%nFXR)
 
 hhCel%icBss = iB
 
-ALLOCATE (hhCelBss%iCel (nCellType))
+CALL dmalloc(hhCelBss%iCel, nCellType)
 
-hhCelBss%iCel    = 0
 hhCelBss%iCel(1) = iC
 
 hhCelBss%nSub = sum(hhCel%xDiv(1:hhCel%nFXR))
 hhCelBss%nMsh = sum(hhCel%xDiv(1:hhCel%nFXR)) * hhCel%nSct
 
-ALLOCATE (hhCelBss%sRad (hhCelBss%nSub+1))
-ALLOCATE (hhCelBss%sVol (0:2, hhCelBss%nSct, hhCelBss%nSub))
+CALL dmalloc(hhCelBss%sRad, hhCelBss%nSub+1)
 
-hhCelBss%sRad = ZERO
-hhCelBss%sVol = ZERO
+CALL dmalloc0(hhCelBss%sVol, 0, 2, 1, hhCelBss%nSct, 1, hhCelBss%nSub)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexPushRodCelBss

@@ -9,6 +9,7 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetAsyTypPinMap(iAsyTyp)
 
+USE allocs
 USE PARAM,   ONLY : HALF, PI, ZERO
 USE HexType, ONLY : Type_HexAsyTypInfo
 USE HexData, ONLY : hAsyTypInfo, aoF2F, hEps, hLgc, PI_3, PI_2
@@ -38,8 +39,9 @@ nTot = 3 * nPin * (nPin - 1) + 1 + 12 * (nPin - 1)
 aInf_Loc%nRodPin(1) = nRod
 aInf_Loc%nTotPin(1) = nTot
 
-ALLOCATE (aInf_Loc%Pin1Dto2Dmap    (2, nRod));         aInf_Loc%Pin1Dto2Dmap = 0
-ALLOCATE (aInf_Loc%Pin2Dto1Dmap (0:nRng+1, 0:nRng+1)); aInf_Loc%Pin2Dto1Dmap = 0
+CALL dmalloc(aInf_Loc%Pin1Dto2Dmap, 2, nRod)
+
+CALL dmalloc0(aInf_Loc%Pin2Dto1Dmap, 0, nRng+1, 0, nRng+1)
 ! ----------------------------------------------------
 !               01. Upper Part
 ! ----------------------------------------------------
@@ -78,7 +80,7 @@ END DO
 ! ----------------------------------------------------
 !               03. SET : Rod Pin Cnt
 ! ----------------------------------------------------
-ALLOCATE (aInf_Loc%PinCnt (2, nTot))
+CALL dmalloc(aInf_Loc%PinCnt, 2, nTot)
 
 dx = aInf_Loc%pPch * 1.5_8
 dy = aInf_Loc%pF2F * 0.5_8
@@ -135,6 +137,7 @@ END SUBROUTINE HexSetAsyTypPinMap
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetAsyTypPinLocIdx(iAsyTyp)
 
+USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexGeoTypInfo
 USE HexData, ONLY : hAsyTypInfo, hGeoTypInfo, nGeoTyp
@@ -152,8 +155,8 @@ TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
 
 aInf_Loc => hAsyTypInfo(iAsyTyp)
 
-ALLOCATE (aInf_Loc%PinLocIdx (nGeoTyp, aInf_Loc%nTotPin(1)))
-ALLOCATE (aInf_Loc%lGeoPin   (nGeoTyp, aInf_Loc%nTotPin(1)))
+CALL dmalloc(aInf_Loc%PinLocIdx, nGeoTyp, aInf_Loc%nTotPin(1))
+CALL dmalloc(aInf_Loc%lGeoPin,   nGeoTyp, aInf_Loc%nTotPin(1))
 ! ----------------------------------------------------
 !               01. SET : l Geo Pin
 ! ----------------------------------------------------

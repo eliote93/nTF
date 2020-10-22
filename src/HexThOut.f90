@@ -3,6 +3,7 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPrintTHResults(io, Output, nxyp, nxp, nyp, nz)
 
+USE allocs
 USE PARAM, ONLY : BLANK
 
 IMPLICIT NONE
@@ -59,6 +60,7 @@ END SUBROUTINE HexPrintTHResults
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPrintFuelAvgTemp(io, Core, THInfo, THVar)
 
+USE allocs
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : CoreInfo_Type, ThInfo_Type, FuelTH_Type, THVar_Type, AsyInfo_Type, Asy_Type
 USE HexData, ONLY : hAsyTypInfo
@@ -103,7 +105,7 @@ DO iasy = 1, nxya
   nxp  = hAsyTypInfo(AsyType)%nPin
   nyp  = 2*nxp - 1
   
-  ALLOCATE (OutPut (nz, nxyp)); OutPut = ZERO
+  CALL dmalloc(OutPut, nz, nxyp)
   
   DO ixyp = 1, nxyp
     ixy = Asy(iasy)%GlobalPinIdx(ixyp)
@@ -130,6 +132,7 @@ END SUBROUTINE HexPrintFuelAvgTemp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPrintFuelCentTemp(io, Core, THInfo)
 
+USE allocs
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : CoreInfo_Type, ThInfo_Type, FuelTH_Type, AsyInfo_Type, Asy_Type
 USE HexData, ONLY : hAsyTypInfo
@@ -172,7 +175,7 @@ DO iasy = 1, nxya
   nxp  = hAsyTypInfo(AsyType)%nPin
   nyp  = 2*nxp - 1
   
-  ALLOCATE (OutPut (nz, nxyp)); OutPut = ZERO
+  CALL dmalloc(OutPut, nz, nxyp)
   
   DO ixyp = 1, nxyp
     ixy = Asy(iasy)%GlobalPinIdx(ixyp)
@@ -199,6 +202,7 @@ END SUBROUTINE HexPrintFuelCentTemp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPrintFuelSurfTemp(io, Core, THInfo, THVar)
 
+USE allocs
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : CoreInfo_Type, ThInfo_Type, FuelTH_Type, THVar_Type, AsyInfo_Type, Asy_Type
 USE HexData, ONLY : hAsyTypInfo
@@ -242,7 +246,7 @@ DO iasy = 1, nxya
   nxp  = hAsyTypInfo(AsyType)%nPin
   nyp  = 2*nxp - 1
   
-  ALLOCATE (OutPut (nz, nxyp)); OutPut = ZERO
+  CALL dmalloc(OutPut, nz, nxyp)
   
   DO ixyp = 1, nxyp
     ixy = Asy(iasy)%GlobalPinIdx(ixyp)
@@ -269,6 +273,7 @@ END SUBROUTINE HexPrintFuelSurfTemp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPrintCoolantTemp(io, Core, THInfo)
 
+USE allocs
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : CoreInfo_Type, ThInfo_Type, CoolantTh_Type, FuelTH_Type, AsyInfo_Type, Asy_Type
 USE HexData, ONLY : hAsyTypInfo
@@ -311,7 +316,7 @@ DO iasy = 1, nxya
   nxp  = hAsyTypInfo(AsyType)%nPin
   nyp  = 2*nxp - 1
   
-  ALLOCATE (OutPut(nz, nxyp)); OutPut = ZERO
+  CALL dmalloc(OutPut, nz, nxyp)
   
   DO ixyp = 1, nxyp
     ixy = Asy(iasy)%GlobalPinIdx(ixyp)
