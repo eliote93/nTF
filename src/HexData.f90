@@ -36,11 +36,11 @@ INTEGER :: nGeoTyp    = 1
 INTEGER :: nInnMOCItr = 2
 
 ! Geom
-REAL :: aoF2F   = ZERO
-REAL :: aoPch   = ZERO
+REAL :: aoF2F = ZERO
+REAL :: aoPch = ZERO
 
-REAL :: AsyVtx (2,7)  = ZERO
-REAL :: AsyEqn (3,6)  = ZERO
+REAL :: AsyVtx (2,7) = ZERO
+REAL :: AsyEqn (3,6) = ZERO
 REAL :: cBndyPt(2,7) = ZERO ! Origin : Cnt Asy
 REAL :: cBndyEq(3,6) = ZERO ! Origin : Cnt Asy
 
@@ -61,8 +61,8 @@ INTEGER :: vzEd    = 0
 ! Corner Stiffener
 INTEGER :: csMat = 0
 
-REAL :: csWdth = ZERO
-REAL :: csLgh  = ZERO
+REAL :: csWdt = ZERO
+REAL :: csLgh = ZERO
 
 ! mRay
 REAL :: Del_Inp = ZERO
@@ -78,6 +78,7 @@ TYPE(Type_HexLogical) :: hLgc
 
 TYPE(Type_HexRodCel), POINTER, DIMENSION(:) :: hCel
 TYPE(Type_HexGapCel), POINTER, DIMENSION(:) :: gCel
+TYPE(Type_HexGapCel), POINTER, DIMENSION(:) :: csCel
 
 TYPE(Type_HexRodCelBss), POINTER, DIMENSION(:) :: hCelBss
 TYPE(Type_HexGapCelBss), POINTER, DIMENSION(:) :: gCelBss

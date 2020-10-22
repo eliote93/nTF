@@ -15,6 +15,7 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRayParam()
 
+USE allocs
 USE PARAM,   ONLY : HALF, ZERO, PI
 USE HexData, ONLY : nAzmAng, nPolAng, Del_Inp, Sq3Inv, aoPch, AzmAng, AzmDel, AzmTan, AzmSin, AzmCos, NumMray, &
                     AzmDel_X, AzmDel_Y, AzmWgt, hEps, AngMray, PI_3, PI_6
@@ -36,15 +37,16 @@ IF (mod(nAzmAng, 6) .NE. 0) CALL terminate("# OF AZIMUTHAL ANGLES MUST BE MULTIP
 nAzmAng_60 = nAzmAng / 3
 DelAngle   = PI_3 / nAzmAng_60
 
-ALLOCATE (AzmDel    (nAzmAng)); AzmDel   = ZERO
-ALLOCATE (AzmDel_X  (nAzmAng)); AzmDel_X = ZERO
-ALLOCATE (AzmDel_Y  (nAzmAng)); AzmDel_Y = ZERO
-ALLOCATE (AzmAng    (nAzmAng)); AzmAng   = ZERO
-ALLOCATE (AzmWgt    (nAzmAng)); AzmWgt   = ZERO
-ALLOCATE (AzmTan    (nAzmAng)); AzmTan   = ZERO
-ALLOCATE (AzmSin    (nAzmAng)); AzmSin   = ZERO
-ALLOCATE (AzmCos    (nAzmAng)); AzmCos   = ZERO
-ALLOCATE (NumMray (0:nAzmAng)); NumMray  = 0
+CALL dmalloc(AzmDel,   nAzmAng)
+CALL dmalloc(AzmDel_X, nAzmAng)
+CALL dmalloc(AzmDel_Y, nAzmAng)
+CALL dmalloc(AzmAng,   nAzmAng)
+CALL dmalloc(AzmWgt,   nAzmAng)
+CALL dmalloc(AzmTan,   nAzmAng)
+CALL dmalloc(AzmSin,   nAzmAng)
+CALL dmalloc(AzmCos,   nAzmAng)
+
+CALL dmalloc0(NumMray, 0, nAzmAng)
 ! ----------------------------------------------------
 !               01. SET : Azm Ang & Del in 60
 ! ----------------------------------------------------
@@ -125,7 +127,7 @@ END DO
 ! ----------------------------------------------------
 !               05. Ang mRay Idx
 ! ----------------------------------------------------
-ALLOCATE (AngMray (2, nAzmAng))
+CALL dmalloc(AngMray, 2, nAzmAng)
 
 AngMray(1, 1) = 1
 AngMray(2, 1) = NummRay(1)
@@ -158,7 +160,7 @@ REAL :: NxtAsyCnt(2) ! NE, EE, SE, SW, WW, NW
 LOGICAL :: lSol, lChk
 ! ----------------------------------------------------
 
-ALLOCATE(hmRay (NumMRay(0)))
+ALLOCATE (hmRay (NumMRay(0)))
 
 imRay = 0
 ! ----------------------------------------------------
@@ -377,6 +379,7 @@ END SUBROUTINE HexSetModRayNxt
 SUBROUTINE HexSetModRayNxt_REF()
 ! Sng Cel/Asy OR 060 Core
 
+USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE HexUtil, ONLY : SolveLineEqn, ChkPtVtx, FindRefAng, ChkPtEqn, &
                     ChkSamePts, CalPtLineSgn, ChkSameVal, SetSgn_REAL
@@ -401,10 +404,10 @@ TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
 
 IF (hLgc%l360 .AND. hLgc%lRadVac) RETURN
 
-ALLOCATE (Pt   (2, -1:1, 7, NumMray(0))); Pt      = ZERO
-ALLOCATE (RefAng  (-1:1, 7, NumMray(0))); RefAng  = 0
-ALLOCATE (lNxtRef (-1:1, 7, NumMray(0))); lNxtRef = FALSE
-ALLOCATE (lBndyPt (-1:1, 7, NumMray(0))); lBndyPt = FALSE
+CALL dmalloc0(Pt, 1, 2, -1, 1, 1, 7, 1, NumMray(0))
+CALL dmalloc0(RefAng,   -1, 1, 1, 7, 1, NumMray(0))
+CALL dmalloc0(lNxtRef,  -1, 1, 1, 7, 1, NumMray(0))
+CALL dmalloc0(lBndyPt,  -1, 1, 1, 7, 1, NumMray(0))
 
 ixy    = 1; lRef    = TRUE
 ixy(1) = 0; lRef(1) = FALSE
@@ -526,6 +529,7 @@ END SUBROUTINE HexSetModRayNxt_REF
 SUBROUTINE HexSetModRayNxt_ROT()
 ! Oonly for 60 VAC Core
 
+USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE HexUtil, ONLY : SolveLineEqn, ChkPtVtx, FindRotAng, ChkPtEqn, &
                     ChkSamePts, CalPtLineSgn, ChkSameVal, SetSgn_REAL, FindRotPt
@@ -550,10 +554,10 @@ TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
 
 IF (hLgc%l360 .OR. hLgc%lRadRef) CALL terminate("WRONG B.C. WITH REF AZM BNDY CONDITION")
 
-ALLOCATE (Pt   (2, -1:1, 7, NumMray(0))); Pt      = ZERO
-ALLOCATE (RotAng  (-1:1, 7, NumMray(0))); RotAng  = 0
-ALLOCATE (lNxtRot (-1:1, 7, NumMray(0))); lNxtRot = FALSE
-ALLOCATE (lBndyPt (-1:1, 7, NumMray(0))); lBndyPt = FALSE
+CALL dmalloc0(Pt, 1, 2, -1, 1, 1, 7, 1, NumMray(0))
+CALL dmalloc0(RotAng,   -1, 1, 1, 7, 1, NumMray(0))
+CALL dmalloc0(lNxtRot,  -1, 1, 1, 7, 1, NumMray(0))
+CALL dmalloc0(lBndyPt,  -1, 1, 1, 7, 1, NumMray(0))
 
 GeoCYC      = FALSE
 GeoCYC(5:6) = TRUE

@@ -11,6 +11,7 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetCoreRay()
 
+USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE geom,    ONLY : nZ
 USE Moc_Mod, ONLY : nMaxCellRay, nMaxRaySeg
@@ -35,12 +36,10 @@ TYPE(Type_HexCoreRay), POINTER :: hcRay_Loc(:) ! (icRay)
 TYPE(Type_HexAsyRay),  POINTER :: haRay_Loc
 ! ----------------------------------------------------
 
-ALLOCATE (mRayLst(NumMRay(0), nhAsy))
+CALL dmalloc(mRayLst, NumMRay(0), nhAsy)
 ! ----------------------------------------------------
 !               01. SET : mRay Lst
 ! ----------------------------------------------------
-mRayLst = FALSE
-
 DO iAsy = 1, nhAsy
   iGeoTyp = hAsy(iAsy)%GeoTyp
   
@@ -112,8 +111,8 @@ DO iAng = 1, nAzmAng
       hcRay_Loc(ncRay)%nmRay  = icRayNxt(1) - icRayNxt(-1) + 1
       hcRay_Loc(ncRay)%AzmIdx = iAng
       
-      ALLOCATE(hcRay_Loc(ncRay)%mRayIdx (hcRay_Loc(ncRay)%nmRay))
-      ALLOCATE(hcRay_Loc(ncRay)% AsyIdx (hcRay_Loc(ncRay)%nmRay))
+      CALL dmalloc(hcRay_Loc(ncRay)%mRayIdx, hcRay_Loc(ncRay)%nmRay)
+      CALL dmalloc(hcRay_Loc(ncRay)% AsyIdx, hcRay_Loc(ncRay)%nmRay)
       
       jmRay = 0
       
@@ -137,8 +136,8 @@ DO icRay = 1, ncRay
   hcRay(icRay)%nmRay  = hcRay_Loc(icRay)%nmRay
   hcRay(icRay)%AzmIdx = hcRay_Loc(icRay)%AzmIdx
   
-  ALLOCATE (hcRay(icRay)%mRayIdx (hcRay(icRay)%nmRay))
-  ALLOCATE (hcRay(icRay)% AsyIdx (hcRay(icRay)%nmRay))
+  CALL dmalloc(hcRay(icRay)%mRayIdx, hcRay(icRay)%nmRay)
+  CALL dmalloc(hcRay(icRay)% AsyIdx, hcRay(icRay)%nmRay)
   
   DO imRay = 1, hcRay_Loc(icRay)%nmRay
     hcRay(icRay)%mRayIdx(imRay) = hcRay_Loc(icRay)%mRayIdx(imRay)
@@ -206,6 +205,7 @@ END SUBROUTINE HexSetCoreRay
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRotRay()
 
+USE allocs
 USE PARAM,   ONLY : ZERO, FALSE, TRUE
 USE HexData, ONLY : ncRay, nRotRay, hcRay, hAsy, hRotRay, hLgc, hmRay, Asy2Dto1Dmap, Asy1Dto2DMap
 USE HexUtil, ONLY : SetSgn_INT
@@ -231,9 +231,10 @@ END TYPE Type_TmpRotRayLst
 TYPE(Type_TmpRotRayLst), POINTER :: tLst(:)
 ! ----------------------------------------------------
 
-ALLOCATE (RayConn (-1:1, ncRay)); RayConn  = 0
-ALLOCATE (lcRayUse      (ncRay)); lcRayUse = FALSE
-ALLOCATE (tLst          (ncRay))
+CALL dmalloc0(RayConn, -1, 1, 1, ncRay)
+CALL dmalloc (lcRayUse,          ncRay)
+
+ALLOCATE (tLst (ncRay))
 ! ----------------------------------------------------
 !               01. CONNECT : cRay
 ! ----------------------------------------------------
@@ -294,13 +295,13 @@ nRotRay = 0
 ! ----------------------------
 IF (hLgc%lRadRef) THEN
   DO icRay = 1, ncRay
-    IF(lcRayUse(icRay)) CYCLE
+    IF (lcRayUse(icRay)) CYCLE
     
     nRotRay = nRotRay + 1
     jcRay   = icRay
     jDir    = 1
     
-    ALLOCATE (tLst(nRotRay)%RotRay (ncRay))
+    CALL dmalloc(tLst(nRotRay)%RotRay, ncRay)
     
     DO
       lcRayUse(abs(jcRay)) = TRUE
@@ -309,7 +310,7 @@ IF (hLgc%lRadRef) THEN
       
       jcRay = RayConn(jDir, abs(jcRay))
       
-      IF(abs(jcRay) .EQ. icRay) EXIT ! Return to Start mRay
+      IF (abs(jcRay) .EQ. icRay) EXIT ! Return to Start mRay
       
       jDir = SetSgn_INT(jcRay) ! Negative : y¢Ù, Positive : y¢Ö
       
@@ -324,21 +325,21 @@ ELSE
     DO tDir = 1, 2
       iDir = 2*tDir - 3
       
-      IF(lcRayUse(icRay)) CYCLE
-      IF(RayConn(iDir, icRay) .NE. 0) CYCLE ! Start from Vacuum
+      IF (lcRayUse(icRay)) CYCLE
+      IF (RayConn(iDir, icRay) .NE. 0) CYCLE ! Start from Vacuum
       
       nRotRay = nRotRay + 1
       jDir    = -iDir ! NOTICE : Minus
       jcRay   = icRay * jDir
       
-      ALLOCATE (tLst(nRotRay)%RotRay (nMaxVacRotRay))
+      CALL dmalloc(tLst(nRotRay)%RotRay, nMaxVacRotRay)
       
       DO
         lcRayUse(abs(jcRay)) = TRUE
         
         tLst(nRotRay)%RotRay(tLst(nRotRay)%ncRay) = jcRay ! Negative : y¢Ù, Positive : y¢Ö
         
-        IF(RayConn(jDir, abs(jcRay)) .EQ. 0) EXIT ! End to Vacuum
+        IF (RayConn(jDir, abs(jcRay)) .EQ. 0) EXIT ! End to Vacuum
         
         jcRay = RayConn(jDir, abs(jcRay))
         jDir  = SetSgn_INT(jcRay) ! Negative : y¢Ù, Positive : y¢Ö
@@ -353,14 +354,14 @@ END IF
 ! ----------------------------------------------------
 !               03. CP : Rot Ray
 ! ----------------------------------------------------
-ALLOCATE(hRotRay (nRotRay))
+ALLOCATE (hRotRay (nRotRay))
 
 !$OMP PARALLEL PRIVATE(iRotRay)
 !$OMP DO SCHEDULE(GUIDED)
 DO iRotRay = 1, nRotRay
   hRotRay(iRotRay)%ncRay = tLst(iRotRay)%ncRay
   
-  ALLOCATE(hRotRay(iRotRay)%cRayIdx (tLst(iRotRay)%ncRay))
+  CALL dmalloc(hRotRay(iRotRay)%cRayIdx, tLst(iRotRay)%ncRay)
   
   ! Negative : y¢Ù, Positive : y¢Ö
   hRotRay(iRotRay)%cRayIdx(1:tLst(iRotRay)%ncRay) = tLst(iRotRay)%RotRay(1:tLst(iRotRay)%ncRay)

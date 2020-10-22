@@ -25,18 +25,23 @@ module allocs
     module procedure mallocf01
     module procedure mallocd01
     module procedure malloci01
+    module procedure mallocl01
     module procedure mallocf02
     module procedure mallocd02
     module procedure malloci02
+    module procedure mallocl02
     module procedure mallocf03
     module procedure mallocd03
     module procedure malloci03
+    module procedure mallocl03
     module procedure mallocf04
     module procedure mallocd04
     module procedure malloci04
+    module procedure mallocl04
     module procedure mallocf05
     module procedure mallocd05
     module procedure malloci05
+    module procedure mallocl05
     END interface
     !
     contains
@@ -202,6 +207,14 @@ module allocs
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
     !
+    SUBROUTINE mallocl01(a,nb1,ne1)
+
+    LOGICAL,pointer :: a(:)
+    allocate(a(nb1:ne1))
+    a=.FALSE.
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
+    !
     SUBROUTINE mallocf02(a,nb1,ne1,nb2,ne2)
 
     REAL(4),pointer :: a(:,:)
@@ -223,6 +236,14 @@ module allocs
     INTEGER,pointer :: a(:,:)
     allocate(a(nb1:ne1,nb2:ne2))
     a=0
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
+    !
+    SUBROUTINE mallocl02(a,nb1,ne1,nb2,ne2)
+
+    LOGICAL,pointer :: a(:,:)
+    allocate(a(nb1:ne1,nb2:ne2))
+    a=.FALSE.
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
     !
@@ -250,6 +271,14 @@ module allocs
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
     !
+    SUBROUTINE mallocl03(a,nb1,ne1,nb2,ne2,nb3,ne3)
+
+    LOGICAL,pointer :: a(:,:,:)
+    allocate(a(nb1:ne1,nb2:ne2,nb3:ne3))
+    a=.FALSE.
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
+    !
     SUBROUTINE mallocf04(a,nb1,ne1,nb2,ne2,nb3,ne3,nb4,ne4)
 
     REAL(4),pointer :: a(:,:,:,:)
@@ -274,6 +303,14 @@ module allocs
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
     !
+    SUBROUTINE mallocl04(a,nb1,ne1,nb2,ne2,nb3,ne3,nb4,ne4)
+
+    LOGICAL,pointer :: a(:,:,:,:)
+    allocate(a(nb1:ne1,nb2:ne2,nb3:ne3,nb4:ne4))
+    a=.FALSE.
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
+    !
     SUBROUTINE mallocf05(a,nb1,ne1,nb2,ne2,nb3,ne3,nb4,ne4,nb5,ne5)
 
     REAL(4),pointer :: a(:,:,:,:,:)
@@ -295,6 +332,14 @@ module allocs
     INTEGER,pointer :: a(:,:,:,:,:)
     allocate(a(nb1:ne1,nb2:ne2,nb3:ne3,nb4:ne4,nb5:ne5))
     a=0
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
+    !
+    SUBROUTINE mallocl05(a,nb1,ne1,nb2,ne2,nb3,ne3,nb4,ne4,nb5,ne5)
+
+    LOGICAL,pointer :: a(:,:,:,:,:)
+    allocate(a(nb1:ne1,nb2:ne2,nb3:ne3,nb4:ne4,nb5:ne5))
+    a=.FALSE.
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
 

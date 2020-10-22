@@ -1,5 +1,6 @@
 SUBROUTINE HexSetGeo()
 
+USE allocs
 USE PARAM,   ONLY : ZERO, FALSE
 USE geom,    ONLY : Core, Pin, nZ, nAsyType0
 USE HexData, ONLY : nHexPin, nhAsy, nHexPin, hAsyTypInfo
@@ -45,11 +46,11 @@ CALL HexSetCore
 ! ----------------------------------------------------
 !                3. SET : Pin & Msh
 ! ----------------------------------------------------
-ALLOCATE (Core%lFuelPlane        (nz)); Core%lFuelPlane = FALSE
-ALLOCATE (Core%lCladPlane        (nz)); Core%lCladPlane = FALSE
-ALLOCATE (Core% lAICPlane        (nz)); Core% lAICPlane = FALSE
-ALLOCATE (Core%PinVol   (nHexPin, nZ)); Core%PinVol     = ZERO
-ALLOCATE (Core%PinVolFm (nHexPin, nZ)); Core%PinVolFm   = ZERO
+CALL dmalloc(Core%lFuelPlane,        nz)
+CALL dmalloc(Core%lCladPlane,        nz)
+CALL dmalloc(Core% lAICPlane,        nz)
+CALL dmalloc(Core%PinVol,   nHexPin, nZ)
+CALL dmalloc(Core%PinVolFm, nHexPin, nZ)
 
 ALLOCATE (Pin (nHexPin))
 

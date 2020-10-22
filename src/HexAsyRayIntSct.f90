@@ -151,6 +151,7 @@ END SUBROUTINE HexSortPinRay
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRayIntSct_Msh(CelRay, RayEqn, iGeo, iPin, BndyPt)
 
+USE allocs
 USE PARAM,   ONLY : TRUE, HALF, ZERO
 USE HexUtil, ONLY : RotPt, RotLineEqn, Array2DSORT, ChkPtVtx, SolveLineREQN, FindPtLgh
 USE HexData, ONLY : RayPinInfo, RayCel, hEps
@@ -224,8 +225,8 @@ CALL Array2DSORT(PtTmp(1, 1:nPt0), PtTmp(2, 1:nPt0), nPt0, nPt, TRUE, TRUE, 2)
 
 CelRay%nSegRay = nPt - 1
 
-ALLOCATE (CelRay%SegLgh (CelRay%nSegRay))
-ALLOCATE (CelRay%MshIdx (CelRay%nSegRay))
+CALL dmalloc(CelRay%SegLgh, CelRay%nSegRay)
+CALL dmalloc(CelRay%MshIdx, CelRay%nSegRay)
 ! ----------------------------------------------------
 !               03. FIND : Msh Idx
 ! ----------------------------------------------------

@@ -477,11 +477,12 @@ TYPE Type_HexLogical
   LOGICAL :: lAxRef(2) = FALSE ! (Bottom/Top)
   LOGICAL :: lAxVac(2) = FALSE ! (Bottom/Top)
   
-  LOGICAL :: lVss    = FALSE
-  LOGICAL :: lVyg    = FALSE
-  LOGICAL :: lSngAsy = FALSE
-  LOGICAL :: lSngCel = FALSE
-  LOGICAL :: lspCMFD = TRUE  ! Super-pin based CMFD
+  LOGICAL :: lVss     = FALSE
+  LOGICAL :: lVyg     = FALSE
+  LOGICAL :: lSngAsy  = FALSE
+  LOGICAL :: lSngCel  = FALSE
+  LOGICAL :: lspCMFD  = TRUE  ! Super-pin based CMFD
+  LOGICAL :: lcrnstff = FALSE ! Corner Stiffener
   
   INTEGER :: iSym = 0 ! 1 = 60 / 2 = 120 / 3 = 360
                       ! 4 = Sng Asy / 5 = Sng Cel

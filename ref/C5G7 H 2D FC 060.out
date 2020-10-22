@@ -20,8 +20,8 @@ nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTR
 nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACER
 
 
-           Executing Case 2D_C5G7_H_Core
-           by user on HAYEON at 13:57:11, Apr. 18, 2020...
+           Executing Case 2D_C5G7_H_FC
+           by user on HAYEON at 12:12:03, Oct. 22, 2020...
 
 
 
@@ -29,55 +29,55 @@ nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTR
 
                                              Echo of Input Deck nTRACER.INP
 ------------------------------------------------------------------------------------------------------------------------------
-CASEID 2D_C5G7_H_Core
+CASEID 2D_C5G7_H_FC
 STATE
- th_cond 17.67357 293.33333  15.51315 84.08895  !power_fa (MW), t_in(C), p_exit(MPa), mdot_fa (kg/s)
+ th_cond     17.67357 293.33333  15.51315 84.08895  ! power_fa [MW], t_in [C], p_exit [MPa], mdot_fa [kg/s]
 
 XSEC
- LIB_TYPE   1
- GROUP_SPEC 7
- FILE       ./lib/c5g7.xslib
+ LIB_TYPE    1
+ GROUP_SPEC  7
+ FILE        ./lib/c5g7.xslib
 
 PARALLEL
- MOC_TRD  14 ! 14
- CMFD_TRD 14
+ MOC_TRD     14 ! 14
+ CMFD_TRD    14
 
 OPTION
- RAY        0.05 12 4
- NODE_MAJOR T
+ RAY         0.05  12  4
+ NODE_MAJOR  T
 
 CONV
- nMaxOuter 1500
- Eig_Conv  1E-6
- Psi_Conv  1E-6
- Res_Conv  5E-7
+ nMaxOuter   1500
+ Eig_Conv    1E-6
+ Psi_Conv    1E-6
+ Res_Conv    5E-7
 GEOM
- HEX       T
- ax_mesh   1*1
- pitch     20.6114046100696
-! HexOpt    T T 2 20 0.5 20 0.5
+ HEX         T
+ ax_mesh     1*1
+ pitch       20.6114046100696
+! HexOpt     T  T  2  20  0.5  20  0.5
 
- cell  1    0.5400 / 1 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
- cell  2    0.5400 / 2 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
- cell  3    0.5400 / 3 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
- cell  4    0.5400 / 4 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
- cell  5    0.5400 / 5 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fiss Cham
- cell  6    0.5400 / 6 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! GT
- cell  7    0.5400 / 7 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Mod
+ cell  1     0.5400 / 1 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  2     0.5400 / 2 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  3     0.5400 / 3 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  4     0.5400 / 4 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fuel
+ cell  5     0.5400 / 5 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Fiss Cham
+ cell  6     0.5400 / 6 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! GT
+ cell  7     0.5400 / 7 7 / 6 4 / 9 / 1.35099962990372 / 20.28 ! Mod
 
- Pin 1  1
- Pin 2  2
- Pin 3  3
- Pin 4  4
- Pin 5  5
- Pin 6  6
- Pin 7  7
+ Pin 1       1
+ Pin 2       2
+ Pin 3       3
+ Pin 4       4
+ Pin 5       5
+ Pin 6       6
+ Pin 7       7
 
  Gap_Cell 1  7 / 2 / 9 / 1.35099962990372 / 20.28
 
- Gap_Pin 1  1
+ Gap_Pin 1   1
 
- assembly 1 360 / 1 / 9 / 1.35099962990372 / 20.28
+ assembly 1  360 / 1 / 9 / 1.35099962990372 / 20.28
   1  1  1  1  1  1  1  1  1
   1  1  1  1  1  1  1  1  1  1
   1  1  6  1  1  6  1  1  6  1  1
@@ -96,7 +96,7 @@ GEOM
                        1  1  1  1  1  1  1  1  1  1
                           1  1  1  1  1  1  1  1  1
 
- assembly 2 360 / 1 / 9 / 1.35099962990372 / 20.28
+ assembly 2  360 / 1 / 9 / 1.35099962990372 / 20.28
   2  2  2  2  2  2  2  2  2
   2  3  3  3  3  3  3  3  3  2
   2  3  6  3  3  6  3  3  6  3  2
@@ -115,16 +115,16 @@ GEOM
                        2  3  3  3  3  3  3  3  3  2
                           2  2  2  2  2  2  2  2  2
 
- assembly 3 360 / 1 / 9 / 1.35099962990372 / 20.28
+ assembly 3  360 / 1 / 9 / 1.35099962990372 / 20.28
   7
 
- rad_conf 60 CENT
+ rad_conf    60 CENT
   1  2  2  3
      2  1  3
         2  3
            3
 
-! rad_conf 360 CENT
+! rad_conf   360 CENT
 !  3  3  3  3
 !  3  2  1  2  3
 !  3  1  2  2  1  3
@@ -133,31 +133,32 @@ GEOM
 !        3  2  1  2  3
 !           3  3  3  3
 
- albedo 0.5 0.0 0.0
+ albedo      0.5  0.  0.
 
 MKL
- AXTYPE 3 0
+MKL
+ AXTYPE      3  0
 ==============================================================================================================================
-00:00:00.000 Reading Input from nTRACER.INP...
-00:00:00.000 SCHEME : NODE MAJOR / DCMP : F / LinSrc : F
-00:00:00.000 ------------------------------------------------------------------------
-00:00:00.000 HEX : Set Geom ...
-00:00:00.000       Set CMFD Map ...
-00:00:00.265       Set Ray Basic Data ...
-00:00:00.343       Set Asy Ray Base ...
-00:00:00.360           1 ...
-00:00:01.937       Set Core Ray ...
-00:00:01.999       Connect Core Ray ...
-00:00:03.411       Convert Hex Ray ...
-00:00:03.411 ------------------------------------------------------------------------
-00:00:03.520 Initialize Control Rod Features...
-00:00:03.520   Control Rod Cusping Module is not active...
-00:00:03.552 Set Control Rod Position...
-00:00:03.552 MOC Under-relaxtion Option :   F
-00:00:03.552 Axial Reflector FDM Option :   F
-00:00:03.552 Cell Homogenization...
-00:00:03.567 Linear System Construction...
-00:00:03.583 Performing CMFD Calculation...
+00:00:00.005 Reading Input from nTRACER.INP...
+00:00:00.005 SCHEME : NODE MAJOR / DCMP : F / LinSrc : F
+00:00:00.005 -------------------------------------------------------------------
+00:00:00.006 HEX : Set Geom ...
+00:00:00.012       Set CMFD Map ...
+00:00:00.105       Set Ray Basic Data ...
+00:00:00.306       Set Asy Ray Base ...
+00:00:00.308           1 ...
+00:00:01.403       Set Core Ray ...
+00:00:01.465       Connect Core Ray ...
+00:00:02.331       Convert Hex Ray ...
+00:00:02.331 ------------------------------------------------------------------------
+00:00:02.402 Initialize Control Rod Features...
+00:00:02.403   Control Rod Cusping Module is not active...
+00:00:02.418 Set Control Rod Position...
+00:00:02.419 MOC Under-relaxtion Option :   F
+00:00:02.419 Axial Reflector FDM Option :   F
+00:00:02.419 Cell Homogenization...
+00:00:02.423 Linear System Construction...
+00:00:02.435 Performing CMFD Calculation...
   MGOUTER        1              1.071815      1.00000      1.352E-01
   MGOUTER        2              1.130549      0.35930      4.858E-02
   MGOUTER        3              1.147887      0.18050      2.441E-02
@@ -165,13 +166,13 @@ MKL
   MGOUTER        5              1.156649      0.07993      1.081E-02
   MGOUTER        6              1.158129      0.06027      8.149E-03
   MGOUTER        7              1.159002      0.04666      6.309E-03
-00:00:03.661 Performing Ray Tracing    1...
-          Group    1   to    7   finished in      2.406  Sec
-          Group    4   to    7   finished in      1.640  Sec
-00:00:07.786    RT      1       1.085532   6.768E-02   1.011E-01   6.491E-03
-00:00:07.801 Cell Homogenization...
-00:00:07.801 Linear System Construction...
-00:00:07.801 Performing CMFD Calculation...
+00:00:02.476 Performing Ray Tracing    1...
+          Group    1   to    7   finished in      2.009  Sec
+          Group    4   to    7   finished in      1.379  Sec
+00:00:05.915    RT      1       1.085532   6.768E-02   1.011E-01   6.491E-03
+00:00:05.921 Cell Homogenization...
+00:00:05.927 Linear System Construction...
+00:00:05.929 Performing CMFD Calculation...
   MGOUTER        8              1.159363      1.00000      9.803E-03
   MGOUTER        9              1.162835      0.40328      3.953E-03
   MGOUTER       10              1.162903      0.29942      2.935E-03
@@ -181,13 +182,13 @@ MKL
   MGOUTER       14              1.163102      0.11027      1.081E-03
   MGOUTER       15              1.163123      0.08637      8.467E-04
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:07.881 Performing Ray Tracing    2...
-          Group    1   to    7   finished in      2.234  Sec
-          Group    4   to    7   finished in      1.657  Sec
-00:00:11.848    RT      2       1.159881   2.795E-03   6.989E-03   7.769E-04
-00:00:11.848 Cell Homogenization...
-00:00:11.864 Linear System Construction...
-00:00:11.864 Performing CMFD Calculation...
+00:00:05.972 Performing Ray Tracing    2...
+          Group    1   to    7   finished in      1.898  Sec
+          Group    4   to    7   finished in      1.453  Sec
+00:00:09.371    RT      2       1.159881   2.795E-03   6.989E-03   7.769E-04
+00:00:09.381 Cell Homogenization...
+00:00:09.384 Linear System Construction...
+00:00:09.387 Performing CMFD Calculation...
   MGOUTER       16              1.162033      1.00000      1.734E-03
   MGOUTER       17              1.162499      0.48774      8.458E-04
   MGOUTER       18              1.162550      0.37376      6.482E-04
@@ -198,13 +199,13 @@ MKL
   MGOUTER       23              1.162580      0.11243      1.950E-04
   MGOUTER       24              1.162582      0.08828      1.531E-04
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:11.942 Performing Ray Tracing    3...
-          Group    1   to    7   finished in      2.267  Sec
-          Group    4   to    7   finished in      1.641  Sec
-00:00:15.928    RT      3       1.162225   3.076E-04   1.091E-03   1.113E-04
-00:00:15.942 Cell Homogenization...
-00:00:15.958 Linear System Construction...
-00:00:15.958 Performing CMFD Calculation...
+00:00:09.432 Performing Ray Tracing    3...
+          Group    1   to    7   finished in      1.871  Sec
+          Group    4   to    7   finished in      1.438  Sec
+00:00:12.788    RT      3       1.162225   3.076E-04   1.091E-03   1.113E-04
+00:00:12.796 Cell Homogenization...
+00:00:12.800 Linear System Construction...
+00:00:12.801 Performing CMFD Calculation...
   MGOUTER       25              1.162590      1.00000      2.354E-04
   MGOUTER       26              1.162591      0.49624      1.168E-04
   MGOUTER       27              1.162589      0.38349      9.027E-05
@@ -215,13 +216,13 @@ MKL
   MGOUTER       32              1.162590      0.11443      2.694E-05
   MGOUTER       33              1.162590      0.08984      2.115E-05
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:16.038 Performing Ray Tracing    4...
-          Group    1   to    7   finished in      2.422  Sec
-          Group    4   to    7   finished in      1.703  Sec
-00:00:20.240    RT      4       1.162498   7.932E-05   2.002E-04   3.282E-05
-00:00:20.256 Cell Homogenization...
-00:00:20.271 Linear System Construction...
-00:00:20.271 Performing CMFD Calculation...
+00:00:12.846 Performing Ray Tracing    4...
+          Group    1   to    7   finished in      1.868  Sec
+          Group    4   to    7   finished in      1.443  Sec
+00:00:16.208    RT      4       1.162498   7.932E-05   2.002E-04   3.282E-05
+00:00:16.217 Cell Homogenization...
+00:00:16.222 Linear System Construction...
+00:00:16.225 Performing CMFD Calculation...
   MGOUTER       34              1.162557      1.00000      5.636E-05
   MGOUTER       35              1.162571      0.43115      2.430E-05
   MGOUTER       36              1.162572      0.32687      1.842E-05
@@ -231,13 +232,13 @@ MKL
   MGOUTER       40              1.162573      0.12529      7.061E-06
   MGOUTER       41              1.162573      0.09845      5.548E-06
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:20.349 Performing Ray Tracing    5...
-          Group    1   to    7   finished in      2.250  Sec
-          Group    4   to    7   finished in      1.767  Sec
-00:00:24.445    RT      5       1.162560   1.063E-05   3.597E-05   5.487E-06
-00:00:24.461 Cell Homogenization...
-00:00:24.475 Linear System Construction...
-00:00:24.475 Performing CMFD Calculation...
+00:00:16.269 Performing Ray Tracing    5...
+          Group    1   to    7   finished in      1.865  Sec
+          Group    4   to    7   finished in      1.460  Sec
+00:00:19.641    RT      5       1.162560   1.063E-05   3.597E-05   5.487E-06
+00:00:19.649 Cell Homogenization...
+00:00:19.653 Linear System Construction...
+00:00:19.655 Performing CMFD Calculation...
   MGOUTER       42              1.162569      1.00000      1.033E-05
   MGOUTER       43              1.162571      0.49763      5.139E-06
   MGOUTER       44              1.162571      0.38106      3.935E-06
@@ -248,13 +249,13 @@ MKL
   MGOUTER       49              1.162571      0.11417      1.179E-06
   MGOUTER       50              1.162571      0.08959      9.253E-07
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:24.554 Performing Ray Tracing    6...
-          Group    1   to    7   finished in      2.297  Sec
-          Group    4   to    7   finished in      1.656  Sec
-00:00:28.570    RT      6       1.162568   2.519E-06   7.133E-06   2.343E-06
-00:00:28.585 Cell Homogenization...
-00:00:28.600 Linear System Construction...
-00:00:28.600 Performing CMFD Calculation...
+00:00:19.699 Performing Ray Tracing    6...
+          Group    1   to    7   finished in      1.867  Sec
+          Group    4   to    7   finished in      1.458  Sec
+00:00:23.077    RT      6       1.162568   2.519E-06   7.133E-06   2.343E-06
+00:00:23.086 Cell Homogenization...
+00:00:23.089 Linear System Construction...
+00:00:23.091 Performing CMFD Calculation...
   MGOUTER       51              1.162569      1.00000      3.216E-06
   MGOUTER       52              1.162570      0.36930      1.188E-06
   MGOUTER       53              1.162570      0.27511      8.846E-07
@@ -264,13 +265,13 @@ MKL
   MGOUTER       57              1.162570      0.10469      3.366E-07
   MGOUTER       58              1.162570      0.08216      2.642E-07
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:28.679 Performing Ray Tracing    7...
-          Group    1   to    7   finished in      2.343  Sec
-          Group    4   to    7   finished in      1.657  Sec
-00:00:32.740    RT      7       1.162569   3.349E-07   1.376E-06   5.741E-07
-00:00:32.756 Cell Homogenization...
-00:00:32.773 Linear System Construction...
-00:00:32.773 Performing CMFD Calculation...
+00:00:23.135 Performing Ray Tracing    7...
+          Group    1   to    7   finished in      1.849  Sec
+          Group    4   to    7   finished in      1.448  Sec
+00:00:26.480    RT      7       1.162569   3.349E-07   1.376E-06   5.741E-07
+00:00:26.487 Cell Homogenization...
+00:00:26.492 Linear System Construction...
+00:00:26.493 Performing CMFD Calculation...
   MGOUTER       59              1.162569      1.00000      9.768E-07
   MGOUTER       60              1.162570      0.36303      3.546E-07
   MGOUTER       61              1.162570      0.26190      2.558E-07
@@ -279,13 +280,13 @@ MKL
   MGOUTER       64              1.162570      0.12553      1.226E-07
   MGOUTER       65              1.162570      0.09840      9.612E-08
   Convergence - Flux :  F   TH :  F   B-Search:  T
-00:00:32.835 Performing Ray Tracing    8...
-          Group    1   to    7   finished in      2.240  Sec
-          Group    4   to    7   finished in      1.625  Sec
-00:00:36.792    RT      8       1.162569   7.744E-08   3.677E-07   2.340E-07
-00:00:36.808 Cell Homogenization...
-00:00:36.808 Linear System Construction...
-00:00:36.808 Performing CMFD Calculation...
+00:00:26.530 Performing Ray Tracing    8...
+          Group    1   to    7   finished in      1.882  Sec
+          Group    4   to    7   finished in      1.481  Sec
+00:00:29.946    RT      8       1.162569   7.744E-08   3.677E-07   2.340E-07
+00:00:29.952 Cell Homogenization...
+00:00:29.958 Linear System Construction...
+00:00:29.958 Performing CMFD Calculation...
   MGOUTER       66              1.162569      1.00000      3.328E-07
   MGOUTER       67              1.162569      0.35138      1.169E-07
   MGOUTER       68              1.162569      0.25966      8.642E-08
@@ -297,7 +298,7 @@ MKL
 Burnup =     0.000 MWD/kgHM    0.000 EPFD  keff =   1.16257  kinf(BK) =   1.16257  ppm =     0.00 ppm
 -----------------------------------------------------------------------------
                     k-eff =      1.16257
-00:00:36.871  Writing Calculation Results in Output File...
+00:00:29.993  Writing Calculation Results in Output File...
               Case No :    0    Calculation No :    0
  
 ========================================================================
@@ -814,21 +815,22 @@ Assembly   10 at (      4      4 )
        Pin Identifier
  
 ========================================================================
-               Total Time =        36.95  Sec
+               Total Time =        30.03  Sec
               Subgrp. FSP =         0.00  Sec
               Subgrp. RT. =         0.00  Sec,  N =      0
-                   MOC MG =        32.59  Sec,  N =      8,  # THREAD =  14
+                   MOC MG =        27.19  Sec,  N =      8,  # THREAD =  14
                   MOC RT. =         0.00  Sec
-                  CMFD MG =         0.73  Sec,  N =     72
-                CMFD Init =         0.13  Sec,
+                  CMFD MG =         0.38  Sec,  N =     72
+                  CMFD MG =         0.38  Sec,  N =     72
+                CMFD Init =         0.07  Sec,
                  Ax NODAL =         0.00  Sec
                 Ax Kernel =         0.00  Sec
-                     Ax=b =         0.49  Sec
+                     Ax=b =         0.28  Sec
                      DEPL =         0.00  Sec
                       T-H =         0.00  Sec
                     Comm  =         0.00  Sec
 
-00:00:36.917 Job Finished at 13:57:48.
+00:00:30.019 Job Finished at 12:12:33.
  
   Devoloped by
          ______    __    __   __    __   _______    _______    __        

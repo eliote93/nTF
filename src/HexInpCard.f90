@@ -799,8 +799,9 @@ END SUBROUTINE HexRead_Opt
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRead_CrnStff(dataline0)
 
-USE HexData, ONLY : csMat, csWdth, csLgh
+USE PARAM,   ONLY : TRUE
 USE ioutil,  ONLY : nfields
+USE HexData, ONLY : csMat, csWdt, csLgh, hLgc
 
 IMPLICIT NONE
 
@@ -812,7 +813,9 @@ dataline = dataline0
 
 IF (nfields(dataline) .NE. 3) CALL terminate("WRONG [CRN_STFF]")
 
-READ (dataline, *) csMat, csWdth, csLgh
+READ (dataline, *) csMat, csWdt, csLgh
+
+hLgc%lcrnstff = TRUE
 ! ----------------------------------------------------
 
 END SUBROUTINE HexRead_CrnStff
