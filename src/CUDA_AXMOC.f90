@@ -17,9 +17,31 @@ PUBLIC :: cuAllocFlatMOC, cuAllocLinearMOC
 PUBLIC :: cuFlatMOCDriver, cuLinearMOCDriver
 PUBLIC :: cuSetSourceOperator
 
-CONTAINS
+PUBLIC :: cuTranFlatMOCDriver
+PUBLIC :: cuSetTranSourceOperator
+PUBLIC :: cuSetAxPsiNowStep
+
+  CONTAINS
 
 !--- Public Routines ------------------------------------------------------------------------------
+
+SUBROUTINE cuSetAxPsiNowStep(inv_eigv0)
+IMPLICIT NONE
+REAL :: inv_eigv0
+
+REAL(GPU_NODAL_PRECISION) :: ax_inv_eigv0
+INTEGER :: nxy, nzSub
+INTEGER :: n, ierr
+
+nxy = cuGeometry%nxyc
+nzSub = cuDevice%nzSub
+
+CALL cuSetFlux(cuCMFD, cuAxial, cuDevice)
+CALL cuSetPsi(cuAxial, cuDevice, 0)
+n = nxy * nzSub
+ax_inv_eigv0 = inv_eigv0
+ierr = cublasScal(cuDevice%myblasHandle, n, ax_inv_eigv0, cuAxial%PsiCoeff(:,:,0), 1)
+END SUBROUTINE
 
 SUBROUTINE cuAllocFlatMOC(cuAxial, cuDevice)
 
@@ -39,8 +61,9 @@ nPolar1D = cuGeometry%nPolar1D
 
 ALLOCATE(XsMac(cuCntl%nCMFDHelper))
 
-ALLOCATE(cuAxial%phiShape(nxy, ng, nzSub)); cuAxial%phiShape = 1.0
-ALLOCATE(cuAxial%phiCoeff(nxy, ng, nzSub, 0 : 0)); cuAxial%phiCoeff = 0.0
+cuAxial%phic = 1.0
+!ALLOCATE(cuAxial%phiShape(nxy, ng, nzSub)); cuAxial%phiShape = 1.0
+ALLOCATE(cuAxial%phiCoeff(nxy, ng, nzSub, 0 : 0)); cuAxial%phiCoeff = 1.0
 ALLOCATE(cuAxial%phim(nxy, ng, nzSub)); cuAxial%phim = 0.0
 ALLOCATE(cuAxial%PhiAngIn(nPolar1D, nxy, ng, 2))
 ALLOCATE(cuAxial%PhiAngOut(nPolar1D, nxy, ng, 2))
@@ -143,7 +166,7 @@ ierr = cudaStreamSynchronize(cuDevice%myStream)
 AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
 TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
 
-DO iter = 1, 10
+DO iter = 1, 20
   AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
   CALL cuSetSource(cuAxial, cuDevice, eigv, 0)
   !$ACC HOST_DATA USE_DEVICE(cuDevice)
@@ -154,6 +177,98 @@ DO iter = 1, 10
                        (cuDevice, cuAxial%phiCoeff(:, :, :, 0), cuAxial%phim, cuAxial%srcCoeff(:, :, :, 0),         &
                         cuAxial%srcm, cuAxial%xst)
   !$ACC END HOST_DATA
+  ierr = cudaStreamSynchronize(cuDevice%myStream)
+  AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
+  TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
+  CALL cuCommBoundaryFlux(cuAxial, cuDevice)
+ENDDO
+
+AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
+!$ACC HOST_DATA USE_DEVICE(cuDevice)
+CALL cuFlatRayTrace2nd <<< Blocks, Threads, sharedMemSize, myStream >>>                                             &
+                       (cuDevice, cuAxial%xst, cuAxial%srcCoeff(:, :, :, 0), cuAxial%srcm, cuAxial%PhiAngIn,        &
+                        cuAxial%PhiAngOut, cuAxial%Jout)
+CALL cuSetFluxShape <<< Blocks, Threads, 0, myStream >>>                                                            &
+                    (cuDevice, cuAxial%phiCoeff(:, :, :, 0), cuAxial%phic, cuAxial%phiShape)
+!$ACC END HOST_DATA
+ierr = cudaStreamSynchronize(cuDevice%myStream)
+AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
+TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
+CALL cuCommBoundaryFlux(cuAxial, cuDevice)
+
+END SUBROUTINE
+
+SUBROUTINE cuTranFlatMOCDriver(TranInfo, TranCntl, eigv0)
+USE TYPEDEF,        ONLY : TranInfo_Type,     TranCntl_Type
+USE CUDA_FLATMOC
+USE TIMER,          ONLY : nTracer_dclock,      TimeChk
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+REAL :: eigv0
+
+TYPE(dim3) :: Blocks, Threads
+REAL(GPU_NODAL_PRECISION) :: inv_eigv0
+INTEGER :: ng, nxy, nzSub
+INTEGER :: sharedMemSize
+INTEGER :: iter, ierr, n
+INTEGER(KIND = cuda_stream_kind) :: myStream
+REAL :: AxNSolverBeg, AxNSolverEnd
+
+ng = cuGeometry%ng
+nxy = cuGeometry%nxyc
+nzSub = cuDevice%nzSub
+myStream = cuDevice%myStream
+
+inv_eigv0 = 1./ eigv0
+
+sharedMemSize = GPU_NODAL_PRECISION * cuGeometry%nPolar1D * cuDevice%sharedMemoryDim
+
+Threads = dim3(cuDevice%cuThreadPerBlock, 1, 1)
+Blocks = dim3(ng * nxy / Threads%x + 1, 1, 1)
+
+AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
+
+CALL cuSetCrossSection(cuCMFD, cuAxial, cuDevice)
+CALL cuSetFlux(cuCMFD, cuAxial, cuDevice)
+CALL cuSetPsi(cuAxial, cuDevice, 0)
+n = nxy * nzSub
+ierr = cublasScal(cuDevice%myblasHandle, n, inv_eigv0, cuAxial%PsiCoeff(:,:,0), 1)
+CALL cuSetLeakage(cuCMFD, cuAxial, cuDevice)
+
+!$ACC HOST_DATA USE_DEVICE(cuGeometry, cuDevice)
+CALL cuLeakageSplit <<< Blocks, Threads, 0, myStream >>>                                                            &
+                    (cuGeometry, cuDevice, cuAxial%phiCoeff(:, :, :, 0), cuAxial%lkgCoeff(:, :, :, 0), cuAxial%xst)
+!$ACC END HOST_DATA
+
+IF(TranCntl%lchidk) THEN
+  CALL cuSetPrecSrcK(TranInfo, TranCntl)
+ELSE
+  CALL cuSetPrecSrc(TranInfo, TranCntl)
+END IF
+CALL cuSetTranFixedSrc(TranCntl)
+
+ierr = cudaStreamSynchronize(cuDevice%myStream)
+AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
+TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
+
+
+DO iter = 1, 10
+  AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
+  IF(iter .NE. 1) THEN
+    CALL cuSetPsi(cuAxial, cuDevice, 0)
+    ierr = cublasScal(cuDevice%myblasHandle, n, inv_eigv0, cuAxial%PsiCoeff(:,:,0), 1)
+  END IF
+  CALL cuSetTranSource(TranCntl, 0)
+  !$ACC HOST_DATA USE_DEVICE(cuDevice)
+  CALL cuFlatRayTrace1st <<< Blocks, Threads, sharedMemSize, myStream >>>                                           &
+                         (cuDevice, cuAxial%phiCoeff(:, :, :, 0), cuAxial%phim, cuAxial%xst,                        &
+                          cuAxial%srcCoeff(:, :, :, 0), cuAxial%srcm, cuAxial%PhiAngIn, cuAxial%PhiAngOut)
+  CALL cuSetFluxMoment <<< Blocks, Threads, 0, myStream >>>                                                         &
+                       (cuDevice, cuAxial%phiCoeff(:, :, :, 0), cuAxial%phim, cuAxial%srcCoeff(:, :, :, 0),         &
+                        cuAxial%srcm, cuAxial%xst)
+  !$ACC END HOST_DATA
+
   ierr = cudaStreamSynchronize(cuDevice%myStream)
   AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
   TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
@@ -353,12 +468,216 @@ ENDDO
 n = ng * ng * nxy * (myze - myzb + 1)
 ierr = cudaMemcpy(cuAxial%S0, S0, n, cudaMemcpyHostToDevice)
 ierr = cudaMemcpy(cuAxial%S1, S1, n, cudaMemcpyHostToDevice)
-
 n = ng * nxy * (myze - myzb + 1)
 ierr = cudaMemcpy(cuAxial%Fa, F, n, cudaMemcpyHostToDevice)
 ierr = cudaMemcpy(cuAxial%Chia, Chi, n, cudaMemcpyHostToDevice)
 
+
 DEALLOCATE(S0, S1, F, Chi)
+
+END SUBROUTINE
+
+SUBROUTINE cuSetTranSourceOperator(CoreInfo, FmInfo, GroupInfo, TranInfo, TranCntl, cuCMFD, cuAxial, cuDevice)
+USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        GroupInfo_Type,                                 &
+                           TranInfo_Type,       FxrInfo_Type,        Pin_Type,                                      &
+                           TranCntl_Type
+USE MacXsLib_Mod,   ONLY : MacP1XsScatMatrix
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: CoreInfo
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(cuCMFD_Type) :: cuCMFD
+TYPE(cuAxial_Type) :: cuAxial
+TYPE(cuDevice_Type) :: cuDevice
+
+TYPE(superPin_Type), POINTER :: superPin(:)
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+INTEGER :: ig, igs, igb, ige, ifxr, ixy, ixy_map, ipin, ipin_map, iz, ierr, tid, iprec
+INTEGER :: n, ng, nxy, nprec
+INTEGER :: myzb, myze
+INTEGER, POINTER :: pinMap(:)
+REAL(GPU_NODAL_PRECISION), ALLOCATABLE :: S0(:, :, :, :), S1(:, :, :, :), F(:, :, :), Chi(:, :, :)
+REAL(GPU_NODAL_PRECISION), ALLOCATABLE :: InvVel(:, :, :), Omegalm(:, :), Omegal0(:, :)
+REAL(GPU_NODAL_PRECISION), ALLOCATABLE :: OmegalmK(:, :, :), Omegal0K(:, :, :)
+
+Pin => CoreInfo%Pin
+Fxr => FmInfo%Fxr
+superPin => cuGeometry%superPin
+ng = cuCMFD%ng
+nxy = cuGeometry%nxyc
+nprec = cuGeometry%nprec
+myzb = cuDevice%myzb
+myze = cuDevice%myze
+pinMap => cuGeometry%pinMap
+
+ALLOCATE(S0(nxy, ng, myzb : myze, ng)); S0 = 0.0
+ALLOCATE(S1(nxy, ng, myzb : myze, ng)); S1 = 0.0
+ALLOCATE(F(nxy, myzb : myze, ng))
+ALLOCATE(Chi(nxy, ng, myzb : myze))
+ALLOCATE(InvVel(nxy, ng, myzb : myze))
+IF(TranCntl%lchidk) THEN
+  ALLOCATE(OmegalmK(nxy, myzb : myze, nprec))
+  ALLOCATE(Omegal0K(nxy, myzb : myze, nprec))
+ELSE
+  ALLOCATE(Omegalm(nxy, myzb : myze))
+  ALLOCATE(Omegal0(nxy, myzb : myze))
+END IF
+
+!$OMP PARALLEL PRIVATE(ipin_map)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+DO iz = myzb, myze
+  DO ipin = 1, nxy
+    ipin_map = pinMap(ipin)
+    DO ig = 1, ng
+      igb = cuCMFD%PinXS(ipin_map, iz)%XSs(ig)%ib
+      ige = cuCMFD%PinXS(ipin_map, iz)%XSs(ig)%ie
+      DO igs = igb, ige
+        IF (igs .EQ. ig) THEN
+          IF (cuGeometry%lH2OCell(iz, ipin)) THEN
+            S0(ipin, ig, iz, igs) = cuCMFD%PinXS(ipin_map, iz)%XSs(ig)%self                                         &
+                                    + (cuCMFD%PinXS(ipin_map, iz)%XSt(ig) - cuCMFD%PinXS(ipin_map, iz)%XStr(ig))
+          ELSE
+            S0(ipin, ig, iz, igs) = cuCMFD%PinXS(ipin_map, iz)%XSs(ig)%self
+            IF (cuGeometry%lRefCell(iz, ipin)) THEN
+              IF (S0(ipin, ig, iz, igs) .LT. 0.0) S0(ipin, ig, iz, igs) = 0.0
+            ENDIF
+          ENDIF
+        ELSE
+          S0(ipin, ig, iz, igs) = cuCMFD%PinXS(ipin_map, iz)%XSs(ig)%from(igs)
+        ENDIF
+      ENDDO
+    ENDDO
+  ENDDO
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+IF (.NOT. ASSOCIATED(XsMac)) ALLOCATE(XsMac(cuCntl%nCMFDHelper))
+
+!$OMP PARALLEL PRIVATE(tid, ifxr, ipin, ixy_map)
+tid = omp_get_thread_num() + 1
+
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+DO iz = myzb, myze
+  DO ixy = 1, nxy
+    IF (.NOT. cuGeometry%lH2OCell(iz, ixy)) CYCLE
+    ixy_map = pinMap(ixy)
+    ipin = superPin(ixy_map)%pin(1)
+    ifxr = Pin(ipin)%FxrIdxSt
+    CALL MacP1XsScatMatrix(XsMac(tid), Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
+    DO ig = 1, ng
+      DO igs = 1, ng
+        S1(ixy, ig, iz, igs) = XsMac(tid)%XsMacP1Sm(igs, ig)
+      ENDDO
+    ENDDO
+  ENDDO
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+!$OMP PARALLEL PRIVATE(ipin_map)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+DO ig = 1, ng
+  DO iz = myzb, myze
+    DO ipin = 1, nxy
+      ipin_map = pinMap(ipin)
+      F(ipin, iz, ig) = cuCMFD%PinXS(ipin_map, iz)%XSnf(ig)
+    ENDDO
+  ENDDO
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+!$OMP PARALLEL PRIVATE(ipin_map)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+DO iz = myzb, myze
+  DO ig = 1, ng
+    DO ipin = 1, nxy
+      ipin_map = pinMap(ipin)
+      IF(TranCntl%lchidk) THEN
+        Chi(ipin, ig, iz) = cuCMFD%PinXS(ipin_map, iz)%Chi(ig)
+        DO iprec = 1, nprec
+          Chi(ipin, ig, iz) = Chi(ipin, ig, iz) + TranInfo%chidk(ig, iprec) * (cuTranCMInfo%CellOmegap(iprec, ipin_map, iz) * TranInfo%lambda(iprec) - cuCMFD%PinXS(ipin_map, iz)%beta(iprec))
+        END DO
+      ELSE
+        Chi(ipin, ig, iz) = cuCMFD%PinXS(ipin_map, iz)%Chi(ig) + &
+          TranInfo%chid(ig) * (cuCMFD%PinXS(ipin_map, iz)%omega - cuCMFD%PinXS(ipin_map, iz)%betat)
+      END IF
+    ENDDO
+  ENDDO
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+!$OMP PARALLEL PRIVATE(ipin_map)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+DO iz = myzb, myze
+  DO ig = 1, ng
+    DO ipin = 1, nxy
+      ipin_map = pinMap(ipin)
+      InvVel(ipin, ig, iz) = 1./cuCMFD%PinXS(ipin_map, iz)%velo(ig)
+    ENDDO
+  ENDDO
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+n = ng * ng * nxy * (myze - myzb + 1)
+ierr = cudaMemcpy(cuAxial%S0, S0, n, cudaMemcpyHostToDevice)
+ierr = cudaMemcpy(cuAxial%S1, S1, n, cudaMemcpyHostToDevice)
+
+n = ng * nxy * (myze - myzb + 1)
+ierr = cudaMemcpy(cuAxial%Fa, F, n, cudaMemcpyHostToDevice)
+ierr = cudaMemcpy(cuAxial%Chia, Chi, n, cudaMemcpyHostToDevice)
+ierr = cudaMemcpy(cuAxial%InvVel, InvVel, n, cudaMemcpyHostToDevice)
+
+IF(TranCntl%lchidk) THEN
+  DO iprec = 1, nprec
+    !$OMP PARALLEL PRIVATE(ipin_map)
+    !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+    DO iz = myzb, myze
+      DO ipin = 1, nxy
+        ipin_map = pinMap(ipin)
+        OmegalmK(ipin, iz, iprec) = cuTranCMInfo%CellOmegam(iprec, ipin_map, iz) * TranInfo%lambda(iprec)
+        Omegal0K(ipin, iz, iprec) = cuTranCMInfo%CellOmega0(iprec, ipin_map, iz) * TranInfo%lambda(iprec)
+      ENDDO
+    ENDDO
+    !$OMP END DO
+    !$OMP END PARALLEL
+  END DO
+  n = nxy * (myze - myzb + 1) * nprec
+  ierr = cudaMemcpy(cuAxial%OmegalmK, OmegalmK, n, cudaMemcpyHostToDevice)
+  ierr = cudaMemcpy(cuAxial%Omegal0K, Omegal0K, n, cudaMemcpyHostToDevice)
+ELSE
+  !$OMP PARALLEL PRIVATE(ipin_map)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+  DO iz = myzb, myze
+    DO ipin = 1, nxy
+      ipin_map = pinMap(ipin)
+      Omegalm(ipin, iz) = cuTranCMInfo%CellOmegam(0, ipin_map, iz)
+      Omegal0(ipin, iz) = cuTranCMInfo%CellOmega0(0, ipin_map, iz)
+    ENDDO
+  ENDDO
+  !$OMP END DO
+  !$OMP END PARALLEL
+  n = nxy * (myze - myzb + 1)
+  ierr = cudaMemcpy(cuAxial%Omegalm, Omegalm, n, cudaMemcpyHostToDevice)
+  ierr = cudaMemcpy(cuAxial%Omegal0, Omegal0, n, cudaMemcpyHostToDevice)
+END IF
+
+DEALLOCATE(S0, S1, F, Chi)
+DEALLOCATE(InvVel)
+IF(TranCntl%lchidk) THEN
+  DEALLOCATE(OmegalmK)
+  DEALLOCATE(Omegal0K)
+ELSE
+  DEALLOCATE(Omegalm)
+  DEALLOCATE(Omegal0)
+END IF
 
 END SUBROUTINE
 
@@ -476,6 +795,7 @@ INTEGER :: ig, ipin, iz, izf, ierr
 INTEGER :: n, ng, nxy, nzSub
 INTEGER :: myzbf, myzef
 REAL(GPU_NODAL_PRECISION), ALLOCATABLE :: phis(:, :, :)
+REAL, ALLOCATABLE :: phicd(:, :, :)
 
 ng = cuGeometry%ng
 nxy = cuGeometry%nxyc
@@ -484,7 +804,10 @@ myzbf = cuDevice%myzbf
 myzef = cuDevice%myzef
 n = ng * nxy * nzSub
 
-ALLOCATE(phis(nxy, ng, nzSub))
+ALLOCATE(phis(nxy, ng, nzSub), phicd(ng, nxy, myzbf:myzef))
+
+ierr = cudaMemCpy(phicd, cuAxial%phic, nxy*ng*(myzef-myzbf+1), cudaMemcpyDeviceToHost)
+ierr = cudaMemCpy(phis, cuAxial%phiCoeff, n, cudaMemcpyDeviceToHost)
 
 DO iz = myzbf, myzef
   !$OMP PARALLEL
@@ -492,7 +815,7 @@ DO iz = myzbf, myzef
   DO izf = cuDevice%fmSubrange(iz, 1), cuDevice%fmSubrange(iz, 2)
     DO ipin = 1, nxy
       DO ig = 1, ng
-        phis(ipin, ig, izf) = cuCMFD%h_phis8(ig, ipin, iz)
+        phis(ipin, ig, izf) = phis(ipin, ig, izf) * cuCMFD%h_phis8(ig, ipin, iz)/phicd(ig, ipin, iz)
       ENDDO
     ENDDO
   ENDDO
@@ -502,9 +825,9 @@ ENDDO
 
 ierr = cudaMemcpy(cuAxial%phiCoeff(:, :, :, 0), phis, n, cudaMemcpyHostToDevice)
 
-DEALLOCATE(phis)
+DEALLOCATE(phis, phicd)
 
-CALL cuVectorOp('*', n, cuAxial%phiShape, cuAxial%phiCoeff(:, :, :, 0), cuAxial%phiCoeff(:, :, :, 0), cuDevice%myStream)
+!CALL cuVectorOp('*', n, cuAxial%phiShape, cuAxial%phiCoeff(:, :, :, 0), cuAxial%phiCoeff(:, :, :, 0), cuDevice%myStream)
 
 END SUBROUTINE
 
@@ -783,6 +1106,38 @@ CALL cuSetSourceKernel <<< Blocks, Threads, 0, myStream >>>                     
 
 END SUBROUTINE
 
+SUBROUTINE cuSetTranSource(TranCntl, order)
+USE TYPEDEF,          ONLY : TranCntl_Type
+IMPLICIT NONE
+TYPE(TranCntl_Type) :: TranCntl
+
+TYPE(dim3) :: Blocks, Threads
+REAL(GPU_NODAL_PRECISION) :: delt
+INTEGER(KIND = cuda_stream_kind) :: myStream
+INTEGER :: ng, nxy, nzSub
+INTEGER :: order
+
+INTEGER :: ierr
+
+ng = cuGeometry%ng
+nxy = cuGeometry%nxyc
+nzSub = cuDevice%nzSub
+myStream = cuDevice%myStream
+
+delt = TranCntl%delt(TranCntl%nowstep)
+
+Threads = dim3(cuDevice%cuThreadPerBlock, 1, 1)
+Blocks = dim3(ng * nxy / Threads%x + 1, nzSub, 1)
+
+!$ACC HOST_DATA USE_DEVICE(cuDevice)
+CALL cuSetTranSourceKernel <<< Blocks, Threads, 0, myStream >>>                                                         &
+                          (cuDevice, cuAxial%S0, cuAxial%S1, cuAxial%Chia, cuAxial%InvVel,  cuAxial%Expo_Alpha,         &
+                           cuAxial%phiCoeff, cuAxial%phim, cuAxial%psiCoeff, cuAxial%lkgCoeff,                          &
+                           cuAxial%FixedSrc, cuAxial%xst, cuAxial%srcCoeff, cuAxial%srcm, delt, order)
+!$ACC END HOST_DATA
+
+END SUBROUTINE
+
 ATTRIBUTES(GLOBAL) SUBROUTINE cuSetSourceKernel(cuDevice, S0, S1, Chi, phis, phim, psi, lkg, xst, src, srcm, reigv, order)
 USE CUDA_CONST
 USE CUDAFOR
@@ -825,6 +1180,67 @@ IF (order .EQ. 0) THEN
 ENDIF
 
 IF (order .EQ. 0) THEN
+  src(ipin, ig, izf, 0) = src(ipin, ig, izf, 0) - lkg(ipin, ig, izf, 0)
+  src(ipin, ig, izf, 0) = src(ipin, ig, izf, 0) / xst(ipin, ig, izf)
+  srcm(ipin, ig, izf) = 3.0 * srcm(ipin, ig, izf) / xst(ipin, ig, izf)
+ELSEIF (order .EQ. 1) THEN
+  src(ipin, ig, izf, 1) = src(ipin, ig, izf, 1) / xst(ipin, ig, izf) ** 2
+ENDIF
+
+END SUBROUTINE
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuSetTranSourceKernel(cuDevice, S0, S1, Chi, InvVel, Expo_Alpha, phis, phim, psi, &
+                                                    lkg, FixedSrc , xst, src, srcm, delt, order)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+
+TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: S0(:, :, cuDevice%myzb :, :), S1(:, :, cuDevice%myzb :, :), Chi(:, :, cuDevice%myzb :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: InvVel(:, :, cuDevice%myzb :), Expo_Alpha(:, :, cuDevice%myzb :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: phis(:, :, :, 0 :), phim(:, :, :), psi(:, :, 0 :), lkg(:, :, :, 0 :), xst(:, :, :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: FixedSrc(:, :, :)
+REAL(GPU_NODAL_PRECISION), DEVICE :: src(:, :, :, 0 :), srcm(:, :, :)
+REAL(GPU_NODAL_PRECISION), VALUE :: delt
+INTEGER, VALUE :: order
+
+REAL(GPU_NODAL_PRECISION) :: scatSrc, fisSrc, momentSrc, rvdt, rvalpha
+REAL(GPU_NODAL_PRECISION) :: invtheta
+INTEGER :: ig, igs, ipin, iz, izf
+INTEGER :: gb, ge
+
+ipin = mod((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1, nxyc) + 1
+ig = ((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1) / nxyc + 1
+izf = blockIdx%y
+
+IF (ig .GT. ng) RETURN
+
+iz = cuDevice%cmMap(izf)
+gb = InScatRange(1, ig)
+ge = InScatRange(2, ig)
+
+scatSrc = 0.0
+DO igs = gb, ge
+  scatSrc = scatSrc + S0(ipin, ig, iz, igs) * phis(ipin, igs, izf, order)
+ENDDO
+fisSrc = Chi(ipin, ig, iz) * psi(ipin, izf, order)
+
+invtheta = 1./theta
+rvdt = InvVel(ipin, ig, iz) * invtheta / delt
+rvalpha = InvVel(ipin, ig, iz) * Expo_Alpha(ipin, ig, iz)
+
+src(ipin, ig, izf, order) = scatSrc + fisSrc - (rvdt + rvalpha) * phis(ipin, ig, izf, order)
+
+IF (order .EQ. 0) THEN
+  momentSrc = 0.0
+  DO igs = gb, ge
+    momentSrc = momentSrc + S1(ipin, ig, iz, igs) * phim(ipin, igs, izf)
+  ENDDO
+  srcm(ipin, ig, izf) = momentSrc
+ENDIF
+
+IF (order .EQ. 0) THEN
+  src(ipin, ig, izf, 0) = src(ipin, ig, izf, 0) + FixedSrc(ipin, ig, izf)
   src(ipin, ig, izf, 0) = src(ipin, ig, izf, 0) - lkg(ipin, ig, izf, 0)
   src(ipin, ig, izf, 0) = src(ipin, ig, izf, 0) / xst(ipin, ig, izf)
   srcm(ipin, ig, izf) = 3.0 * srcm(ipin, ig, izf) / xst(ipin, ig, izf)
@@ -913,7 +1329,7 @@ REAL, DEVICE :: phic(:, :, :)
 
 INTEGER :: ig, ipin, iz, izf
 REAL(GPU_NODAL_PRECISION) :: phisum
-LOGICAL :: lNegative
+!LOGICAL :: lNegative
 
 ipin = mod((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1, nxyc) + 1
 ig = ((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1) / nxyc + 1
@@ -922,28 +1338,261 @@ IF (ig .GT. ng) RETURN
 
 DO iz = cuDevice%myzbf, cuDevice%myzef
 
-  lNegative = .FALSE.
+!  lNegative = .FALSE.
 
   phisum = 0.0
   DO izf = cuDevice%fmSubrange(iz, 1), cuDevice%fmSubrange(iz, 2)
     phisum = phisum + phis(ipin, ig, izf)
-    IF (phis(ipin, ig, izf) .LT. 0.0) lNegative = .TRUE.
+!    IF (phis(ipin, ig, izf) .LT. 0.0) lNegative = .TRUE.
   ENDDO
 
   phisum = phisum / cuDevice%nDiv(iz)
   phic(ig, ipin, iz) = phisum
 
-  IF (lNegative) THEN
-    DO izf = cuDevice%fmSubrange(iz, 1), cuDevice%fmSubrange(iz, 2)
-      phiShape(ipin, ig, izf) = 1.0
-    ENDDO
-  ELSE
-    DO izf = cuDevice%fmSubrange(iz, 1), cuDevice%fmSubrange(iz, 2)
-      phiShape(ipin, ig, izf) = phis(ipin, ig, izf) / phisum
-    ENDDO
-  ENDIF
+!  IF (lNegative) THEN
+!    DO izf = cuDevice%fmSubrange(iz, 1), cuDevice%fmSubrange(iz, 2)
+!      phiShape(ipin, ig, izf) = 1.0
+!    ENDDO
+!  ELSE
+!    DO izf = cuDevice%fmSubrange(iz, 1), cuDevice%fmSubrange(iz, 2)
+!      phiShape(ipin, ig, izf) = phis(ipin, ig, izf) / phisum
+!    ENDDO
+!  ENDIF
 
 ENDDO
+
+END SUBROUTINE
+
+SUBROUTINE cuSetPrecSrc(TranInfo, TranCntl)
+USE TYPEDEF,          ONLY : TranInfo_Type,     TranCntl_Type
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+
+TYPE(dim3) :: Blocks, Threads
+REAL(GPU_NODAL_PRECISION), ALLOCATABLE :: lkappa(:)
+REAL :: delt
+INTEGER :: nowstep
+INTEGER(KIND = cuda_stream_kind) :: myStream
+INTEGER :: nxy, nzSub, nprec
+INTEGER :: iprec
+INTEGER :: n, ierr
+
+
+nowstep = TranCntl%nowstep
+delt = TranCntl%delt(nowstep)
+
+nprec = cuGeometry%nprec
+nxy = cuGeometry%nxyc
+nzSub = cuDevice%nzSub
+myStream = cuDevice%myStream
+
+Threads = dim3(cuDevice%cuThreadPerBlock, 1, 1)
+Blocks = dim3(nxy * nzSub / Threads%x + 1, 1, 1)
+
+ALLOCATE(lkappa(nprec))
+
+DO iprec = 1, nprec
+  lkappa(iprec) = exp(-delt * TranInfo%lambda(iprec)) * TranInfo%lambda(iprec)
+END DO
+
+n = nxy * nzSub
+CALL cuInitArray(n, cuAxial%PrecSrc, cuDevice%myStream)
+DO iprec = 1, nprec
+  ierr = cublasAxpy(cuDevice%myblasHandle, n, lkappa(iprec), cuAxial%Prec(:, :, iprec), 1, cuAxial%PrecSrc, 1)
+END DO
+
+
+!$ACC HOST_DATA USE_DEVICE(cuDevice)
+CALL cuSetPrecSrcKernel <<< Blocks, Threads, 0, myStream >>>                                                            &
+                        (cuDevice, cuAxial%Omegalm, cuAxial%TranPsid, cuAxial%PrecSrc)
+CALL cuSetPrecSrcKernel <<< Blocks, Threads, 0, myStream >>>                                                            &
+                        (cuDevice, cuAxial%Omegal0, cuAxial%TranPsi, cuAxial%PrecSrc)
+!$ACC END HOST_DATA
+
+DEALLOCATE(lkappa)
+
+END SUBROUTINE
+
+SUBROUTINE cuSetPrecSrcK(TranInfo, TranCntl)
+USE TYPEDEF,          ONLY : TranInfo_Type,     TranCntl_Type
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+
+TYPE(dim3) :: Blocks, Threads
+REAL(GPU_NODAL_PRECISION), ALLOCATABLE :: lkappa(:)
+REAL :: delt
+INTEGER :: nowstep
+INTEGER(KIND = cuda_stream_kind) :: myStream
+INTEGER :: nxy, nzSub, nprec
+INTEGER :: iprec
+INTEGER :: n, ierr
+
+
+nowstep = TranCntl%nowstep
+delt = TranCntl%delt(nowstep)
+
+nprec = cuGeometry%nprec
+nxy = cuGeometry%nxyc
+nzSub = cuDevice%nzSub
+myStream = cuDevice%myStream
+
+Threads = dim3(cuDevice%cuThreadPerBlock, 1, 1)
+Blocks = dim3(nxy * nzSub / Threads%x + 1, 1, 1)
+
+ALLOCATE(lkappa(nprec))
+
+DO iprec = 1, nprec
+  lkappa(iprec) = exp(-delt * TranInfo%lambda(iprec)) * TranInfo%lambda(iprec)
+END DO
+
+n = nxy * nzSub * nprec
+CALL cuInitArray(n, cuAxial%PrecSrcK, cuDevice%myStream)
+n = nxy * nzSub
+DO iprec = 1, nprec
+  ierr = cublasAxpy(cuDevice%myblasHandle, n, lkappa(iprec), cuAxial%Prec(:, :, iprec), 1, cuAxial%PrecSrcK(:,:, iprec), 1)
+END DO
+
+!$ACC HOST_DATA USE_DEVICE(cuDevice)
+DO iprec = 1, nprec
+  CALL cuSetPrecSrcKernel <<< Blocks, Threads, 0, myStream >>>                                                            &
+    (cuDevice, cuAxial%OmegalmK(:,:,iprec), cuAxial%TranPsid, cuAxial%PrecSrcK(:,:,iprec))
+  CALL cuSetPrecSrcKernel <<< Blocks, Threads, 0, myStream >>>                                                            &
+    (cuDevice, cuAxial%Omegal0K(:,:,iprec), cuAxial%TranPsi, cuAxial%PrecSrcK(:,:,iprec))
+END DO
+!$ACC END HOST_DATA
+
+DEALLOCATE(lkappa)
+
+END SUBROUTINE
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuSetPrecSrcKernel(cuDevice, Omega, TranPsi, PrecSrc)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+
+TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: Omega(:, cuDevice%myzb :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: TranPsi(:, :)
+REAL(GPU_NODAL_PRECISION), DEVICE :: PrecSrc(:, :)
+
+INTEGER :: ipin, iz, izf
+
+ipin = mod((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1, nxyc) + 1
+izf = ((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1) / nxyc + 1
+
+IF (izf .GT. cuDevice%nzSub) RETURN
+
+iz = cuDevice%cmMap(izf)
+PrecSrc(ipin, izf) = PrecSrc(ipin, izf) + Omega(ipin, iz) * TranPsi(ipin, izf)
+
+END SUBROUTINE
+
+SUBROUTINE cuSetTranFixedSrc(TranCntl)
+USE TYPEDEF,          ONLY : TranCntl_Type
+IMPLICIT NONE
+TYPE(TranCntl_Type) :: TranCntl
+
+TYPE(dim3) :: Blocks, Threads
+REAL(GPU_NODAL_PRECISION) :: delt
+INTEGER(KIND = cuda_stream_kind) :: myStream
+INTEGER :: ng, nxy, nzSub
+
+INTEGER :: ierr
+
+ng = cuGeometry%ng
+nxy = cuGeometry%nxyc
+nzSub = cuDevice%nzSub
+myStream = cuDevice%myStream
+
+delt = TranCntl%delt(TranCntl%nowstep)
+
+Threads = dim3(cuDevice%cuThreadPerBlock, 1, 1)
+Blocks = dim3(ng * nxy / Threads%x + 1, nzSub, 1)
+
+IF(TranCntl%lchidk) THEN
+!$ACC HOST_DATA USE_DEVICE(cuDevice)
+CALL cuSetTranFixedSrcKernel_chidk <<< Blocks, Threads, 0, myStream >>>                                     &
+                             (cuDevice, cuAxial%FixedSrc, cuAxial%PrecSrcK, cuAxial%ResSrc,            &
+                              cuAxial%TranPhi, cuAxial%InvVel, cuAxial%Expo, cuAxial%Expo_Alpha, delt)
+!$ACC END HOST_DATA
+ELSE
+!$ACC HOST_DATA USE_DEVICE(cuDevice)
+CALL cuSetTranFixedSrcKernel <<< Blocks, Threads, 0, myStream >>>                                     &
+                             (cuDevice, cuAxial%FixedSrc, cuAxial%PrecSrc, cuAxial%ResSrc,            &
+                              cuAxial%TranPhi, cuAxial%InvVel, cuAxial%Expo, cuAxial%Expo_Alpha, delt)
+!$ACC END HOST_DATA
+END IF
+
+
+END SUBROUTINE
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuSetTranFixedSrcKernel(cuDevice, FixedSrc, PrecSrc, ResSrc,  &
+                                                      TranPhi, InvVel, expo, expo_alpha, delt)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+
+TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
+REAL(GPU_NODAL_PRECISION), DEVICE :: FixedSrc(:, :, :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: PrecSrc(:, :), ResSrc(:, :, :), TranPhi(:, :, :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: InvVel(:, :, cuDevice%myzb :), expo(:, :, cuDevice%myzb:), expo_alpha(:, :, cuDevice%myzb:)
+REAL(GPU_NODAL_PRECISION), VALUE :: delt
+
+REAL(GPU_NODAL_PRECISION) :: invtheta, thetah, prevSrc
+INTEGER :: ipin, ig, izf, iz
+
+ipin = mod((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1, nxyc) + 1
+ig = ((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1) / nxyc + 1
+izf = blockIdx%y
+
+IF (ig .GT. ng) RETURN
+
+iz = cuDevice%cmMap(izf)
+
+invtheta = 1./ theta
+thetah = invtheta - 1.
+
+prevSrc = thetah * (ResSrc(ipin, ig, izf) - Expo_Alpha(ipin, ig, iz) * InvVel(ipin, ig, iz) * TranPhi(ipin, ig, izf))
+prevSrc = prevSrc + InvVel(ipin, ig, iz) * TranPhi(ipin, ig, izf) * invtheta / delt
+prevSrc = prevSrc * Expo(ipin, ig, iz)
+FixedSrc(ipin, ig, izf) = prevSrc + chid(ig) * PrecSrc(ipin, izf)
+
+END SUBROUTINE
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuSetTranFixedSrcKernel_chidk(cuDevice, FixedSrc, PrecSrcK, ResSrc,  &
+                                                      TranPhi, InvVel, expo, expo_alpha, delt)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+
+TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
+REAL(GPU_NODAL_PRECISION), DEVICE :: FixedSrc(:, :, :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: PrecSrcK(:, :, :), ResSrc(:, :, :), TranPhi(:, :, :)
+REAL(GPU_NODAL_PRECISION), DEVICE, INTENT(IN) :: InvVel(:, :, cuDevice%myzb :), expo(:, :, cuDevice%myzb:), expo_alpha(:, :, cuDevice%myzb:)
+REAL(GPU_NODAL_PRECISION), VALUE :: delt
+
+REAL(GPU_NODAL_PRECISION) :: invtheta, thetah, prevSrc
+INTEGER :: ipin, ig, izf, iz, iprec
+
+ipin = mod((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1, nxyc) + 1
+ig = ((blockIdx%x - 1) * blockDim%x + threadIdx%x - 1) / nxyc + 1
+izf = blockIdx%y
+
+IF (ig .GT. ng) RETURN
+
+iz = cuDevice%cmMap(izf)
+
+invtheta = 1./ theta
+thetah = invtheta - 1.
+
+prevSrc = thetah * (ResSrc(ipin, ig, izf) - Expo_Alpha(ipin, ig, iz) * InvVel(ipin, ig, iz) * TranPhi(ipin, ig, izf))
+prevSrc = prevSrc + InvVel(ipin, ig, iz) * TranPhi(ipin, ig, izf) * invtheta / delt
+prevSrc = prevSrc * Expo(ipin, ig, iz)
+DO iprec = 1, nprec
+  FixedSrc(ipin, ig, izf) = prevSrc + chidK(ig, iprec) * PrecSrcK(ipin, izf, iprec)
+END DO
 
 END SUBROUTINE
 

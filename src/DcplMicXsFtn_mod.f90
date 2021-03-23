@@ -243,8 +243,8 @@ DO j = 1, nFxr
     ENDDO
     IF(lFuelPln) THEN
       DO ig = iResoGrpBeg,iResoGrpEnd
-        XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoF(ig)
-        XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresoF(ig)
+        XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoNF(ig)
+        XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresokF(ig)
       ENDDO  
     ENDIF
     XsMac(j)%XsMacTr = XsMac(j)%XsMacA + XsMac(j)%XsMacStr

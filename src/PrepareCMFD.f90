@@ -3,11 +3,11 @@ SUBROUTINE SetCMFDEnviorment(CORE, CmInfo, ng0,PE,lDcplPlnCmfd)
 USE PARAM
 USE geom,    ONLY : nbd
 USE TYPEDEF, ONLY : PE_TYPE, CoreInfo_Type,  CmInfo_Type
-USE CMFD_MOD, ONLY : nSubPlane,      SubPlaneMap,     SubPlaneRange,              &
-                     hz,             hzfm,            ng,             nxy,        &
-                     myzb,           myze,            myzbf,          myzef,      &
-                     PinNeighIdx,    PinVol,          PinVolFm,                    &
-                     CmfdPinXs,      CmfdLs,          AxDhat,         AxDtil,     &
+USE CMFD_MOD, ONLY : nSubPlanePtr,   nSubPlane,      SubPlaneMap,     SubPlaneRange, &
+                     hz,             hzfm,            ng,             nxy,           &
+                     myzb,           myze,            myzbf,          myzef,         &
+                     PinNeighIdx,    PinVol,          PinVolFm,                      &
+                     CmfdPinXs,      CmfdLs,          AxDhat,         AxDtil,        &
                      AxPdhat
 
 USE BASICOPERATION, ONLY : CP_CA
@@ -30,6 +30,7 @@ myzb = PE%myzb; myze = PE%myze
 myzbf = PE%myzbf; myzef = PE%myzef
 nz = CORE%nz; nzfm = CORE%nzfm
 nSUbPlane = Core%nSubPlane
+nSubPlanePtr => Core%nSubPlanePtr
 IF(.NOT. ASSOCIATED(SubPlaneMap)) THEN
   ALLOCATE(SubPlaneMap(nzfm))
   ALLOCATE(SubPlaneRange(2,nzfm))

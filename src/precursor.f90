@@ -7,7 +7,7 @@ USE TYPEDEF,           ONLY : CoreInfo_Type,       FmInfo_Type,           CmInfo
 USE CNTL,              ONLY : nTracerCntl_Type
 USE TRANCMFD_MOD,      ONLY : HomKineticParamGen
 USE MPIAxSolver_Mod,   ONLY : InitAxNPrec
-USE BenchXs,           ONLY : DnpBetaBen
+USE BenchXs,           ONLY : DnpBetaBen,          DnpBetaDynBen
 IMPLICIT NONE
   
 TYPE(CoreInfo_Type) :: Core
@@ -71,7 +71,11 @@ DO iz = myzb, myze
       IF(lXsLib) THEN
         beta(1:nprec) = myFxr%Beta(1:nprec)
       ELSE
-        CALL DnpBetaBen(myFxr%imix, beta(1:nprec))
+        IF(nTracerCntl%lDynamicBen) THEN
+          CALL DnpBetaDynBen(myFxr%imix, TranInfo%fuelTemp(ixy, iz), beta(1:nprec))
+        ELSE
+          CALL DnpBetaBen(myFxr%imix, beta(1:nprec))
+        END IF
       ENDIF
       DO i = 1, nFsrInFxr
         ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
@@ -111,6 +115,89 @@ ENDIF
 !Prec => FmInfo%Prec; PrecFm => CmInfo%PrecFm; PrecCm => CmInfo%PrecCm
 NULLIFY(Fxr, Psi, Pin, CellInfo)
 NULLIFY(PsiC, PsiFm, Prec, PrecFm, PrecCm)
+
+END SUBROUTINE
+
+SUBROUTINE InitFmPrecursor(Core, FmInfo, TranInfo, nTracerCntl, PE, ng, nprec)
+USE PARAM
+USE TYPEDEF,           ONLY : CoreInfo_Type,       FmInfo_Type,         TranInfo_Type,       PE_Type,   &
+                              FxrInfo_Type,        Pin_Type,            Cell_Type
+USE CNTL,              ONLY : nTracerCntl_Type
+USE TRANCMFD_MOD,      ONLY : HomKineticParamGen
+USE MPIAxSolver_Mod,   ONLY : InitAxNPrec
+USE BenchXs,           ONLY : DnpBetaBen,          DnpBetaDynBen
+IMPLICIT NONE
+  
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+INTEGER :: ng, nprec
+  
+
+TYPE(FxrInfo_Type), POINTER :: FXR(:, :)
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE(FxrInfo_Type), POINTER :: myFxr
+
+REAL, POINTER :: psi(:, :), Prec(:, :, :)
+
+LOGICAL :: lXsLib
+
+INTEGER :: myzb, myze, myzbf, myzef
+INTEGER :: nxy, nfsr, nfxr
+INTEGER :: iprec, ixy, ifsr, ifxr, icel, iz, izf
+INTEGER :: i, j
+
+INTEGER :: FsrIdxSt, FxrIdxSt
+INTEGER :: nlocalFxr, nLocalFsr, nFsrInFxr
+
+REAL :: vol, frac
+REAL :: beta(nprec), Lambda(nprec), InvLambda(nprec)
+
+nfsr = Core%nCoreFsr; nfxr = Core%nCoreFxr
+nxy = Core%nxy
+myzb = PE%myzb; myze = PE%myze
+
+lXsLib = nTracerCntl%lXsLib
+
+Fxr => FmInfo%Fxr; Psi => FmInfo%psi
+Pin => Core%Pin; CellInfo => Core%CellInfo
+
+Prec => FmInfo%Prec
+
+Lambda(1:nprec) = TranInfo%Lambda(1:nprec)
+InvLambda(1:nprec) = TranInfo%InvLambda(1:nprec)
+DO iz = myzb, myze
+  DO ixy = 1, nxy
+    FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
+    icel = Pin(ixy)%Cell(iz)
+    nlocalFxr = CellInfo(icel)%nFxr; nlocalFsr = CellInfo(icel)%nFsr 
+    DO j = 1, nLocalFxr
+      ifxr = FxrIdxSt + j -1; nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+      myFxr => Fxr(ifxr, iz)
+      IF(lXsLib) THEN
+        beta(1:nprec) = myFxr%Beta(1:nprec)
+      ELSE
+        IF(nTracerCntl%lDynamicBen) THEN
+          CALL DnpBetaDynBen(myFxr%imix, TranInfo%fuelTemp(ixy, iz), beta(1:nprec))
+        ELSE
+          CALL DnpBetaBen(myFxr%imix, beta(1:nprec))
+        END IF
+      ENDIF
+      DO i = 1, nFsrInFxr
+        ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+        DO iprec = 1, nPrec
+          Prec(iprec, ifsr, iz) = beta(iprec) * InvLambda(iprec) * psi(ifsr, iz)
+        ENDDO
+      ENDDO
+    ENDDO
+  ENDDO
+ENDDO
+
+NULLIFY(Fxr, Psi, Pin, CellInfo)
+NULLIFY(Prec)
 
 END SUBROUTINE
 

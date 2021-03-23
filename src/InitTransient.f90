@@ -5,16 +5,33 @@ USE TYPEDEF,          ONLY : CoreInfo_Type,     FmInfo_Type,       CmInfo_Type, 
                              TranCntl_Type,     TranInfo_Type
 USE GEOM,             ONLY : Core
 USE CORE_MOD,         ONLY : FmInfo,            CmInfo,            GroupInfo,          ThInfo,     & 
-                             Prec,              TranPsi,           TranPsid,                       &
-                             TranPhi,                                                              &
-                             PrecCm,            PrecFm,            TranPsiFm,          TranPsiCm,  &
-                             TranPsiFmd,        TranPsiCmd,        TranPhiCm,          TranPhiFm,  &
+                             TranPhi,           TranPhiCm,         TranPhiFm,                      &
+                             Prec,              PrecCm,            PrecFm,                         &
+                             TranPsi,           TranPsiCm,         TranPsiFm,                      &
+                             TranPsid,          TranPsiCmd,        TranPsiFmd,                     &
                              ResSrcCm,          ResSrcFm,                                          &
-                             GcTranSrc
+                             GCTranSrc,                                                            &
+                             !Adaptive Theta                                                       &
+                             ThetaCM,                                                              &
+                             !BDF                                                                  &
+                             TranPhi2,          TranPhi3,          TranPhi4,           TranPhi5,   &
+                             TranPhiCm2,        TranPhiCm3,        TranPhiCm4,         TranPhiCm5, &
+                             TranPhiFm2,        TranPhiFm3,        TranPhiFm4,         TranPhiFm5, &
+                             !SCM                                                                  &
+                             TranPrec,                                                             &
+                             ShpFrqCm,          ShpFrqFm,          ShpFrqCmd,          ShpFrqFmd,  &
+                             AvgShpFrqCm,       AvgShpFrqFm,       PrecFrqCm,          PrecFrqFm,  &
+                             PhiSCM,            PhiCSCM,           PsiSCM,             PsiCSCM,    &
+                             xsnfSCM,                                                              &
+                             !AfSrc                                                                &
+                             TranPhi1a,         TranPhi2a,                                         &
+                             !AM3
+                             ResSrcCmd,         ResSrcFmd
 USE TRAN_MOD,         ONLY : TranCntl,          TranInfo,          XsChange,                       &
-                             SetTimeStep
+                             SetTimeStep,       XsNoise,           XsCntlRod
 USE TH_MOD,           ONLY : ThVar
 USE TRANCMFD_MOD,     ONLY : TrSrc,             PrecSrc
+USE RAYS,             ONLY : RayInfo
 
 !USE MPIAxSolver_Mod,  ONLY : AllocTranAxNSolver
 
@@ -26,12 +43,14 @@ IMPLICIT NONE
 INTEGER :: myzbf, myzef, myzb, myze, nxy, nfsr, nfxr, nz
 INTEGER :: nprec, ng, ngc
 INTEGER :: iz, ixy
+INTEGER :: nPolarAng, nAziAng
 
 
 myzb = PE%myzb; myze = PE%myze; nz = PE%nz
 myzbf = PE%myzbf; myzef = PE%myzef
 nPrec = GroupInfo%nPrec; ng = GroupInfo%ng; ngc = GroupInfo%ngc
 nxy = Core%nxy; nFsr = Core%nCoreFsr; nFxr = Core%nCoreFxr
+nPolarAng = RayInfo%nPolarAngle; nAziAng = RayInfo%nAziAngle
 
 !Fm Data
 CALL DMALLOC0(TranPhi, 1, nFsr, myzb, myze, 1, ng)
@@ -39,12 +58,28 @@ CALL DMALLOC0(Prec, 1, nPrec, 1, nFsr, myzb, myze)
 CALL DMALLOC0(TranPsi, 1, nFsr, myzb, myze)
 CALL DMALLOC0(TranPsid, 1, nFsr, myzb, myze)
 
-FmInfo%Prec => Prec
 FmInfo%TranPhi => TranPhi
+FmInfo%Prec => Prec
 FmInfo%TranPsi => TranPsi
 FmInfo%TranPsid => TranPsid
 
+IF(TranCntl%MOC_BDF) THEN
+  CALL DMALLOC0(TranPhi2, 1, nFsr, myzb, myze, 1, ng)
+  CALL DMALLOC0(TranPhi3, 1, nFsr, myzb, myze, 1, ng)
+  CALL DMALLOC0(TranPhi4, 1, nFsr, myzb, myze, 1, ng)
+  CALL DMALLOC0(TranPhi5, 1, nFsr, myzb, myze, 1, ng)
+
+  FmInfo%TranPhi2 => TranPhi2
+  FmInfo%TranPhi3 => TranPhi3
+  FmInfo%TranPhi4 => TranPhi4
+  FmInfo%TranPhi5 => TranPhi5
+END IF
+
 CALL Dmalloc0(FmInfo%TranPower, 1, nFsr, myzb, myze)
+
+!IF(TranCntl%lCusping) THEN
+!  ALLOCATE(FmInfo%neighPhis(nFsr, ng, 2))
+!END IF
 
 !Cm Data
 CALL DMALLOC0(TranPhiCm, 1, nxy, myzb, myze, 1, ng)
@@ -59,7 +94,8 @@ IF(nTracerCntl%lSubPlane) THEN
   CALL DMALLOC0(TranPsiFmd, 1, nxy, myzbf, myzef)
 ELSE
   TranPhiFm => TranPhiCm
-  PrecFm => PrecCm; TranPsiFm => TranPsiCm
+  PrecFm => PrecCm
+  TranPsiFm => TranPsiCm
   TranPsiFmd => TranPsicmd
 ENDIF
 
@@ -87,6 +123,7 @@ FmInfo%ResSrc => ResSrcCm
 
 TranInfo%nPrec = nPrec
 CALL DMALLOC(TranInfo%Chid, ng)
+CALL DMALLOC(TranInfo%Chidk, ng, nprec)
 CALL DMALLOC(TranInfo%Lambda, nPrec)
 CALL DMALLOC(TranInfo%InvLambda, nPrec)
 !CALL DMALLOC(TranInfo%Neut_velo, nPrec)
@@ -111,7 +148,6 @@ DO iz = myzb, myze
   DO ixy = 1, nxy
     CALL DMALLOC0(CmInfo%PinXs(ixy, iz)%beta, 1, nPrec)
     CALL DMALLOC0(CmInfo%PinXs(ixy, iz)%chip, 1, ng)
-    CALL DMALLOC0(CmInfo%PinXs(ixy, iz)%chip, 1, ng)
     CALL DMALLOC0(CmInfo%PinXs(ixy, iz)%velo, 1, ng)
     CALL DMALLOC0(CmInfo%PinXs(ixy, iz)%rvdelt, 1, ng)
     IF(nTracerCntl%lGcCmfd) CALL Dmalloc0(CmInfo%GcPinXs(ixy, iz)%velo, 1, ngc)
@@ -122,16 +158,35 @@ ENDDO
 !  CALL AllocTranAxNSolver(ng, nPrec, PE)
 !ENDIF
 TranCntl%XsChange => XsChange
+TranCntl%XsNoise => XsNoise
+TranCntl%XsCntlRod => XsCntlRod
 
 
 
 CALL Dmalloc0(TrSrc, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(PrecSrc, 1, nxy, myzbf, myzef)
 
+IF(nTracerCntl%lchidkgen .AND. nTracerCntl%lxslib ) THEN 
+  CALL Dmalloc0(FmInfo%PrecSrcK, 1, nprec, 1, nfsr, myzb, myze)
+ELSE
+  CALL Dmalloc0(FmInfo%PrecSrc, 1, nfsr, myzb, myze)
+END IF
+
 
 !Conditional MOC
 CALL DMALLOC0(TranInfo%PhiShape, 1, nxy, myzb, myze)
 CALL DMALLOC0(TranInfo%PhiShape0, 1, nxy, myzb, myze)
+
+ALLOCATE(TranInfo%coreBetak(nprec))
+IF(TranCntl%lCorrector .OR. TranCntl%lGuess) THEN
+  ALLOCATE(TranInfo%Prev_corePrec(nprec))
+  ALLOCATE(TranInfo%Prev_coreBeta(nprec))
+END IF
+
+IF(TranCntl%lDynamicBen) THEN
+  ALLOCATE(TranInfo%fuelTemp(nxy, myzb:myze))
+  TranInfo%fuelTemp = TranInfo%InitTemp
+END IF
 
 END SUBROUTINE
 
@@ -198,9 +253,11 @@ USE TH_MOD,           ONLY : ThVar
 USE BasicOperation,   ONLY : CP_CA,             CP_VA,            MULTI_CA
 USE BenchXs,          ONLY : DnpLambdaBen,      NeutVeloBen,      ChidBen
 USE TRAN_MOD,         ONLY : FluxNormTransient
+USE CMFD_MOD,         ONLY : CMFDPsiUpdt, ConvertSubPlnPhi
 USE MPIAxSolver_Mod,  ONLY : InitTranAxNSolver
 USE TranAxNUtil_Mod,  ONLY : InitTranAxNUtil
 USE TranMacXsLib_Mod, ONLY : InitChidLib,       InitLambdaLib
+USE PromptFeedback_mod, ONLY : InitPromptFeedback
 IMPLICIT NONE
 
 
@@ -218,8 +275,8 @@ TYPE(PE_TYPE) :: PE
 REAL :: eigv
 
 INTEGER :: nxy, nfsr, myzb, myze, myzbf, myzef
-INTEGER :: nprec, ng
-INTEGER :: i, iz, ifxr
+INTEGER :: nprec, ng, nfuelcell
+INTEGER :: i, iz, ifxr, ixy, icel
 
 REAL, POINTER :: Phis(:, :, :), Psi(:, :)
 REAL, POINTER :: PhiC(:, :, :), PhiFM(:, :, :)
@@ -235,7 +292,9 @@ ng = GroupInfo%ng; nprec = GroupInfo%nprec
 
 
 CALL FluxNormTransient(Core, RayInfo, FmInfo, CmInfo, TranInfo, ng, nTracerCntl, PE)
+IF(TranCntl%lDynamicBen) CALL InitPromptFeedback(Core, FmInfo, CmInfo, TranInfo, PE, ng)
 CALL SetTimeStep(TranCntl)
+IF(TranCntl%lNNSampling) CALL SetSamplingTimeStep(TranCntl)
 
 Phis => FmInfo%Phis; Psi => FmInfo%Psi
 TranPhi => FmInfo%TranPhi; 
@@ -248,6 +307,12 @@ TranPsiCm => CmInfo%TranPsiCM; TranPsiCmd => CmInfo%TranPsiCmd
 PhiFm => CmInfo%PhiFM; PsiFm => CmInfo%PsiFm
 TranPhiFm => CmInfo%TranPhiFm
 TranPsiFm => CmInfo%TranPsiFm; TranPsiFmd => CmInfo%TranPsiFmd
+
+!IF(PE%lCUDACMFD) THEN
+!  CALL SetCMFDEnviorment(Core, CmInfo, ng, PE)
+!  CALL ConvertSubPlnPhi(PhiC, PhiFm, 1)
+!  CALL CMFDPsiUpdt(Phifm, Psifm)
+!END IF
 
 TranInfo%eigv0 = eigv
 TranInfo%PowerLevel0 = nTracerCntl%PowerLevel
@@ -283,6 +348,21 @@ CALL CP_CA(TranInfo%Expo_Alpha(1:nxy, myzb:myze, 1:ng), 0._8, nxy, myze - myzb +
 CALL CP_CA(TranInfo%FmExpo(1:nFsr, myzb:myze, 1:ng), 1._8, nFsr, myze - myzb + 1, ng)
 CALL CP_CA(TranInfo%FmExpo_Alpha(1:nFsr, myzb:myze, 1:ng), 0._8, nFsr, myze - myzb + 1, ng)
 
+nfuelcell = 0
+!$OMP PARALLEL PRIVATE(icel)
+DO iz = myzb, myze
+  !$OMP DO SCHEDULE(GUIDED) REDUCTION(+:nfuelcell)
+  DO ixy = 1, Core%nxy
+    icel = Core%Pin(ixy)%Cell(iz)
+    IF(Core%CellInfo(icel)%lFuel) THEN
+      nfuelcell = nfuelcell + 1
+    END IF
+  END DO
+  !$OMP END DO
+END DO
+!$OMP END PARALLEL
+TranInfo%nfuelcell = nfuelcell
+
 IF(nTracerCntl%l3dim) THEN
   CALL InitTranAxNSolver(nTracerCntl%AxSolver, Eigv, TranInfo, TranCntl, PE)
 ENDIF
@@ -293,8 +373,8 @@ IF(nTracerCntl%lFeedback) THEN
 ENDIF
 
 IF(nTRACERCntl%lXsLib) THEN
-  CALL InitChidLib(TranInfo%Chid, ng)
-  CALL InitLambdaLib(TranInfo%Lambda)
+  IF(.NOT. nTracerCntl%lchidgen) CALL InitChidLib(Core, FmInfo, GroupInfo, PE, nTracerCntl, TranInfo%Chid, ng)
+  CALL InitLambdaLib(TranInfo%Lambda, nTracerCntl%refdcy_del, nTracerCntl%llibdcy_del, nTracerCntl%lfitbeta)
 ELSE
   !Chid, Lambda, neut_velo
    CALL ChidBen(TranInfo%Chid)
@@ -318,6 +398,72 @@ NULLIFY(TranPhiCm, TranPsiCm, TranPsiCmd)
 NULLIFY(TranPhiFm, TranPsiFm, TranPsiCmd)
 NULLIFY(Phis, Psi)
 NULLIFY(PhiC, PsiC); NULLIFY(PhiFm, PsiFm); 
+
+END SUBROUTINE
+
+SUBROUTINE SetUnitPowerLevel(Core, CmInfo, TranInfo, nTracerCntl, PE, ng)
+USE PARAM
+USE TYPEDEF,          ONLY : CoreInfo_Type,     CmInfo_Type,      TranInfo_Type,      &
+                             PE_Type,           PinXS_Type
+USE CNTL,             ONLY : nTracerCntl_Type
+#ifdef MPI_ENV        
+USE MPIComm_Mod,      ONLY : REDUCE
+#endif
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(CmInfo_Type) :: CmInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+INTEGER :: ng
+
+TYPE(PinXs_Type), POINTER :: PinXS(:, :)
+REAL, POINTER :: PhiC(:, :, :)
+REAL, POINTER :: PinVol(:, :)
+REAL :: volsum, pwsum, phisum
+REAL :: PinPw, vol, AvgPw
+INTEGER :: myzb, myze, nxy
+INTEGER :: iz, ixy, ig
+INTEGER :: COMM
+REAL :: buf0(3), buf(3)
+
+COMM = PE%MPI_CMFD_COMM
+
+nxy = Core%nxy
+myzb = PE%myzb; myze = PE%myze
+
+PinXs => CmInfo%PinXs
+PhiC => CmInfo%PhiC
+PinVol => Core%PinVol
+
+volsum = 0;
+pwsum = 0;
+phisum = 0;
+DO iz = myzb, myze
+  DO ixy = 1, nxy 
+    pinpw = 0
+    DO ig = 1, ng
+      PinPw = PinPw + PinXs(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig) 
+    ENDDO
+    IF(PinPw .LE. 0._8) CYCLE
+    vol = PinVol(ixy, iz)
+    phisum = phisum + sum(PhiC(ixy, iz, 1:ng)) * vol
+    PwSum = PwSum + PinPw * vol
+    volsum = volsum + vol
+  ENDDO
+ENDDO
+
+#ifdef MPI_ENV
+buf0 = (/PwSum, PhiSum, volsum/)
+CALL REDUCE(buf0, buf, 3, COMM, .TRUE.)
+PwSum = Buf(1); PhiSum = Buf(2); Volsum = Buf(3)
+#endif
+
+AvgPw = PwSum / VolSum
+TranInfo%UnitPowerLevel0 = nTRACERCntl%PowerLevel / AvgPw
+TranInfo%PwSum0 = PwSum
+
+NULLIFY(PinXS, PhiC, PinVol)
 
 END SUBROUTINE
 
@@ -386,7 +532,7 @@ DO iz = myzb, myze
     DO ig = 1, ng
       PinPw = PinPw + PinXs(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig) 
     ENDDO
-    IF(PinPw .LT. 0._8) CYCLE
+    IF(PinPw .LE. 0._8) CYCLE
     vol = PinVol(ixy, iz)
     phisum = phisum + sum(PhiC(ixy, iz, 1:ng)) * vol
     PwSum = PwSum + PinPw * vol
@@ -404,6 +550,7 @@ AvgPw = PwSum / VolSum
 avgflx = PhiSum / Volsum
 
 norm = ng / avgflx
+norm = 1._8
 
 IF(nTracerCntl%l3dim) THEN
   CALL UpdtTranSol2AxNvar(CmInfo, Core%PinVolFM, 1._8, PE)
@@ -432,6 +579,7 @@ ENDIF
 
 UnitPowerLevel0 = nTRACERCntl%PowerLevel / (AvgPw * norm)
 TranInfo%UnitPowerLevel0 = UnitPowerLevel0
+TranInfo%PwSum0 = PwSum
 volsum = 0;
 pwsum = 0;
 phisum = 0;
@@ -441,7 +589,7 @@ DO iz = myzb, myze
     DO ig = 1, ng
       PinPw = PinPw + PinXs(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig) 
     ENDDO
-    IF(PinPw .LT. 0._8) CYCLE
+    IF(PinPw .LE. 0._8) CYCLE
     vol = PinVol(ixy, iz)
     phisum = phisum + sum(PhiC(ixy, iz, 1:ng)) * vol
     PwSum = PwSum + PinPw * vol
@@ -449,10 +597,10 @@ DO iz = myzb, myze
   ENDDO
 ENDDO
 
-#ifdef MPI_ENC
-buf0 = (/PwSum, VolSum)
-CALL REDUCE(Buf0, buf, COMM, TRUE)
-Pwsum = BUf(1); VolSum = Buf(2)
+#ifdef MPI_ENV
+buf0 = (/PwSum, PhiSum, volsum/)
+CALL REDUCE(buf0, buf, 3, COMM, .TRUE.)
+PwSum = Buf(1); PhiSum = Buf(2); Volsum = Buf(3)
 #endif
 
 AvgPw = PwSum / VolSum
@@ -480,19 +628,47 @@ i = 0
 TBeg = 0
 DO j = 1, TranCntl%TStep_inp(0)
   Tend = TranCntl%Tstep_inp(j); Delt0 = TranCntl%Tdiv_inp(j)
-  DO
+  DO 
     i = i + 1
     Tbeg = Tbeg + Delt0
     TranCntl%T(i) = Tbeg
     TranCntl%DelT(i) = Delt0
-    IF( abs(Tend - Tbeg) .LT. + 1.E-6_8) THEN
+    IF(abs(Tend - Tbeg) .LT. + 1.E-6_8) THEN
       TranCntl%T(i) = Tend
       EXIT
-    ENDIF
-  ENDDO
-ENDDO
+    END IF
+  END DO
+END DO
 
 TranCntl%nstep = i
 
 END SUBROUTINE
+
+SUBROUTINE SetSamplingTimeStep(TranCntl)
+  USE PARAM
+  USE TYPEDEF,       ONLY : TranCntl_Type
+  IMPLICIT NONE
+  
+  TYPE(TranCntl_Type) :: TranCntl
+  
+  REAL :: Delt0, Tbeg, Tend
+  INTEGER :: i, j
+  
+  TBeg = TranCntl%Sbeg
+  Tend = TranCntl%Send
+  Delt0 = TranCntl%Speriod
+  
+  TranCntl%nSstep = CEILING((Tend-Tbeg)/Delt0)+1
+  ALLOCATE(TranCntl%Ssteps(TranCntl%nSstep))
+  TranCntl%Ssteps(1) = Tbeg
+  DO i = 2, TranCntl%nSstep
+    Tbeg = Tbeg + Delt0
+    TranCntl%Ssteps(i) = Tbeg
+    IF(abs(Tend - Tbeg) .LT. + 1.E-6_8) THEN
+      TranCntl%Ssteps(i) = Tend
+      EXIT
+    END IF
+  END DO
+  
+  END SUBROUTINE
 

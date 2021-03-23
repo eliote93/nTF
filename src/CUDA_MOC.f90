@@ -9,12 +9,30 @@ USE CUDA_UTIL
 IMPLICIT NONE
 
 PRIVATE
-PUBLIC :: CUDASourceUpdate, CUDARayTrace, CUDARayTraceAsync, CUDAP1RayTrace
+PUBLIC :: CUDASourceUpdate, CUDARayTrace, CUDARayTraceAsync, CUDAP1RayTrace, CUDAInitPhiAngIn
 
 CONTAINS
 
 !--- Host Subroutine ------------------------------------------------------------------------------
 
+SUBROUTINE CUDAInitPhiAngIn(ngtot, nsv)
+USE CUDAFOR
+IMPLICIT NONE
+INTEGER :: ngtot, nsv
+
+INTEGER :: ydim
+TYPE(dim3) :: Blocks, Threads
+INTEGER(KIND = cuda_stream_kind) :: myStream
+
+myStream = cuDevice%myStream
+
+ydim = cuDevice%cuMaxThreadPerBlock/P0_BLOCK_SIZE
+Threads = dim3(P0_BLOCK_SIZE, ydim, 1)
+Blocks = dim3(ngtot/P0_BLOCK_SIZE + 1, nsv/ydim + 1, 1)
+
+CALL cuInitializePhiAngIn<<<Blocks,Threads,0,myStream>>>(cuMOC%PhiAngIn, ngtot)
+
+END SUBROUTINE
 SUBROUTINE CUDASourceUpdate(iz, gb, ge, eigv)
 USE CUDAFOR
 IMPLICIT NONE
@@ -39,14 +57,14 @@ CALL cuComputeSource <<< Blocks, Threads, 0, myStream >>>                       
 
 END SUBROUTINE
 
-SUBROUTINE CUDARayTrace(cuMOC, cuDevice, phis, jout, PhiAngIn, lJout, iz, gb, ge, time)
+SUBROUTINE CUDARayTrace(cuMOC, cuDevice, jout, lJout, iz, gb, ge, time)
 USE PARAM
 USE CUDAFOR
 IMPLICIT NONE
 
 TYPE(cuMOC_Type) :: cuMOC
 TYPE(cuDevice_Type) :: cuDevice
-REAL, POINTER :: phis(:, :), PhiAngIn(:, :, :), jout(:, :, :, :)
+REAL, POINTER :: jout(:, :, :, :)
 LOGICAL :: lJout
 INTEGER :: iz, gb, ge
 REAL, OPTIONAL :: time
@@ -54,7 +72,7 @@ REAL, OPTIONAL :: time
 TYPE(dim3) :: Blocks, Threads
 TYPE(cudaEvent) :: startEvent, stopEvent
 INTEGER(KIND = cuda_stream_kind) :: myStream
-INTEGER :: sharedMemSize
+INTEGER :: copyMemSize, sharedMemSize
 INTEGER :: iAx, ierr
 INTEGER :: ng
 REAL(4) :: elapsedTime
@@ -65,7 +83,6 @@ ierr = cudaEventCreate(stopEvent)
 ng = ge - gb + 1
 myStream = cuDevice%myStream
 
-cuMOC%PhiAngIn = PhiAngIn
 cuMOC%phis(gb : ge, :) = zero
 IF (lJout) cuMOC%jout(:, gb : ge, :, :) = zero
 
@@ -100,8 +117,6 @@ CALL cuComputeScalarFlux <<< Blocks, Threads, 0, myStream >>>                   
 ierr = cudaEventRecord(stopEvent, myStream)
 ierr = cudaEventSynchronize(stopEvent)
 
-phis = cuMOC%phis
-PhiAngIn = cuMOC%PhiAngIn
 IF (lJout) jout = cuMOC%jout
   
 ierr = cudaEventElapsedTime(elapsedTime, startEvent, stopEvent)
@@ -189,6 +204,7 @@ USE CNTL,			ONLY : nTracerCntl
 USE CUDAFOR
 USE OPENACC
 USE OMP_LIB
+USE CUDA_CONST, ONLY : nAziMap
 IMPLICIT NONE
 
 TYPE(cuMOC_Type) :: cuMOC
@@ -203,7 +219,8 @@ TYPE(dim3) :: Blocks, Threads
 INTEGER(KIND = cuda_stream_kind) :: myStream
 INTEGER :: copyMemSize
 INTEGER :: i, j, k, l, iAx, iAzi, ierr
-INTEGER :: nMoment, ScatOd
+INTEGER :: nMoment, ScatOd, nAzi
+LOGICAL :: lRot
 
 ScatOd = nTracerCntl%ScatOd
 myStream = cuDevice%myStream
@@ -211,6 +228,8 @@ myStream = cuDevice%myStream
 IF (ScatOd .EQ. 1) nMoment = 2
 IF (ScatOd .EQ. 2) nMoment = 5
 IF (ScatOd .EQ. 3) nMoment = 9
+
+lRot = cuGeometry%lRot
 
 CALL cuInitArray(cuGeometry%nFsr * PN_BLOCK_SIZE, cuMOC%phisMg, myStream)
 CALL cuInitArray(cuGeometry%nFsr * PN_BLOCK_SIZE * nMoment, cuMOC%phimMg, myStream)
@@ -230,7 +249,10 @@ ierr = cudaMemcpyAsync(cuMOC%srcMg, src, copyMemSize, cudaMemcpyHostToDevice, my
 copyMemSize = PN_BLOCK_SIZE * nMoment * cuGeometry%nfsr
 ierr = cudaMemcpyAsync(cuMOC%srcmMg, srcm, copyMemSize, cudaMemcpyHostToDevice, myStream)
 
-DO iAzi = 1, cuGeometry%nAziAngle / 2
+
+nAzi = cuGeometry%nAziAngle / 2
+IF(cuGeometry%lRot) nAzi = cuGeometry%nAziAngle / 4
+DO iAzi = 1, nAzi
 
   !--- Prepare Angle Dependent Source
 
@@ -239,12 +261,12 @@ DO iAzi = 1, cuGeometry%nAziAngle / 2
 
   !$ACC HOST_DATA USE_DEVICE(cuDevice)
   CALL cuPrepareAngularSource <<< Blocks, Threads, 0, myStream >>>                                                  &
-                              (cuDevice, cuMOC%srcMg, cuMOC%srcmMg, cuMOC%SrcAngMg, iAzi)
+                              (cuDevice, cuMOC%srcMg, cuMOC%srcmMg, cuMOC%SrcAngMg, iAzi, lRot)
   !$ACC END HOST_DATA
 
   !--- Initialize Angular Flux
 
-  CALL cuInitArray(cuGeometry%nFsr * cuGeometry%nPolarAngle * PN_BLOCK_SIZE * 4, cuMOC%phiaMg, myStream)
+  CALL cuInitArray(cuGeometry%nFsr * cuGeometry%nPolarAngle * PN_BLOCK_SIZE * nAziMap, cuMOC%phiaMg, myStream)
 
   !--- Ray Tracing with Angular Flux Saving
 
@@ -266,7 +288,7 @@ DO iAzi = 1, cuGeometry%nAziAngle / 2
 
   !$ACC HOST_DATA USE_DEVICE(cuDevice)
   CALL cuIncrementPseudoMoment <<< Blocks, Threads, 0, myStream >>>                                                 &
-                               (cuDevice, cuMOC%phisMg, cuMOC%phimMg, cuMOC%phiaMg, iAzi)
+                               (cuDevice, cuMOC%phisMg, cuMOC%phimMg, cuMOC%phiaMg, iAzi, lRot)
   !$ACC END HOST_DATA
 
 ENDDO
@@ -297,6 +319,33 @@ ENDIF
 
 END SUBROUTINE
 
+!--- Utils ----------------------------------------------------------------------------------------
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuInitializePhiAngIn(PhiAngIn, ngtot)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+REAL(GPU_FLUX_PRECISION), DEVICE :: PhiAngIn(:, :, :)
+INTEGER, VALUE :: ngtot
+
+INTEGER :: ig, isv, ipol
+
+ig = threadIdx%x+blockDim%x*(blockIdx%x-1)
+isv = threadIdx%y+blockDim%y*(blockIdx%y-1)
+IF (ig .GT. ngtot) RETURN
+IF (isv .GT. nPhiAngSv) RETURN
+
+IF (isv.EQ.1) THEN
+  DO ipol = 1, nPolarAngle
+    PhiAngIn(ipol,ig,isv) = 0.
+  END DO
+ELSE
+  DO ipol = 1, nPolarAngle
+    PhiAngIn(ipol,ig,isv) = 1.
+  END DO
+END IF
+
+END SUBROUTINE
 !--- P0 Domain Connected --------------------------------------------------------------------------
 
 ATTRIBUTES(GLOBAL) SUBROUTINE cuComputeScalarFlux(cuGeometry, phis, src, xst, iz, gb, ge)
@@ -653,7 +702,7 @@ END SUBROUTINE
 
 !--- Pn Domain Connected (Block Node Major) -------------------------------------------------------
 
-ATTRIBUTES(GLOBAL) SUBROUTINE cuPrepareAngularSource(cuDevice, src, srcm, SrcAng, iazi)
+ATTRIBUTES(GLOBAL) SUBROUTINE cuPrepareAngularSource(cuDevice, src, srcm, SrcAng, iazi, lRot)
 USE CUDA_CONST
 USE CUDAFOR
 IMPLICIT NONE
@@ -661,8 +710,9 @@ IMPLICIT NONE
 TYPE(cuDevice_Type) :: cuDevice
 REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: src(PN_BLOCK_SIZE, nfsr)
 REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: srcm(nMoment, PN_BLOCK_SIZE, nfsr)
-REAL(GPU_SOURCE_PRECISION), DEVICE :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_SOURCE_PRECISION), DEVICE :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 INTEGER, VALUE :: iazi
+LOGICAL, VALUE :: lRot
 
 INTEGER :: ipol, ig, ireg
 INTEGER :: AziIdx
@@ -691,6 +741,24 @@ IF (ScatOd .EQ. 1) THEN
   SrcAng(ipol, ig, AziMap(AziIdx, 1), ireg) = fsr_SrcAng(1)
   SrcAng(ipol, ig, AziMap(AziIdx, 2), ireg) = fsr_SrcAng(2)
 
+  IF(lRot) THEN 
+    AziIdx = nAziAngle/2 + iAzi 
+    fsr_SrcAng = src(ig, ireg)
+    temp_src = sum(Comp(1:2, ipol, AziIdx) * srcm(1:2, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    SrcAng(ipol, ig, AziMap(AziIdx, 1)+4, ireg) = fsr_SrcAng(1)
+    SrcAng(ipol, ig, AziMap(AziIdx, 2)+4, ireg) = fsr_SrcAng(2)
+
+    AziIdx = nAziAngle/2 - iAzi + 1 
+    fsr_SrcAng = src(ig, ireg)
+    temp_src = sum(Comp(1:2, ipol, AziIdx) * srcm(1:2, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    SrcAng(ipol, ig, AziMap(AziIdx, 1)+4, ireg) = fsr_SrcAng(1)
+    SrcAng(ipol, ig, AziMap(AziIdx, 2)+4, ireg) = fsr_SrcAng(2)
+  END IF
+
 ELSEIF (ScatOd .EQ. 2) THEN
 
   AziIdx = iAzi
@@ -712,6 +780,28 @@ ELSEIF (ScatOd .EQ. 2) THEN
   fsr_SrcAng = fsr_SrcAng + temp_src
   SrcAng(ipol, ig, AziMap(AziIdx, 1), ireg) = fsr_SrcAng(1)
   SrcAng(ipol, ig, AziMap(AziIdx, 2), ireg) = fsr_SrcAng(2)
+  
+  IF(lRot) THEN 
+    AziIdx = nAziAngle/2 + iAzi 
+    fsr_SrcAng = src(ig, ireg)
+    temp_src = sum(Comp(1:2, ipol, AziIdx) * srcm(1:2, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    temp_src = sum(Comp(3:5, ipol, AziIdx) * srcm(3:5, ig, ireg))
+    fsr_SrcAng = fsr_SrcAng + temp_src
+    SrcAng(ipol, ig, AziMap(AziIdx, 1)+4, ireg) = fsr_SrcAng(1)
+    SrcAng(ipol, ig, AziMap(AziIdx, 2)+4, ireg) = fsr_SrcAng(2)
+
+    AziIdx = nAziAngle/2 - iAzi + 1 
+    fsr_SrcAng = src(ig, ireg)
+    temp_src = sum(Comp(1:2, ipol, AziIdx) * srcm(1:2, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    temp_src = sum(Comp(3:5, ipol, AziIdx) * srcm(3:5, ig, ireg))
+    fsr_SrcAng = fsr_SrcAng + temp_src
+    SrcAng(ipol, ig, AziMap(AziIdx, 1)+4, ireg) = fsr_SrcAng(1)
+    SrcAng(ipol, ig, AziMap(AziIdx, 2)+4, ireg) = fsr_SrcAng(2)
+  END IF
 
 ELSEIF (ScatOd .EQ. 3) THEN
 
@@ -741,20 +831,48 @@ ELSEIF (ScatOd .EQ. 3) THEN
   SrcAng(ipol, ig, AziMap(AziIdx, 1), ireg) = fsr_SrcAng(1)
   SrcAng(ipol, ig, AziMap(AziIdx, 2), ireg) = fsr_SrcAng(2)
 
+  IF(lRot) THEN 
+    AziIdx = nAziAngle/2 + iAzi 
+    fsr_SrcAng = src(ig, ireg)
+    temp_src = sum(Comp(1:2, ipol, AziIdx) * srcm(1:2, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    temp_src = sum(Comp(3:5, ipol, AziIdx) * srcm(3:5, ig, ireg))
+    fsr_SrcAng = fsr_SrcAng + temp_src
+    temp_src = sum(Comp(6:9, ipol, AziIdx) * srcm(6:9, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    SrcAng(ipol, ig, AziMap(AziIdx, 1)+4, ireg) = fsr_SrcAng(1)
+    SrcAng(ipol, ig, AziMap(AziIdx, 2)+4, ireg) = fsr_SrcAng(2)
+
+    AziIdx = nAziAngle/2 - iAzi + 1 
+    fsr_SrcAng = src(ig, ireg)
+    temp_src = sum(Comp(1:2, ipol, AziIdx) * srcm(1:2, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    temp_src = sum(Comp(3:5, ipol, AziIdx) * srcm(3:5, ig, ireg))
+    fsr_SrcAng = fsr_SrcAng + temp_src
+    temp_src = sum(Comp(6:9, ipol, AziIdx) * srcm(6:9, ig, ireg))
+    fsr_SrcAng(1) = fsr_SrcAng(1) + temp_src
+    fsr_SrcAng(2) = fsr_SrcAng(2) - temp_src
+    SrcAng(ipol, ig, AziMap(AziIdx, 1)+4, ireg) = fsr_SrcAng(1)
+    SrcAng(ipol, ig, AziMap(AziIdx, 2)+4, ireg) = fsr_SrcAng(2)
+  END IF
 ENDIF
 
 END SUBROUTINE
 
-ATTRIBUTES(GLOBAL) SUBROUTINE cuIncrementPseudoMoment(cuDevice, phis, phim, phia, iazi)
+ATTRIBUTES(GLOBAL) SUBROUTINE cuIncrementPseudoMoment(cuDevice, phis, phim, phia, iazi, lRot)
 USE CUDA_CONST
 USE CUDAFOR
 IMPLICIT NONE
 
 TYPE(cuDevice_Type) :: cuDevice
-REAL(GPU_FLUX_PRECISION), DEVICE, INTENT(IN) :: phia(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_FLUX_PRECISION), DEVICE, INTENT(IN) :: phia(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 REAL(GPU_FLUX_PRECISION), DEVICE :: phis(PN_BLOCK_SIZE, nfsr)
 REAL(GPU_FLUX_PRECISION), DEVICE :: phim(nMoment, PN_BLOCK_SIZE, nfsr)
 INTEGER, VALUE :: iazi
+LOGICAL, VALUE :: lRot
 
 INTEGER :: ipol, ig, ireg
 INTEGER :: AziIdx
@@ -771,7 +889,7 @@ IF (ScatOd .EQ. 1) THEN
   AziIdx = iAzi
   DO ipol = 1, nPolarAngle
     phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) + phia(ipol, ig, AziMap(AziIdx, 2), ireg))
-	phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
+	  phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
     fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
     fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
   ENDDO
@@ -779,10 +897,28 @@ IF (ScatOd .EQ. 1) THEN
   AziIdx = nAziAngle - iAzi + 1
   DO ipol = 1, nPolarAngle
     phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) + phia(ipol, ig, AziMap(AziIdx, 2), ireg))
-	phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
+	  phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
     fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
     fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
   ENDDO
+
+  IF(lRot) THEN 
+    AziIdx = nAziAngle/2 + iAzi
+    DO ipol = 1, nPolarAngle
+      phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) + phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+	    phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) - phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+      fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
+      fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
+    ENDDO
+
+    AziIdx = nAziAngle/2 - iAzi + 1
+    DO ipol = 1, nPolarAngle
+      phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) + phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+	    phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) - phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+      fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
+      fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
+    ENDDO
+  END IF
 
   phis(ig, ireg) = phis(ig, ireg) + fsr_phis
   phim(1:2, ig, ireg) = phim(1:2, ig, ireg) + fsr_phim(1:2)
@@ -794,7 +930,7 @@ ELSEIF (ScatOd .EQ. 2) THEN
   AziIdx = iAzi
   DO ipol = 1, nPolarAngle
     phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) + phia(ipol, ig, AziMap(AziIdx, 2), ireg))
-	phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
+	  phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
     fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
     fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
     fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
@@ -803,11 +939,31 @@ ELSEIF (ScatOd .EQ. 2) THEN
   AziIdx = nAziAngle - iAzi + 1
   DO ipol = 1, nPolarAngle
     phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) + phia(ipol, ig, AziMap(AziIdx, 2), ireg))
-	phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
+	  phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
     fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
     fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
     fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
   ENDDO
+
+  IF(lRot) THEN 
+    AziIdx = nAziAngle/2 + iAzi
+    DO ipol = 1, nPolarAngle
+      phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) + phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+	    phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) - phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+      fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
+      fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
+      fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
+    ENDDO
+
+    AziIdx = nAziAngle/2 - iAzi + 1
+    DO ipol = 1, nPolarAngle
+      phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) + phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+	    phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) - phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+      fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
+      fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
+      fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
+    ENDDO
+  END IF
 
   phis(ig, ireg) = phis(ig, ireg) + fsr_phis
   phim(1:2, ig, ireg) = phim(1:2, ig, ireg) + fsr_phim(1:2)
@@ -820,22 +976,44 @@ ELSEIF (ScatOd .EQ. 3) THEN
   AziIdx = iAzi
   DO ipol = 1, nPolarAngle
     phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) + phia(ipol, ig, AziMap(AziIdx, 2), ireg))
-	phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
+	  phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
     fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
     fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
     fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
-	fsr_phim(6:9) = fsr_phim(6:9) + mwt(6:9, ipol, AziIdx) * phia_diff
+	  fsr_phim(6:9) = fsr_phim(6:9) + mwt(6:9, ipol, AziIdx) * phia_diff
   ENDDO
 
   AziIdx = nAziAngle - iAzi + 1
   DO ipol = 1, nPolarAngle
     phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) + phia(ipol, ig, AziMap(AziIdx, 2), ireg))
-	phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
+	  phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1), ireg) - phia(ipol, ig, AziMap(AziIdx, 2), ireg))
     fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
     fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
     fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
-	fsr_phim(6:9) = fsr_phim(6:9) + mwt(6:9, ipol, AziIdx) * phia_diff
+	  fsr_phim(6:9) = fsr_phim(6:9) + mwt(6:9, ipol, AziIdx) * phia_diff
   ENDDO
+
+  IF(lRot) THEN 
+    AziIdx = nAziAngle/2 + iAzi
+    DO ipol = 1, nPolarAngle
+      phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) + phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+	    phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) - phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+      fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
+      fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
+      fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
+	    fsr_phim(6:9) = fsr_phim(6:9) + mwt(6:9, ipol, AziIdx) * phia_diff
+    ENDDO
+
+    AziIdx = nAziAngle/2 - iAzi + 1
+    DO ipol = 1, nPolarAngle
+      phia_sum = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) + phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+	    phia_diff = (phia(ipol, ig, AziMap(AziIdx, 1)+4, ireg) - phia(ipol, ig, AziMap(AziIdx, 2)+4, ireg))
+      fsr_phis = fsr_phis + wt(ipol, AziIdx) * phia_sum
+      fsr_phim(1:2) = fsr_phim(1:2) + mwt(1:2, ipol, AziIdx) * phia_diff
+      fsr_phim(3:5) = fsr_phim(3:5) + mwt(3:5, ipol, AziIdx) * phia_sum
+	    fsr_phim(6:9) = fsr_phim(6:9) + mwt(6:9, ipol, AziIdx) * phia_diff
+    ENDDO
+  END IF
 
   phis(ig, ireg) = phis(ig, ireg) + fsr_phis
   phim(1:2, ig, ireg) = phim(1:2, ig, ireg) + fsr_phim(1:2)
@@ -886,14 +1064,15 @@ TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
 TYPE(cuGeometry_Type), INTENT(IN) :: cuGeometry
 TYPE(cuRotRay1D_Type), INTENT(IN) :: cuRotRay1D
 REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: xst(PN_BLOCK_SIZE, nfsr)
-REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 REAL(GPU_PRECISION), DEVICE :: PhiAngIn(nPolarAngle, PN_BLOCK_SIZE, nPhiAngSv)
-REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 REAL(GPU_FLUX_PRECISION), DEVICE :: jout(3, PN_BLOCK_SIZE, 4, nxy)
 LOGICAL, VALUE :: lJout
 INTEGER, VALUE :: iazi
 
 INTEGER :: iRotRay, iray, ipol, ig, irot, itrack
+INTEGER :: iazir
 
 ipol = threadIdx%x
 ig = threadIdx%y
@@ -904,13 +1083,24 @@ IF (iray .GT. cuGeometry%RotRayCount(iazi)) RETURN
 
 iRotRay = cuGeometry%RotRayList(iray, iazi)
 
-IF (.NOT. lJout) THEN
-  CALL cuP1Track1DFastRay1st(cuRotRay1D, cuDevice, phia, xst, SrcAng, PhiAngIn,								        &
-                             ipol, ig, irot, itrack, iRotRay)
+IF(cuGeometry%lRot) THEN 
+  iazir = cuGeometry%nAziAngle - iazi + 1
+  IF (.NOT. lJout) THEN
+    CALL cuP1Track1DFastRay1stRot(cuRotRay1D, cuDevice, phia, xst, SrcAng, PhiAngIn,								        &
+                             ipol, ig, irot, itrack, iRotRay, iazi, iazir)
+  ELSE
+    CALL cuP1Track1DFastRay2ndRot(cuRotRay1D, cuDevice, phia, xst, SrcAng, jout, PhiAngIn,                               &
+                             ipol, ig, irot, itrack, iRotRay, iazi, iazir)
+  ENDIF
 ELSE
-  CALL cuP1Track1DFastRay2nd(cuRotRay1D, cuDevice, phia, xst, SrcAng, jout, PhiAngIn,                               &
+  IF (.NOT. lJout) THEN
+    CALL cuP1Track1DFastRay1st(cuRotRay1D, cuDevice, phia, xst, SrcAng, PhiAngIn,								        &
                              ipol, ig, irot, itrack, iRotRay)
-ENDIF
+  ELSE
+    CALL cuP1Track1DFastRay2nd(cuRotRay1D, cuDevice, phia, xst, SrcAng, jout, PhiAngIn,                               &
+                             ipol, ig, irot, itrack, iRotRay)
+  ENDIF
+END IF
 
 END SUBROUTINE
 
@@ -923,9 +1113,9 @@ IMPLICIT NONE
 TYPE(cuRotRay1D_Type), INTENT(IN) :: cuRotRay1D
 TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
 REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: xst(PN_BLOCK_SIZE, nfsr)
-REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 REAL(GPU_PRECISION), DEVICE :: PhiAngIn(nPolarAngle, PN_BLOCK_SIZE, nPhiAngSv)
-REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 INTEGER :: ipol, ig, irot, itrack, iRotRay
 
 INTEGER :: RaySegBeg, RaySegEnd
@@ -991,9 +1181,9 @@ IMPLICIT NONE
 TYPE(cuRotRay1D_Type), INTENT(IN) :: cuRotRay1D
 TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
 REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: xst(PN_BLOCK_SIZE, nfsr)
-REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 REAL(GPU_PRECISION), DEVICE :: PhiAngIn(nPolarAngle, PN_BLOCK_SIZE, nPhiAngSv)
-REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr)
+REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
 REAL(GPU_FLUX_PRECISION), DEVICE :: jout(3, PN_BLOCK_SIZE, 4, nxy)
 INTEGER :: ipol, ig, irot, itrack, iRotRay
 
@@ -1048,6 +1238,187 @@ DO j = cuRotRay1D%RotRayIdxSt(iRotRay + 1) - 1, cuRotRay1D%RotRayIdxSt(iRotRay),
   idir = cuRotRay1D%iDir(j)
   idir = dir(idir, irot)
   AziSvIdx = AziMap(iazi, idir)
+  PinRayBeg = cuRotRay1D%CoreRayIdxSt(j + 1) - 1
+  PinRayEnd = cuRotRay1D%CoreRayIdxSt(j)
+  DO k = PinRayBeg, PinRayEnd, -1
+	ipin = cuRotRay1D%PinIdx(k)
+	isurf = cuRotRay1D%SurfIdx(:, k)
+	pin_jout = wt(ipol, iazi) * track_phi
+	!$ACC ATOMIC
+    jout(1, ig, isurf(2), ipin) = jout(1, ig, isurf(2), ipin) + pin_jout
+
+	RaySegBeg = cuRotRay1D%PinRayIdxSt(k + 1) - 1
+	RaySegEnd = cuRotRay1D%PinRayIdxSt(k)
+	DO ir = RaySegBeg, RaySegEnd, -1
+      ireg = cuRotRay1D%FsrIdx(ir)
+      tau = - cuRotRay1D%LenSeg(ir) * xst(ig, ireg)
+	  ExpApp = 1.0 - __EXPF(tau * rsinv(ipol))
+	  delta_phi = (track_phi - SrcAng(ipol, ig, AziSvIdx, ireg)) * ExpApp
+	  track_phi = track_phi - delta_phi
+	  !$ACC ATOMIC
+	  phia(ipol, ig, AziSvIdx, ireg) = phia(ipol, ig, AziSvIdx, ireg) + delta_phi
+	ENDDO
+
+	pin_jout = wt(ipol, iazi) * track_phi
+	!$ACC ATOMIC
+    jout(2, ig, isurf(1), ipin) = jout(2, ig, isurf(1), ipin) + pin_jout
+  ENDDO
+ENDDO
+
+ENDIF
+
+PhiAngIn(ipol, ig, cuRotRay1D%PhiAngOutSvIdx(irot, iRotRay)) = track_phi
+
+END SUBROUTINE
+
+ATTRIBUTES(DEVICE) SUBROUTINE cuP1Track1DFastRay1stRot(cuRotRay1D, cuDevice, phia, xst, SrcAng, PhiAngIn,              &
+                                                       ipol, ig, irot, itrack, iRotRay, iazi0, iazi0r)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+
+TYPE(cuRotRay1D_Type), INTENT(IN) :: cuRotRay1D
+TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: xst(PN_BLOCK_SIZE, nfsr)
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
+REAL(GPU_PRECISION), DEVICE :: PhiAngIn(nPolarAngle, PN_BLOCK_SIZE, nPhiAngSv)
+REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
+INTEGER :: ipol, ig, irot, itrack, iRotRay
+INTEGER :: iazi0, iazi0r
+
+INTEGER :: RaySegBeg, RaySegEnd
+INTEGER :: iazi, idir, ireg, AziSvIdx
+INTEGER :: j, ir
+REAL(GPU_PRECISION) :: delta_phi, track_phi
+REAL(GPU_PRECISION) :: tau, ExpApp
+
+track_phi = PhiAngIn(ipol, ig, cuRotRay1D%PhiAngInSvIdx(irot, iRotRay))
+
+IF (irot .EQ. 1) THEN
+
+DO j = cuRotRay1D%RotRayIdxSt(iRotRay), cuRotRay1D%RotRayIdxSt(iRotRay + 1) -1
+  iazi = cuRotRay1D%iAzi(j)
+  idir = cuRotRay1D%iDir(j)
+  idir = dir(idir, irot)
+  AziSvIdx = AziMap(iazi, idir)
+  IF(iazi .NE. iazi0 .AND. iazi .NE. iazi0r) THEN 
+    AziSvIdx = AziSvIdx+4
+  END IF
+  RaySegBeg = cuRotRay1D%PinRayIdxSt(cuRotRay1D%CoreRayIdxSt(j))
+  RaySegEnd = cuRotRay1D%PinRayIdxSt(cuRotRay1D%CoreRayIdxSt(j + 1)) - 1
+  DO ir = RaySegBeg, RaySegEnd
+    ireg = cuRotRay1D%FsrIdx(ir)
+    tau = - cuRotRay1D%LenSeg(ir) * xst(ig, ireg)
+	ExpApp = 1.0 - __EXPF(tau * rsinv(ipol))
+	delta_phi = (track_phi - SrcAng(ipol, ig, AziSvIdx, ireg)) * ExpApp
+	track_phi = track_phi - delta_phi
+	!$ACC ATOMIC
+	phia(ipol, ig, AziSvIdx, ireg) = phia(ipol, ig, AziSvIdx, ireg) + delta_phi
+  ENDDO
+ENDDO
+
+ELSE
+
+DO j = cuRotRay1D%RotRayIdxSt(iRotRay + 1) - 1, cuRotRay1D%RotRayIdxSt(iRotRay), -1
+  iazi = cuRotRay1D%iAzi(j)
+  idir = cuRotRay1D%iDir(j)
+  idir = dir(idir, irot)
+  AziSvIdx = AziMap(iazi, idir)
+  IF(iazi .NE. iazi0 .AND. iazi .NE. iazi0r) THEN 
+    AziSvIdx = AziSvIdx+4
+  END IF
+  RaySegBeg = cuRotRay1D%PinRayIdxSt(cuRotRay1D%CoreRayIdxSt(j + 1)) - 1
+  RaySegEnd = cuRotRay1D%PinRayIdxSt(cuRotRay1D%CoreRayIdxSt(j))
+  DO ir = RaySegBeg, RaySegEnd, -1
+    ireg = cuRotRay1D%FsrIdx(ir)
+    tau = - cuRotRay1D%LenSeg(ir) * xst(ig, ireg)
+	ExpApp = 1.0 - __EXPF(tau * rsinv(ipol))
+	delta_phi = (track_phi - SrcAng(ipol, ig, AziSvIdx, ireg)) * ExpApp
+	track_phi = track_phi - delta_phi
+	!$ACC ATOMIC
+	phia(ipol, ig, AziSvIdx, ireg) = phia(ipol, ig, AziSvIdx, ireg) + delta_phi
+  ENDDO
+ENDDO
+
+ENDIF
+
+PhiAngIn(ipol, ig, cuRotRay1D%PhiAngOutSvIdx(irot, iRotRay)) = track_phi
+
+END SUBROUTINE
+
+ATTRIBUTES(DEVICE) SUBROUTINE cuP1Track1DFastRay2ndRot(cuRotRay1D, cuDevice, phia, xst, SrcAng, jout, PhiAngIn,        &
+                                                      ipol, ig, irot, itrack, iRotRay, iazi0, iazi0r)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+
+TYPE(cuRotRay1D_Type), INTENT(IN) :: cuRotRay1D
+TYPE(cuDevice_Type), INTENT(IN) :: cuDevice
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: xst(PN_BLOCK_SIZE, nfsr)
+REAL(GPU_SOURCE_PRECISION), DEVICE, INTENT(IN) :: SrcAng(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
+REAL(GPU_PRECISION), DEVICE :: PhiAngIn(nPolarAngle, PN_BLOCK_SIZE, nPhiAngSv)
+REAL(GPU_FLUX_PRECISION), DEVICE :: phia(nPolarAngle, PN_BLOCK_SIZE, nAziMap, nfsr)
+REAL(GPU_FLUX_PRECISION), DEVICE :: jout(3, PN_BLOCK_SIZE, 4, nxy)
+INTEGER :: ipol, ig, irot, itrack, iRotRay
+INTEGER :: iazi0, iazi0r
+
+INTEGER :: PinRayBeg, PinRayEnd
+INTEGER :: RaySegBeg, RaySegEnd
+INTEGER :: iazi, idir, ireg, ipin, isurf(2), AziSvIdx
+INTEGER :: j, k, ir
+REAL(GPU_PRECISION) :: pin_jout
+REAL(GPU_PRECISION) :: delta_phi, track_phi
+REAL(GPU_PRECISION) :: tau, ExpApp
+
+track_phi = PhiAngIn(ipol, ig, cuRotRay1D%PhiAngInSvIdx(irot, iRotRay))
+
+IF (irot .EQ. 1) THEN
+
+DO j = cuRotRay1D%RotRayIdxSt(iRotRay), cuRotRay1D%RotRayIdxSt(iRotRay + 1) - 1
+  iazi = cuRotRay1D%iAzi(j)
+  idir = cuRotRay1D%iDir(j)
+  idir = dir(idir, irot)
+  AziSvIdx = AziMap(iazi, idir)
+  IF(iazi .NE. iazi0 .AND. iazi .NE. iazi0r) THEN 
+    AziSvIdx = AziSvIdx+4
+  END IF
+  PinRayBeg = cuRotRay1D%CoreRayIdxSt(j)
+  PinRayEnd = cuRotRay1D%CoreRayIdxSt(j + 1) - 1
+  DO k = PinRayBeg, PinRayEnd
+	ipin = cuRotRay1D%PinIdx(k)
+	isurf = cuRotRay1D%SurfIdx(:, k)
+	pin_jout = wt(ipol, iazi) * track_phi
+	!$ACC ATOMIC
+    jout(1, ig, isurf(1), ipin) = jout(1, ig, isurf(1), ipin) + pin_jout
+
+	RaySegBeg = cuRotRay1D%PinRayIdxSt(k)
+	RaySegEnd = cuRotRay1D%PinRayIdxSt(k + 1) - 1
+    DO ir = RaySegBeg, RaySegEnd
+      ireg = cuRotRay1D%FsrIdx(ir)
+      tau = - cuRotRay1D%LenSeg(ir) * xst(ig, ireg)
+	  ExpApp = 1.0 - __EXPF(tau * rsinv(ipol))
+	  delta_phi = (track_phi - SrcAng(ipol, ig, AziSvIdx, ireg)) * ExpApp
+	  track_phi = track_phi - delta_phi
+	  !$ACC ATOMIC
+	  phia(ipol, ig, AziSvIdx, ireg) = phia(ipol, ig, AziSvIdx, ireg) + delta_phi
+	ENDDO
+
+	pin_jout = wt(ipol, iazi) * track_phi
+	!$ACC ATOMIC
+    jout(2, ig, isurf(2), ipin) = jout(2, ig, isurf(2), ipin) + pin_jout
+  ENDDO
+ENDDO
+
+ELSE
+
+DO j = cuRotRay1D%RotRayIdxSt(iRotRay + 1) - 1, cuRotRay1D%RotRayIdxSt(iRotRay), -1
+  iazi = cuRotRay1D%iAzi(j)
+  idir = cuRotRay1D%iDir(j)
+  idir = dir(idir, irot)
+  AziSvIdx = AziMap(iazi, idir)
+  IF(iazi .NE. iazi0 .AND. iazi .NE. iazi0r) THEN 
+    AziSvIdx = AziSvIdx+4
+  END IF
   PinRayBeg = cuRotRay1D%CoreRayIdxSt(j + 1) - 1
   PinRayEnd = cuRotRay1D%CoreRayIdxSt(j)
   DO k = PinRayBeg, PinRayEnd, -1

@@ -7,7 +7,7 @@ use geom,         only :  CellInfo,  CellPitch,    nCellType
 use ioutil,       only :  toupper,   IFnumeric,    nfields,   fndchara,  fndchara512, &
                           nfieldto, nfieldto512
 use GeomTreatment, ONLY : AnnularFsrArea, AnnularRegionDivision
-use BenchXs,      only :  MacXsBen
+use BenchXs,      only :  MacXsBen, DynMacXsBen
 use Material_Mod, ONLY : Mixture
 use SPH_mod,      ONLY : calcCellSSPH,calcAICCellSSPH
 use XSLIB_MOD,    ONLY : igresb, igrese,nofghel
@@ -187,8 +187,13 @@ IF(.not. cellInfo(icel)%lRect) then
       CellInfo(icel)%lAIC = CellInfo(icel)%lAIC .or. Mixture(ireg(j))%lAIC
       CellInfo(icel)%lsSPH = CellInfo(icel)%lfuel .or. CellInfo(icel)%lAIC
     ELSE
-      CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. MacXsBen(ireg(j))%lfuel
-      CellInfo(icel)%lCR = CellInfo(icel)%lCR .or. MacXsBen(ireg(j))%lCR
+      IF(nTracerCntl%lDynamicBen) THEN
+        CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. DynMacXsBen(ireg(j))%lfuel
+        CellInfo(icel)%lCR = CellInfo(icel)%lCR .or. DynMacXsBen(ireg(j))%lCR
+      ELSE
+        CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. MacXsBen(ireg(j))%lfuel
+        CellInfo(icel)%lCR = CellInfo(icel)%lCR .or. MacXsBen(ireg(j))%lCR
+      END IF
     ENDIF
   ENDDO
   
@@ -286,10 +291,15 @@ IF(.not. cellInfo(icel)%lRect) then
   ENDDO
   CellInfo(icel)%vol(0)=Pitch*Pitch-vol  
   IF (CellInfo(icel)%lfuel) THEN
-    IF(nTracerCntl%lXsLib) THEN
-        CellInfo(icel)%lhole = .NOT. Mixture(ireg(ndata))%lfuel
+    IF (nTracerCntl%lXsLib) THEN
+      CellInfo(icel)%lhole = .NOT. Mixture(ireg(ndata))%lfuel
       DO j = ndata, 0, -1
         IF (Mixture(ireg(j))%lfuel) EXIT
+      END DO
+    ELSEIF(nTracerCntl%lDynamicBen) THEN 
+      CellInfo(icel)%lhole = .NOT. DynMacXsBen(ireg(ndata))%lfuel
+      DO j = ndata, 0, -1
+        IF (DynMacXsBen(ireg(j))%lfuel) EXIT
       END DO
     ELSE
       CellInfo(icel)%lhole = .NOT. MacXsBen(ireg(ndata))%lfuel
@@ -302,7 +312,11 @@ IF(.not. cellInfo(icel)%lRect) then
       IF(nTracerCntl%lXsLib) THEN
         IF (Mixture(ireg(j+1))%lfuel.and..not.Mixture(ireg(j))%lfuel) EXIT
       ELSE
-        IF (MacXsBen(ireg(j+1))%lfuel.and..not.MacXsBen(ireg(j))%lfuel) EXIT
+        IF(nTracerCntl%lDynamicBen) THEN
+          IF (DynMacXsBen(ireg(j+1))%lfuel .AND. .not. DynMacXsBen(ireg(j))%lfuel) EXIT
+        ELSE
+          IF (MacXsBen(ireg(j+1))%lfuel .AND. .not.MacXsBen(ireg(j))%lfuel) EXIT
+        END IF
       ENDIF
     ENDDO
     j=j+1
@@ -310,14 +324,13 @@ IF(.not. cellInfo(icel)%lRect) then
     CellInfo(icel)%FuelRad0 = rr(CellInfo(icel)%ieFuel)
   ELSEIF (CellInfo(icel)%lAIC) THEN
     DO j=ndata,0,-1
-      IF (.not.Mixture(ireg(j))%lAIC) EXIT ! Based on the assumption that there's no hole in an AIC pin.
+        IF (.not.Mixture(ireg(j))%lAIC) EXIT ! Based on the assumption that there's no hole in an AIC pin.
     ENDDO
     j=j+1
     CellInfo(icel)%ieFuel = j
     CellInfo(icel)%ibFuel = ndata
     CellInfo(icel)%FuelRad0 = rr(CellInfo(icel)%ieFuel)
   ENDIF
-  
   ieFuel = CellInfo(icel)%ieFuel
   ibFuel = CellInfo(icel)%ibFuel
   
@@ -397,8 +410,12 @@ ELSE  !Rectangular Geomemtry
     IF(nTracerCntl%lXsLib) THEN
       CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. Mixture(ireg(i))%lfuel
     ELSE
-      CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. MacXsBen(ireg(i))%lfuel
-    ENDIF  
+      IF(nTracerCntl%lDynamicBen) THEN
+        CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. DynMacXsBen(ireg(i))%lfuel
+      ELSE
+        CellInfo(icel)%lfuel = CellInfo(icel)%lfuel .or. MacXsBen(ireg(i))%lfuel
+      END IF
+    ENDIF
   ENDDO
   i = 0 
   DO iy = 1, nDatay
@@ -1198,24 +1215,19 @@ IF(lSimInp) THEN
 ENDIF
 
 !Gap Type Check
-!Top - Bottom
-ChkRange(:, :, 1) = RESHAPE((/        2, nCellX-1,        1,        1,  &
-                                      2, nCellX-1,   nCellX,   nCellX,  &
-                                      0,       -1,        0,       -1, &
-                                      0,       -1,        0,       -1/),&
-                             (/4, 4/))
-!Left-Right
-ChkRange(:, :, 2) = RESHAPE((/        1,        1,        2, nCellX-1,  &
-                                  nCellX,   nCellX,        2, nCellX-1,  &
-                                       0,       -1,        0,       -1, &
-                                       0,       -1,        0,       -1/),&
-                             (/4, 4/))
-!Corner Gap
-ChkRange(:, :, 3) = RESHAPE((/      1,      1,      1,     1,  &
-                               nCellX, nCellX,      1,     1,  &
-                                    1,      1, nCellX, nCellX, &
-                               nCellX, nCellX, nCellX, nCellX/),&
-                            (/4, 4/))
+ChkRange = RESHAPE((/      2, nCellX-1,        1,        1,  &
+                           2, nCellX-1,   nCellX,   nCellX,  &
+                           0,       -1,        0,       -1,  &
+                           0,       -1,        0,       -1,  &
+                           1,        1,        2, nCellX-1,  &
+                      nCellX,   nCellX,        2, nCellX-1,  &
+                           0,       -1,        0,       -1,  &
+                           0,       -1,        0,       -1,  &
+                           1,        1,        1,        1,  &
+                      nCellX,   nCellX,        1,        1,  &
+                           1,        1,   nCellX,   nCellX,  &
+                      nCellX,   nCellX,   nCellX,   nCellX/),&
+                      SHAPE(ChkRange))
 DO l = 1, 3
   DO k = 1, 4
      DO iy = ChkRange(3, k, l), ChkRange(4, k, l)
@@ -1697,7 +1709,7 @@ ELSE
   BaseCellInfo(icel)%Geom%nCircle =0
   BaseCellInfo(icel)%geom%cx = 0 
   BaseCellInfo(icel)%geom%cy = 0
-  ndatax = nfieldto(dataline,SLASH) ! --- 180628 JSR (basecell idx 까지 고려되니까 빼 줘)
+  ndatax = nfieldto(dataline,SLASH) ! --- 180628 JSR (exclude for when it accounts basecell idx either)
   read(dataline, *) item, (delx(i), i = 1, ndatax-1)
   delx(ndatax) = CellPitch - sum(delx(1:ndatax-1))
   
@@ -2054,7 +2066,7 @@ INTEGER :: iReg(0:300) = 0, ndiv(0:300) = 0
 REAL :: rr(300) = 0.
 
 IF (lgap) THEN
-  DO icel = nCellType0, nCellType0-2, -1 ! ---- 180622 JSR (If lGap. 근데 gap cell이 맨 뒤 3개가 아니라면 이것도 수정 해야 함)
+  DO icel = nCellType0, nCellType0-2, -1 ! ---- 180622 JSR (If lGap. Though, unless there are three gap cells, this should be revised)
     CellInfo(icel)%basecellstr = nBaseCell0+(icel-nCellType0)
   END DO
 END IF
@@ -2131,9 +2143,6 @@ DO icel = 1, nCellType
   CellInfo(icel)%geom%dely          => BasecellInfo(ibasecell)%geom%dely        
   CellInfo(icel)%geom%circle        => BasecellInfo(ibasecell)%geom%circle      
 
-!  CellInfo(icel)%lhole              = BasecellInfo(ibasecell)%lhole   ! Redundant...
-!  CellInfo(icel)%ibFuel             = BasecellInfo(ibasecell)%ibFuel
-!  CellInfo(icel)%ieFuel             = BasecellInfo(ibasecell)%ieFuel
   IF (icel .GT. nCellType0) CYCLE
   
   IF (nTracerCntl%lSSPH) THEN
@@ -2176,9 +2185,7 @@ DO icel = 1, nCellType
       IF (CellInfo(icel)%lAIC) THEN
         CALL calcAICCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,j,nfueldiv)
       ELSE
-        IF (CellInfo(icel)%lhole) THEN
-          CALL calcCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,CellInfo(icel)%ibFuel,CellInfo(icel)%ieFuel,nfueldiv, CellInfo(icel)%lhole)
-        END IF
+        CALL calcCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,CellInfo(icel)%ibFuel,CellInfo(icel)%ieFuel,nfueldiv, CellInfo(icel)%lhole)
       ENDIF
     ENDIF
   ENDIF

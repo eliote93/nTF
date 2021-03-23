@@ -6,7 +6,7 @@
 		<Configuration Name="Debug|x64" OutputDirectory="Intel\$(ConfigurationName)" IntermediateDirectory="Intel\$(ConfigurationName)">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(ProjectDir)/src;C:\Program Files\MPICH2\include" PreprocessorDefinitions="__INTEL_MKL" OpenMP="OpenMPParallelCode" RealKIND="realKIND8" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" UseMkl="mklParallel"/>
 				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="C:\Program Files\MPICH2\lib" GenerateManifest="false" GenerateDebugInformation="true" SubSystem="subSystemConsole" StackReserveSize="100000000" StackCommitSize="100000000" AdditionalDependencies="fmpich2.lib"/>
-				<Tool Name="VFResourceCompilerTool" AdditionalIncludeDirectories="C:\Program Files (x86)\Intel\oneAPI\mkl\latest\redist\ia32;"/>
+				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
 				<Tool Name="VFPreLinkEventTool"/>
@@ -26,7 +26,9 @@
 	<Files>
 		<Filter Name="Header Files" Filter="fi;fd;h;inc">
 		<File RelativePath=".\src\CUDADEFINES.h"/>
+		<File RelativePath=".\src\DefDBG.h"/>
 		<File RelativePath=".\src\defines.h"/>
+		<File RelativePath=".\src\Depletion.h"/>
 		<File RelativePath=".\src\SP3DEFINES.H"/></Filter>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
@@ -73,6 +75,7 @@
 		<File RelativePath=".\src\rays.f90"/>
 		<File RelativePath=".\src\TypeDef.f90"/></Filter>
 		<Filter Name="Control Rod">
+		<Filter Name="New CR"/>
 		<File RelativePath=".\src\CNTLROD_mod.f90"/>
 		<File RelativePath=".\src\CrCsp_mod.f90"/>
 		<File RelativePath=".\src\CrCspGen_Driver.f90"/>
@@ -120,46 +123,24 @@
 		<File RelativePath=".\src\ReadDeplFile.f90"/></Filter>
 		<Filter Name="Gamma Transport">
 		<Filter Name="CMFD">
-		<File RelativePath=".\src\GammaCMFD_mod.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaCMFDAcc.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaHomoXsGen.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<File RelativePath=".\src\GammaCMFD_mod.f90"/>
+		<File RelativePath=".\src\GammaCMFDAcc.f90"/>
+		<File RelativePath=".\src\GammaHomoXsGen.f90"/></Filter>
 		<Filter Name="MOC">
-		<File RelativePath=".\src\GammaMOC_mod.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaMOCEtc.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaMOCSweep.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaRayTracing.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaSetRtVar.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
-		<File RelativePath=".\src\Gamma_mod.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaXsLib.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\GammaXSUtil.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\PrepareGamma.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
-		<File RelativePath=".\src\readLibGamma.f90">
-			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
-			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<File RelativePath=".\src\GammaMOC_mod.f90"/>
+		<File RelativePath=".\src\GammaMOCEtc.f90"/>
+		<File RelativePath=".\src\GammaMOCSweep.f90"/>
+		<File RelativePath=".\src\GammaRayTracing.f90"/>
+		<File RelativePath=".\src\GammaSetRtVar.f90"/></Filter>
+		<File RelativePath=".\src\CalExplicitPower.f90"/>
+		<File RelativePath=".\src\Gamma_mod.f90"/>
+		<File RelativePath=".\src\GammaAxial.f90"/>
+		<File RelativePath=".\src\GammaFlatMOC.f90"/>
+		<File RelativePath=".\src\GammaXsLib.f90"/>
+		<File RelativePath=".\src\GammaXSUtil.f90"/>
+		<File RelativePath=".\src\PrepareGamma.f90"/>
+		<File RelativePath=".\src\ProcessGammaOut.f90"/>
+		<File RelativePath=".\src\ProcessKERMAOut.f90"/></Filter>
 		<Filter Name="Geometry Treatment">
 		<Filter Name="CADGeom">
 		<File RelativePath=".\src\CadGeom_Mod.f90"/>
@@ -203,46 +184,41 @@
 		<File RelativePath=".\src\GCInit.f90"/>
 		<File RelativePath=".\src\GenFxrMacXs.f90"/></Filter>
 		<Filter Name="Hex">
-		<Filter Name="Bridge">
-		<File RelativePath=".\src\HexCP.f90"/>
-		<File RelativePath=".\src\HexData.f90"/>
-		<File RelativePath=".\src\HexInit.f90"/>
-		<File RelativePath=".\src\HexMain.f90"/>
-		<File RelativePath=".\src\HexTst.f90"/>
-		<File RelativePath=".\src\HexType.f90"/>
-		<File RelativePath=".\src\HexUtil.f90"/></Filter>
-		<Filter Name="CMFD">
-		<File RelativePath=".\src\HexCmfd.f90"/>
-		<File RelativePath=".\src\HexCmfdConst.f90"/>
-		<File RelativePath=".\src\HexNgh.f90"/>
-		<File RelativePath=".\src\HexNgh_MP.f90"/>
-		<File RelativePath=".\src\HexNgh_SP.f90"/>
-		<File RelativePath=".\src\HexTLkg.f90"/>
-		<File RelativePath=".\src\HexVtx.f90"/></Filter>
-		<Filter Name="Geo">
 		<File RelativePath=".\src\HexAsyConst.f90"/>
-		<File RelativePath=".\src\HexAsyTypConst.f90"/>
-		<File RelativePath=".\src\HexCelBasis.f90"/>
-		<File RelativePath=".\src\HexCelBasis_Gap.f90"/>
-		<File RelativePath=".\src\HexCelBasis_Rod.f90"/>
-		<File RelativePath=".\src\HexGeo.f90"/>
-		<File RelativePath=".\src\HexGeoConst.f90"/>
-		<File RelativePath=".\src\HexPinConst.f90"/></Filter>
-		<Filter Name="IO">
-		<File RelativePath=".\src\HexChkInp.f90"/>
-		<File RelativePath=".\src\HexCorePowerCal.f90"/>
-		<File RelativePath=".\src\HexEffXsOut.f90"/>
-		<File RelativePath=".\src\HexInpCard.f90"/>
-		<File RelativePath=".\src\HexOutputEdit.f90"/>
-		<File RelativePath=".\src\HexReadInp.f90"/>
-		<File RelativePath=".\src\HexThOut.f90"/></Filter>
-		<Filter Name="Ray">
 		<File RelativePath=".\src\HexAsyRay.f90"/>
 		<File RelativePath=".\src\HexAsyRay_SngCel.f90"/>
 		<File RelativePath=".\src\HexAsyRayConst.f90"/>
 		<File RelativePath=".\src\HexAsyRayIntSct.f90"/>
+		<File RelativePath=".\src\HexAsyTypConst.f90"/>
+		<File RelativePath=".\src\HexCelBasis.f90"/>
+		<File RelativePath=".\src\HexCelBasis_Gap.f90"/>
+		<File RelativePath=".\src\HexCelBasis_Rod.f90"/>
+		<File RelativePath=".\src\HexChkInp.f90"/>
+		<File RelativePath=".\src\HexCMFD.f90"/>
+		<File RelativePath=".\src\HexCmfdConst.f90"/>
+		<File RelativePath=".\src\HexCorePowerCal.f90"/>
+		<File RelativePath=".\src\HexCP.f90"/>
+		<File RelativePath=".\src\HexData.f90"/>
+		<File RelativePath=".\src\HexEffXsOut.f90"/>
+		<File RelativePath=".\src\HexGeo.f90"/>
+		<File RelativePath=".\src\HexGeoConst.f90"/>
+		<File RelativePath=".\src\HexInit.f90"/>
+		<File RelativePath=".\src\HexInpCard.f90"/>
+		<File RelativePath=".\src\HexMain.f90"/>
+		<File RelativePath=".\src\HexNgh.f90"/>
+		<File RelativePath=".\src\HexNgh_MP.f90"/>
+		<File RelativePath=".\src\HexNgh_SP.f90"/>
+		<File RelativePath=".\src\HexOutputEdit.f90"/>
+		<File RelativePath=".\src\HexPinConst.f90"/>
 		<File RelativePath=".\src\HexRayBasic.f90"/>
-		<File RelativePath=".\src\HexRayConst.f90"/></Filter></Filter>
+		<File RelativePath=".\src\HexRayConst.f90"/>
+		<File RelativePath=".\src\HexReadInp.f90"/>
+		<File RelativePath=".\src\HexThOut.f90"/>
+		<File RelativePath=".\src\HexTLkg.f90"/>
+		<File RelativePath=".\src\HexTst.f90"/>
+		<File RelativePath=".\src\HexType.f90"/>
+		<File RelativePath=".\src\HexUtil.f90"/>
+		<File RelativePath=".\src\HexVtx.f90"/></Filter>
 		<Filter Name="Initialize">
 		<File RelativePath=".\src\AllocPdm.f90"/>
 		<File RelativePath=".\src\initialize.f90"/>
@@ -332,6 +308,13 @@
 		<File RelativePath=".\src\setRTxs.f90"/></Filter>
 		<Filter Name="Parallel Computing">
 		<Filter Name="Common">
+		<Filter Name="HPDepletion">
+		<File RelativePath=".\src\AuxiliaryCSR.f90"/>
+		<File RelativePath=".\src\DeplInit.f90"/>
+		<File RelativePath=".\src\DeplMod.f90"/>
+		<File RelativePath=".\src\DeplSetSys.f90"/>
+		<File RelativePath=".\src\DeplSetVars.f90"/>
+		<File RelativePath=".\src\HPDeplType.f90"/></Filter>
 		<File RelativePath=".\src\CMFD_COMMON.f90">
 			<FileConfiguration Name="Release|x64">
 				<Tool Name="VFFortranCompilerTool" Optimization="optimizeMaxSpeed" InlineFunctionExpansion="expandAnySuitable"/></FileConfiguration></File>
@@ -339,8 +322,9 @@
 		<File RelativePath=".\src\MOC_COMMON.f90">
 			<FileConfiguration Name="Release|x64">
 				<Tool Name="VFFortranCompilerTool" Optimization="optimizeMaxSpeed"/></FileConfiguration></File>
-		<File RelativePath=".\src\TYPEDEF_COMMON.f90"/></Filter>
-		<Filter Name="CUDA">
+		<File RelativePath=".\src\TYPEDEF_COMMON.f90"/>
+		<File RelativePath=".\src\XS_COMMON.f90"/></Filter>
+		<Filter Name="CUDA" SourceControlFiles="false">
 		<Filter Name="Axial">
 		<File RelativePath=".\src\CUDA_AXIAL.f90">
 			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
@@ -367,8 +351,36 @@
 		<File RelativePath=".\src\CUDA_SYSTEM.f90">
 			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
 			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="Depletion">
+		<File RelativePath=".\src\CUDA_DEPL.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_MatExp.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_SolProc.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_WorkSpace.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
 		<Filter Name="MOC">
 		<File RelativePath=".\src\CUDA_MOC.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
+		<Filter Name="Transient">
+		<File RelativePath=".\src\CUDA_NN_DRIVER.f90"/>
+		<File RelativePath=".\src\CUDA_NNFSP.f90"/>
+		<File RelativePath=".\src\CUDA_PWDIST.f90"/>
+		<File RelativePath=".\src\CUDA_TR_DRIVER.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\CUDA_Transient.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File>
+		<File RelativePath=".\src\PromptFeedback_mod.f90"/></Filter>
+		<Filter Name="XS">
+		<File RelativePath=".\src\CUDA_XS.f90">
 			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
 			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter>
 		<File RelativePath=".\src\CUDA_COMMON.f90">
@@ -397,11 +409,15 @@
 		<File RelativePath=".\src\MKL_DAVIDSON.f90"/>
 		<File RelativePath=".\src\MKL_POWER.f90"/></Filter>
 		<Filter Name="Depletion">
+		<File RelativePath=".\src\DeplSolvePostProc.f90"/>
+		<File RelativePath=".\src\MatExponential.f90"/>
 		<File RelativePath=".\src\MKL_DEPL.f90"/></Filter>
 		<File RelativePath=".\src\MKL_3D.f90"/>
 		<File RelativePath=".\src\MKL_INIT.f90"/></Filter>
 		<Filter Name="OpenCL">
-		<File RelativePath=".\src\clfortran.f90"/></Filter></Filter>
+		<File RelativePath=".\src\clfortran.f90">
+			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
+			<FileConfiguration Name="Debug|x64" ExcludedFromBuild="true"/></File></Filter></Filter>
 		<Filter Name="PE">
 		<File RelativePath=".\src\CMFDComm_mod.f90"/>
 		<File RelativePath=".\src\MPIComm_mod.f90"/>
@@ -429,6 +445,7 @@
 		<File RelativePath=".\src\CalRelPower.f90"/>
 		<File RelativePath=".\src\FuelConduction.f90"/>
 		<File RelativePath=".\src\InitTH.f90"/>
+		<File RelativePath=".\src\mod_AndersonAcc_SIMPLE.f90"/>
 		<File RelativePath=".\src\SetThCell.f90"/>
 		<File RelativePath=".\src\SteadyStateTH.f90"/>
 		<File RelativePath=".\src\Th_mod.f90"/>
@@ -476,10 +493,6 @@
 		<Filter Name="BenchmarkXS">
 		<File RelativePath=".\src\BenchXs_mod.f90"/>
 		<File RelativePath=".\src\readbenchxs.f90"/></Filter>
-		<Filter Name="ISOTXS">
-		<File RelativePath=".\src\PostProc_ISOTXS.f90"/>
-		<File RelativePath=".\src\ProcMAT_ISOTXS.f90"/>
-		<File RelativePath=".\src\readISOTXS.f90"/></Filter>
 		<Filter Name="LibXS">
 		<File RelativePath=".\src\MacXsLib.f90"/>
 		<File RelativePath=".\src\Material_Mod.f90"/>
@@ -493,6 +506,10 @@
 		<File RelativePath=".\src\vtk_mod.f90"/></Filter>
 		<File RelativePath=".\src\inflow.f90"/>
 		<File RelativePath=".\src\inflowMathUtil.f90"/>
+		<File RelativePath=".\src\PointXSRT_MOD.f90"/>
+		<File RelativePath=".\src\PostProc_ISOTXS.f90"/>
 		<File RelativePath=".\src\PrepareXs.f90"/>
+		<File RelativePath=".\src\ProcMAT_ISOTXS.f90"/>
+		<File RelativePath=".\src\readISOTXS.f90"/>
 		<File RelativePath=".\src\Xsutil.f90"/></Filter></Filter></Files>
 	<Globals/></VisualStudioProject>

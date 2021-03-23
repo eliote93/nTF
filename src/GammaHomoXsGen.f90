@@ -11,7 +11,7 @@ USE Th_Mod,         ONLY : GetPinFuelTemp,   GetPinModTemp,     GetPinTemp
 USE GAMCMFD_mod,    ONLY : GXSMac,           GamCellXsGen
 USE GamXsLib_Mod,   ONLY : GamXsBase,        GamScatMatrix,     GamProdMatrix
 USE GammaTYPEDEF,   ONLY : GPINXS_TYPE
-USE GammaCore_mod,  ONLY : GamGroupInfo
+USE Core_mod,       ONLY : GroupInfo
 
 IMPLICIT NONE
 
@@ -34,7 +34,6 @@ INTEGER :: nCellType, nPinType, nlocalFxr, nlocalFsr, nFsrInFxr
 INTEGER :: icel, ipin, iz, ixy ,ifxr, ifsr, itype, ifsrlocal, ig
 INTEGER :: FsrIdxSt, FxrIdxSt
 INTEGER :: i, j, k, l, m, igg
-INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
 REAL :: XsMacsTr(ng)
 
 Pin => Core%Pin
@@ -43,9 +42,6 @@ Cell => Core%CellInfo
 nxy = Core%nxy
 nCoreFxr = Core%nCoreFxr; nCoreFsr = Core%nCoreFsr
 
-norg = GamGroupInfo%norg
-iResoGrpBeg = GamGroupInfo%nofg + 1
-iResoGrpEnd = GamGroupInfo%nofg + GamGroupInfo%norg
 
 DO iz = myzb, myze
   DO ixy = 1, nxy
@@ -60,8 +56,8 @@ DO iz = myzb, myze
       myFxr => FXR(ifxr, iz)
       ! Macroscopic XS and matrices making
       CALL GamXsBase(GXSMac(j), myFxr, 1, ngg, ngg, FALSE, TRUE)
-      CALL GamProdMatrix(GXSMac(j), myFxr, 1, ngg, ng, ngg, GamGroupInfo, TRUE)
-      CALL GamScatMatrix(GXSMac(j), myFxr, 1, ngg, ngg, TRUE, TRUE)
+      CALL GamProdMatrix(GXSMac(j), myFxr, 1, ngg, ng, ngg, GroupInfo, FALSE)
+      CALL GamScatMatrix(GXSMac(j), myFxr, 1, ngg, ngg, TRUE, TRUE, FALSE)
 
       GXSMac(j)%XsMacTr = GXSMac(j)%XsMacA + GXSMac(j)%XsMacStr
       GXSMac(j)%XsMacT = GXSMac(j)%XsMacA + GXSMac(j)%XsMacS
@@ -75,7 +71,7 @@ DO iz = myzb, myze
     END IF
     CALL GamCellXsGen(Cell(icel), Phis(FsrIdxSt:FsrIdxSt+nlocalFsr-1, iz, 1:ng),                    &
           gphiIn, PinXS(ixy, iz), GXSMac(1:nLocalFxr), ng, ngg, nLocalFxr, nLocalFsr,               &
-          GamGroupInfo%OutScatRange, lsigt)
+          GroupInfo%OutScatRange_Ph, lsigt)
     DEALLOCATE(gphiIn)
   ENDDO
 ENDDO
@@ -143,23 +139,21 @@ DO igg = 1, ngg  ! PHOTON ENERGY GROUP
       vol = CellInfo%vol(ireg)
       volsum = volsum + vol
       localgphi = gphis(ireg, igg) * vol
-      gphisum = gphisum + localgphi
+      gphisum = gphisum + localgphi         ! volume-weighted summation of multigroup photon flux
       ! Reaction rate and KERMA photo-atomic reactions
-      RR(1) = RR(1) + localgphi * GXSMac(i)%Xsmact(igg)
-      RR(2) = RR(2) + localgphi * GXSMac(i)%Xsmactr(igg)
-      RR(3) = RR(3) + localgphi * GXSMac(i)%MacKERMA(igg)
-
+      RR(1) = RR(1) + localgphi * GXSMac(i)%Xsmact(igg)    ! RR(1) : Macro total
+      RR(2) = RR(2) + localgphi * GXSMac(i)%Xsmactr(igg)   ! RR(2) : Macro transport
+      RR(3) = RR(3) + localgphi * GXSMac(i)%MacKERMA(igg)  ! RR(3) : Macro KERMA 
+      !RR(4~3+ngg) : scattering matrix summation (scattered source)
       DO igg2 = igb, ige
         RR(3 + igg2) = RR(3 + igg2) + localgphi * GXSMac(i)%Xsmacsm(igg, igg2)    ! igg -> igg2
       ENDDO
-      !---BYS edit
-      RR(ngg+4) = RR(ngg+4) + localgphi * GXSMac(i)%Xsmaca(igg)
-      IF( lsigT )THEN
+      RR(ngg+4) = RR(ngg+4) + localgphi * GXSMac(i)%Xsmaca(igg) ! RR(ngg+4) : absorption XS
+      IF( lsigT )THEN ! RR(ngg+5) : diffusion coefficient?
         RR(ngg+5) = RR(ngg+5) + localgphi / GXSMac(i)%Xsmact(igg)
       ELSE
         RR(ngg+5) = RR(ngg+5) + localgphi / GXSMac(i)%Xsmactr(igg)
       ENDIF
-      !---BYS edit end
     ENDDO ! FSR loop
   ENDDO ! FXR loop
   PinXS%Gphi(igg) = gphisum / volsum
@@ -167,28 +161,20 @@ DO igg = 1, ngg  ! PHOTON ENERGY GROUP
   CALL MULTI_CA(RGphisum, RR(:), ngg + 5)
   PinXS%XST(igg) = RR(1)
   PinXS%XSTR(igg) = RR(2)
-  PinXS%KERMA(igg) = RR(3)
-  !---BYS edit
+  !PinXS%KERMA(igg) = RR(3)                            ! Pin-homogenized KERMA
   PinXS%XSA(igg)=RR(ngg + 4)
-  !---BYS edit end
-  PinXS%Xss(igg)%WithInGroupScat = RR(3 + igg)        ! igg -> igg
+  PinXS%Xss(igg)%self = RR(3 + igg)        ! igg -> igg
   DO igg2 = igb, ige
     IF((igg-PinXS%Xss(igg2)%ib)*(igg-PinXS%Xss(igg2)%ie) .GT. 0) CYCLE
-    PinXS%Xss(igg2)%From(igg) = RR(3+ igg2)
+    PinXS%Xss(igg2)%From(igg) = RR(3+ igg2)           ! igg -> igg2
   ENDDO
-  !---BYS edit
   scatsum=0;
   DO igg2 = 1, ngg
-    scatsum = scatsum + RR(3 + igg2)
+    scatsum = scatsum + RR(3 + igg2)                   ! sum of igg -> igg2 (all scattering from igg)
   ENDDO !
-  PinXS%XSR(igg) = RR(ngg + 4) + scatsum - RR(3 + igg)
-  !---BYS edit end
-#ifndef __PGI
-  PinXS%Xss(igg)%From(igg) = 0
-#else
-  PinXS%Xss(igg)%From(igg) = 0
-#endif
-  PinXs%XSD(igg) = ONETHREE / PinXS%XSTR(igg)
+  PinXS%XSR(igg) = RR(ngg + 4) + scatsum - RR(3 + igg) ! Removal XS -- absorption + scattering - self scattering(igg+3)
+  PinXS%XSS(igg)%From(igg) = 0._8                      ! Self Scattering with removal (zero)
+  PinXs%XSD(igg) = ONETHREE / PinXS%XSTR(igg)          ! Diffusion Cefficient
 
   IF( lsigT )THEN
     PinXS%XSTR(igg) = PinXS%XST(igg)
@@ -199,9 +185,9 @@ DO igg = 1, ngg  ! PHOTON ENERGY GROUP
     PinXs%XSD(igg) = ONETHREE * RR(ngg + 5)
     !PinXs%XSD(ig) = PinXs%XSD(ig)*0.90_8
   ENDIF
-ENDDO  ! PHOTON ENERGY LOOP
+ENDDO  ! PHOTON GROUP LOOP (igg) end
 
-! for photon inducing reaction data (Homogenization Using Neutron Flux)
+! for photon generation reaction data (Homogenization Using Neutron Flux)
 ! PHOTON PRODUCTION MATRIX, WEIGHTING FUNCTION : NEUTRON FLUX "phis"
 PinXS%XSP = ZERO  ! production
 phisum = 0.;
@@ -300,7 +286,6 @@ DO iz = myzb, myze
             ENDIF
             PinXs%PDHAT(ibd, ig) = Dhat; PinXs%dhat(ibd, ig) = dhat;
           ENDIF
-
         ENDDO  !ENd of Group Sweep
       ELSE     !Boundary
         IF(ineigh .EQ. VoidCell) THEN
@@ -339,4 +324,5 @@ NULLIFY(Pin)
 NULLIFY(hzfm)
 NULLIFY(PINXS)
 END SUBROUTINE
+  
 #endif

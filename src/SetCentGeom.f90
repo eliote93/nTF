@@ -620,7 +620,6 @@ CentAsyInfo%lCentX = CentXYInfo(1, itype)
 CentAsyInfo%lCentY = CentXYInfo(2, itype)
 CentAsyInfo%lCentXY = CentXYInfo(3, itype)
 !type AsyInfo_type
-!  sequence
 !  logical :: lempty,lfuel,lgeom,lEdgeX,lEdgeY,lEdgeXY
 !  INTEGER :: nx,ny,nxy
 !  INTEGER,pointer :: pin(:),pin2DIdx(:,:)

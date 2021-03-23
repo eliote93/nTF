@@ -83,7 +83,6 @@ INTEGER :: ig, iz, ib, ie, i, l, ITER, jsweep, InIter, nInIter
 INTEGER :: myzb, myze
 INTEGER :: nFsr, nxy, nxya, nbd, nModRay, nPhiAngSv, nPolarAngle, nGroupInfo
 INTEGER :: GrpBeg, GrpEnd
-
 REAL :: psipsi, psipsid, eigerr,fiserr, peigv, reserr, errdat(3)
 REAL :: TimeRt1gBeg, TimeRt1gEnd, TimeRtElapsed, TimeNodeElapsed, MocTimeBeg, MocTimeEnd
 REAL :: TimeRtngBeg, TimeRtngEnd, TimeRtngElapsed(2)
@@ -314,7 +313,6 @@ DO iz = myzb, myze
                                  l3dim, lxslib, lscat1, FALSE)
         ENDIF
       ENDIF
-      
       IF (.NOT. nTracerCntl%lDomainDcmp) THEN
         IF (.NOT. nTracerCntl%lLinSrcCASMO) THEN
           IF (.NOT. lscat1) THEN
@@ -402,6 +400,7 @@ IF(fiserr .lt. psiconv .and. eigerr .lt. eigconv .and. reserr .lt. resconv) THEN
     last_TH = .true.
 	ENDIF
 ENDIF
+IF(nTracerCntl%lCusping_MPI .AND. fiserr .LT. ItrCntl%decuspconv) nTracerCntl%lCusping_MPI = .FALSE.
 
 MocTimeEnd = nTracer_dclock(FALSE, FALSE)
 TimeRtElapsed = MocTimeEnd - MocTimeBeg

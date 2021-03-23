@@ -4,9 +4,9 @@ Module GamXsLib_Mod
 !-- JSU EDIT
 ! MODULE THAT CONTAINS SUBROUTINES USED IN MOC CROSS SECTION AND SOURCE GENERATION
 USE PARAM
-USE TYPEDEF,         ONLY : Fxrinfo_type  
-USE GamXSUtil,       ONLY : AllocGamMacXs,  AllocGamMacIsoXs,  AllocGamProdMat,                     &
-                            GamXsTempInterpolation
+USE GamXSUtil,       ONLY : AllocGamMacXs,  AllocGamMacIsoXs,  AllocGamProdMat,   & 
+                            AllocGamIsoSM,  FreeGamSMISO
+!                            GamXsTempInterpolation
 USE XsUtil_mod,      ONLY :  XsTempInterpolation
 !USE Allocs
 !
@@ -17,11 +17,6 @@ INTERFACE GamXsBase
   MODULE PROCEDURE GamXsBase_Fxr
   MODULE PROCEDURE GamXsBase_Csp
   MODULE PROCEDURE GamXsBase_gen
-END INTERFACE
-
-INTERFACE GamTotScatXs
-  MODULE PROCEDURE GamTotScatXs_Fxr
-  MODULE PROCEDURE GamTotScatXs_Gen
 END INTERFACE
 
 INTERFACE GamScatMatrix
@@ -79,6 +74,7 @@ END INTERFACE
 !             GENERATES MACROSCOPIC CROSS SECTION OF PHOTO-ATOMIC REACTIONS
 SUBROUTINE GamXsBase_Fxr(XsMac, Fxr, igb, ige, ngg, lIsoXsOut)
 USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE TYPEDEF,         ONLY : Fxrinfo_type  
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(Fxrinfo_type) :: Fxr
@@ -92,6 +88,7 @@ END SUBROUTINE
 SUBROUTINE GamXsBase_Csp(XsMac, Fxr, igb, ige, ngg, lIsoXsOut, lCrCspFtn)
 USE GamXSUtil,       ONLY :  GetGamXsMacDat,  ReturnGamXsMacDat, IntMacBaseCsp
 USE GammaTYPEDEF,    ONLY : GamMacXS_TYPE
+USE TYPEDEF,        ONLY : Fxrinfo_type
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(Fxrinfo_type) :: Fxr
@@ -128,8 +125,8 @@ ENDIF
 END SUBROUTINE
 
 SUBROUTINE GamXsBase_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg, lIsoXsOut)
-USE GammaLibdata,   ONLY : neltGAM, Gldiso, mapnuclELM
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMLIBDATA
+USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE XSLIB_MOD,      ONLY : GAMLIBDATA, nelmGAM, phatom, mapnucl, ldiso
 IMPLICIT NONE
 ! Input variables
 TYPE(GamMacXS_TYPE) :: XsMac
@@ -153,9 +150,9 @@ IF (.NOT.XsMac%lalloc) THEN
   XsMac%ngg = ngg
   CALL AllocGamMacXs(XsMac) 
 END IF
-IF (.NOT.XsMac%lIsoAlloc) THEN
+IF ((.NOT.XsMac%lIsoAlloc).AND.lIsoXsOut) THEN
   XsMac%ngg = ngg
-  XsMac%niso = neltGAM
+  XsMac%niso = nelmGAM
   CALL AllocGamMacIsoXs(XsMac)
 END IF
 ! Initialization
@@ -175,18 +172,19 @@ IsoXsMacS = 0._8
 ! Isotope-wise macro scopic cross section
 !    Due to independent of temp., simply multiplying pnum
 DO iso = 1, niso
-  id = mapnuclELM(idiso(iso))
+  id = mapnucl(idiso(iso))
   IF (id .EQ. 0) THEN
     PRINT *, 'ISOTOPE', idiso(iso), 'DOES NOT EXIST IN GAMMA LIBRARY(element)'
     CYCLE
   END IF
-  Gisodata => Gldiso(id)
+  Gisodata => ldiso(id)%phatom
   DO igg = igb, ige
     IsoKERMA(iso, igg) = pnum(iso) * Gisodata%KERMA(igg)
-    IsoXsMacTR(iso, igg) = pnum(iso) * Gisodata%GSIGTR(igg)
-    IsoXsMacA(iso, igg) = pnum(iso) * Gisodata%GSIGA(igg)
-    IsoXsMacS(iso, igg) = pnum(iso) * Gisodata%GSIGS(igg)
+    IsoXsMacTR(iso, igg) = pnum(iso) * Gisodata%SIGTR(igg)
+    IsoXsMacA(iso, igg) = pnum(iso) * Gisodata%SIGA(igg)
+    IsoXsMacS(iso, igg) = pnum(iso) * Gisodata%SIGS(igg)
     IsoXsMacT(iso, igg) = IsoXsMacA(iso, igg) + IsoXsMacS(iso, igg)
+    IsoXsMacSTR(iso, igg) = IsoXsMacTR(iso, igg) - IsoXsMacA(iso, igg)
   END DO ! group loop
   NULLIFY(Gisodata) 
 END DO ! iso loop
@@ -206,84 +204,32 @@ IF (lIsoXsOut) THEN
   XsMac%IsoXsMacTR(1:niso, igb:ige) = IsoXsMacTR(1:niso, igb:ige)
   XsMac%IsoXsMacA(1:niso, igb:ige) = IsoXsMacA(1:niso, igb:ige)
   XsMac%IsoXsMacS(1:niso, igb:ige) = IsoXsMacS(1:niso, igb:ige)
+  XsMac%IsoXsMacSTR(1:niso, igb:ige) = IsoXsMacSTR(1:niso, igb:ige)
 END IF
-END SUBROUTINE
-
-!   GamTotScatXs SUBROUTINES
-!               GENERATES MACROSCOPIC TRANSPORT CORRE
-!           *** Meaningless in photo-atomic rection!
-SUBROUTINE GamTotScatXs_Fxr(XsMac, Fxr, igg, ngg)
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
-IMPLICIT NONE
-TYPE(GamMacXS_TYPE) :: XsMac
-TYPE(FXRINFO_TYPE) :: Fxr
-INTEGER :: igg, ngg
-CALL GamTotScatXs_Gen(XsMac, Fxr%niso, Fxr%idiso, Fxr%pnum, igg, ngg)
-END SUBROUTINE
-
-SUBROUTINE GamTotScatXs_Gen(XsMac, niso, idiso, pnum, igg, ngg)
-USE GammaLibdata,   ONLY : neltGAM, Gldiso, mapnuclELM
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMLIBDATA
-IMPLICIT NONE
-TYPE(GamMacXS_TYPE) :: XsMac
-INTEGER :: niso, igg, ngg
-INTEGER :: idiso(niso)
-REAL :: pnum(niso)
-
-TYPE(GAMLIBDATA), POINTER :: gisodata
-INTEGER :: iso , idelem, ig2, ioutbeg, ioutend
-INTEGER :: ScRange(2)
-REAL :: SigsSum, sigs0sum
-REAL, POINTER :: XsMacSTR(:)
-
-IF(.NOT. XsMac%lalloc) THEN
-  XsMac%ngg = ngg
-  CALL AllocGamMacXs(XsMac)
-ENDIF  
-
-XsMacStr => XsMac%XsMacSTR
-XsMacSTR(igg) = 0._8
-SigsSum = 0
-sigs0sum = 0
-DO iso = 1, niso
-  idelem = mapnuclELM(idiso(iso))
-  IF (idelem .EQ. 0) CYCLE
-  gisodata => Gldiso(idelem)
-  ScRange = (/gisodata%GSM(igg)%ioutsb, gisodata%GSM(igg)%ioutse/)
-  ioutbeg = ScRange(1); ioutend = ScRange(2)
-  !Out Scattering Range
-  DO ig2 = ioutbeg, ioutend
-    sigssum = sigssum + pnum(iso) * gisodata%GSM(ig2)%from(igg)
-  ENDDO
-  NULLIFY(gisodata)
-ENDDO
-
-XsMacStr(igg) = SigsSum
-!XsMac%XsMacS(ig) = Sigs0sum
-
-NULLIFY(XsMacStr)
 END SUBROUTINE
 
 !   GamScatMatrix SUBROUTINES
 !                 GENERATES MACROSCOPIC 0-TH ORDER SCATTERING MATRIX
-SUBROUTINE GamScatMatrix_Fxr(XsMac, FXR, igb, ige, ngg, lscat1)
+SUBROUTINE GamScatMatrix_Fxr(XsMac, FXR, igb, ige, ngg, lscat1,lISOscat)
 USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE TYPEDEF,        ONLY : Fxrinfo_type
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(FXRInfo_TYPE) :: FXR
 INTEGER :: igb, ige, ngg
-LOGICAL :: lscat1
-CALL GamScatMatrix_Gen(XsMac, FXR%niso, FXR%idiso, FXR%pnum, igb, ige, ngg, lscat1)
+LOGICAL :: lscat1,lISOscat
+CALL GamScatMatrix_Gen(XsMac, FXR%niso, FXR%idiso, FXR%pnum, igb, ige, ngg, lscat1, lISOscat)
 END SUBROUTINE
 
-SUBROUTINE GamScatMatrix_Csp(XsMac, FXR, igb, ige, ngg, lscat1, lCrCspFtn)
-USE GamXSUtil,      ONLY :  GetGamXsMacDat,  ReturnGamXsMacDat,  IntScatMatCsp
+SUBROUTINE GamScatMatrix_Csp(XsMac, FXR, igb, ige, ngg, lscat1, lCrCspFtn,lISOscat)
+USE GamXSUtil,      ONLY : GetGamXsMacDat,  ReturnGamXsMacDat,  IntScatMatCsp
 USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE TYPEDEF,         ONLY : Fxrinfo_type  
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(FXRInfo_TYPE) :: FXR
 INTEGER :: igb, ige, ngg
-LOGICAL :: lscat1, lCrCspFtn
+LOGICAL :: lscat1, lCrCspFtn, lISOscat
 
 TYPE(GamMacXS_TYPE), POINTER :: XsMac1, XsMac2
 INTEGER :: i
@@ -298,11 +244,11 @@ IF(lCrCspFtn .AND. Fxr%lCrCspFtn) THEN
   
   niso = Fxr%CspFxr%niso(1)
   Pnum => Fxr%CspFxr%pnum(:, 1);     idiso => Fxr%CspFxr%isolist(:, 1)
-  CALL GamScatMatrix_Gen(XsMac1, niso, idiso, pnum, igb, ige, ngg, lscat1)
+  CALL GamScatMatrix_Gen(XsMac1, niso, idiso, pnum, igb, ige, ngg, lscat1,lISOscat)
   
   niso = Fxr%CspFxr%niso(2)
   Pnum => Fxr%CspFxr%pnum(:, 2);     idiso => Fxr%CspFxr%isolist(:, 2)
-  CALL GamScatMatrix_Gen(XsMac2, niso, idiso, pnum, igb, ige, ngg, lscat1)
+  CALL GamScatMatrix_Gen(XsMac2, niso, idiso, pnum, igb, ige, ngg, lscat1,lISOscat)
   
   ! Interpolation of Two Csp
   CALL IntScatMatCsp(XsMac, XsMac1, XsMac2, Fxr%CspFxr, Fxr%niso, igb, ige, ngg)
@@ -311,13 +257,13 @@ IF(lCrCspFtn .AND. Fxr%lCrCspFtn) THEN
 ELSE
   niso = Fxr%niso;                  Temp = Fxr%Temp
   pnum => Fxr%pnum;                 idiso => Fxr%idiso
-  CALL GamScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg, lscat1)
+  CALL GamScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg, lscat1,lISOscat)
 ENDIF
 END SUBROUTINE
 
-SUBROUTINE GamScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg, lscat1)
-USE GammaLibdata,   ONLY : Gldiso, mapnuclELM
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMLIBDATA
+SUBROUTINE GamScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg, lscat1, lISOscat)
+USE XSLIB_MOD,   ONLY : phatom, GAMLIBDATA, mapnucl, ldiso
+USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
 IMPLICIT NONE
 ! Input Variables
 TYPE(GamMacXS_TYPE) :: XsMac
@@ -325,7 +271,7 @@ INTEGER :: niso
 INTEGER :: idiso(niso)
 REAL :: pnum(niso)
 INTEGER :: igb, ige, ngg
-LOGICAL :: lscat1
+LOGICAL :: lscat1, lISOscat
 ! Pointers
 REAL, POINTER :: Xsmacsm(:,:), XsMacS(:), XsMacStr(:)
 TYPE(GAMLIBDATA), POINTER :: gisodata
@@ -337,6 +283,14 @@ IF(.NOT.XsMac%lalloc) THEN
   XsMac%ngg = ngg
   CALL AllocGamMacXs(XsMac)
 END IF
+
+IF (lISOscat) THEN
+  CALL FreeGamSMISO(XsMac)
+  XsMac%ngg = ngg
+  XsMac%niso = niso
+  CALL AllocGamIsoSM(XsMac)
+END IF
+
 ! Pointing
 XSmacsm => XsMac%XsMacSM
 XSmacS => XsMac%XsMacS
@@ -347,22 +301,57 @@ XsMacS = 0._8
 XsMacStr = 0._8
 
 DO iso = 1, niso
-  id = mapnuclELM(idiso(iso))
+  id = mapnucl(idiso(iso))
   IF (id .EQ. 0) THEN
-    PRINT *, 'ISOTOPE', idiso(iso), 'DOES NOT EXIST IN GAMMA LIBRARY(element)'
+    PRINT *, 'ELEMENT', idiso(iso), 'DOES NOT EXIST IN GAMMA LIBRARY(element) ** SCATMAT GEN'
     CYCLE
   END IF
-  gisodata => Gldiso(id)
+  gisodata => ldiso(id)%phatom
   DO igg = igb, ige
-    ib = gisodata%GSM(igg)%ib; ie = gisodata%GSM(igg)%ie
+    ib = gisodata%SM(igg)%ib; ie = gisodata%SM(igg)%ie
     DO igg2 = ib, ie
-      XSMacSm(igg2,igg) = XsMacSm(igg2, igg) + pnum(iso) * gisodata%GSM(igg)%from(igg2) ! igg2 -> igg
+      XSMacSm(igg2,igg) = XsMacSm(igg2, igg) + pnum(iso) * gisodata%SM(igg)%from(igg2) ! igg2 -> igg
     END DO
-    XsMacS(igg) = XsMacS(igg) + pnum(iso) * gisodata%GSIGS(igg)
-    XsMacSTR(igg) = XsMacSTR(igg) + pnum(iso) * gisodata%GSIGSTR(igg)
+    XsMacS(igg) = XsMacS(igg) + pnum(iso) * gisodata%SIGS(igg)
+    XsMacSTR(igg) = XsMacSTR(igg) + pnum(iso) * gisodata%SIGSTR(igg)
   END DO
   NULLIFY(gisodata)
 END DO
+IF (lISOscat) THEN
+  XsMac%IsoSM = 0.
+  IF (lScat1) THEN
+    DO iso = 1, niso
+      ID = MAPNUCL(IDISO(ISO))
+      if (ID.EQ.0) THEN
+        CYCLE
+      END IF
+      gisodata => ldiso(id)%phatom
+      DO igg = igb, ige
+        ib = gisodata%SM(igg)%ib; ie = gisodata%SM(igg)%ie
+        DO igg2 = ib, ie
+          XsMac%IsoSM(igg2,igg,iso) = pnum(iso) * gisodata%SM(igg)%from(igg2) ! igg2 -> igg
+        END DO
+        XsMac%IsoSM(igg, igg, iso) =pnum(iso) * (gisodata%SM(igg)%from(igg) + gisodata%SIGS(igg) - gisodata%SIGSTR(igg))
+      END DO
+    END DO
+  ELSE
+    DO iso = 1, niso
+      ID = MAPNUCL(IDISO(ISO))
+      if (ID.EQ.0) THEN
+        CYCLE
+      END IF
+      gisodata => ldiso(id)%phatom
+      DO igg = igb, ige
+        ib = gisodata%SM(igg)%ib; ie = gisodata%SM(igg)%ie
+        DO igg2 = ib, ie
+          XsMac%IsoSM(igg2,igg,iso) = pnum(iso) * gisodata%SM(igg)%from(igg2) ! igg2 -> igg
+        END DO
+      END DO
+    END DO
+  END IF
+  NULLIFY(gisodata)
+END IF
+
 IF(lScat1) THEN
   DO igg = igb, ige
     XsMacSm(igg, igg) = XsMacSm(igg, igg) + (XsMacS(igg) - XsMacStr(igg))
@@ -380,6 +369,7 @@ END SUBROUTINE
 !                     GENERATES P1 ORDER MACRO SCATTERING MATRIX
 SUBROUTINE GamP1XsScatMatrix_Fxr(XsMac, FXR, igb, ige, ngg)
 USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE TYPEDEF,        ONLY : Fxrinfo_type
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(FXRInfo_TYPE) :: FXR
@@ -388,8 +378,8 @@ CALL GamP1XsScatMatrix_Gen(XsMac, Fxr%niso, Fxr%idiso, Fxr%pnum, igb, ige, ngg)
 END SUBROUTINE
 
 SUBROUTINE GamP1XsScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg)
-USE GammaLibdata,   ONLY : Gldiso, mapnuclELM
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMLIBDATA
+USE XSLIB_MOD,   ONLY : phatom, mapEleGAM, GAMLIBDATA
+USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
 IMPLICIT NONE
 ! INPUT VARIABLES
 TYPE(GamMacXS_TYPE) :: XsMac
@@ -412,14 +402,14 @@ XsMacP1Sm => XsMac%MacGSM1
 XsMacP1Sm = 0._8
 
 DO iso = 1, niso
-  id = mapnuclELM(idiso(iso))
+  id = mapEleGAM(idiso(iso))
   IF (id .EQ. 0) CYCLE
-  gisodata => Gldiso(id)
+  gisodata => phatom(id)
   DO igg = igb, ige
-    ib = gisodata%GSM1(igg)%ib
-    ie = gisodata%GSM1(igg)%ie
+    ib = gisodata%SMp1(igg)%ib
+    ie = gisodata%SMp1(igg)%ie
     DO igg2 = ib, ie
-      XsMacP1Sm(igg2, igg) = XsMacP1Sm(igg2, igg) + pnum(iso) * gisodata%GSM1(igg)%from(igg2)
+      XsMacP1Sm(igg2, igg) = XsMacP1Sm(igg2, igg) + pnum(iso) * gisodata%SMp1(igg)%from(igg2)
     END DO
   END DO
   NULLIFY(gisodata)
@@ -432,6 +422,7 @@ END SUBROUTINE
 !                     GENERATES P2 ORDER MACRO SCATTERING MATRIX
 SUBROUTINE GamP2XsScatMatrix_Fxr(XsMac, FXR, igb, ige, ngg)
 USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE TYPEDEF,        ONLY : Fxrinfo_type
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(FXRInfo_TYPE) :: FXR
@@ -440,8 +431,8 @@ CALL GamP2XsScatMatrix_Gen(XsMac, Fxr%niso, Fxr%idiso, Fxr%pnum, igb, ige, ngg)
 END SUBROUTINE
 
 SUBROUTINE GamP2XsScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg)
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMLIBDATA
-USE GammaLibdata,   ONLY : Gldiso, mapnuclELM
+USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE XSLIB_MOD,      ONLY : phatom, mapEleGAM, GAMLIBDATA
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 INTEGER :: niso
@@ -463,14 +454,14 @@ XsMacP2Sm => XsMac%MacGSM2
 XsMacP2Sm = 0._8
 
 DO iso = 1, niso
-  id = mapnuclELM(idiso(iso))
+  id = mapEleGAM(idiso(iso))
   IF (id .EQ. 0) CYCLE
-  gisodata => Gldiso(id)
+  gisodata => phatom(id)
   DO igg = igb, ige
-    ib = gisodata%GSM2(igg)%ib
-    ie = gisodata%GSM2(igg)%ie
+    ib = gisodata%SMp2(igg)%ib
+    ie = gisodata%SMp2(igg)%ie
     DO igg2 = ib, ie
-      XsMacP2Sm(igg2, igg) = XsMacP2Sm(igg2, igg) + pnum(iso) * gisodata%GSM2(igg)%from(igg2)
+      XsMacP2Sm(igg2, igg) = XsMacP2Sm(igg2, igg) + pnum(iso) * gisodata%SMp2(igg)%from(igg2)
     END DO
   END DO
   NULLIFY(gisodata)
@@ -483,6 +474,7 @@ END SUBROUTINE
 !                     GENERATES P3 ORDER MACRO SCATTERING MATRIX
 SUBROUTINE GamP3XsScatMatrix_Fxr(XsMac, FXR, igb, ige, ngg)
 USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE TYPEDEF,         ONLY : Fxrinfo_type  
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 TYPE(FXRInfo_TYPE) :: FXR
@@ -491,8 +483,8 @@ CALL GamP3XsScatMatrix_Gen(XsMac, Fxr%niso, Fxr%idiso, Fxr%pnum, igb, ige, ngg)
 END SUBROUTINE
 
 SUBROUTINE GamP3XsScatMatrix_Gen(XsMac, niso, idiso, pnum, igb, ige, ngg)
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMLIBDATA
-USE GammaLibdata,   ONLY : Gldiso, mapnuclELM
+USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
+USE XSLIB_MOD,      ONLY : phatom, mapEleGAM, GAMLIBDATA
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XsMac
 INTEGER :: niso
@@ -514,14 +506,14 @@ XsMacP3Sm => XsMac%MacGSM3
 XsMacP3Sm = 0._8
 
 DO iso = 1, niso
-  id = mapnuclELM(idiso(iso))
+  id = mapEleGAM(idiso(iso))
   IF (id .EQ. 0) CYCLE
-  gisodata => Gldiso(id)
+  gisodata => phatom(id)
   DO igg = igb, ige
-    ib = gisodata%GSM3(igg)%ib
-    ie = gisodata%GSM3(igg)%ie
+    ib = gisodata%SMp3(igg)%ib
+    ie = gisodata%SMp3(igg)%ie
     DO igg2 = ib, ie
-      XsMacP3Sm(igg2, igg) = XsMacP3Sm(igg2, igg) + pnum(iso) * gisodata%GSM3(igg)%from(igg2)
+      XsMacP3Sm(igg2, igg) = XsMacP3Sm(igg2, igg) + pnum(iso) * gisodata%SMp3(igg)%from(igg2)
     END DO
   END DO
   NULLIFY(gisodata)
@@ -536,42 +528,45 @@ END SUBROUTINE
 !
 !   GamProdMatrix SUBROUTINE
 !                 GenerateS Photon production matrix
-SUBROUTINE GamProdMatrix_Fxr(XSMac, Fxr, igb, ige, ng, ngg, GroupInfo)
-USE GamXSUtil,       ONLY :  GetGamXsMacDat,  ReturnGamXsMacDat,  IntProdMatCsp
-USE GammaTYPEDEF,    ONLY :  GAMMAGROUPINFO_TYPE, GamMacXS_TYPE
+SUBROUTINE GamProdMatrix_Fxr(XSMac, Fxr, igb, ige, ng, ngg, GroupInfo, lIsoOut)
+USE GamXSUtil,       ONLY : GetGamXsMacDat,  ReturnGamXsMacDat,  IntProdMatCsp
+USE GammaTYPEDEF,    ONLY : GamMacXS_TYPE
+USE TYPEDEF,         ONLY : GROUPINFO_TYPE, Fxrinfo_type
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XSMac
 TYPE(FxrInfo_TYPE) :: Fxr
 INTEGER :: igb, ige, ng, ngg
-TYPE(GAMMAGROUPINFO_TYPE) :: GroupInfo
+TYPE(GROUPINFO_TYPE) :: GroupInfo
+LOGICAL :: lIsoOut
 
 CALL GamProdMatrix_Gen(XSMac, Fxr%temp, Fxr%niso, Fxr%idiso, Fxr%pnum,              &
-  Fxr%resonfIso, Fxr%resocapIso, igb, ige, ng, ngg, GroupInfo, Fxr%lres)
+  Fxr%FresofIso, Fxr%fresocapIso, igb, ige, ng, ngg, GroupInfo, Fxr%lres, lIsoOut)
 
 END SUBROUTINE
 
-SUBROUTINE GamProdMatrix_Csp(XSMac, Fxr, igb, ige, ng, ngg, GroupInfo, lCrCspFtn)
+SUBROUTINE GamProdMatrix_Csp(XSMac, Fxr, igb, ige, ng, ngg, GroupInfo, lCrCspFtn, lIsoOut)
 USE GamXSUtil,       ONLY :  GetGamXsMacDat,  ReturnGamXsMacDat,  IntProdMatCsp
-USE GammaTYPEDEF,    ONLY :  GAMMAGROUPINFO_TYPE, GamMacXS_TYPE
+USE GammaTYPEDEF,    ONLY :  GamMacXS_TYPE
+USE TYPEDEF,         ONLY : GROUPINFO_TYPE,  FxrInfo_TYPE
 IMPLICIT NONE
-TYPE(GAMMAGROUPINFO_TYPE) :: GroupInfo
+TYPE(GROUPINFO_TYPE) :: GroupInfo
 TYPE(FxrInfo_TYPE) :: Fxr
 INTEGER :: ngg, ng, igb, ige
 TYPE(GamMacXS_TYPE) :: XSMac
-LOGICAL :: lCrCspFtn
+LOGICAL :: lCrCspFtn, lIsoOut
 LOGICAL :: lres
 
 INTEGER :: niso
 REAL :: temp
 INTEGER, POINTER :: idiso(:)
 REAL, POINTER :: pnum(:)
-REAL, POINTER :: resonfIso(:,:), resocapIso(:,:)
+REAL(4), POINTER :: FresofIso(:,:), fresocapIso(:,:)
 
 TYPE(GamMacXS_TYPE), POINTER :: XsMac1, XsMac2
 
 temp = Fxr%temp
-resonfIso => Fxr%resonfIso
-resocapIso => Fxr%resocapIso
+FresofIso => Fxr%FresofIso
+fresocapIso => Fxr%fresocapIso
 lres = Fxr%lres
 IF (lCrCspFtn.AND.Fxr%lCrCspFtn) THEN
   CALL GetGamXsMacDat(XsMac1, ngg, .FALSE.)
@@ -579,12 +574,12 @@ IF (lCrCspFtn.AND.Fxr%lCrCspFtn) THEN
   
   niso = Fxr%CspFxr%niso(1)
   Pnum => Fxr%CspFxr%pnum(:, 1);     idiso => Fxr%CspFxr%isolist(:, 1)
-  CALL GamProdMatrix_Gen(XSMac, temp, niso, idiso, Pnum, resonfIso, resocapIso,                     &
-               igb, ige, ng, ngg, GroupInfo, lres)
+  CALL GamProdMatrix_Gen(XSMac, temp, niso, idiso, Pnum, FresofIso, fresocapIso,                     &
+               igb, ige, ng, ngg, GroupInfo, lres, lIsoOut)
   niso = Fxr%CspFxr%niso(2)
   Pnum => Fxr%CspFxr%pnum(:, 2);     idiso => Fxr%CspFxr%isolist(:, 2)
-  CALL GamProdMatrix_Gen(XSMac, temp, niso, idiso, Pnum, resonfIso, resocapIso,                     &
-               igb, ige, ng, ngg, GroupInfo, lres)
+  CALL GamProdMatrix_Gen(XSMac, temp, niso, idiso, Pnum, FresofIso, fresocapIso,                     &
+               igb, ige, ng, ngg, GroupInfo, lres, lIsoOut)
   ! Interpolation of Two Csp
   CALL IntProdMatCsp(XsMac, XsMac1, XsMac2, Fxr%CspFxr, Fxr%niso, igb, ige, ng)
   CALL ReturnGamXsMacDat(XsMac1);        CALL ReturnGamXsMacDat(XsMac2)
@@ -592,160 +587,175 @@ IF (lCrCspFtn.AND.Fxr%lCrCspFtn) THEN
 ELSE
   niso = Fxr%niso
   Pnum => Fxr%pnum;     idiso => Fxr%idiso
-  CALL GamProdMatrix_Gen(XSMac, temp, niso, idiso, Pnum, resonfIso, resocapIso,                     &
-                            igb, ige, ng, ngg, GroupInfo, lres)
+  CALL GamProdMatrix_Gen(XSMac, temp, niso, idiso, Pnum, FresofIso, fresocapIso,                     &
+                            igb, ige, ng, ngg, GroupInfo, lres, lIsoOut)
 END IF
 
 END SUBROUTINE
   
-SUBROUTINE GamProdMatrix_Gen(XSMac, temp, niso, idiso, pnum, resonfIso, resocapIso,                 &
-                    igb, ige, ng, ngg, GroupInfo, lres)
-USE GamXSUtil,       ONLY : AllocGamProdMat
-USE GammaLibdata,    ONLY : neltGAM, Gldiso, imtRAD, imtINEL, imtFIS, mapnuclGAM
-USE GammaTYPEDEF,    ONLY : GAMMAGROUPINFO_TYPE, GamMacXS_TYPE, GAMLIBDATA
+SUBROUTINE GamProdMatrix_Gen(XSMac, temp, niso, idiso, pnum, FresofIso, fresocapIso,                 &
+                    igb, ige, ng, ngg, GroupInfo, lres, lIsoOut)
+USE GamXSUtil,       ONLY : AllocGamProdMat, AllocIsoGamPRodMat, FreeGamProdMat, FreeIsoGamPRodMat
+USE XSLIB_mod,       ONLY : nelthel, ldiso, mapnucl, libdata
+USE GammaTYPEDEF,    ONLY : GamMacXS_TYPE
+USE TYPEDEF,         ONLY : GROUPINFO_TYPE
 IMPLICIT NONE
 ! INPUT VARIABLES
-TYPE(GAMMAGROUPINFO_TYPE) :: GroupInfo
+TYPE(GROUPINFO_TYPE) :: GroupInfo
 INTEGER :: ngg, ng, igb, ige
 TYPE(GamMacXS_TYPE) :: XSMac
 INTEGER :: niso
 INTEGER :: idiso(niso)
 REAL :: pnum(niso)
 REAL :: temp
-REAL :: resonfIso(niso,ng), resocapIso(niso,ng)
-LOGICAL :: lres
+REAL(4),POINTER :: FresofIso(:,:), fresocapIso(:,:)
+REAL(4), POINTER :: FresoReact(:, :)
+LOGICAL :: lres, lIsoOut
 
 ! POINTERS
-TYPE(GAMLIBDATA), POINTER :: gisodata
-REAL, POINTER, DIMENSION(:,:,:) :: IsoProdFis, IsoProdRad, IsoProdInel
+TYPE(libdata), POINTER :: lib
+REAL, POINTER, DIMENSION(:,:,:) :: IsoProdFis, IsoProdRad, IsoProdInel, IsoProdNnel
 REAL, POINTER, DIMENSION(:,:)  :: MatTot
-LOGICAL, POINTER, DIMENSION(:) :: lfis, lrad, linel
-INTEGER, POINTER, DIMENSION(:) :: ifisb, ifise, iradb, irade, iinelb, iinele
+LOGICAL, POINTER, DIMENSION(:,:) :: lexist
+!INTEGER, POINTER, DIMENSION(:) :: ifisb, ifise, iradb, irade, iinelb, iinele
 
 ! LOCAL VARIABLES
 INTEGER :: iso, id, ig, igg, imt, nx1, nx2
 REAL :: wt1, wt2
 INTEGER :: it1, it2
 INTEGER :: nofg, norg
+INTEGER :: ProdRange1(2), ProdRange2(2) !Produciton Range
+INTEGER :: ind
+REAL :: prod1, prod2
 LOGICAL, allocatable :: lresogrp(:)
 INTEGER :: tempgrpb, tempgrpe
+REAL, POINTER :: IsoProd(:, :, :)
 
 ! ALLOCATION FOR PRODUCTION MATRIX
-IF(.NOT. XSMac%lProdAlloc) THEN
+IF(.NOT. XSMac%lProdAlloc .OR. niso .NE. XSMac%niso) THEN
+  IF (XSMac%lProdAlloc) CALL FreeGamProdMat(XsMac)
   XSMac%ng = ng
   XSMac%ngg = ngg
-  XSMac%niso = neltGAM
+  XSMac%niso = niso
   CALL AllocGamProdMat(XSMac)
+  IF (lIsoOut) THEN
+    IF (XSMac%lIsoProdAlloc.AND.niso .NE. XSMac%niso) CALL FreeIsoGamProdMat(XsMac)
+    CALL AllocIsoGamPRodMat(XsMAc)
+  END IF
 ENDIF
 XSMac%GProdTot = 0.
-! DISTINGUISH RESONANCE GROUP
-ALLOCATE(lresogrp(ng))
-nofg = GroupInfo%nofg; norg = GroupInfo%norg
-lresogrp = .FALSE.
-IF (lres) THEN
-  DO ig = 1, ng
-    if(ig.gt.nofg.and.ig.le.(nofg+norg)) lresogrp(ig) = .TRUE.
-  END DO
-END IF
-! INITIALIZATION
-XSMac%IsoGProdFis = 0._8
-XSMac%IsoGProdRad = 0._8
-XSMac%IsoGProdInel = 0._8
-XSMac%GProdTot = 0._8
-XSMac%ifisb = 0; XSMac%ifise = 0; XSMac%iradb = 0; XSMac%irade = 0
-XSMac%iinelb = 0; XSMac%iinele = 0
-XSMac%lfis = .FALSE.; XSMac%lrad = .FALSE.; XSMac%linel = .FALSE.
-! POINTING
-IsoProdFis => XSMac%IsoGProdFis; IsoProdRad => XSMac%IsoGProdRad; IsoProdInel => XSMac%IsoGProdInel
+XsMac%lexist = .FALSE.
 MatTot => XSMac%GProdTot
-lfis => XSMac%lfis; lrad => XSMac%lrad; linel => XSMac%linel
-ifisb => XSMac%ifisb; iradb => XSMac%iradb; iinelb => XSMac%iinelb;
-ifise => XSMac%ifise; irade => XSMac%irade; iinele => XSMac%iinele
+lexist  => XsMac%lexist
+
+! INITIALIZATION
+IF(lIsoOut) THEN
+  XSMac%IsoGProdFis = 0._8
+  XSMac%IsoGProdRad = 0._8
+  XSMac%IsoGProdInel = 0._8
+  XSMac%IsoGProdNnel = 0._8
+  XSMac%GProdTot = 0._8
+  ! POINTING
+  IsoProdFis => XSMac%IsoGProdFis
+  IsoProdRad => XSMac%IsoGProdRad
+  IsoProdInel => XSMac%IsoGProdInel
+  IsoProdNnel => XSMac%IsoGProdNnel
+ELSE
+  ALLOCATE(IsoProdFis(niso, ng, igb:ige))
+  ALLOCATE(IsoProdRad(niso, ng, igb:ige))
+  ALLOCATE(IsoProdInel(niso, ng, igb:ige))
+  ALLOCATE(IsoProdNnel(niso, ng, igb:ige))
+  IsoProdFis = 0._8
+  IsoProdRad = 0._8
+  IsoProdInel= 0._8
+  IsoProdNnel= 0._8
+END IF
 ! ISOTOPEWISE (TEMP. DEPENDENCE + PNUM)
 DO iso = 1, niso
-  id = mapnuclGAM(idiso(iso))
+  id = mapnucl(idiso(iso))
   IF (id .EQ. 0) THEN
     print *, 'SUBROUTINE GamProdMatrix -- No photon production data in library for', idiso(iso)
     CYCLE
   END IF
-  gisodata => Gldiso(id)
-  IF (gisodata%ityp .LT. 1) STOP 'SUBROUTINE GamProdMatrix -- GAMMA LIBRARY ERROR! TYPE INCORRECT'
-  CALL GamXsTempInterpolation(id, Gisodata, temp, wt1, wt2, it1, it2) ! TEMPERATURE DEPENDENCE
-  IF (gisodata%lphoton(imtFIS)) THEN  ! FISSION
-    nx1 = gisodata%ppgrlow(imtFIS); nx2 = gisodata%ppgrup(imtFIS)
-    ifisb(iso) = nx1; ifise(iso) = nx2
+  lib => ldiso(id)
+  IF (lib%ipp .EQ. 0)  CYCLE ! Nuclides whose photon production doesn't exist
+  CALL XsTempInterpolation(id, lib, temp, wt1, wt2, it1, it2) ! TEMPERATURE DEPENDENCE
+  DO imt = 1, 4
+    IF (.NOT.lib%lphoton(imt)) CYCLE
+    SELECT CASE(imt)
+    CASE(1)
+      IsoProd => IsoProdFis
+    CASE(2)
+      IsoProd => IsoProdRad
+    CASE(3)
+      IsoProd => IsoProdInel
+    CASE(4)
+      IsoProd => IsoProdNnel
+    END SELECT
+    nx1 = lib%ppm(imt)%iglow; nx2 = lib%ppm(imt)%igup
     IF(nx2.GE.igb .AND. nx1.LE.ige) THEN    ! Data existing region is beyond interest
-      lfis(iso) = .TRUE.
+      lexist(iso, imt) = .TRUE.
       tempgrpb = MAX(nx1, igb)
       tempgrpe = MIN(nx2, ige)
       DO igg = tempgrpb, tempgrpe
-        nx1 = gisodata%GPM(igg,it1,imtFIS)%ib; nx2 = gisodata%GPM(igg,it1,imtFIS)%ie
+        ProdRange1 = (/lib%ppm(imt)%mat(igg,it1)%ib, lib%ppm(imt)%mat(igg,it1)%ie/)
+        ProdRange2 = (/lib%ppm(imt)%mat(igg,it2)%ib, lib%ppm(imt)%mat(igg,it2)%ie/)
+        nx1 = min(ProdRange1(1), ProdRange2(1)); nx2 = max(ProdRange1(2), ProdRange2(2))
+        !nx1 = lib%ppm(imt)%mat(igg,it1)%ib; nx1 = lib%ppm(imt)%mat(igg,it2)%ie
         DO ig = nx1, nx2
-          IsoProdFis(iso,ig,igg) = pnum(iso) * (wt2 * gisodata%GPM(igg,it2,imtFIS)%from(ig)          &
-                              + wt1 * gisodata%GPM(igg,it1,imtFIS)%from(ig))
+          prod1 = 0; prod2 = 0;
+          ind = (ig - ProdRange1(1)) * (ig - ProdRange1(2))
+          IF(ind .LE. 0) prod1 = lib%ppm(imt)%mat(igg,it1)%from(ig)
+          ind = (ig - ProdRange2(1)) * (ig - ProdRange2(2))
+          IF(ind .LE. 0) prod2 = lib%ppm(imt)%mat(igg,it2)%from(ig)
+          IsoProd(iso,ig,igg) = pnum(iso) * (wt1 * prod1 + wt2 * prod2)
         END DO
-      END DO
-    END IF
-  END IF
-  IF (gisodata%lphoton(imtRAD)) THEN  ! RADIOACTIVE CAPTURE
-    nx1 = gisodata%ppgrlow(imtRAD); nx2 = gisodata%ppgrup(imtRAD)
-    iradb(iso) = nx1; irade(iso) = nx2
-    IF(nx2.GE.igb .AND. nx1.LE.ige) THEN    ! Data existing region is beyond interest
-      lrad(iso) = .TRUE.
-      tempgrpb = MAX(nx1, igb)
-      tempgrpe = MIN(nx2, ige)
-      DO igg = tempgrpb, tempgrpe
-        nx1 = gisodata%GPM(igg,it1,imtRAD)%ib; nx2 = gisodata%GPM(igg,it1,imtRAD)%ie
-        DO ig = nx1, nx2
-          IsoProdRad(iso,ig,igg) = pnum(iso) * (wt2 * gisodata%GPM(igg,it2,imtRAD)%from(ig)          &
-                              + wt1 * gisodata%GPM(igg,it1,imtRAD)%from(ig))
-        END DO
-      END DO
-    END IF
-  END IF
-  IF (gisodata%lphoton(imtINEL)) THEN ! INELASTIC SCATTERING (no need for isotope wise data)
-    nx1 = gisodata%ppgrlow(imtINEL); nx2 = gisodata%ppgrup(imtINEL)
-    iinelb(iso) = nx1; iinele(iso) = nx2
-    IF(nx2.GE.igb .AND. nx1.LE.ige) THEN    ! Data existing region is beyond interest
-      linel(iso) = .TRUE.
-      tempgrpb = MAX(nx1, igb)
-      tempgrpe = MIN(nx2, ige)
-      DO igg = tempgrpb, tempgrpe
-        nx1 = gisodata%GPM(igg,it1,imtINEL)%ib; nx2 = gisodata%GPM(igg,it1,imtINEL)%ie
-        DO ig = nx1, nx2
-          IsoProdInel(iso,ig,igg) = pnum(iso) * (wt2 * gisodata%GPM(igg,it2,imtINEL)%from(ig)         &
-                              + wt1 * gisodata%GPM(igg,it1,imtINEL)%from(ig))
-        END DO
-      END DO
-    END IF
-  END IF
-  NULLIFY(gisodata)
-END DO
-
-IF (.NOT.any(lfis.OR.lrad.OR.linel)) RETURN
-
-DO igg = igb, ige
-  DO ig = 1, ng
-    IF (lresogrp(ig)) THEN
-      DO iso = 1, niso
-        IF(lfis(iso)) MatTot(ig, igg) = MatTot(ig, igg) + IsoProdFis(iso,ig,igg) * resonfIso(iso, ig)
-        IF(lrad(iso)) MatTot(ig, igg) = MatTot(ig, igg) + IsoProdRad(iso,ig,igg) * resocapIso(iso, ig)
-        IF(linel(iso)) MatTot(ig, igg) = MatTot(ig, igg) + IsoProdInel(iso,ig,igg)
-      END DO
-    ELSE
-      DO iso = 1, niso
-        IF(lfis(iso)) MatTot(ig, igg) = MatTot(ig, igg) + IsoProdFis(iso,ig,igg)
-        IF(lrad(iso)) MatTot(ig, igg) = MatTot(ig, igg) + IsoProdRad(iso,ig,igg)
-        IF(linel(iso)) MatTot(ig, igg) = MatTot(ig, igg) + IsoProdInel(iso,ig,igg)
       END DO
     END IF
   END DO
 END DO
 
-DEALLOCATE(lresogrp)
-NULLIFY(IsoProdFis, IsoProdRad, IsoProdInel, MatTot)
-NULLIFY(lfis, lrad, linel)
-NULLIFY(ifisb, iradb, iinelb, ifise, irade, iinele)
+IF (.NOT.any(lexist)) RETURN
+IF (lres) THEN
+  DO imt = 1, 2
+    SELECT CASE(imt)
+    CASE(1)
+      IsoProd => IsoProdFis
+      FresoReact => FresofIso
+    CASE(2)
+      IsoProd => IsoProdRad
+      FresoReact => fresocapIso
+!    CASE(3)
+!      IsoProd => IsoProdInel
+!      FresoReact => fresocapIso
+    END SELECT
+    DO iso = 1, niso
+    IF (.NOT.lexist(iso, imt)) CYCLE
+    DO igg = igb, ige
+      DO ig = nofg+1, nofg+norg
+          IsoProd(iso,ig,igg)  = IsoProd(iso,ig,igg) * FresoReact(iso, ig)
+        END DO
+      END DO
+    END DO
+  END DO
+END IF
+DO igg = igb, ige
+  DO ig = 1, ng
+    DO iso = 1, niso
+      MatTot(ig, igg) = MatTot(ig, igg) + IsoProdFis(iso,ig,igg)
+      MatTot(ig, igg) = MatTot(ig, igg) + IsoProdRad(iso,ig,igg)
+      MatTot(ig, igg) = MatTot(ig, igg) + IsoProdInel(iso,ig,igg)
+      MatTot(ig, igg) = MatTot(ig, igg) + IsoProdNnel(iso,ig,igg)
+    END DO
+  END DO
+END DO
+
+IF (.NOT.lIsoOut) THEN
+  DEALLOCATE(IsoProdFis)
+  DEALLOCATE(IsoProdRad)
+  DEALLOCATE(IsoProdInel)
+  DEALLOCATE(IsoProdNnel)
+END IF
 END SUBROUTINE
 
 
@@ -758,22 +768,21 @@ END SUBROUTINE
 !                   1. LOCALLY DEPOSITED FISSION ENERGY
 !                   2. N2N, N3N REACTION ENERGY LOSS (TOTAL RECOVERABLE ENERGY DECREASE
 !                   3.a. INELASTIC SCATTERING LOCAL DEPOSIT ENERGY (NEUTRON ENERGY LOSS MATRIX)
-SUBROUTINE GetLocalQMat_FXR(XSMac, Fxr, igb, ige, ng, ngg, lfis)
-USE TYPEDEF,         ONLY : FXRINFO_TYPE
-USE GammaTYPEDEF,    ONLY : GamMacXS_TYPE
+SUBROUTINE GetLocalQMat_FXR(XSMac, Fxr, igb, ige, ng, lisoout)
+USE TYPEDEF,         ONLY : FXRINFO_TYPE, XsMac_Type
 USE CORE_MOD,        ONLY : GroupInfo
 IMPLICIT NONE
 TYPE(FXRINFO_TYPE) :: FXR
-TYPE(GamMacXS_TYPE) :: XSMac
+TYPE(XsMac_Type) :: XSMac
 INTEGER :: igb, ige, ng, ngg
-LOGICAL :: lfis
 INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
+LOGICAL :: lisoout
 
 iResoGrpBeg = GroupInfo%nofg + 1
 iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
 norg = GroupInfo%norg
 
-CALL GetLocalQMat_GEN(XSMac, FXR%temp, FXR%niso, FXR%idiso, FXR%pnum, igb, ige, ng, ngg, FXR%fresonf, iResoGrpBeg, iResoGrpEnd, lfis)
+CALL GetLocalQMat_GEN(XSMac, FXR%temp, FXR%niso, FXR%idiso, FXR%pnum, igb, ige, ng, FXR%fresof, FXR%fresocapIso, FXR%fresoFIso, iResoGrpBeg, iResoGrpEnd, lisoout, FXR%lres)
                                                                                                       
 END SUBROUTINE
 
@@ -781,36 +790,29 @@ END SUBROUTINE
 !IMPLICIT NONE
 !END SUBROUTINE
 !
-SUBROUTINE GetLocalQMat_GEN(XSMac, temp, niso, idiso, pnum, igb, ige, ng, ngg, fresonf, iResoGrpBeg, iResoGrpEnd, lfis)
+SUBROUTINE GetLocalQMat_GEN(XSMac, temp, niso, idiso, pnum, igb, ige, ng, fresof, fresocapIso, fresoFIso, iResoGrpBeg, iResoGrpEnd, lisoout, lres)
 ! NEUTRON INFORMATION
-USE XsTypeDef,       ONLY : LIBDATA
-USE XSLIB_MOD,       ONLY : ldiso, nelthel, mapnucl, mapfis, itempmap, nelrhel
+USE XSLIB_MOD,       ONLY : ldiso, nelthel, mapnucl, mapfis, itempmap, nelrhel, LIBDATA
 ! GAMMA INFORMATION
-USE GamXSUtil,       ONLY : AllocLocalKappa
-USE GammaLibdata,    ONLY : neltGAM, Gldiso, imtINEL, mapnuclGAM
-USE GammaTYPEDEF,    ONLY : GamMacXS_TYPE, GAMLIBDATA
-USE GammaCore_mod,   ONLY : GamGroupInfo
+USE GamXSUtil,       ONLY : AllocIsoMacKERMA, AllocMacKERMA
 USE CORE_MOD,        ONLY : GroupInfo
+USE TYPEDEF,         ONLY : XsMac_Type
 
 IMPLICIT NONE
 
 ! INPUT VARIABLES
-INTEGER :: ngg, ng, igb, ige
-TYPE(GamMacXS_TYPE) :: XSMac
+INTEGER :: ng, igb, ige
+TYPE(XsMac_Type) :: XSMac
 INTEGER :: niso
 INTEGER :: idiso(niso)
 REAL :: pnum(niso)
 REAL :: temp
 INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
-REAL :: fresonf(iResoGrpBeg:iResoGrpEnd)
-LOGICAL :: lfis
+REAL(4), POINTER :: fresof(:), fresocapIso(:, :), fresoFIso(:, :)
+LOGICAL :: lisoout, lres
 
 ! POINTING VARIABLES
 TYPE(LIBDATA), POINTER :: isodata
-TYPE(GAMLIBDATA), POINTER :: gisodata
-REAL, POINTER, DIMENSION(:) :: FisLocal, QN2N, QN3N, InelLocal
-REAL, POINTER, DIMENSION(:, :) :: InelLoss, GProdInel
-REAL, POINTER, DIMENSION(:) :: GamAvgE, NeuAvgE
 
 ! LOCAL VARIABLES
 INTEGER :: nid, gid, inmn
@@ -822,122 +824,110 @@ REAL :: wt1, wt2
 REAL :: isokappa, ison2n, ison3n
 REAL :: sigs1, sigs2
 INTEGER :: ind1, ind2
-!
-!iResoGrpBeg = GroupInfo%nofg + 1
-!iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
-!norg = GroupInfo%norg
+INTEGER :: imt
+REAL, POINTER, DIMENSION(:, :) :: IsoMacKERMA_t, IsoMacKERMA_s, IsoMacKERMA_d, IsoMacKERMA_p, IsoMacKERMA_f
+REAL, POINTER, DIMENSION(:, :) :: IsoMacDelkf
+
 iResoGrpBeg = MAX(iResoGrpBeg, igb)
 iResoGrpEnd = MIN(iResoGrpEnd, ige)
 
 ! ALLOCATION
-IF (.NOT. XsMac%lKappaAlloc) THEN
+IF (.NOT. XsMac%lKERMAAlloc) THEN
   XsMac%ng = ng
-  XsMac%ngg = ngg
   XsMac%niso = nelthel
-  CALL AllocLocalKappa(XsMac)
+  CALL AllocMacKERMA(XsMac)
 END IF
-! INITIALIZATION
-XsMac%FisLocal = 0.  
-XsMac%QN2N = 0.
-XsMac%QN3N = 0.
-! XsMac%InelLosS = 0.
-! XsMac%GProdInel = 0.
-XsMac%InelLocal = 0.
-XsMac%LocalQ = 0.
+IF (lisoout .AND. .NOT. XsMac%lISOKERMAAlloc) THEN
+  XsMac%ng = ng
+  XsMac%niso = nelthel
+  CALL AllocIsoMacKERMA(XsMac)
+END IF
 
-! POINTING 
-FisLocal => XsMac%FisLocal
-QN2N => XsMac%QN2N
-QN3N => XsMac%QN3N
-! InelLoss => XsMac%InelLoss
-! GProdInel => XsMac%GProdInel
-InelLocal => XsMac%InelLocal
+! Local Heat Deposition with KERMA calculation (NEUTRON INDUCED...)
+IF (lisoout) THEN
+  XsMac%IsoMacKERMA_t = 0.;XsMac%IsoMacKERMA_s = 0.;XsMac%IsoMacKERMA_d = 0.;XsMac%IsoMacKERMA_p = 0.;XsMac%IsoMacKERMA_f = 0.
+  XsMac%IsoMacDelkf = 0.;
+  IsoMacKERMA_t => XsMac%IsoMacKERMA_t
+  IsoMacKERMA_s => XsMac%IsoMacKERMA_s
+  IsoMacKERMA_d => XsMac%IsoMacKERMA_d
+  IsoMacKERMA_p => XsMac%IsoMacKERMA_p
+  IsoMacKERMA_f => XsMac%IsoMacKERMA_f
+  IsoMacDelkf   => XsMac%IsoMacDelkf
+ELSE
+  ALLOCATE(IsoMacKERMA_t(niso, ng), IsoMacKERMA_s(niso, ng), IsoMacKERMA_d(niso, ng), IsoMacKERMA_p(niso, ng), IsoMacKERMA_f(niso, ng))
+  ALLOCATE(IsoMacDelkf(niso, ng))
+  IsoMacKERMA_t = 0.;IsoMacKERMA_s = 0.;IsoMacKERMA_d = 0.;IsoMacKERMA_p = 0.;IsoMacKERMA_f = 0.
+  IsoMacDelkf = 0.
+END IF
 
-GamAvgE => GamGroupInfo%GamAvgE
-NeuAvgE => GamGroupInfo%NeuAvgE
 
-
-! LOCAL DEPOSIT FISSION ENERGY and N2N, N3N REACTION ENERGY
-DO iso = 1, niso
-  isokappa = 0. ;ison2n = 0. ;ison3n = 0.
+XsMac%MacKERMA_t = 0.;XsMac%MacKERMA_s = 0.;XsMac%MacKERMA_d = 0.;XsMac%MacKERMA_p = 0.;XsMac%MacKERMA_f = 0.
+XsMac%MacDelkf = 0.
+DO iso = 1,niso
   nid = MapNucl(idiso(iso)); isodata => ldiso(nid)
-  IF(nid .gt. nelrhel) CYCLE
-  inmn = isodata%inmn
-  gid = MapNuclGam(idiso(iso))
-  IF (gid .NE. 0) THEN
-    gisodata => Gldiso(gid)
-    ! NMN REACTION
-    IF (inmn .EQ. 1 .OR. inmn .EQ. 3) THEN ! N2N REACTION
-      ison2n = gisodata%n2nQ
-      DO ig = igb, ige
-        QN2N(ig) = QN2N(ig) + pnum(iso) * isodata%sign2n(ig) * ison2n
-      END DO
-    END IF
-    IF (inmn .EQ. 2 .OR. inmn .EQ. 3) THEN ! N3N REACTION
-      ison3n = gisodata%n3nQ
-      DO ig = igb, ige
-        QN3N(ig) = QN3N(ig) + pnum(iso) * isodata%sign3n(ig) * ison3n
-      END DO
-    END IF
-    ! INELASTIC SCATTERING
-    DO ig = igb, ige
-      ! ENERGY LOSS DUE TO INELASTIC SCATTERING
-      CALL XsTempInterpolation(nid, isodata, temp, wt1, wt2, it1, it2)
-      ScRange1 = (/isodata%sm(ig, it1)%ioutsb, isodata%sm(ig, it1)%ioutse/)
-      ScRange2 = (/isodata%sm(ig, it2)%ioutsb, isodata%sm(ig, it2)%ioutse/)  
-      ioutbeg = MIN(ScRange1(1), ScRange2(1)); ioutend = MAX(ScRange1(2), ScRange2(2))
-      DO ig2 = ioutbeg, ioutend ! ig -> ig2
-        sigs1 = 0.; sigs2 = 0.
-        ind1 = (ig2 - ScRange1(1)) * (ig2 - ScRange1(2))
-        ind2 = (ig - IsoData%sm(ig2, it1)%ib) * (ig - IsoData%sm(ig2, it1)%ie)
-        IF(ind1 .le. 0 .and. ind2 .le. 0) sigs1 = isodata%sm(ig2, it1)%from(ig)
-        ind1 = (ig2 - ScRange2(1)) * (ig2 - ScRange2(2))
-        ind2 = (ig - IsoData%sm(ig2, it2)%ib) * (ig - IsoData%sm(ig2, it2)%ie)
-        IF(ind1 .le. 0 .and. ind2 .le. 0) sigs2 = isodata%sm(ig2, it2)%from(ig)
-        InelLocal(ig) = InelLocal(ig) + pnum(iso) * (wt1 * sigs1 + wt2 * sigs2) * (NeuAvgE(ig) - NeuAvgE(ig2))
-      END DO
-      
-      ! ENERGY CONVERTED AS PHOTON
-      CALL GamXsTempInterpolation(gid, Gisodata, temp, wt1, wt2, it1, it2)
-      ScRange1 = (/gisodata%GPMOUTB(ig, it1, imtInel), gisodata%GPMOUTE(ig, it1, imtInel)/)
-      ScRange2 = (/gisodata%GPMOUTB(ig, it2, imtInel), gisodata%GPMOUTE(ig, it2, imtInel)/)
-      ioutbeg = MIN(ScRange1(1), ScRange2(1)); ioutend = MAX(ScRange1(2), ScRange2(2))
-      DO igg = ioutbeg, ioutend
-        sigs1 = 0.; sigs2 = 0.
-        ind1 = (igg - ScRange1(1)) * (igg - ScRange1(2))
-        ind2 = (ig - gisodata%GPM(igg, it1, imtInel)%ib) * (ig - gisodata%GPM(igg, it1, imtInel)%ie)
-        IF(ind1 .le. 0 .and. ind2 .le. 0) sigs1 = gisodata%GPM(igg, it1, imtInel)%from(ig)
-        ind1 = (igg - ScRange2(1)) * (igg - ScRange2(2))
-        ind2 = (ig - gisodata%GPM(igg, it1, imtInel)%ib) * (ig - gisodata%GPM(igg, it1, imtInel)%ie)
-        IF(ind1 .le. 0 .and. ind2 .le. 0) sigs2 = gisodata%GPM(igg, it2, imtInel)%from(ig)
-        InelLocal(ig) = InelLocal(ig) - pnum(iso) * (wt1 * sigs1 + wt2 * sigs2) * GamAvgE(igg)
-      END DO
+  CALL XsTempINterpolation(nid, isodata, temp, wt1, wt2, it1, it2)
+  DO ig = igb, ige
+    IsoMacKERMA_t(iso,ig) =  pnum(iso) * (wt1 * isodata%kerma_t(ig, it1) + wt2 * isodata%kerma_t(ig, it2))
+    IsoMacKERMA_s(iso,ig) =  pnum(iso) * (wt1 * isodata%kerma_s(ig, it1) + wt2 * isodata%kerma_s(ig, it2))
+    IsoMacKERMA_d(iso,ig) =  pnum(iso) * (wt1 * isodata%kerma_d(ig, it1) + wt2 * isodata%kerma_d(ig, it2))
+    IsoMacKERMA_p(iso,ig) =  pnum(iso) * (wt1 * isodata%kerma_p(ig, it1) + wt2 * isodata%kerma_p(ig, it2))
+    IsoMacKERMA_t(iso,ig) = IsoMacKERMA_t(iso,ig)-IsoMacKERMA_d(iso,ig)
+  END DO
+  IF(lres .AND. isodata%lreso) THEN
+    DO ig = iResoGrpBeg, iResoGrpEnd
+      IsoMacKERMA_d(iso,ig)=IsoMacKERMA_d(iso,ig)*fresocapIso(iso, ig)
     END DO
   END IF
-  
-  ! FISSION REACTION
-  IF(mapfis(idiso(iso)) .NE. 0) THEN
-    CALL XsTempInterpolation(nid, isodata, temp, wt1, wt2, it1, it2)
-    IF (gid .NE. 0) THEN
-      isokappa = gisodata%EXKAPPA(1) + gisodata%EXKAPPA(6)  ! FISSION PRODUCTS AND DELAYED BETA 
-    ELSE
-     isokappa = isodata%kappa
+  DO ig = igb, ige
+    IsoMacKERMA_t(iso,ig) = IsoMacKERMA_t(iso,ig)+IsoMacKERMA_d(iso,ig)
+  END DO
+  IF(isodata%ifis.GT.0) THEN
+    DO ig=igb, ige
+      IsoMacKERMA_f(iso,ig) = pnum(iso) * (wt1 * isodata%kerma_f(ig, it1) + wt2 * isodata%kerma_f(ig, it2))
+      IsoMacKERMA_t(iso,ig)= IsoMacKERMA_t(iso,ig) - IsoMacKERMA_f(iso,ig)
+      IsoMacDelkf(iso,ig)   =  pnum(iso) * (wt1 * isodata%sigf(ig,it1) + wt2 * isodata%sigf(ig,it2))
+    END DO
+    IsoMacDelkf(iso, igb:ige) = IsoMacDelkf(iso, igb:ige) * (isodata%exkappa(3)+isodata%exkappa(5)+isodata%exkappa(6))
+    IF(lres .AND. isodata%lreso) THEN
+      DO ig = iResoGrpBeg, iResoGrpEnd
+        IsoMacKERMA_f(iso,ig)=IsoMacKERMA_f(iso,ig)*fresofIso(iso, ig)
+        IsoMacDelkf(iso,ig) = IsoMacDelkf(iso,ig)*fresofIso(iso, ig)
+      END DO
     END IF
+    DO ig = igb, ige
+!#define delayedcontainedheat
+#ifdef delayedcontainedheat
+      IsoMacKERMA_t(iso,ig)= IsoMacKERMA_t(iso,ig) + IsoMacKERMA_f(iso,ig) + IsoMacDelkf(iso,ig)
+#else
+      IsoMacKERMA_t(iso,ig)= IsoMacKERMA_t(iso,ig) + IsoMacKERMA_f(iso,ig)! + IsoMacDelkf(iso,ig)
+#endif
+    END DO
     
-    DO ig = igb, ige
-      FisLocal(ig) = FisLocal(ig) + pnum(iso) * (wt1 * isodata%sigf(ig, it1) + wt2 * isodata%sigf(ig, it2)) * isokappa
-    END DO
   END IF
-END DO ! ISO LOOP
+END DO
 
-IF (lfis) THEN ! RESONANCE TREATMENT FOR FISSION
- FisLocal(iResoGrpBeg:iResoGrpEnd) = FisLocal(iResoGrpBeg:iResoGrpEnd) * fresonf(iResoGrpBeg:iResoGrpEnd)
+DO iso=1,niso
+  nid = MapNucl(idiso(iso)); isodata => ldiso(nid)
+  DO ig = igb, ige
+!    XSMac%MacKERMA_t(ig)= XSMac%MacKERMA_t(ig) + IsoMacKERMA_t(iso,ig)
+    XSMac%MacKERMA_s(ig)= XSMac%MacKERMA_s(ig) + IsoMacKERMA_s(iso,ig)
+    XSMac%MacKERMA_d(ig)= XSMac%MacKERMA_d(ig) + IsoMacKERMA_d(iso,ig)
+    XSMac%MacKERMA_p(ig)= XSMac%MacKERMA_p(ig) + IsoMacKERMA_p(iso,ig)
+    XSMac%MacKERMA_T(ig) = XSMac%MacKERMA_T(ig) + IsoMacKERMA_T(iso,ig)
+  END DO
+  IF (isodata%ifis.EQ.0) CYCLE
+    DO ig=igb, ige
+      XsMac%MacKERMA_f(ig) = XsMac%MacKERMA_f(ig) + IsoMacKERMA_f(iso,ig)
+      XsMac%MacDelkf(ig) = XsMac%MacDelkf(ig) + IsoMacDelkf(iso,ig)
+    END DO
+END DO
+
+IF(.NOT.lisoout) THEN
+  DEALLOCATE(IsoMacKERMA_t, IsoMacKERMA_s, IsoMacKERMA_d, IsoMacKERMA_p, IsoMacKERMA_f,IsoMacDelkf)
 END IF
 
-XsMac%LocalQ = FisLocal + QN2N + QN3N + InelLocal
 
 END SUBROUTINE
-
 
 End Module
 #endif

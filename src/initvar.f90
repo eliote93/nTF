@@ -21,7 +21,7 @@ USE CORE_mod,        ONLY : phis,          PhiAngin,    FXR,                    
                             nPhiAngSv,     nCoreFsr,    nCoreFxr
 USE DcplCore_mod,    ONLY : DcplInfo,      DcplFmInfo,  DcplCmInfo
 USE Rays,            ONLY : RayInfo                     
-USE BenchXs,         ONLY : xsnfBen
+USE BenchXs,         ONLY : xsnfBen,       xsnfDynBen
 USE MacXsLib_Mod,    ONLY : MacXsNf
 USE XsUtil_mod,      ONLY : FreeXsMac
 USE BasicOperation,  ONLY : CP_CA
@@ -29,6 +29,7 @@ USE SUbGrp_Mod,      ONLY : FxrChiGen
 #ifdef MPI_ENV
 USE MPICOMM_MOD,     ONLY : MPI_SYNC, REDUCEnBCAST
 #endif
+USE TRAN_MOD,        ONLY : TranInfo
 IMPLICIT NONE
 
 TYPE(XsMac_Type) :: XsMac
@@ -69,7 +70,11 @@ DO iz = myzb, myze      !Plane Sweep
         ireg = CellInfo(icel)%MapFxr2FsrIdx(1,j)
         !itype = CellInfo(icel)%iReg(ireg)
         itype = Fxr(ixsreg, iz)%imix
-        CALL XsNfBen(Itype, 1, ng, XsMacNf)           !Obtaining
+        IF(nTracerCntl%lDynamicBen) THEN
+          CALL xsnfDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, XsMacNf)
+        ELSE
+          CALL XsNfBen(Itype, 1, ng, XsMacNf)           !Obtaining
+        END IF
       ENDIF
       fscell = fscell + sum(XsMacNf(1:ng))*volfsr
       totvol = totvol + volfsr
@@ -87,6 +92,7 @@ CALL MPI_SYNC(PE%MPI_RTmaster_COMM)
 CALL REDUCEnBCAST(fuelvol, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
 CALL REDUCEnBCAST(fuelvol0, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
 CALL REDUCEnBCAST(totfsvol, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
+CALL REDUCEnBCAST(totvol, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
 #endif
 Core%FuelVolFm = Fuelvol0
 Core%fuelvol = fuelvol
@@ -238,7 +244,7 @@ USE CORE_mod,        ONLY : phis,          PhiAngin,    FXR,                    
                             GroupInfo,     FmInfo,      CmInfo,                     &
                             nPhiAngSv,     nCoreFsr,    nCoreFxr
 USE Rays,            ONLY : RayInfo                     
-USE BenchXs,         ONLY : xsnfBen
+USE BenchXs,         ONLY : xsnfBen,       xsnfDynBen
 USE MacXsLib_Mod,    ONLY : MacXsNf
 USE XsUtil_mod,      ONLY : FreeXsMac
 USE BasicOperation,  ONLY : CP_CA
@@ -248,6 +254,7 @@ USE IOUTIL,           ONLY : message
 #ifdef MPI_ENV
 USE MPICOMM_MOD,     ONLY : MPI_SYNC, REDUCEnBCAST
 #endif
+USE TRAN_MOD,        ONLY : TranInfo
 IMPLICIT NONE
 
 TYPE(XsMac_Type) :: XsMac
@@ -293,7 +300,11 @@ DO iz = myzb, myze      !Plane Sweep
         ireg = CellInfo(icel)%MapFxr2FsrIdx(1,j)
         !itype = CellInfo(icel)%iReg(ireg)
         itype = Fxr(ixsreg, iz)%imix
-        CALL XsNfBen(Itype, 1, ng, XsMacNf)           !Obtaining
+        IF(nTracerCntl%lDynamicBen) THEN
+          CALL XsNfDynBen(Itype, TranInfo%fuelTemp(ipin, iz), 1, ng, XsMacNf)           
+        ELSE
+          CALL XsNfBen(Itype, 1, ng, XsMacNf)           !Obtaining
+        END IF
       ENDIF
       fscell = fscell + sum(XsMacNf(1:ng))*volfsr
       totvol = totvol + volfsr
@@ -311,6 +322,7 @@ CALL MPI_SYNC(PE%MPI_RTmaster_COMM)
 CALL REDUCEnBCAST(fuelvol, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
 CALL REDUCEnBCAST(fuelvol0, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
 CALL REDUCEnBCAST(totfsvol, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
+CALL REDUCEnBCAST(totvol, PE%MPI_CMFD_COMM, PE%MPI_CMFD_COMM, PE%lCMFDGrp, TRUE, TRUE)
 #endif
 Core%FuelVolFm = Fuelvol0
 Core%fuelvol = fuelvol

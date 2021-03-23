@@ -8,7 +8,7 @@ USE PE_MOD,        ONLY : PE
 USE IOUTIL,        ONLY : toupper,   IFnumeric,    nfields,   fndchara,    nfieldto, &
                           CharSkip,  terminate
 USE NuclidMap_mod, ONLY : lExistIsotope, AtomicWeight                          
-USE XSLIB_MOD,     ONLY : ldiso,nelthel,mapnucl
+USE XSLIB_MOD,     ONLY : ldiso,nelthel,mapnucl,phatom,nelmGAM,mapEleGAM
 USE ALLOCS
 
 IMPLICIT NONE
@@ -119,6 +119,21 @@ DO i = 1, niso
   ldiso(j)%nid = idiso
   Mixture(imix)%idiso(i) = idiso
   mapnucl(idiso) = j
+
+  IF(nTracerCntl%lGamma) THEN 
+    lExist = .FALSE.
+    DO k = 1, nelmGAM
+      IF(aid(i) /= phatom(k)%aid) CYCLE
+      lExist = .TRUE.
+      EXIT
+    END DO 
+    IF(.NOT. lExist) THEN
+      WRITE(mesg, *) 'This nuclide is not included in the GAMISO',aid(i)
+      CALL Terminate(mesg)
+    ENDIF
+    mapEleGAM(idiso) = k
+    ldiso(j)%Phatom => phatom(k)
+  END IF
 ENDDO
 
 IF(Mixture(imix)%name .EQ. 'MOD') THEN

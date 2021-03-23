@@ -1,4 +1,5 @@
 #include <CUDADEFINES.h>
+#include <Depletion.h>
 
 #ifdef __PGI
 
@@ -6,10 +7,10 @@ MODULE CUDA_CONST
 
 IMPLICIT NONE
 
-INTEGER, CONSTANT :: nfsr, nxy, nxyc, nz, ng, nofg, norg, nchi
-INTEGER, CONSTANT :: nRotRay, nModRay, nAziAngle, nPolarAngle, nPolar1D, nPhiAngSv, nMoment, ScatOd
+INTEGER, CONSTANT :: nfsr, nFxr, nxy, nxyc, nz, ng, nofg, norg, nchi
+INTEGER, CONSTANT :: nRotRay, nModRay, nAziAngle, nPolarAngle, nPolar1D, nPhiAngSv, nMoment, ScatOd, nAziMap
 INTEGER, CONSTANT :: AziMap(GPU_MAX_AZI, 2), dir(2, 2), inc(2)
-INTEGER, CONSTANT :: InScatRange(2, GPU_MAX_GROUP)
+INTEGER, CONSTANT :: InScatRange(2, GPU_MAX_GROUP), BegGrpScat(GPU_MAX_GROUP+1)
 REAL(GPU_PRECISION), CONSTANT :: rsinv(GPU_MAX_POLAR), sinv(GPU_MAX_POLAR)
 REAL(GPU_PRECISION), CONSTANT :: rcosv1D(GPU_MAX_POLAR_1D), cosv1D(GPU_MAX_POLAR_1D)
 REAL(GPU_PRECISION), CONSTANT :: wt(GPU_MAX_POLAR, GPU_MAX_AZI), wt1D(GPU_MAX_POLAR_1D)
@@ -17,6 +18,23 @@ REAL(GPU_PRECISION), CONSTANT :: wtsurf(4, GPU_MAX_POLAR, GPU_MAX_AZI), wtsurf1D
 REAL(GPU_PRECISION), CONSTANT :: Comp(GPU_MAX_ORDER, GPU_MAX_POLAR, GPU_MAX_AZI), Comp1D(GPU_MAX_POLAR_1D)
 REAL(GPU_PRECISION), CONSTANT :: mwt(GPU_MAX_ORDER, GPU_MAX_POLAR, GPU_MAX_AZI), mwt1D(GPU_MAX_POLAR_1D)
 
+INTEGER(4), CONSTANT :: rowptr(1024), colIdx(4096), eyeIdx(1024)
+INTEGER, CONSTANT :: CRAM_Order
+#ifdef CRAM_14
+COMPLEX(8), CONSTANT :: Pole(7)
+COMPLEX(8), CONSTANT :: Res(7)
+#else CRAM_16
+COMPLEX(8), CONSTANT :: Pole(8)
+COMPLEX(8), CONSTANT :: Res(8)
+#endif
+REAL(8), CONSTANT :: Res0
+
+INTEGER, CONSTANT :: nprec
+REAL(8), CONSTANT :: theta
+REAL(8), CONSTANT :: chid(GPU_MAX_GROUP)
+REAL(8), CONSTANT :: chidk(GPU_MAX_GROUP, 6)
+INTEGER, CONSTANT :: ifxrbegD(32), ifxrbegT(32)
+LOGICAL, CONSTANT :: lFuelPlane(64)
 END MODULE
 
 MODULE CUDA_MASTER
@@ -39,12 +57,17 @@ TYPE(cuGeometry_Type) :: cuGeometry
 
 TYPE(cuMOC_Type) :: cuMOC
 TYPE(cuCMFD_Type) :: cuCMFD, cuGcCMFD
+TYPE(cuCMFD_TYPE) :: cuCMFD_adj, cuGcCMFD_adj
 TYPE(cuAxial_Type) :: cuAxial
+
+TYPE(cuTranCMInfo_Type) :: cuTranCMInfo
+TYPE(cuPwDist_Type) :: cuPwDist
 
 TYPE(cuDevice_Type) :: cuDevice
 TYPE(cuCntl_Type) :: cuCntl
 
 TYPE(cuRotRay1D_Type), POINTER :: cuFastRay1D(:)
+TYPE(cuDepl_Type) :: cuDepl
 
 INTEGER :: MPI_CUDA_COMM, MPI_CUDA_RANK, NUM_CUDA_PROC
 INTEGER :: MPI_CUDA_SHARED_COMM, MPI_CUDA_SHARED_RANK, NUM_CUDA_SHARED_PROC
@@ -90,6 +113,7 @@ INTERFACE cuMatMul3D
   MODULE PROCEDURE cuMatMulFloat
   MODULE PROCEDURE cuMatMulFloatRB
   MODULE PROCEDURE cuMatMulDouble
+  MODULE PROCEDURE cuMatMulDoubleRB
   MODULE PROCEDURE cuMatMulMixed
   MODULE PROCEDURE cuMatMulMixedRB
 END INTERFACE
@@ -109,12 +133,21 @@ INTERFACE dotMulti
   MODULE PROCEDURE dotMulti8
 END INTERFACE
 
+INTERFACE asumMulti
+  MODULE PROCEDURE asumMulti4
+  MODULE PROCEDURE asumMulti8
+END INTERFACE
+
 INTERFACE cuVectorOp
   MODULE PROCEDURE cuVectorOp4
   MODULE PROCEDURE cuVectorOp8
 END INTERFACE
 
 INTERFACE cuTypecast
+  MODULE PROCEDURE cuHtoDCopy8
+  MODULE PROCEDURE cuDtoHCopy8
+  MODULE PROCEDURE cuHtoDTypecastFrom8
+  MODULE PROCEDURE cuDtoHTypecastFrom4
   MODULE PROCEDURE cuTypecastFrom4
   MODULE PROCEDURE cuTypecastFrom8
 END INTERFACE
@@ -610,23 +643,81 @@ DEALLOCATE(yTemp)
 
 END SUBROUTINE
 
-SUBROUTINE cuMatMulFloatRB(Diag, offDiag, x, y, br, tr, color, sparseHandle, stream, comm)
+SUBROUTINE cuMatMulFloatRB(Diag, offDiag, x, y, br, tr, sparseHandle, stream, comm)
 
 IMPLICIT NONE
 
 TYPE(CSR_MIXED) :: Diag
 REAL(4), DEVICE :: offDiag(*), x(*), y(*)
-INTEGER :: br(2, 2), tr(2, 2), color
+INTEGER :: br(2, 2), tr(2, 2)
 TYPE(cusparseHandle) :: sparseHandle
 INTEGER(KIND = cuda_stream_kind) :: stream
 INTEGER :: comm
 
-REAL(4), ALLOCATABLE, DEVICE :: xNeigh(:), yTemp(:)
+REAL(4), ALLOCATABLE, DEVICE :: xSelf(:, :), xNeigh(:, :), yTemp(:, :)
 REAL(4), POINTER, DEVICE :: csrVal(:)
 INTEGER, POINTER, DEVICE :: csrRowPtr(:), csrColIdx(:)
 INTEGER :: n, nb(2), nt(2), nr, nc, nnz
 INTEGER :: ierr
-INTEGER :: mp(2) = (/ 2, 1 /)
+
+csrVal => Diag%d_csrVal
+csrRowPtr => Diag%d_csrRowPtr
+csrColIdx => Diag%d_csrColIdx
+nr = Diag%nr
+nc = Diag%nc
+nnz = Diag%nnz
+nb = br(2, :) - br(1, :) + 1
+nt = tr(2, :) - tr(1, :) + 1
+n = sum(nb)
+
+IF (.NOT. cuCntl%lMulti .OR. cuCntl%lDcpl) THEN
+
+  ierr = cusparseScsrmv(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_4, Diag%descr,             &
+                        csrVal, csrRowPtr, csrColIdx, x, 0.0_4, y)
+  RETURN
+
+ENDIF
+
+ALLOCATE(xSelf(n, 2))
+ALLOCATE(xNeigh(n, 2))
+ALLOCATE(yTemp(n, 2))
+
+CALL cuInitArray(n + n, xNeigh, stream)
+
+ierr = cudaMemcpyAsync(xSelf(1 : nb(black), bottom), x(br(1, black) : br(2, black)), nb(black),                     &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaMemcpyAsync(xSelf(nb(black) + 1 : n, bottom), x(br(1, red) : br(2, red)), nb(red),                       &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaMemcpyAsync(xSelf(1 : nt(black), top), x(tr(1, black) : tr(2, black)), nt(black),                        &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaMemcpyAsync(xSelf(nt(black) + 1 : n, top), x(tr(1, red) : tr(2, red)), nt(red),                          &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaStreamSynchronize(stream)
+
+CALL InitMPIComm()
+CALL MPIComm(n, n, xSelf(:, bottom), xNeigh(:, bottom), bottom, comm)
+CALL MPIComm(n, n, xSelf(:, top), xNeigh(:, top), top, comm)
+
+ierr = cusparseScsrmv(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_4, Diag%descr,               &
+                      csrVal, csrRowPtr, csrColIdx, x, 0.0_4, y)
+
+CALL FinalizeMPIComm()
+
+CALL cuVectorOp('*', n + n, offDiag, xNeigh, yTemp, stream)
+CALL cuVectorOp('+', nb(red), yTemp(1 : nb(red), bottom), y(br(1, red) : br(2, red)),                               &
+                y(br(1, red) : br(2, red)), stream)
+CALL cuVectorOp('+', nb(black), yTemp(nb(red) + 1 : n, bottom), y(br(1, black) : br(2, black)),                     &
+                y(br(1, black) : br(2, black)), stream)
+CALL cuVectorOp('+', nt(red), yTemp(1 : nt(red), top), y(tr(1, red) : tr(2, red)),                                  &
+                y(tr(1, red) : tr(2, red)), stream)
+CALL cuVectorOp('+', nt(black), yTemp(nt(red) + 1 : n, top), y(tr(1, black) : tr(2, black)),                        &
+                y(tr(1, black) : tr(2, black)), stream)
+
+ierr = cudaStreamSynchronize(stream)
+
+DEALLOCATE(xSelf)
+DEALLOCATE(xNeigh)
+DEALLOCATE(yTemp)
 
 END SUBROUTINE
 
@@ -641,11 +732,132 @@ TYPE(cusparseHandle) :: sparseHandle
 INTEGER(KIND = cuda_stream_kind) :: stream
 INTEGER :: comm
 
-REAL(8), ALLOCATABLE, DEVICE :: xNeigh(:, :), yTemp(:, :)
+REAL(8), ALLOCATABLE, DEVICE :: xNeigh(:), yTemp(:)
 REAL(8), POINTER, DEVICE :: csrVal(:)
 INTEGER, POINTER, DEVICE :: csrRowPtr(:), csrColIdx(:)
 INTEGER :: n, nb, nt, nr, nc, nnz
 INTEGER :: ierr
+
+csrVal => Diag%d_csrVal
+csrRowPtr => Diag%d_csrRowPtr
+csrColIdx => Diag%d_csrColIdx
+nr = Diag%nr
+nc = Diag%nc
+nnz = Diag%nnz
+nb = br(2) - br(1) + 1
+nt = tr(2) - tr(1) + 1
+n = max(nb, nt)
+
+IF (.NOT. cuCntl%lMulti .OR. cuCntl%lDcpl) THEN
+
+  ierr = cusparseDcsrmv(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_8, Diag%descr,             &
+                        csrVal, csrRowPtr, csrColIdx, x, 0.0_8, y)
+  RETURN
+
+ENDIF
+
+ALLOCATE(xNeigh(nb + nt))
+ALLOCATE(yTemp(nb + nt))
+
+CALL cuInitArray(nb + nt, xNeigh, stream)
+
+ierr = cudaStreamSynchronize(stream)
+
+CALL InitMPIComm()
+CALL MPIComm(nb, nb, x(br(1) : br(2)), xNeigh(1 : nb), bottom, comm)
+CALL MPIComm(nt, nt, x(tr(1) : tr(2)), xNeigh(nb + 1 : nb + nt), top, comm)
+
+ierr = cusparseDcsrmv(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_8, Diag%descr,               &
+                      csrVal, csrRowPtr, csrColIdx, x, 0.0_8, y)
+
+CALL FinalizeMPIComm()
+
+CALL cuVectorOp('*', nb + nt, offDiag, xNeigh, yTemp, stream)
+CALL cuVectorOp('+', nb, yTemp(1 : nb), y(br(1) : br(2)), y(br(1) : br(2)), stream)
+CALL cuVectorOp('+', nt, yTemp(nb + 1 : nb + nt), y(tr(1) : tr(2)), y(tr(1) : tr(2)), stream)
+
+ierr = cudaStreamSynchronize(stream)
+
+DEALLOCATE(xNeigh)
+DEALLOCATE(yTemp)
+
+END SUBROUTINE
+
+SUBROUTINE cuMatMulDoubleRB(Diag, offDiag, x, y, br, tr, sparseHandle, stream, comm)
+
+IMPLICIT NONE
+
+TYPE(CSR_DOUBLE) :: Diag
+REAL(8), DEVICE :: offDiag(*), x(*), y(*)
+INTEGER :: br(2, 2), tr(2, 2)
+TYPE(cusparseHandle) :: sparseHandle
+INTEGER(KIND = cuda_stream_kind) :: stream
+INTEGER :: comm
+
+REAL(8), ALLOCATABLE, DEVICE :: xSelf(:, :), xNeigh(:, :), yTemp(:, :)
+REAL(8), POINTER, DEVICE :: csrVal(:)
+INTEGER, POINTER, DEVICE :: csrRowPtr(:), csrColIdx(:)
+INTEGER :: n, nb(2), nt(2), nr, nc, nnz
+INTEGER :: ierr
+
+csrVal => Diag%d_csrVal
+csrRowPtr => Diag%d_csrRowPtr
+csrColIdx => Diag%d_csrColIdx
+nr = Diag%nr
+nc = Diag%nc
+nnz = Diag%nnz
+nb = br(2, :) - br(1, :) + 1
+nt = tr(2, :) - tr(1, :) + 1
+n = sum(nb)
+
+IF (.NOT. cuCntl%lMulti .OR. cuCntl%lDcpl) THEN
+
+  ierr = cusparseDcsrmv(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_8, Diag%descr,             &
+                        csrVal, csrRowPtr, csrColIdx, x, 0.0_8, y)
+  RETURN
+
+ENDIF
+
+ALLOCATE(xSelf(n, 2))
+ALLOCATE(xNeigh(n, 2))
+ALLOCATE(yTemp(n, 2))
+
+CALL cuInitArray(n + n, xNeigh, stream)
+
+ierr = cudaMemcpyAsync(xSelf(1 : nb(black), bottom), x(br(1, black) : br(2, black)), nb(black),                     &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaMemcpyAsync(xSelf(nb(black) + 1 : n, bottom), x(br(1, red) : br(2, red)), nb(red),                       &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaMemcpyAsync(xSelf(1 : nt(black), top), x(tr(1, black) : tr(2, black)), nt(black),                        &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaMemcpyAsync(xSelf(nt(black) + 1 : n, top), x(tr(1, red) : tr(2, red)), nt(red),                          &
+                       cudaMemcpyDeviceToDevice, stream)
+ierr = cudaStreamSynchronize(stream)
+
+CALL InitMPIComm()
+CALL MPIComm(n, n, xSelf(:, bottom), xNeigh(:, bottom), bottom, comm)
+CALL MPIComm(n, n, xSelf(:, top), xNeigh(:, top), top, comm)
+
+ierr = cusparseDcsrmv(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_8, Diag%descr,               &
+                      csrVal, csrRowPtr, csrColIdx, x, 0.0_8, y)
+
+CALL FinalizeMPIComm()
+
+CALL cuVectorOp('*', n + n, offDiag, xNeigh, yTemp, stream)
+CALL cuVectorOp('+', nb(red), yTemp(1 : nb(red), bottom), y(br(1, red) : br(2, red)),                               &
+                y(br(1, red) : br(2, red)), stream)
+CALL cuVectorOp('+', nb(black), yTemp(nb(red) + 1 : n, bottom), y(br(1, black) : br(2, black)),                     &
+                y(br(1, black) : br(2, black)), stream)
+CALL cuVectorOp('+', nt(red), yTemp(1 : nt(red), top), y(tr(1, red) : tr(2, red)),                                  &
+                y(tr(1, red) : tr(2, red)), stream)
+CALL cuVectorOp('+', nt(black), yTemp(nt(red) + 1 : n, top), y(tr(1, black) : tr(2, black)),                        &
+                y(tr(1, black) : tr(2, black)), stream)
+
+ierr = cudaStreamSynchronize(stream)
+
+DEALLOCATE(xSelf)
+DEALLOCATE(xNeigh)
+DEALLOCATE(yTemp)
 
 END SUBROUTINE
 
@@ -844,6 +1056,27 @@ ENDIF
 
 END FUNCTION
 
+FUNCTION asumMulti4(x, n, comm, blasHandle, lMPI) RESULT(sum_asum)
+IMPLICIT NONE 
+INTEGER :: n, comm, ierr 
+TYPE(cublasHandle) :: blasHandle
+INTEGER(KIND=cuda_stream_kind) :: stream
+REAL(4), DEVICE :: x(*)
+REAL(4) :: asum, sum_asum 
+LOGICAL :: lMPI
+
+ierr = cublasGetStream(blasHandle, stream)
+ierr = cublasSasum_v2(blasHandle, n, x, 1, asum)
+ierr = cudaStreamSynchronize(stream)
+
+IF (lMPI) THEN
+  CALL MPI_ALLREDUCE(asum, sum_asum, 1, MPI_FLOAT, MPI_SUM, comm, ierr) 
+ELSE
+  sum_asum = asum
+END IF
+
+END FUNCTION
+
 SUBROUTINE normalizeMulti8(x, n, comm, blasHandle, lMPI)
 
 IMPLICIT NONE
@@ -894,6 +1127,27 @@ IF (lMPI) THEN
 ELSE
   sum_dot = dot
 ENDIF
+
+END FUNCTION
+
+FUNCTION asumMulti8(x, n, comm, blasHandle, lMPI) RESULT(sum_asum)
+IMPLICIT NONE 
+INTEGER :: n, comm, ierr 
+TYPE(cublasHandle) :: blasHandle
+INTEGER(KIND=cuda_stream_kind) :: stream
+REAL(8), DEVICE :: x(*)
+REAL(8) :: asum, sum_asum 
+LOGICAL :: lMPI
+
+ierr = cublasGetStream(blasHandle, stream)
+ierr = cublasDasum_v2(blasHandle, n, x, 1, asum)
+ierr = cudaStreamSynchronize(stream)
+
+IF (lMPI) THEN
+  CALL MPI_ALLREDUCE(asum, sum_asum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr) 
+ELSE
+  sum_asum = asum
+END IF
 
 END FUNCTION
 
@@ -1167,6 +1421,84 @@ z(idx) = z(idx) - x(idx) * y(idx)
 
 END SUBROUTINE
 
+SUBROUTINE cuHtoDCopy8(n, x, y)
+
+IMPLICIT NONE
+
+INTEGER :: n
+REAL(8) :: x(*)
+REAL(8), DEVICE :: y(*)
+
+INTEGER :: ierr
+
+ierr = cudaMemcpy(y, x, n, cudaMemcpyHostToDevice)
+
+END SUBROUTINE
+
+SUBROUTINE cuDtoHCopy8(n, x, y)
+
+IMPLICIT NONE
+
+INTEGER :: n
+REAL(8), DEVICE :: x(*)
+REAL(8) :: y(*)
+
+INTEGER :: ierr
+
+ierr = cudaMemcpy(y, x, n, cudaMemcpyDeviceToHost)
+
+END SUBROUTINE
+
+SUBROUTINE cuHtoDTypecastFrom8(n, x, y)
+
+IMPLICIT NONE
+
+INTEGER :: n
+REAL(8) :: x(*)
+REAL(4), DEVICE :: y(*)
+
+REAL(4), ALLOCATABLE :: x4(:)
+INTEGER :: i, ierr
+
+ALLOCATE(x4(n))
+
+!$OMP PARALLEL DO
+DO i = 1, n
+  x4(i) = x(i)
+ENDDO
+!$OMP END PARALLEL DO
+
+ierr = cudaMemcpy(y, x4, n, cudaMemcpyHostToDevice)
+
+DEALLOCATE(x4)
+
+END SUBROUTINE
+
+SUBROUTINE cuDtoHTypecastFrom4(n, x, y)
+
+IMPLICIT NONE
+
+INTEGER :: n
+REAL(4), DEVICE :: x(*)
+REAL(8) :: y(*)
+
+REAL(4), ALLOCATABLE :: y4(:)
+INTEGER :: i, ierr
+
+ALLOCATE(y4(n))
+
+ierr = cudaMemcpy(y4, x, n, cudaMemcpyDeviceToHost)
+
+!$OMP PARALLEL DO
+DO i = 1, n
+  y(i) = y4(i)
+ENDDO
+!$OMP END PARALLEL DO
+
+DEALLOCATE(y4)
+
+END SUBROUTINE
+
 SUBROUTINE cuTypecastFrom4(n, x, y, stream)
 
 IMPLICIT NONE
@@ -1300,6 +1632,104 @@ idx = (blockIdx%x - 1) * blockDim%x + threadIdx%x
 IF (idx .GT. n) RETURN
 
 Arr(idx) = 0.0
+
+END SUBROUTINE
+
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuComputeTranCMFDSrc(trSrc, resSrc, precSrc, &
+                         TranPhi, VolInvVel, expo_alpha, expo, delt, nzCMFD)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+REAL(8), DEVICE :: trSrc(:,:)
+REAL(8), DEVICE, INTENT(IN) :: resSrc(:,:), precSrc(:), TranPhi(:,:)
+REAL(8), DEVICE, INTENT(IN) :: VolInvVel(:,:), expo_alpha(:,:), expo(:,:)
+REAL(8), VALUE :: delt
+INTEGER, VALUE :: nzCMFD
+
+REAL(8) :: thetah, prevSrc
+INTEGER :: ncel
+INTEGER :: ig, icel
+
+ncel = nxyc * nzCMFD
+
+ig = threadIdx%x 
+icel = threadIdx%y + (blockIdx%x - 1) * blockDim%y
+IF(icel .GT. ncel) RETURN
+
+thetah = 1./ theta - 1.
+
+trSrc(ig, icel) = chid(ig) * PrecSrc(icel)
+prevSrc = Thetah * (ResSrc(ig, icel) - expo_alpha(ig, icel) * VolInvVel(ig, icel) * TranPhi(ig, icel))
+prevSrc = prevSrc + VolInvVel(ig, icel) * TranPhi(ig, icel) / (delt * theta)
+prevSrc = prevSrc * Expo(ig, icel)
+trSrc(ig, icel) = trSrc(ig, icel) + prevSrc
+
+END SUBROUTINE
+
+ATTRIBUTES(GLOBAL) SUBROUTINE cuComputeTranCMFDSrc11(trSrc, resSrc, precSrc, &
+                         TranPhi, VolInvVel, expo_alpha, expo, delt, nzCMFD)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+REAL(8), DEVICE :: trSrc(:,:)
+REAL(8), DEVICE, INTENT(IN) :: resSrc(:,:), precSrc(:), TranPhi(:,:)
+REAL(8), DEVICE, INTENT(IN) :: VolInvVel(:,:), expo_alpha(:,:), expo(:,:)
+REAL(8), VALUE :: delt
+INTEGER, VALUE :: nzCMFD
+
+REAL(8) :: thetah, prevSrc, volphid
+INTEGER :: ncel
+INTEGER :: ig, icel
+
+IF(threadIdx%x .EQ. 1 .AND. threadIdx%y .EQ. 1) Print*, 'compute transrc'
+ncel = nxyc * nzCMFD
+
+ig = threadIdx%x 
+icel = threadIdx%y + (blockIdx%x - 1) * blockDim%y
+IF(icel .GT. ncel) RETURN
+thetah = 1./ theta - 1.
+
+volphid = VolInvVel(ig,icel) * TranPhi(ig,icel)
+prevSrc = expo_alpha(ig, icel) * volphid
+prevSrc = ResSrc(ig,icel) - prevSrc
+prevSrc = thetah* prevSrc
+!prevSrc = prevSrc + volphid / (delt*theta)
+!prevSrc = prevSrc * Expo(ig,icel)
+trSrc(ig,icel) = prevSrc
+!trSrc(ig,icel) = chid(ig) * precSrc(icel) 
+!trSrc(ig,icel) = trSrc(ig,icel) + prevSrc
+
+IF(ig .EQ. 1 .AND. icel .EQ. 1) PRINT*, Trsrc(ig, icel)
+
+END SUBROUTINE
+ATTRIBUTES(GLOBAL) SUBROUTINE cuComputeTranCMFDSrc22(trSrc, resSrc, &
+                         TranPhi, VolInvVel, ex_alpha, delt, nzCMFD)
+USE CUDA_CONST
+USE CUDAFOR
+IMPLICIT NONE
+REAL(8), DEVICE :: trSrc(:,:)
+REAL(8), DEVICE, INTENT(IN) :: resSrc(:,:), TranPhi(:,:)
+REAL(8), DEVICE, INTENT(IN) :: VolInvVel(:,:), ex_alpha(:,:)
+REAL(8), VALUE :: delt
+INTEGER, VALUE :: nzCMFD
+
+REAL(8) :: thetah
+INTEGER :: ncel
+INTEGER :: ig, icel
+
+IF(threadIdx%x .EQ. 1 .AND. threadIdx%y .EQ. 1) Print*, 'compute transrc'
+ncel = nxyc * nzCMFD
+
+ig = threadIdx%x 
+icel = threadIdx%y + (blockIdx%x - 1) * blockDim%y
+IF(icel .GT. ncel) RETURN
+thetah = 1./ theta - 1.
+
+trSrc(ig,icel) = ResSrc(ig,icel)  
+TrSrc(ig,icel) = TrSrc(ig,icel) * VolInvVel(ig,icel) * TranPhi(ig,icel)
+
+IF(ig .EQ. 1 .AND. icel .EQ. 1) PRINT*, Trsrc(ig, icel)
 
 END SUBROUTINE
 

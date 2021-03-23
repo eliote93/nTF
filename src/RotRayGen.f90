@@ -18,7 +18,6 @@ TYPE(Asy_Type),POINTER :: Asy(:)                   !Information of Assemblies wh
 LOGICAL :: lEdge
 
 TYPE CoreRaySearchTree_Type
-  SEQUENCE
   REAL :: X(2), Y(2)
   INTEGER :: ixa(2), iya(2)
   INTEGER :: iang

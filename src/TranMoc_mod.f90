@@ -69,15 +69,54 @@ REAL, POINTER :: TranPsi(:, :), TranPsid(:, :)
 
 END SUBROUTINE
 
-SUBROUTINE SetTranSrc(Core, Fxr, TranSrc, Phi, TranPhi, Psi, PrecSrc, ResSrc, xstr, iz, ig, GroupInfo, TranCntl, nTracerCntl, PE)
+SUBROUTINE PrecSrckUpdt(Core, Fxr, PrecSrcK, Prec, TranPsi, TranPsid, GroupInfo, TranCntl, nTRACERCntl, PE)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type,           FxrInfo_Type,            TranCntl_Type,        &
+                           GroupInfo_Type,          PE_Type
+USE CNTL,           ONLY : nTracerCntl_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+
+REAL, POINTER :: Prec(:, :, :), PrecSrcK(:, :, :)
+REAL, POINTER :: TranPsi(:, :), TranPsid(:, :)
+
+END SUBROUTINE
+
+SUBROUTINE SetTranSrcNM(Core, FmInfo, Fxr, TranSrcnm, Phinm, TranPhinm, Psi, ResSrc, xstnm, iz, &
+                        gb, ge, GroupInfo, TranInfo, TranCntl, lxslib, PE, Offset)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type,         FxrInfo_Type,         GroupInfo_Type,         TranCntl_Type,      &
+                           PE_Type,               TranInfo_Type,        FmInfo_Type
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+REAL, POINTER :: TranSrcnm(:, :), Phinm(:, :), TranPhinm(:, :), Psi(:, :), ResSrc(:, :), xstnm(:, :)
+INTEGER :: iz, gb, ge
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+LOGICAL :: lxslib
+TYPE(PE_Type) :: PE
+INTEGER, OPTIONAL :: Offset   !--- CNJ Edit : GPU Acceleration
+END SUBROUTINE
+
+SUBROUTINE SetTranSrc(Core, Fxr, TranSrc, Phi, TranPhi, Psi, PrecSrc, ResSrc, xstr, iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,            GroupInfo_Type,        TranCntl_Type,            &
-                           FxrInfo_Type,             PE_Type
+                           FxrInfo_Type,             PE_Type,               TranInfo_Type
 USE CNTL,           ONLY : nTracerCntl_Type
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:, :)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(TranInfo_Type) :: TranInfo
 TYPE(TranCntl_Type) :: TranCntl
 TYPE(nTracerCntl_Type) :: nTracerCntl
 TYPE(PE_TYPE) :: PE
@@ -92,15 +131,16 @@ REAL, POINTER :: ResSrc(:, :, :)
 REAL, POINTER :: xstr(:)
 END SUBROUTINE
 
-SUBROUTINE SetExpTrsfXs(Core, Fxr, xstr, iz, ig, GroupInfo, TranCntl, nTracerCntl, PE)
+SUBROUTINE SetExpTrsfXs(Core, Fxr, xstr, iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,            GroupInfo_Type,        TranCntl_Type,            &
-                           FxrInfo_Type,             PE_Type
+                           FxrInfo_Type,             PE_Type,               TranInfo_Type
 USE CNTL,           ONLY : nTracerCntl_Type
 
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
 TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(TranInfo_TYpe) :: TranInfo
 TYPE(TranCntl_Type) :: TranCntl
 TYPE(nTracerCntl_Type) :: nTracerCntl
 TYPE(PE_TYPE) :: PE

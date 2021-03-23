@@ -5,11 +5,11 @@ USE TYPEDEF,        ONLY : CoreInfo_Type,    FXRInfo_Type,      PinXs_Type,     
 USE CMFD_mod,       ONLY : XsMac,                                                  &
                            HomoCellXsGen
 USE Core_mod,       ONLY : GroupInfo
-USE BenchXs,        ONLY : XsBaseBen
+USE BenchXs,        ONLY : XsBaseBen,      XsBaseDynBen
 USE MacXsLib_Mod,   ONLY : MacXsBase,      MacXsScatMatrix
 USE BasicOperation, ONLY : CP_VA,            CP_CA,             MULTI_VA
 USE Th_Mod,         ONLY : GetPinFuelTemp,   GetPinModTemp,     GetPinTemp
-
+USE TRAN_MOD,       ONLY : TranInfo,       TranCntl
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type), INTENT(IN) :: Core
@@ -62,8 +62,8 @@ DO iz = myzb, myze
         IF(myFxr%lres) THEN
            do ig = iResoGrpBeg, iResoGrpEnd 
              XsMac(j)%XsMacA(ig) = XsMac(j)%XsMacA(ig) * myFxr%FresoA(ig)  
-             XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoF(ig)  
-             XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresoF(ig)  
+             XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoNF(ig)  
+             XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresokF(ig)  
            enddo
         ENDIF
         XsMac(j)%XsMacTr = XsMac(j)%XsMacA + XsMac(j)%XsMacStr
@@ -85,7 +85,175 @@ DO iz = myzb, myze
         itype=Fxr(ifxr,iz)%imix
         !itype = Cell(icel)%iReg(ifsrlocal)
         !CALL xsbaseBen(itype, 1, ng, 1, ng, .FALSE., XsMac(j))  !--r562 original
-        CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(j))    !--r554 old >> r562c 17/02/05
+        IF(TranCntl%lDynamicBen) THEN
+          CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ixy, iz), 1, ng, 1, ng, lscat1, XsMac(j))    !--r554 old >> r562c 17/02/05
+        ELSE
+          CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(j))    !--r554 old >> r562c 17/02/05
+        END IF
+      ENDIF
+    ENDDO !Fxr sweep in the Cell
+    CALL HomoCellXsGen(Cell(icel), Phis(FsrIdxSt:FsrIdxSt+nlocalFsr-1, iz, 1:ng), PinXS(ixy, iz),  &
+                       XsMac(1:nLocalFxr), ng, nLocalFxr, nLocalFsr, GroupInfo%OutScatRange, lXsLib, lsigt)
+  ENDDO
+ENDDO
+
+IF(lXsLib) THEN
+  DO iz = myzb, myze
+    DO ixy = 1, nxy
+      PinXS(ixy,iz)%PinTemp = GetPinTemp(Core, Fxr, iz, ixy)
+      IF(Core%lFuelPlane(iz) .AND. Pin(ixy)%lFuel) THEN
+        PinXS(ixy,iz)%FuelTemp = GetPinFuelTemp(Core, Fxr, iz, ixy)
+        PinXS(ixy,iz)%ModTemp = GetPinModTemp(Core, Fxr, iz, ixy)
+      ENDIF
+    ENDDO
+  ENDDO
+ENDIF
+!Finalize
+NULLIFY(Pin)
+NULLIFY(PinInfo)
+NULLIFY(Cell)
+
+END SUBROUTINE
+  
+SUBROUTINE HomoXsGen_Cusping(Core, FmInfo, FXR, Phis, PinXS, myzb, myze, ng, lXsLib, lScat1, lsigT)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type,    FXRInfo_Type,      PinXs_Type,        &
+                           Pin_Type,         PinInfo_Type,      Cell_Type,         &
+                           FmInfo_Type
+USE CMFD_mod,       ONLY : XsMac,                                                  &
+                           HomoCellXsGen
+USE Core_mod,       ONLY : GroupInfo
+USE BenchXs,        ONLY : XsBaseBen,      MacXSBen,            XsBaseBen_Cusping, &
+                           XsBaseDynBen,   XsBaseDynBen_Cusping, DynMacXsBen
+USE MacXsLib_Mod,   ONLY : MacXsBase,      MacXsScatMatrix
+USE BasicOperation, ONLY : CP_VA,            CP_CA,             MULTI_VA
+USE Th_Mod,         ONLY : GetPinFuelTemp,   GetPinModTemp,     GetPinTemp
+USE TRAN_MOD,       ONLY : TranInfo,       TranCntl
+
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type), INTENT(IN) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(FxrInfo_Type), POINTER , INTENT(IN):: FXR(:, :)
+TYPE(PinXs_Type), POINTER, INTENT(INOUT) :: PinXs(:, :)
+REAL, POINTER, INTENT(IN) :: Phis(:, :, :)
+INTEGER, INTENT(IN) :: myzb, myze, ng
+LOGICAL, INTENT(IN) :: lXsLib, lScat1, lsigt
+
+TYPE(FxrInfo_Type), POINTER :: myFXR
+TYPE(Pin_Type), POINTER :: Pin(:)
+!TYPE(AsyInfo_Type), POINTER :: AsyInfo
+TYPE(PinInfo_Type), POINTER :: PinInfo(:)
+TYPE(Cell_Type), POINTER :: Cell(:)
+
+REAL :: Phiz(ng), Philz(ng), Phiuz(ng)
+REAL :: lflux, uflux, wt, wtbar, wtg, wtgbar, vol, volsum
+INTEGER :: nCoreFxr, nCoreFsr, nxy
+INTEGER :: nCellType, nPinType, nlocalFxr, nlocalFsr, nFsrInFxr
+INTEGER :: icel, ipin, iz, ixy ,ifxr, ifsr, itype, ifsrlocal, ig
+INTEGER :: FsrIdxSt, FxrIdxSt
+INTEGER :: i, j, k, l, m
+INTEGER :: iResoGrpBeg, iResoGrpEnd, norg, nChi
+LOGICAL :: lcusping
+
+REAL :: XsMacsTr(ng)
+
+Pin => Core%Pin
+PinInfo => Core%Pininfo;   Cell => Core%CellInfo
+
+nxy = Core%nxy
+nCoreFxr = Core%nCoreFxr; nCoreFsr = Core%nCoreFsr
+
+IF(lxslib) THEN
+  norg = GroupInfo%norg; nChi = GroupInfo%nChi
+  iResoGrpBeg = GroupInfo%nofg + 1
+  iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
+ENDIF
+DO iz = myzb, myze
+  DO ixy = 1, nxy
+    FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
+    !Get
+    icel = Pin(ixy)%Cell(iz)
+    nlocalFxr = Cell(icel)%nFxr; nlocalFsr = Cell(icel)%nFsr
+    DO j = 1, nLocalFxr
+      ifxr = FxrIdxSt + j -1; nFsrInFxr = Cell(icel)%nFsrInFxr(j)
+      XsMac(j)%lFuel = FALSE
+      IF(lXsLib) THEN
+        myFxr => FXR(ifxr, iz)
+        CALL MacXsBase(XsMac(j), myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
+        CALL MacXsScatMatrix(XsMac(j), myFxr, 1, ng, ng, GroupInfo, FALSE, TRUE)
+        !Self-Sheilding Effect
+        IF(myFxr%lres) THEN
+           do ig = iResoGrpBeg, iResoGrpEnd 
+             XsMac(j)%XsMacA(ig) = XsMac(j)%XsMacA(ig) * myFxr%FresoA(ig)  
+             XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoNF(ig)  
+             XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresoKF(ig)  
+           enddo
+        ENDIF
+        XsMac(j)%XsMacTr = XsMac(j)%XsMacA + XsMac(j)%XsMacStr
+        XsMac(j)%XsMacT = XsMac(j)%XsMacA + XsMac(j)%XsMacS
+        !Obtaining
+#ifdef inflow
+        DO ig = 1, ng
+          XsMac(j)%XsMacTr(ig) = XsMac(j)%XsMacTr(ig) + myFxr%DelInflow(ig)
+          XsMac(j)%XsMacSm(ig, ig) = XsMac(j)%XsMacSm(ig, ig) + myFxr%DelInflow(ig)
+        ENDDO
+#endif
+        CALL CP_CA(XsMac(j)%CHI, 0._8, ng)
+        IF(myFxr%lDepl) THEN
+          CALL CP_VA(XsMac(j)%CHI(1:nCHI), myFxr%CHI(1:nCHI), nCHI)
+          XsMac(j)%lFuel = TRUE
+        ENDIF
+      ELSE
+        itype=Fxr(ifxr,iz)%imix
+        !itype = Cell(icel)%iReg(ifsrlocal)
+        !CALL xsbaseBen(itype, 1, ng, 1, ng, .FALSE., XsMac(j))  !--r562 original
+        IF(TranCntl%lDynamicBen) THEN
+          lCusping = DynMacXsBen(itype)%lCusping
+        ELSE
+          lCusping = MacXsBen(itype)%lCusping
+        END IF
+        IF(lCusping) THEN 
+          ifsrlocal = Cell(icel)%MapFxr2FsrIdx(1,j)
+
+          Phiz = 0.; Philz = 0.; Phiuz = 0.
+          volsum = 0.
+          DO ig = 1, ng
+            DO k = 1, nfsrinfxr
+              ifsrlocal = Cell(icel)%MapFxr2FsrIdx(k, j)
+              ifsr = FsrIdxSt + ifsrlocal - 1
+              vol = Cell(icel)%Vol(ifsrlocal)
+              IF(ig .EQ. 1) volsum = volsum + vol
+              Phiz(ig) = Phiz(ig) + Phis(ifsr, iz, ig) * vol
+              IF(iz .EQ. myzb) THEN
+                Philz(ig) = Philz(ig) + FmInfo%neighphis(ifsr, ig, BOTTOM) * vol
+              ELSE
+                Philz(ig) = Philz(ig) + Phis(ifsr, iz-1, ig) * vol 
+              END IF
+              IF(iz .EQ. myze) THEN
+                Phiuz(ig) = Phiuz(ig) + FmInfo%neighphis(ifsr, ig, TOP) * vol
+              ELSE
+                Phiuz(ig) = Phiuz(ig) + Phis(ifsr, iz+1, ig) * vol
+              END IF
+            END DO 
+            Phiz(ig) = Phiz(ig) / volsum
+            Philz(ig) = Philz(ig) / volsum
+            Phiuz(ig) = Phiuz(ig) / volsum
+          END DO 
+          IF(TranCntl%lDynamicBen) THEN
+            CALL xsbaseDynBen_Cusping(itype, TranInfo%fuelTemp(ixy, iz), 1, ng, 1, ng, lscat1, XsMac(j),&
+              phiz, philz, phiuz, Core%hzfm(iz), Core%hzfm(iz-1), Core%hzfm(iz+1))
+          ELSE
+            CALL xsbaseBen_Cusping(itype, 1, ng, 1, ng, lscat1, XsMac(j),&
+              phiz, philz, phiuz, Core%hzfm(iz), Core%hzfm(iz-1), Core%hzfm(iz+1))
+          ENDIF
+        ELSE
+          IF(TranCntl%lDynamicBen) THEN
+            CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ixy, iz), 1, ng, 1, ng, lscat1, XsMac(j))    !--r554 old >> r562c 17/02/05
+          ELSE
+            CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(j))    !--r554 old >> r562c 17/02/05
+          END IF
+        END IF
       ENDIF
     ENDDO !Fxr sweep in the Cell
     CALL HomoCellXsGen(Cell(icel), Phis(FsrIdxSt:FsrIdxSt+nlocalFsr-1, iz, 1:ng), PinXS(ixy, iz),  &
@@ -144,7 +312,6 @@ DO ig = 1, ng
     DO j = 1, nFsrInFxr
       ireg = CellInfo%MapFxr2FsrIdx(j, i)
       vol = CellInfo%vol(ireg)
-            
       volsum = volsum + vol
       localphi = phis(ireg, ig) * vol
       phisum = phisum + localphi
@@ -232,7 +399,6 @@ IF(lfuel) THEN
     DO j = 1, nFsrInFxr
       ireg = CellInfo%MapFxr2FsrIdx(j, i)
       vol = CellInfo%vol(ireg)
-            
       DO ig = 1, ng
         localphi = phis(ireg, ig) * vol * XsMac(i)%XsMacNf(ig) !Sum of fission neutron in the cell
         phisum = phisum + localphi

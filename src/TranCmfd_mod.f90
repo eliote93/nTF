@@ -148,6 +148,17 @@ TYPE(TranCntl_Type) :: TranCntl
 
 END FUNCTION
 
+FUNCTION TranResidualError_rev(phifm, psifm, TranPhi, PrecSrc, ResSrc, TranCntl, PE)
+USE PARAM
+USE TYPEDEF,   ONLY : PE_TYPE, TranCntl_Type
+IMPLICIT NONE
+REAL :: TranResidualError_rev
+REAL, POINTER :: phifm(:, :, :), psifm(:, :)
+REAL, POINTER :: PrecSrc(:, :), TranPhi(:, :, :), ResSrc(:, :, :)
+TYPE(PE_TYPE) :: PE
+TYPE(TranCntl_Type) :: TranCntl
+
+END FUNCTION
 
 
 

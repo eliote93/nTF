@@ -6,6 +6,7 @@ use typedef, only : AsyInfo_type,   pininfo_type,   coreinfo_type,    &
 implicit none
 save
 INTEGER :: ng, ngthrm !, ngfg, norg, ntiso
+INTEGER :: ngg
 INTEGER :: nPreC = 6                    !Number if precursor
 INTEGER :: nxy,nx,ny,nz
 INTEGER :: nbd = 4, ncbd = 4
@@ -34,6 +35,8 @@ TYPE(MiscStruct_Type), TARGET :: MiscStruct
 !INTEGER,pointer :: CoreMap(:)
 !SubPlane Variables
 INTEGER :: nSubPlane = 1
+INTEGER, POINTER :: nSubPlanePtr(:)
+REAL :: maxhzfm = 0.
 INTEGER, POINTER :: SubPlaneMap(:)
 INTEGER, POINTER :: SubPlaneRange(:, :)
 
@@ -45,7 +48,7 @@ INTEGER :: nPinType, nPinType0, nGappinType
 INTEGER, POINTER :: PinTypeMap(:)   !--- CNJ Edit : Flexible Cell & Pin Numbering
 type(PinInfo_type),pointer :: PinInfo(:)
 
-INTEGER :: nCellType, nCellType0, nGapType, nVssTyp
+INTEGER :: nCellType, nCellType0, nGapType, nVssTyp, nCrCell
 INTEGER, POINTER :: CellTypeMap(:)   !--- CNJ Edit : Flexible Cell & Pin Numbering
 type(cell_type), pointer :: CellInfo(:), BaseCellInfo(:)  !--- JSR Edit : nTIG Restart
 

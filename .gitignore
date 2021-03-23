@@ -1,22 +1,52 @@
-# Execution
-*.inp
-*.INP
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
 
-#build
-*.pdb
-*.htm
-*.slo
-*.lo
-*.o
-*.obj
-*.mod
-*.smod
-*.exe
-*.u2d
-*.layout
+# Build results
+x64/
+nTRACER/x64
+Intel/
 
-# ETC
-.vs
-My Advisor Results - nTRACER/
+# Install files
+nTRACER/util
+
+# Documents
+nTRACER/docs
+
+# Libraries
 lib/
-TST Pin Typ
+
+# Other
+ACEGenerator
+GUI
+HDF
+Socket
+
+# User-dependent files
+*.pdb
+*.inp
+*.txt
+*.bin
+*.00
+*.60
+*.mod
+*.o
+*.out
+*.exe
+*.dwf
+!CMakeLists.txt
+*.m
+*.h5
+*.log
+*.suo
+*.vtk
+*.user
+*.u2d
+PVFProject/PVFProject.pvfproj
+
+test.code-workspace
+
+src.zip

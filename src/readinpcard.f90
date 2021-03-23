@@ -6,7 +6,7 @@ use files,          only : filename,    InputFileIdx,                  ModTFileI
 use ioutil,         only : terminate,   toupper,       IFnumeric,      nfields,     icolfield,    &
                            fndchara,    GetFn,         message
 use inputcards ,    only : oneline,     probe,         mxcard,         nblock,      FindBlockId,  &
-                           FindCardId,  cards,         blocks
+                           FindCardId,  cards,         blocks, longline
 use allocs
 implicit none
 character(15),private   :: cardname, blockname, astring
@@ -231,13 +231,14 @@ USE CNTL,           ONLY : nTracerCntl
 USE PE_MOD,         ONLY : PE
 USE ioutil,         ONLY: terminate
 USE SubChCoupling_mod,    ONLY: is_coupled, CodeName
+USE Anderson_Acceleration_SIMPLETH, ONLY : m_AA
 IMPLICIT NONE
 
 INTEGER :: InDev, OutDev
 INTEGER           :: idcard
 INTEGER,parameter :: idblock = 7
 INTEGER :: IntTemp(100)
-INTEGER :: i,k,nb, nfn
+INTEGER :: i,k,nb, nfn, AA_STH
 REAL :: REALTemp(100)
 LOGICAL :: Master
 
@@ -245,8 +246,8 @@ Master = PE%master
 ThVar%ChannelPitch = CellPitch * epsm2
 ThVar%AsyPitch = AsyPitch * epsm2
 
-ThVar%nAsych=Core%nAsyCell - Core%nAsyGT       !Number of Fuel Channel
-ThVar%nAsyGT = Core%nAsyGT                     !Number of Guide Tube
+ThVar%nAsych=REAL(Core%nAsyCell - Core%nAsyGT)       !Number of Fuel Channel
+ThVar%nAsyGT = REAL(Core%nAsyGT)                     !Number of Guide Tube
 ThVar%nzth = Core%nz                           !Number of Axial Node
 nfn = 0
 DO while(TRUE)
@@ -259,27 +260,31 @@ DO while(TRUE)
   idcard = FindCardId(idblock,cardname); IF(idcard .eq. 0) exit
   nLineField = nfields(oneline)-1
 
+  !AA_STH = 1
+  !m_AA = AA_STH
+  !ThOpt%AA_STH = .true.
   SELECT CASE(idcard)
     CASE(1)  ! PIN_DIM
-      if(nLineField .eq. 4 .and. .not. is_coupled) THEN
-        READ(oneline, *) astring, (THOpt%PinDIm(i), i = 1, 4)
-      elseif (nLineField .eq. 5 .and. is_coupled) THEN
-        READ(oneline, *) astring, (THOpt%PinDIm(i), i = 1, 5)
-      else
-        call terminate("nTRACER-TH Coupling requires Cladding inner radius. Check ''PIN_DIM'' Card")
+      READ(oneline, *) astring, (THOpt%PinDim(i), i = 1, nLineField)
+      IF (nLineField .EQ. 4) THEN
+        THOpt%PinDim(5) = THOpt%PinDim(4) - THOpt%PinDim(3)
       endif
     CASE(2)  ! NRING_COND
       READ(oneline, *) astring, THOpt%nrpellet
     CASE(3)  ! EFF_DOPLT
 
     CASE(4)  ! KCOND_FUEL
-      READ(oneline, *) astring, (THOpt%kFUelCorrelation(i), i=0, 5)
+      !READ(oneline, *) astring, (THOpt%kFUelCorrelation(i), i=0, 5)
+      READ(oneline, *) astring, THOpt%kFuelModel
     CASE(5)  ! RHOCP_FUEL
-      READ(oneline, *) astring, (THOpt%CpFuelCorrelation(i), i=0, 3)
+      !READ(oneline, *) astring, (THOpt%CpFuelCorrelation(i), i=0, 3)
+      READ(oneline, *) astring, THOpt%CpFuelModel, THOpt%RhoFuel
     CASE(6)  ! KCOND_CLAD
-      READ(oneline, *) astring, (THOpt%KCladCorrelation(i), i=0, 3)
+      !READ(oneline, *) astring, (THOpt%KCladCorrelation(i), i=0, 3)
+      READ(oneline, *) astring, THOpt%KCladModel
     CASE(7)  ! RHOCP_CLAD
-      READ(oneline, *) astring, (THOpt%CpCladCorrelation(i), i=0, 3)
+      !READ(oneline, *) astring, (THOpt%CpCladCorrelation(i), i=0, 3)
+      READ(oneline, *) astring, THOpt%CpCladModel, THOpt%RhoClad
     CASE(8)  ! STEAM_TBL
 
     CASE(9)  ! SIMPLE_TH
@@ -306,14 +311,36 @@ DO while(TRUE)
     case(17)
       read(oneline, *) astring, ThVar%nAsych, ThVar%nAsyGT
     case(18)
-      read(oneline, *) astring, ThVar%ChannelPitch, ThVar%AsyPitch
+      IF(nLineField .EQ. 2) THEN
+        read(oneline, *) astring, ThVar%ChannelPitch, ThVar%AsyPitch
+      ELSE
+        read(oneline, *) astring, ThVar%ChannelPitch, ThVar%AsyPitch, ThVar%HAct
+        ThVar%lhact = .TRUE.
+      END IF
+
       ThVar%ChannelPitch = ThVar%ChannelPitch* epsm2
       ThVar%AsyPitch=ThVar%AsyPitch*epsm2
     case(19) ! Hgap_TH
-      READ(oneline,*) astring, ThOpt%hgap
+      !READ(oneline,*) astring, ThOpt%hgap
+      READ(oneline,*) astring, ThOpt%hGapModel
     case(20) ! ESCOT
       READ(oneline,*) astring, is_coupled
       CodeName='ESCOT'
+    case(23) ! FRAC_DC
+      READ(oneline,*) astring, ThVar%FracDC
+      !ThVar%FracDF = 1._8 - ThVar%FracDC
+    case(24) ! ch_conf
+      nTracerCntl%lthchconf = .TRUE.
+      CALL ReadCh_conf(indev, ThVar)
+    case(25) !AA_STH
+      READ(oneline,*) astring, AA_STH
+      if (AA_STH < 1) then
+        ThOpt%AA_STH = .false.
+        m_AA = AA_STH
+      else
+        ThOpt%AA_STH = .true.
+        m_AA = AA_STH
+      endif
   END SELECT
 ENDDO
 
@@ -322,23 +349,73 @@ IF(nTracerCntl%lIHP) nTracerCntl%lFuelCondFDM = .TRUE.
 Backspace(indev); IF(Master) Backspace(io8)
 END SUBROUTINE
 
+SUBROUTINE ReadCh_conf(indev, ThVar)
+USE PARAM
+USE TYPEDEF
+USE PE_Mod,         ONLY : PE
+USE files,          ONLY : io5, io8
+USE inputcards,     ONLY : oneline, probe
+USE ioutil,         ONLY : toupper, IFnumeric, nfields, message, terminate
+USE geom,           ONLY : Core
+IMPLICIT NONE
+INTEGER, INTENT(IN) :: indev
+TYPE(ThVar_Type) :: ThVar
+
+INTEGER :: ja
+INTEGER :: i, j, jfr, jto
+INTEGER :: nFieldsLine
+
+READ(oneline, *) astring, ThVar%nChType
+ALLOCATE(ThVar%THCh(ThVar%nChType))
+DO i = 1, ThVar%nChType
+  READ(indev, '(a256)') oneline
+  IF(PE%Master) CALL message(io8,FALSE,FALSE,oneline)
+  READ(oneline, *)  astring, ThVar%THCh(i)%nAsyCh, ThVar%THCh(i)%nAsyGT, ThVar%THCh(i)%ChannelPitch, ThVar%THCh(i)%AsyPitch, ThVar%THCh(i)%hact
+  ThVar%THCh(i)%ChannelPitch = ThVar%THCh(i)%ChannelPitch * epsm2
+  ThVar%THCh(i)%AsyPitch = ThVar%THCh(i)%AsyPitch * epsm2
+  ThVar%THCh(i)%hact = ThVar%THCh(i)%hact * epsm2
+END DO
+
+ALLOCATE(Core%ThChMap(Core%nxya))
+
+ja = 0; jfr = 1
+DO WHILE(TRUE)
+  READ(indev, '(a256)') oneline
+  IF(PE%Master) CALL message(io8,FALSE,FALSE,oneline)
+  IF(probe.eq.BANG) cycle;     IF(probe.eq.POUND) cycle
+  ja = ja + 1
+  nFieldsLine = nfields(oneline)
+  jto = jfr + nFieldsLine-1
+  READ(oneline, *) (Core%THChMap(j), j = jfr, jto)
+  jfr = jto + 1
+  IF(ja .EQ. Core%nya) EXIT
+END DO
+
+END SUBROUTINE
+
 SUBROUTINE ReadTranCard(indev, outdev)
 USE PARAM
 USE CNTL,         ONLY : nTracerCntl
-USE Tran_mod,     ONLY : TranCntl,     XsCHANGE
+USE Tran_mod,     ONLY : TranCntl,     XsCHANGE,      XsNoise,    XsCntlRod
 USE PE_MOD,        ONLY : PE
 
 INTEGER           :: indev,outdev
 INTEGER           :: idcard
 INTEGER,parameter :: idblock = 8
 
-INTEGER :: n, m
+INTEGER :: n, m, l, k
 INTEGER :: i, ipos(100)
 CHARACTER(10) :: optfield
 LOGICAL :: Master
 
+CHARACTER(15) :: working_card
+
 n = 0
+l = 0
+k = 0
 master = PE%master
+TranCntl%Tstep_inp = 0._8
+TranCntl%Tdiv_inp = 0._8
 DO while(TRUE)
   read(indev,'(a256)') oneline
   IF(master) CALL message(io8,FALSE,FALSE,oneline)
@@ -351,7 +428,6 @@ DO while(TRUE)
 
   SELECT CASE(idcard)
     CASE(1)  !Time Step
-
       CALL FndChara(oneline, ipos, m, SLASH)
       m = m + 1; TranCntl%Tstep_inp(0) = m
       !IF(MOD(nLineField, 2) .NE. 0) CALL TERMINATE('Not Proper TIME_STEP INPUT')
@@ -361,13 +437,10 @@ DO while(TRUE)
         READ(oneline(ipos(i-1)+1:256), *) TranCntl%Tstep_inp(i), TranCntl%Tdiv_inp(i)
       ENDDO
       !READ(oneline, *) astring, (TranCntl%Tstep_inp(i), TranCntl%Tdiv_inp(i), i = 1, nLineField)
-
     CASE(2)  !EXPO_OPT
-
     CASE(3)  !THETA
-
     CASE(4)  !COND_RT
-
+      READ(oneline, *) astring, TranCntl%lCondiMOC
     CASE(5)  !TIME_EDIT
       TranCntl%nTWriteOut = nLineField
       READ(oneline, *) astring, TranCntl%TWriteOut(1:nLineField)
@@ -375,11 +448,128 @@ DO while(TRUE)
       n = n + 1
       XsChange(n)%lUse = .TRUE.
       !READ(oneline, *) astring, XsChange(n)%iso0, XsChange(n)%iso1, XsChange(n)%tbeg, XsChange(n)%tend
-      CALL ReadXsChange(Oneline, XsChange(n))
-  END SELECT
+      CALL ReadXsChange(Oneline, XsChange(n), TranCntl%lCusping)
+    CASE(7)  !KIN_BENCH
+    CASE(8)  !Af_Src
+    CASE(9) !USERTHETA
+      READ(oneline, *) astring, TranCntl%Theta
+    CASE(10) !nMAXouter
+      READ(oneline, *) astring, TranCntl%nMaxOuter
+    CASE(11) !CONV_CMFD
+      READ(oneline, *) astring, TranCntl%cmfd_res_conv
+    CASE(12) !nMAXCMFD
+      READ(oneline, *) astring, TranCntl%nMaxCmfd
+    CASE(13) !lStepFunc
+      !READ(oneline, *) astring, TranCntl%lStepFunc
+      READ(oneline, *) astring, TranCntl%lStepImplicit
+    CASE(14) !Method
+      READ(oneline, *) astring, TranCntl%TD
+      IF(TranCntl%TD .EQ. 1) THEN !CN
+        TranCntl%lExpTrsf = .FALSE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .FALSE.;  TranCntl%CMFD_BDF = .FALSE.
+        TranCntl%lSCM = .FALSE.;     TranCntl%lAM = .FALSE.
+      ELSEIF(TranCntl%TD .EQ. 2) THEN !CNET
+        TranCntl%lExpTrsf = .TRUE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .FALSE.;  TranCntl%CMFD_BDF = .FALSE.
+        TranCntl%lSCM = .FALSE.;     TranCntl%lAM = .FALSE.
+      ELSEIF(TranCntl%TD .EQ. 3) THEN !AT
+        TranCntl%lExpTrsf = .FALSE.; TranCntl%lAdpTheta = .TRUE.
+        TranCntl%MOC_BDF = .FALSE.;  TranCntl%CMFD_BDF = .FALSE.
+        TranCntl%lSCM = .FALSE.;     TranCntl%AdpThetaMethod = .TRUE.
+        TranCntl%lAM = .FALSE.
+        TranCntl%AdpThetaStep = 1
+      ELSEIF(TranCntl%TD .EQ. 4) THEN !BDF
+        TranCntl%lExpTrsf = .FALSE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .TRUE.;  TranCntl%CMFD_BDF = .TRUE.
+        TranCntl%lSCM = .FALSE.;     TranCntl%lAM = .FALSE.
+      ELSEIF(TranCntl%TD .EQ. 5) THEN !SCM
+        TranCntl%lExpTrsf = .FALSE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .FALSE.;  TranCntl%CMFD_BDF = .FALSE.
+        TranCntl%lSCM = .TRUE.;     TranCntl%lAM = .FALSE.
+      ELSEIF(TranCntl%TD .EQ. 6) THEN !SCM_Prec
+        TranCntl%lExpTrsf = .FALSE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .FALSE.;  TranCntl%CMFD_BDF = .FALSE.
+        TranCntl%lSCM = .TRUE.;     TranCntl%lAM = .FALSE.
+        TranCntl%lSCM_Prec = .TRUE.
+      ELSEIF(TranCntl%TD .EQ. 7) THEN !AM3
+        TranCntl%lExpTrsf = .FALSE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .TRUE.;  TranCntl%CMFD_BDF = .TRUE.
+        TranCntl%lSCM = .FALSE.;     TranCntl%lAM = .TRUE.
+      ELSEIF(TranCntl%TD .EQ. 8) THEN !AM3ET
+        TranCntl%lExpTrsf = .TRUE.; TranCntl%lAdpTheta = .FALSE.
+        TranCntl%MOC_BDF = .TRUE.;  TranCntl%CMFD_BDF = .TRUE.
+        TranCntl%lSCM = .FALSE.;     TranCntl%lAM = .TRUE.
+      ELSE
+        TranCntl%TD = 2
+      ENDIF
+    CASE(15) !RES_CONV
+      READ(oneline, *) astring, TranCntl%res_conv
+    CASE(16) !PSI_CONV
+      READ(oneline, *) astring, TranCntl%psi_conv
+    CASE(17) !CORRECTOR
+      READ(oneline, *) astring, TranCntl%lCorrector, TranCntl%Tdiv_corrector
+    CASE(18) !ADJOINT
+      IF(nLineField .EQ. 1) THEN
+        READ(oneline, *) astring, nTracerCntl%lAdjoint
+      ELSE
+        READ(oneline, *) astring, nTracerCntl%lAdjoint, nTracerCntl%lCMFDAdj
+      END IF
+    CASE(19) !Dyn_Bench
+    CASE(20) !NOISE
+      l = l+1
+      CALL ReadXsNoise(Oneline, XsNoise(l))
+    CASE(21) !XS_CNTLROD: Options for Control Rod cusping
+      k = k + 1
+      CALL ReadXsCntlRod(Oneline, XsCntlRod(k), TranCntl%lCusping)
+    CASE(22) !WORKING: Options for a debugging
+      DO WHILE(TRUE)
+        READ(indev, '(a256)') oneline
+        IF(probe .EQ. DOT) exit;       IF(probe.eq.SLASH) exit
+        IF(master) CALL message(io8,FALSE,FALSE,oneline)
+        nLineField = nfields(oneline)-1
+        read(oneline,*) astring, working_card; CALL toupper(working_card)
+        IF(working_card .EQ. 'PKE_GUESS') THEN
+          IF(nLineField .EQ. 2) THEN
+            READ(oneline, *) astring, astring, TranCntl%lGuess
+          ELSE
+            READ(oneline, *) astring, astring, TranCntl%lGuess, TranCntl%Tdiv_corrector
+          END IF
+        ELSE IF(working_card .EQ. 'TRAN_PCR') THEN
+          READ(oneline, *) astring, astring, TranCntl%PCRtype
+        ELSE IF(working_card .EQ. 'PCQS_ITER') THEN
+          READ(oneline, *) astring, astring, TranCntl%lPCQSIter, TranCntl%lIQS
+        ELSE IF(working_card .EQ. 'ADAPTIVET') THEN
+          READ(oneline, *) astring, astring, TranCntl%lAdptT, TranCntl%Tend, TranCntl%Tdiv_inp(1)
+        ELSE IF(working_card .EQ. 'IQSAA') THEN
+          READ(oneline, *) astring, astring, TranCntl%lIQSAA, TranCntl%IQSAA_m
+          TranCntl%IQSAA_m = TranCntl%IQSAA_m+1
+          ALLOCATE(TranCntl%IQSAA_x(2, TranCntl%IQSAA_m), TranCntl%IQSAA_g(2, TranCntl%IQSAA_m))
+        ELSE IF(working_card .EQ. 'FIXTMP_RW') THEN
+          READ(oneline, *) astring, astring, TranCntl%lfixtmprw
+        ELSE IF(working_card .EQ. 'WORKING_END') THEN
+          EXIT
+        END IF
+      END DO
+    CASE(23) ! DCY_HEAT: Power Calculation with Decay Heat
+      READ(oneline,*) astring, nTracerCntl%lDcyHeat
+    CASE(24) ! NOISE_SAMPLING : SAMPLING For Noise Analysis
+      TranCntl%lNNSampling = .TRUE.
+      READ(oneline,*) astring, TranCntl%SBeg, TranCntl%SEnd, TranCntl%SPeriod
+    CASE(25) ! NNFSP: Neutron Noise Fixed Source Problem
+      TranCntl%nfreq = nLineField
+      READ(oneline,*) astring, (TranCntl%freq_inp(i), i = 1, nLineField)
+      nTracerCntl%lproblem = lNNFSP
+    END SELECT
 ENDDO
-nTracerCntl%lProblem = lTransient
+IF(nTracerCntl%lProblem .NE. lNNFSP) nTracerCntl%lProblem = lTransient
+nTracerCntl%lTranOn = .TRUE.
 TranCntl%nchange = n
+DO i = 1, n
+  IF(XsChange(i)%lCusping) THEN
+    nTracerCntl%lDecusp = .TRUE.
+    EXIT
+  END IF
+END DO
 Backspace(indev); IF(Master) Backspace(outdev)
 END SUBROUTINE
 
@@ -389,7 +579,7 @@ USE RAYS,   ONLY : RayInfo
 USE GEOM,   ONLY : ng, Core
 USE CNTL,   ONLY : nTracerCntl
 USE ItrCNTL_mod,      ONLY : ItrCntl
-USE GEOM,   ONLY : nSubPlane
+USE GEOM,   ONLY : nSubPlane, maxhzfm
 USE PE_MOD, ONLY : PE
 USE IOUTIL, ONLY : GetFn
 USE FILES,  ONLY : filename,       XeEqFileIdx
@@ -552,6 +742,16 @@ DO while(TRUE)
     CASE(29) ! GRIDSTR
       READ(oneline, *) astring, nTracerCntl%gridStr(1 : nLineField - 1)
       nTracerCntl%gridNum = nLineField - 1
+    CASE(30) ! SUBPLN
+      nTracerCntl%lSubPlane = TRUE
+      READ(oneline, *) astring, maxhzfm
+    CASE(31) ! POWERMODE  JSU EDIT 20190819
+      IF (nLineField .EQ. 1) THEN
+        READ(oneline, * ) astring, nTRACERCntl%pmode
+      ELSE IF(nLineField .eq. 2) THEN
+        READ(oneline, * ) astring, nTRACERCntl%pmode, nTRACERCntl%pout_mode
+      END IF
+
   END SELECT
 ENDDO
 !--- Scheme case
@@ -683,8 +883,9 @@ DO while(TRUE)
     CASE(5) !PC_OPT
       READ(ONELINE, *) ASTRING, DeplCntl%PC_OPT
     CASE(6)  !B10DEPL
-      READ(ONELINE, *) ASTRING, DeplCntl%lB10Depl, DeplCntl%B10DeplMod
+      READ(ONELINE, *) ASTRING, DeplCntl%lB10Depl, DeplCntl%B10DeplMod, DeplCntl%vratio
       IF(.NOT. DeplCntl%lB10Depl) DeplCntl%B10DeplMod = 0
+      IF(DeplCntl%vratio .LE.0.0001) DeplCntl%vratio = 0.053957
     CASE(7)  !Core_Foloow
       READ(ONELINE, *) ASTRING, DeplCntl%lCoreFollow
       IF(nLineField .GT. 1) THEN
@@ -763,13 +964,21 @@ IF(lBoronSearch) THEN
   READ(BoronMode, *) boron_keff
   DeplCntl%CoreState%Target_keff(id0) = boron_keff
 ELSE
-  IF(ifnumeric(Boronmode)) THEN
-    READ(BoronMode, *) boron_keff
-    DeplCntl%CoreState%BoronPPM(id0) = boron_keff
+  IF(boronmode .EQ. '-') THEN
+    DeplCntl%CoreState%BoronPPM(id0) = -100._8
   ELSE
-    CALL TOUPPER(boronmode)
-    IF(boronmode .EQ. '-') DeplCntl%CoreState%BoronPPM(id0) = -100._8
+    IF(ifnumeric(Boronmode)) THEN
+      READ(BoronMode, *) boron_keff
+      DeplCntl%CoreState%BoronPPM(id0) = boron_keff
+    ENDIF
   ENDIF
+!  IF(ifnumeric(Boronmode)) THEN
+!    READ(BoronMode, *) boron_keff
+!    DeplCntl%CoreState%BoronPPM(id0) = boron_keff
+!  ELSE
+!    CALL TOUPPER(boronmode)
+!    IF(boronmode .EQ. '-') DeplCntl%CoreState%BoronPPM(id0) = -100._8
+!  ENDIF
 ENDIF
 
 END SUBROUTINE
@@ -789,7 +998,7 @@ INTEGER,PARAMETER :: idblock = 3
 INTEGER :: IntTemp(100)
 INTEGER :: i,k, idum1, idum2
 REAL :: REALTemp(100)
-CHARACTER(10) :: dumc
+CHARACTER(10) :: dumc, optfield
 LOGICAL :: Master
 
 Master = PE%Master
@@ -812,15 +1021,16 @@ DO while(TRUE)
     CASE(4)  !BASE_MICRO
 
     CASE(5)  !DNEUT_CHI
+      READ(oneline,*) astring, nTracerCntl%lchidgen, nTracerCntl%lchidkgen
 
     CASE(6)  !NEUT_VELO
-
+      READ(oneline,*) astring, nTracerCntl%lfixvel
     CASE(7)  !DNP_NGRP
 
     CASE(8)  !DNP_BETA
-
+      READ(oneline,*) astring, nTracerCntl%lfitbeta
     CASE(9)  !DNP_LAMBDA
-
+      READ(oneline,*) astring, nTracerCntl%llibdcy_del, nTracerCntl%refdcy_del
     CASE(10) !DUMMY
 
     CASE(11) !BUCKLING
@@ -849,7 +1059,7 @@ DO while(TRUE)
       CALL getfn(oneline,2,filename(DeplFileIdx))
       DeplLib%Filename = filename(DeplFileIdx)
       DeplCntl%lDeplFile = .TRUE.
-    CASE(16)
+    CASE(16) ! PHL ** photoatomic data..
 
     CASE(17) ! RT (stands for Resonance Treatment.)
       IF(nTracerCntl%libtyp == 2) THEN
@@ -887,8 +1097,18 @@ DO while(TRUE)
           READ(oneline, *) astring, nTracerCntl%lrestrmt, nTracerCntl%lMLG, nTracerCntl%l4Lv, nTracerCntl%lCAT
         END SELECT
       END IF
+    CASE(24) ! RIF
+      READ(ONELINE, *) astring, optfield
+      CALL TOUPPER(optfield)
+      IF (optfield.EQ.'FXR') THEN
+        nTRACERCntl%lRIFFXR = .TRUE.
+        nTRACERCntl%lRIF = .TRUE.
+      ELSEIF (optfield.EQ.'BON') THEN
+        nTRACERCntl%lRIF = .FALSE.
+      END IF
   END SELECT
 ENDDO
+nTRACERCntl%lRIFFXR = nTRACERCntl%lRIFFXR.AND.nTracerCntl%lrestrmt
 Backspace(indev); IF(Master) Backspace(outdev)
 END SUBROUTINE
 
@@ -1125,42 +1345,45 @@ DO while(TRUE)
         READ(ONELINE, *, ERR=11001) astring, nTracerCntl%OutpCntl%lCspGenOut, nTracerCntl%OutpCntl%CspGenBankId
       ENDIF
     CASE(7) !EFFXS
+      BACKSPACE(indev)
+      READ(indev, '(A1024)') longline
       nTracerCntl%OutpCntl%nRegXsOut = nTracerCntl%OutpCntl%nRegXsOut + 1
       i = nTracerCntl%OutpCntl%nRegXsOut
+      nLineField = nfields(longline)-1
       k = nLineField - 5
-      IF(k .LT. 1) CALL TERMINATE('Not Enough Input Argmuents : EFFXS')
-      CALL FndChara(oneline, ipos, nspt, SLASH)
-      IF (nspt.eq.2) THEN
-          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : EFFXS')
+      IF(k .LT. 1) CALL TERMINATE('Not Enough Input Argmuents : GEFFXS')
+      CALL FndChara(longline, ipos, nspt, SLASH)
+      IF (nspt.eq.2) THEN ! ASM
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : GEFFXS')
           nTracerCntl%OutpCntl%RegXsOutASM(i)=.TRUE.
           nTracerCntl%OutpCntl%RegXsOutPIN(i)=.FALSE.
           nTracerCntl%OutpCntl%RegXsOutFXR(i)=.FALSE.
-          READ(ONELINE, *, ERR=11002) astring, nTracerCntl%OutpCntl%RegXsOutList(1, i)
-          READ(ONELINE(ipos(1)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(2:3, i)
-          READ(ONELINE(ipos(2)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%IsoXsOutList(1:k, i)
-      ELSEIF (nspt.eq.3) THEN
+          READ(longline, *, ERR=11002) astring, nTracerCntl%OutpCntl%RegXsOutList(1, i)
+          READ(longline(ipos(1)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(2:3, i)
+          READ(longline(ipos(2)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%IsoXsOutList(1:k, i)
+      ELSEIF (nspt.eq.3) THEN ! PIN
           k=k-3
-          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : EFFXS')
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : GEFFXS')
           nTracerCntl%OutpCntl%RegXsOutASM(i)=.FALSE.
           nTracerCntl%OutpCntl%RegXsOutPIN(i)=.TRUE.
           nTracerCntl%OutpCntl%RegXsOutFXR(i)=.FALSE.
-          READ(ONELINE, *, ERR=11002) astring, nTracerCntl%OutpCntl%RegXsOutList(1, i)
-          READ(ONELINE(ipos(1)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(2:3, i)
-          READ(ONELINE(ipos(2)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(4:5, i)
-          READ(ONELINE(ipos(3)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%IsoXsOutList(1:k, i)
-      ELSEIF (nspt.eq.4) THEN
+          READ(longline, *, ERR=11002) astring, nTracerCntl%OutpCntl%RegXsOutList(1, i)
+          READ(longline(ipos(1)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(2:3, i)
+          READ(longline(ipos(2)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(4:5, i)
+          READ(longline(ipos(3)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%IsoXsOutList(1:k, i)
+      ELSEIF (nspt.eq.4) THEN ! FXR
           k=k-6
-          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : EFFXS')
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : GEFFXS')
           nTracerCntl%OutpCntl%RegXsOutASM(i)=.FALSE.
           nTracerCntl%OutpCntl%RegXsOutPIN(i)=.FALSE.
           nTracerCntl%OutpCntl%RegXsOutFXR(i)=.TRUE.
-      READ(ONELINE, *, ERR=11002) astring, nTracerCntl%OutpCntl%RegXsOutList(1, i)
-      READ(ONELINE(ipos(1)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(2:3, i)
-      READ(ONELINE(ipos(2)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(4:5, i)
-      READ(ONELINE(ipos(3)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(6:7, i)
-      READ(ONELINE(ipos(4)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%IsoXsOutList(1:k, i)
+          READ(longline, *, ERR=11002) astring, nTracerCntl%OutpCntl%RegXsOutList(1, i)
+          READ(longline(ipos(1)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(2:3, i)
+          READ(longline(ipos(2)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(4:5, i)
+          READ(longline(ipos(3)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%RegXsOutList(6:7, i)
+          READ(longline(ipos(4)+1:), *,  ERR=11002) nTracerCntl%OutpCntl%IsoXsOutList(1:k, i)
       ELSE
-          CALL TERMINATE('Not Enough Input Argmuents : EFFXS')
+          CALL TERMINATE('Not Enough Input Argmuents : GEFFXS')
       ENDIF
       nTracerCntl%OutpCntl%IsoXsOutList(0,i) = k
     CASE(8)  !BINOUTP
@@ -1339,6 +1562,84 @@ DO while(TRUE)
           CALL TERMINATE('Not Enough Input Argmuents : PHIM')
       ENDIF
       nTracerCntl%OutpCntl%PhimOrdOutList(0,i) = k
+    CASE(25) !GEFFXS
+      nTracerCntl%OutpCntl%nRegPhXsOut = nTracerCntl%OutpCntl%nRegPhXsOut + 1
+      i = nTracerCntl%OutpCntl%nRegPhXsOut
+      k = nLineField - 5
+      IF(k .LT. 1) CALL TERMINATE('Not Enough Input Argmuents : GEFFXS')
+      CALL FndChara(oneline, ipos, nspt, SLASH)
+      IF (nspt.eq.2) THEN
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : GEFFXS')
+          nTracerCntl%OutpCntl%RegPhXsOutASM(i)=.TRUE.
+          nTracerCntl%OutpCntl%RegPhXsOutPIN(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegPhXsOutFXR(i)=.FALSE.
+          READ(ONELINE, *, ERR=11006) astring, nTracerCntl%OutpCntl%RegPhXsOutList(1, i)
+          READ(ONELINE(ipos(1)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%RegPhXsOutList(2:3, i)
+          READ(ONELINE(ipos(2)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%IsoPhXsOutList(1:k, i)
+      ELSEIF (nspt.eq.3) THEN
+          k=k-3
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : GEFFXS')
+          nTracerCntl%OutpCntl%RegPhXsOutASM(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegPhXsOutPIN(i)=.TRUE.
+          nTracerCntl%OutpCntl%RegPhXsOutFXR(i)=.FALSE.
+          READ(ONELINE, *, ERR=11006) astring, nTracerCntl%OutpCntl%RegPhXsOutList(1, i)
+          READ(ONELINE(ipos(1)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%RegPhXsOutList(2:3, i)
+          READ(ONELINE(ipos(2)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%RegPhXsOutList(4:5, i)
+          READ(ONELINE(ipos(3)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%IsoPhXsOutList(1:k, i)
+      ELSEIF (nspt.eq.4) THEN
+          k=k-6
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : GEFFXS')
+          nTracerCntl%OutpCntl%RegPhXsOutASM(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegPhXsOutPIN(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegPhXsOutFXR(i)=.TRUE.
+      READ(ONELINE, *, ERR=11006) astring, nTracerCntl%OutpCntl%RegPhXsOutList(1, i)
+      READ(ONELINE(ipos(1)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%RegPhXsOutList(2:3, i)
+      READ(ONELINE(ipos(2)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%RegPhXsOutList(4:5, i)
+      READ(ONELINE(ipos(3)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%RegPhXsOutList(6:7, i)
+      READ(ONELINE(ipos(4)+1:), *,  ERR=11006) nTracerCntl%OutpCntl%IsoPhXsOutList(1:k, i)
+      ELSE
+          CALL TERMINATE('Not Enough Input Argmuents : GEFFXS')
+      ENDIF
+      nTracerCntl%OutpCntl%IsoPhXsOutList(0,i) = k
+    CASE(26) ! KERMA
+      nTracerCntl%OutpCntl%nRegKERMAOut = nTracerCntl%OutpCntl%nRegKERMAOut + 1
+      i = nTracerCntl%OutpCntl%nRegKERMAOut
+      k = nLineField - 5
+      IF(k .LT. 1) CALL TERMINATE('Not Enough Input Argmuents : KERMA')
+      CALL FndChara(oneline, ipos, nspt, SLASH)
+      IF (nspt.eq.2) THEN
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : KERMA')
+          nTracerCntl%OutpCntl%RegKERMAOutASM(i)=.TRUE.
+          nTracerCntl%OutpCntl%RegKERMAOutPIN(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegKERMAOutFXR(i)=.FALSE.
+          READ(ONELINE, *, ERR=11007) astring, nTracerCntl%OutpCntl%RegKERMAOutList(1, i)
+          READ(ONELINE(ipos(1)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%RegKERMAOutList(2:3, i)
+          READ(ONELINE(ipos(2)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%IsoKERMAOutList(1:k, i)
+      ELSEIF (nspt.eq.3) THEN
+          k=k-3
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : KERMA')
+          nTracerCntl%OutpCntl%RegKERMAOutASM(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegKERMAOutPIN(i)=.TRUE.
+          nTracerCntl%OutpCntl%RegKERMAOutFXR(i)=.FALSE.
+          READ(ONELINE, *, ERR=11007) astring, nTracerCntl%OutpCntl%RegKERMAOutList(1, i)
+          READ(ONELINE(ipos(1)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%RegKERMAOutList(2:3, i)
+          READ(ONELINE(ipos(2)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%RegKERMAOutList(4:5, i)
+          READ(ONELINE(ipos(3)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%IsoKERMAOutList(1:k, i)
+      ELSEIF (nspt.eq.4) THEN
+          k=k-6
+          IF(k .GT. 200) CALL TERMINATE('Max. Isotope is 200 : KERMA')
+          nTracerCntl%OutpCntl%RegKERMAOutASM(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegKERMAOutPIN(i)=.FALSE.
+          nTracerCntl%OutpCntl%RegKERMAOutFXR(i)=.TRUE.
+      READ(ONELINE, *, ERR=11007) astring, nTracerCntl%OutpCntl%RegKERMAOutList(1, i)
+      READ(ONELINE(ipos(1)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%RegKERMAOutList(2:3, i)
+      READ(ONELINE(ipos(2)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%RegKERMAOutList(4:5, i)
+      READ(ONELINE(ipos(3)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%RegKERMAOutList(6:7, i)
+      READ(ONELINE(ipos(4)+1:), *,  ERR=11007) nTracerCntl%OutpCntl%IsoKERMAOutList(1:k, i)
+      ELSE
+          CALL TERMINATE('Not Enough Input Argmuents : KERMA')
+      ENDIF
+      nTracerCntl%OutpCntl%IsoKERMAOutList(0,i) = k
   END SELECT
 ENDDO
 Backspace(indev); IF(Master) Backspace(outdev)
@@ -1348,6 +1649,8 @@ RETURN
 11003 CALL TERMINATE('Input Argument Error : FXRMGMAC')
 11004 CALL TERMINATE('Input Argument Error : EFFMAT0')
 11005 CALL TERMINATE('Input Argument Error : PHIM')
+11006 CALL TERMINATE('Input Argument Error : GEFFXS')
+11007 CALL TERMINATE('Input Argument Error : KERMA')
 END SUBROUTINE
 
 SUBROUTINE ReadLpShfCard(indev, outdev)
@@ -1563,7 +1866,7 @@ ENDDO
 Backspace(indev); IF(Master) Backspace(outdev)
 END SUBROUTINE
 
-SUBROUTINE ReadXsChange(Dataline, XSChange)
+SUBROUTINE ReadXsChange(Dataline, XSChange, CntlCusping)
 USE PARAM
 USE TYPEDEF,           ONLY : XsChange_Type
 USE IOUTIL,            ONLY : FndChara
@@ -1572,42 +1875,222 @@ USE ALLOCS
 IMPLICIT NONE
 CHARACTER(512) :: Dataline
 TYPE(XsChange_Type) :: XsChange
+LOGICAL :: CntlCusping
 
 CHARACTER(256) :: Dataline2
 INTEGER :: ipos(100), ipos2(100)
 INTEGER :: nspt, nspt2
 INTEGER :: ixya
 INTEGER :: nxa, nya, i1, i2
+INTEGER :: i
+LOGICAL :: lpln, lasy, lcusping
 
 READ(oneline, *) astring, XsChange%iso0, XsChange%iso1, XsChange%tbeg, XsChange%tend
+IF(XsChange%tbeg .EQ. XsChange%tend) XsChange%lStepFunc = .TRUE.
 CALL fndchara(dataline,ipos,nspt,SLASH)
 
-IF(nspt .NE. 3) THEN
+lpln = .FALSE.
+lasy = .FALSE.
+lcusping = .FALSE.
+IF(nspt .GT. 1) THEN
+  DO i = ipos(1)+1, ipos(2)-1
+    IF(dataline(i:i) .NE. '') THEN
+      lpln = .TRUE.
+      EXIT
+    END IF
+  END DO
+  IF(nspt .GT. 2) THEN
+    DO i = ipos(2)+1, ipos(3)-1
+      IF(dataline(i:i) .NE. '') THEN
+        lasy = .TRUE.
+        EXIT
+      END IF
+    END DO
+    IF(nspt .GT. 3) THEN
+      DO i = ipos(3)+1, ipos(4)-1
+        IF(dataline(i:i) .NE. '') THEN
+          lcusping = .TRUE.
+          EXIT
+        END IF
+      END DO
+    END IF
+  END IF
+END IF
+IF(lpln .OR. lasy) THEN
+  XsChange%lSupl = .TRUE.
+END IF
+
+IF(lpln) THEN
+  Dataline2 = ''; Dataline2 = Dataline(ipos(1)+1:ipos(2)-1)
+  XsChange%field1 = Dataline2
+  READ(Dataline2, *) i1, i2
+  XsChange%izbeg = i1; XsChange%izend = i2
+ELSE
   XsChange%izbeg = 1;   XsChange%izend = Core%nz
+END IF
+
+IF(lasy) THEN
+  Dataline2 = ''; Dataline2 = Dataline(ipos(2)+1:ipos(3)-1)
+  XsChange%field2 = Dataline2
+
+  CALL FndChara(XsChange%field2, ipos2, nspt2, '[')
+
+  XsChange%nasy = nspt2
+  CALL DMALLOC(XsChange%AsyList, nspt2)
+  DO ixya = 1, nspt2
+    READ(XsChange%field2(ipos2(ixya)+1:256), *) i1, i2
+    XsChange%AsyList(ixya) = Core%CoreIdx(i1, i2)
+  ENDDO
+ELSE
   XsChange%nasy = Core%nxya
   CALL DMALLOC(XsChange%AsyList, Core%nxya)
   DO ixya = 1, Core%nxya
     XsChange%AsyList(ixya) = ixya
   ENDDO
-  RETURN
-ENDIF
-XsChange%lSupl = .TRUE.
-Dataline2 = ''; Dataline2 = Dataline(ipos(1)+1:ipos(2)-1)
-XsChange%field1 = Dataline2
+END IF
 
-READ(Dataline2, *) i1, i2
-XsChange%izbeg = i1; XsChange%izend = i2
-Dataline2 = ''; Dataline2 = Dataline(ipos(2)+1:ipos(3)-1)
-XsChange%field2 = Dataline2
+IF(lcusping) THEN
+  Dataline2 = ''; Dataline2 = Dataline(ipos(3)+1:ipos(4)-1)
+  READ(Dataline2, *) XsChange%lCusping, XsChange%lCuspingDirection
+ELSE
+  XsChange%lCusping = .FALSE.
+END IF
+IF(XsChange%lCusping) CntlCusping = .TRUE.
 
-CALL FndChara(XsChange%field2, ipos2, nspt2, '[')
+END SUBROUTINE
 
-XsChange%nasy = nspt2
-CALL DMALLOC(XsChange%AsyList, nspt2)
-DO ixya = 1, nspt2
-  READ(XsChange%field2(ipos2(ixya)+1:256), *) i1, i2
-  XsChange%AsyList(ixya) = Core%CoreIdx(i1, i2)
-ENDDO
+SUBROUTINE ReadXsCntlRod(Dataline, XSCntlRod, CntlCusping)
+USE PARAM
+USE TYPEDEF,           ONLY : XsCntlRod_Type
+USE IOUTIL,            ONLY : FndChara
+USE GEOM,              ONLY : Core
+USE ALLOCS
+IMPLICIT NONE
+CHARACTER(512) :: Dataline
+TYPE(XsCntlRod_Type) :: XsCntlRod
+LOGICAL :: CntlCusping
+
+CHARACTER(256) :: Dataline2
+INTEGER :: ipos(100), ipos2(100)
+INTEGER :: nspt, nspt2
+INTEGER :: ixya
+INTEGER :: nxa, nya, i1, i2
+INTEGER :: i
+LOGICAL :: lpln, lasy, lcusping
+
+READ(oneline, *) astring, XsCntlRod%iso0, XsCntlRod%iso1, XsCntlRod%wt
+CALL fndchara(dataline,ipos,nspt,SLASH)
+
+lpln = .FALSE.
+lasy = .FALSE.
+lcusping = .FALSE.
+IF(nspt .GT. 1) THEN
+  DO i = ipos(1)+1, ipos(2)-1
+    IF(dataline(i:i) .NE. '') THEN
+      lpln = .TRUE.
+      EXIT
+    END IF
+  END DO
+  IF(nspt .GT. 2) THEN
+    DO i = ipos(2)+1, ipos(3)-1
+      IF(dataline(i:i) .NE. '') THEN
+        lasy = .TRUE.
+        EXIT
+      END IF
+    END DO
+    IF(nspt .GT. 3) THEN
+      DO i = ipos(3)+1, ipos(4)-1
+        IF(dataline(i:i) .NE. '') THEN
+          lcusping = .TRUE.
+          EXIT
+        END IF
+      END DO
+    END IF
+  END IF
+END IF
+
+IF(lpln) THEN
+  Dataline2 = ''; Dataline2 = Dataline(ipos(1)+1:ipos(2)-1)
+  XsCntlRod%field1 = Dataline2
+  READ(Dataline2, *) i1, i2
+  XsCntlRod%izbeg = i1; XsCntlRod%izend = i2
+ELSE
+  XsCntlRod%izbeg = 1;   XsCntlRod%izend = Core%nz
+END IF
+
+IF(lasy) THEN
+  Dataline2 = ''; Dataline2 = Dataline(ipos(2)+1:ipos(3)-1)
+  XsCntlRod%field2 = Dataline2
+
+  CALL FndChara(XsCntlRod%field2, ipos2, nspt2, '[')
+
+  XsCntlRod%nasy = nspt2
+  CALL DMALLOC(XsCntlRod%AsyList, nspt2)
+  DO ixya = 1, nspt2
+    READ(XsCntlRod%field2(ipos2(ixya)+1:256), *) i1, i2
+    XsCntlRod%AsyList(ixya) = Core%CoreIdx(i1, i2)
+  ENDDO
+ELSE
+  XsCntlRod%nasy = Core%nxya
+  CALL DMALLOC(XsCntlRod%AsyList, Core%nxya)
+  DO ixya = 1, Core%nxya
+    XsCntlRod%AsyList(ixya) = ixya
+  ENDDO
+END IF
+
+IF(lcusping) THEN
+  Dataline2 = ''; Dataline2 = Dataline(ipos(3)+1:ipos(4)-1)
+  READ(Dataline2, *) XsCntlRod%lCusping, XsCntlRod%lCuspingDirection
+ELSE
+  XsCntlRod%lCusping = .FALSE.
+END IF
+IF(XsCntlRod%lCusping) CntlCusping = .TRUE.
+
+END SUBROUTINE
+
+SUBROUTINE ReadXsNoise(Dataline, XsNoise)
+USE PARAM
+USE TYPEDEF,        ONLY : XsNoise_Type
+USE ioutil,         ONLY : FndChara
+USE geom,           ONLY : Core
+IMPLICIT NONE
+CHARACTER(512) :: Dataline
+TYPE(XsNoise_Type) :: XsNoise
+
+
+CHARACTER(512) :: Dataline2
+CHARACTER(1) :: xstype
+INTEGER :: ipos(100)
+INTEGER :: nspt, nLinefield
+
+READ(oneline, *) astring, XsNoise%iso0, xstype
+CALL toupper(xstype)
+SELECT CASE(xstype)
+CASE('C') ! Capture
+  XsNoise%itype = 1
+CASE('F') ! Fission
+  XsNoise%itype = 2
+CASE('S') ! Scattering
+  XsNoise%itype = 3
+END SELECT
+CALL fndChara(dataline, ipos, nspt, SLASH)
+
+dataline2 = ' '
+dataline2 = dataline(ipos(1)+1:ipos(2)-1)
+READ(dataline2, *) XsNoise%amp, XsNoise%freq, XsNoise%phase
+
+dataline2 = ' '
+dataline2 = dataline(ipos(2)+1:ipos(3)-1)
+READ(dataline2, *) XsNoise%ixa, XsNoise%iya
+XsNoise%ixya = Core%CoreIdx(XsNoise%ixa, XsNoise%iya)
+
+dataline2 = ' '
+dataline2 = dataline(ipos(3)+1:ipos(4)-1)
+READ(dataline2, *) XsNoise%ix, XsNoise%iy
+
+dataline2 = ' '
+dataline2 = dataline(ipos(4)+1:ipos(5)-1)
+READ(dataline2, *) XsNoise%izbeg, XsNoise%izend
 
 END SUBROUTINE
 
@@ -1618,7 +2101,7 @@ USE CNTL,        ONLY : nTracerCntl
 USE PE_MOD,      ONLY : PE
 USE CNTLROD_MOD, ONLY : GetInp_CrCellMap,       GetInp_CrAsyConf,         GetInp_CrBank,     &
                         GetInp_CrBank,          GetInp_CrPosition,        GetInp_CrPosChg,   &
-                        GetInp_CrMvDom
+                        GetInp_CrMvDom,         GetInp_CrDecusp
 USE CrCsp_Mod,   ONLY : GetInp_CSPFILE,         GetInp_CSPMAP
 IMPLICIT NONE
 INTEGER           :: indev,outdev
@@ -1659,6 +2142,9 @@ DO while(TRUE)
       CALL GetInp_CSPMAP(Core%nxya, Core%nxa, Core%nya, Indev, outdev, PE)
     CASE(8)    !CRMV_DOM  Control Rod Moving Domain
       CALL GetInp_CrMvDom(OneLine, PE)
+    CASE(10)   !CR_DECUSP
+      nTracerCntl%lDecusp = .TRUE.
+      CALL GetInp_CrDeCusp(Oneline)
   END SELECT
 ENDDO
 Backspace(indev); IF(Master) Backspace(outdev)
@@ -1822,11 +2308,11 @@ END SUBROUTINE
 SUBROUTINE ReadSubchOptionCard(InDev, OutDev)
 USE PARAM
 USE PE_MOD,         ONLY : PE
-USE SubChCoupling_mod,    ONLY: coupled_maxsteps, coupled_relconv
+USE SubChCoupling_mod,    ONLY: coupled_maxsteps, coupled_relconv, Courant, sbch_outop
 IMPLICIT NONE
 
 INTEGER :: InDev, OutDev
-INTEGER           :: idcard
+INTEGER           :: idcard, I
 INTEGER,parameter :: idblock = 21
 LOGICAL :: Master
 
@@ -1851,6 +2337,10 @@ DO while(TRUE)
     CASE(4)  ! REL_CONV
       READ(oneline, *) astring, coupled_relconv
 
+    CASE(5)  ! COURANT
+      READ(oneline, *) astring, Courant
+    CASE(6)  ! SBCH_OUT
+      READ(oneline, *) astring, (sbch_outop(I), I = 1, nLineField)
   END SELECT
 ENDDO
 
@@ -1862,7 +2352,7 @@ SUBROUTINE ReadMKLCard(InDev, OutDev)
 USE PARAM
 USE PE_MOD,         ONLY : PE
 #ifdef __INTEL_MKL
-USE MKL_3D,         ONLY : mklGeom,         mklCntl
+USE MKL_3D,         ONLY : mklGeom,         mklCntl,        mklDepl
 #endif
 IMPLICIT NONE
 
@@ -1946,6 +2436,8 @@ DO while(TRUE)
       READ(oneline, *) astring, mklCntl%lSuperpin
     CASE(13) ! SUBPLN
       READ(oneline, *) astring, mklCntl%lSubplane, mklCntl%CMFDHeight
+    CASE(14) ! DEPL
+      READ(oneline, *) astring, mklCntl%lDepl, mklDepl%SysByte, mklDepl%Scale
   END SELECT
 ENDDO
 #endif
@@ -1959,7 +2451,7 @@ USE PARAM
 USE PE_MOD,         ONLY : PE
 USE CNTL,           ONLY : nTracerCntl
 #ifdef __PGI
-USE CUDA_MASTER,    ONLY : cuGeometry,      cuCntl
+USE CUDA_MASTER,    ONLY : cuGeometry,      cuCntl,       cuDepl
 #endif
 IMPLICIT NONE
 
@@ -1973,9 +2465,12 @@ Master = PE%master
 PE%lCUDA = TRUE
 PE%lCUDACMFD = TRUE
 nTracerCntl%lNodeMajor = TRUE
-nTracerCntl%lMacro = TRUE
+!nTracerCntl%lMacro = TRUE
 nTracerCntl%lED = FALSE
 nTracerCntl%lMLG = TRUE
+IF (nTracerCntl%lXsAlign) THEN
+ nTracerCntl%lMacro = FALSE
+END IF
 
 #ifdef __PGI
 DO while(TRUE)
@@ -2032,6 +2527,19 @@ DO while(TRUE)
       READ(oneline, *) astring, cuCntl%lSubplane, cuCntl%CMFDHeight
     CASE(10) ! CU_SHIFT
       READ(oneline, *) astring, cuCntl%lShift, cuCntl%Shift
+    CASE(11) ! CU_DEPL
+      READ(oneline, *) astring, PE%lCUDADepl, cuDepl%sysByte, cuDepl%Scale
+    CASE(12) ! CU_XS
+      READ(oneline, *) astring, nTracerCntl%lXsAlign
+      IF (nTracerCntl%lXsAlign) THEN
+        nTracerCntl%lMacro = FALSE
+      ELSE
+        nTracerCntl%lMacro = TRUE
+      END IF
+    CASE(13) ! CU_SUPERPIN
+      READ(oneline, *) astring, cuCntl%lsuperpin
+    CASE(14) ! CU_PWDIST
+      READ(oneline, *) astring, cuCntl%lPwDist
   END SELECT
 ENDDO
 #endif

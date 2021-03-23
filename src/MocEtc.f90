@@ -3,9 +3,10 @@ SUBROUTINE PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
 USE PARAM
 USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
                          GroupInfo_Type,      XsMac_Type
-USE BenchXs,       ONLY : xsnfBen
+USE BenchXs,       ONLY : xsnfBen,            xsnfDynBen
 USE MacXsLib_Mod, ONLY : MacXsNf, IsoMacXsnf
 USE BasicOperation, ONLY : CP_CA, MULTI_VA
+USE TRAN_MOD,     ONLY : TranInfo,            TranCntl
 IMPLICIT NONE
 TYPE(coreinfo_type) :: CORE
 TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
@@ -53,14 +54,18 @@ DO iz = myzb, myze
         xsmacnf => XsMac%XsMacNf
         IF(myFxr%lres) THEN
           do ig = iResoGrpBeg, iResoGrpEnd
-            XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoF(ig)  
+            XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoNF(ig)  
           enddo
         ENDIF
       ELSE
         ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
         !itype = CellInfo(icel)%iReg(ifsrlocal)      
         itype = myFxr%imix
+        IF(TranCntl%lDynamicBen) THEN
+          CALL xsnfDynben(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, xsmacnf)
+        ELSE
         CALL xsnfben(itype, 1, ng, xsmacnf)
+        END IF
         !CHI(ig:ig) = GetChiBen(itype, ig, ig)
       ENDIF
       
@@ -71,7 +76,7 @@ DO iz = myzb, myze
         ENDDO
         CONTINUE
         !src(ifsr) = reigv * chi(ig) * psic(ifsr, iz)
-      ENDDO !Fsr Sweep    
+      ENDDO !Fsr Sweep  
     ENDDO
   ENDDO
 ENDDO
@@ -85,12 +90,13 @@ SUBROUTINE PowerUpdate(Core, Fxr, phis, power, myzb, myze, ng, lxslib, GroupInfo
 USE PARAM
 USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
                          GroupInfo_Type,      XsMac_Type,         PE_TYPE
-USE BenchXs,       ONLY : xskfBen
+USE BenchXs,       ONLY : xskfBen,            xskfDynBen
 USE MacXsLib_Mod, ONLY : MacXskf
 USE BasicOperation, ONLY : CP_CA, MULTI_VA
 #ifdef MPI_ENV
 USE MPIComm_Mod, ONLY : BCAST
 #endif
+USE TRAN_MOD,     ONLY : TranInfo,          TranCntl
 IMPLICIT NONE
 TYPE(coreinfo_type) :: CORE
 TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
@@ -139,14 +145,18 @@ DO iz = myzb, myze
         xsmacKf => XsMac%XsMacKf
         IF(myFxr%lres) THEN
           do ig = iResoGrpBeg, iResoGrpEnd
-            XsMackf(ig) = XsMackf(ig) * myFxr%fresoF(ig)  
+            XsMackf(ig) = XsMackf(ig) * myFxr%fresokF(ig)  
           enddo
         ENDIF
       ELSE
         ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
         !itype = CellInfo(icel)%iReg(ifsrlocal)      
         itype = myFxr%imix
+        IF(TranCntl%lDynamicBen) THEN
+          CALL xskfDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, xsmackf)
+        ELSE
         CALL xskfben(itype, 1, ng, xsmackf)
+        END IF
         !CHI(ig:ig) = GetChiBen(itype, ig, ig)
       ENDIF
       
@@ -261,7 +271,6 @@ DO iz = myzb, myze
     psic(l, iz) = zero
     DO j = 1, nLocalFsr
       ireg = FsrIdxSt + j - 1
-      
       psic(l, iz) =  psic(l, iz) + CellInfo(icel)%vol(j) * psi(ireg, iz)
     ENDDO  
     psic(l, iz) = psic(l, iz)*hz(iz)
@@ -434,7 +443,6 @@ DO iz = myzb, myze
       DO i = 1, nlocalFsr
         ireg = FsrIdxSt + i - 1
         vol = Cell(icel)%vol(i)
-        
         DO ig = 1, ng
           Collision(ig) = Collision(ig) + vol * phisnm(ig, ireg) * xstnm(ig, ireg)
           Source(ig) = Source(ig) + vol * srcnm(ig, ireg) * xstnm(ig, ireg)
@@ -575,7 +583,6 @@ DO ig = 1, ng
       DO j = 1, nlocalFsr
         ireg = FsrIdxSt + j - 1
         vol = Cell(icel)%vol(j)
-        
         LocalResidual = LocalResidual + vol * phis(ireg, iz, ig) * xst1g(ireg)
         localsrc = localsrc + tsrc(ireg) * vol * xst1g(ireg)
       ENDDO
@@ -1129,4 +1136,58 @@ CALL MPI_GATHERV(buf_DcmpPhiAngOut, nDat, MPI_DOUBLE_PRECISION, DcmpPhiAngOut, r
                  MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 DEALLOCATE(buf_DcmpPhiAngOut)
 
-END SUBROUTINE    
+END SUBROUTINE   
+ 
+SUBROUTINE GetNeighborMocFlux(phis, neighphis, nFsr, myzb, myze, gb, ge, nz, AxBC)
+USE PARAM,          ONLY : RefCell, VoidCell
+USE PE_Mod,         ONLY : PE
+USE MPIGetNeighbor
+IMPLICIT NONE
+REAL, POINTER :: phis(:, :, :), neighphis(:, :, :)
+INTEGER :: myzb, myze, gb, ge, nz
+INTEGER :: AxBC(2)
+
+REAL, POINTER :: phibuf(:, :, :)
+INTEGER :: nFsr, ng
+INTEGER :: ifsr, ig
+
+ng = ge - gb + 1
+
+ALLOCATE(phibuf(nFsr, gb:ge, 2))
+DO ig = gb, ge
+  DO ifsr = 1, nFsr
+    phibuf(ifsr, ig, 1) = Phis(ifsr, myzb, ig)
+    phibuf(ifsr, ig, 2) = Phis(ifsr, myze, ig)
+  END DO
+END DO
+
+CALL InitFastComm()
+CALL GetNeighborFast(nFsr * ng, phibuf(:, :, 1), neighphis(:, gb : ge, 1), 1, PE%myCMFDRank, PE%MPI_CMFD_COMM, PE%nCMFDProc)
+CALL GetNeighborFast(nFsr * ng, phibuf(:, :, 2), neighphis(:, gb : ge, 2), 2, PE%myCMFDRank, PE%MPI_CMFD_COMM, PE%nCMFDProc)
+CALL FinalizeFastComm(PE%MPI_CMFD_COMM)
+
+DEALLOCATE(phibuf)
+
+IF(myzb .EQ. 1) THEN
+  IF(AxBC(BOTTOM) .EQ. VoidCell) neighphis(:,gb:ge,BOTTOM) = 0.
+  IF(AxBC(BOTTOM) .EQ. RefCell) THEN 
+    DO ig = gb, ge
+      DO ifsr = 1, nFsr
+        neighphis(ifsr, ig, BOTTOM) = Phis(ifsr, 1, ig)
+      END DO
+    END DO
+  END IF
+END IF
+
+IF(myze .EQ. nz) THEN
+  IF(AxBC(TOP) .EQ. VoidCell) neighphis(:,gb:ge,TOP) = 0.
+  IF(AxBC(TOP) .EQ. RefCell) THEN 
+    DO ig = gb, ge
+      DO ifsr = 1, nFsr
+        neighphis(ifsr, ig, TOP) = Phis(ifsr, nz, ig)
+      END DO
+    END DO
+  END IF
+END IF
+
+END SUBROUTINE

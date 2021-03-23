@@ -1,6 +1,7 @@
 MODULE TH_Mod
 USE PARAM
-USE TypeDef,    ONLY : ThOpt_Type,  ThVar_Type
+USE TypeDef,    ONLY : ThOpt_Type,  ThVar_Type,      CoolantTH_Type,      FuelTh_Type  
+
 IMPLICIT NONE
 
 TYPE(THOpt_Type) :: ThOpt
@@ -13,6 +14,11 @@ DATA ThOPT%KCladCorrelation  /7.51_8, 2.09e-2_8, -1.45e-5_8, 7.67e-9_8/
 DATA ThOpt%CpFuelCorrelation /1668768.6_8, 3123.6716_8, -2.4584262_8, 0.000658459_8/ !rhof=10.282
 DATA ThOpt%CpCladCorrelation /1666764.0_8, 757.284_8, 0., 0./ !rhoclad=6.6 g/cc
 #endif
+
+TYPE(CoolantTH_Type), PUBLIC, POINTER :: CoolantTHSave(:)
+TYPE(FuelTH_Type), PUBLIC,  POINTER :: FuelTHSave(:)
+REAL(8),PUBLIC, ALLOCATABLE :: fxrtempsave(:,:,:)
+REAL, PUBLIC, POINTER :: hGapArray(:, :)
 
 INTERFACE
   SUBROUTINE AllocTH()
@@ -58,6 +64,18 @@ INTERFACE
   INTEGER :: iz
   END SUBROUTINE
 
+  SUBROUTINE TransientCoolantTH_ThCh(Core, qeff, qeffd, Pexit, CoolantTH, iz, ThVar, ThOpt, ixy)
+  USE PARAM
+  USE TYPEDEF,          ONLY : CoreInfo_Type, CoolantTH_Type,       ThVar_Type,       ThOpt_Type
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(CoolantTH_Type) :: CoolantTH
+  TYPE(ThVar_Type) :: ThVar
+  TYPE(ThOPT_Type) :: ThOpt
+  REAL :: qeff, qeffd, PEXIT
+  INTEGER :: iz, ixy
+  END SUBROUTINE
+
   SUBROUTINE SteadyCoolantTH(powlin, plevel, Pexit, Tout, RelPW, CoolantTH, ThVar,ThOpt, PE)
   USE PARAM
   USE TYPEDEF,      ONLY : CoolantTH_Type,       ThVar_Type,     &
@@ -72,7 +90,23 @@ INTERFACE
 
   END SUBROUTINE
 
-  SUBROUTINE Tfcaltr(tfvol, Tfuel, Tfueld, Tcool, htCoef, Qf, Qfd, nr, ThVar, ThOpt)
+  SUBROUTINE SteadyCoolantTH_ThCh(Core, powlin, plevel, Pexit, Tout, RelPW, CoolantTH, ThVar,ThOpt, PE, ixy)
+  USE PARAM
+  USE TYPEDEF,      ONLY : CoreInfo_Type,        CoolantTH_Type,       ThVar_Type,     &
+                           ThOpt_Type,           PE_Type
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(CoolantTH_Type) :: CoolantTH        ! One Channel Coolant TH information
+  TYPE(ThVar_Type) :: ThVar                !
+  TYPE(ThOPT_Type) :: ThOpt                !
+  TYPE(PE_Type) :: PE                      !
+  REAL :: PowLin, Plevel, PEXIT, Tout      !
+  REAL :: RelPW(:)
+  INTEGER :: ixy
+
+  END SUBROUTINE
+
+  SUBROUTINE Tfcaltr(tfvol, Tfuel, Tfueld, Tcool, htCoef, Qf, Qfd, nr, ThVar, ThOpt, hgap)
   USE PARAM
   USE TYPEDEF,           ONLY : ThVar_Type,     ThOpt_Type
   IMPLICIT NONE
@@ -81,9 +115,22 @@ INTERFACE
   INTEGER :: nr
   TYPE(ThVar_Type) :: ThVar
   TYPE(ThOPT_Type) :: ThOPT
+  REAL, OPTIONAL :: hgap
   END SUBROUTINE
 
-  SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE)
+  SUBROUTINE Tfcaltr_pwshape(tfvol, Tfuel, Tfueld, Tcool, htCoef, Qf, Qfd, pwshape, pwshaped, nr, ThVar, ThOpt, hgap)
+    USE PARAM
+    USE TYPEDEF,           ONLY : ThVar_Type,     ThOpt_Type
+    IMPLICIT NONE
+    REAL :: tfvol(nr-3)
+    REAL :: Tfuel(nr), Tfueld(nr), tcool, htcoef, qf, Qfd, pwshape(nr), pwshaped(nr)
+    INTEGER :: nr
+    TYPE(ThVar_Type) :: ThVar
+    TYPE(ThOPT_Type) :: ThOPT
+    REAL, OPTIONAL :: hgap
+  END SUBROUTINE
+
+  SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray)
   USE PARAM
   USE TYPEDEF,          ONLY :  FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
                                 PE_TYPE
@@ -97,6 +144,27 @@ INTERFACE
   REAL :: PowLin,  Plevel, Tfmax
   REAL :: RelPW(:)
   REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
+  REAL :: hGapArray(:)
+
+  END SUBROUTINE
+
+  SUBROUTINE SteadyFuelConduction_ThCh(Core, powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray, ixy)
+  USE PARAM
+  USE TYPEDEF,          ONLY :  CoreInfo_Type,   FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
+                                PE_TYPE
+  USE CNTL,             ONLY : nTracerCntl_Type
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(FuelTH_Type):: FuelTH        ! One Channel Coolant TH information
+  TYPE(ThVar_Type) :: ThVar                !
+  TYPE(ThOPT_Type) :: ThOpt                !
+  TYPE(nTracerCntl_Type) :: nTracerCntl
+  TYPE(PE_Type) :: PE                      !
+  REAL :: PowLin,  Plevel, Tfmax
+  REAL :: RelPW(:)
+  REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
+  REAL :: hGapArray(:)
+  INTEGER:: ixy
 
   END SUBROUTINE
 
@@ -105,6 +173,7 @@ INTERFACE
   USE TYPEDEF,        ONLY : CoreInfo_Type,        CMInfo_Type,      FmInfo_Type,     &
                              ThInfo_Type,          GroupInfo_Type,   PE_Type
   USE CNTL,           ONLY : nTracerCntl_Type
+  USE Anderson_Acceleration_SIMPLETH, only: init_AA, Anderson_acc
   IMPLICIT NONE
   TYPE(CoreInfo_Type) :: Core
   TYPE(CMInfo_Type) :: CmInfo
@@ -118,6 +187,38 @@ INTERFACE
 
   END SUBROUTINE
 
+  SUBROUTINE BurnupUpdate(is_reset)
+    use DEPL_MOD,     only: DeplCntl
+    implicit NONE
+    integer, intent(inout) :: is_reset
+  END SUBROUTINE
+
+  SUBROUTINE recalculate_vars(FuelTH, BurnUp, Tfmax, ThVar, ThOpt, nTracerCntl, PE)
+  USE PARAM
+  USE TYPEDEF,          ONLY :  FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
+                                PE_TYPE
+  USE CNTL,             ONLY : nTracerCntl_Type
+  IMPLICIT NONE
+  TYPE(FuelTH_Type):: FuelTH        ! One Channel Coolant TH information
+  TYPE(ThVar_Type) :: ThVar                !
+  TYPE(ThOPT_Type) :: ThOpt                !
+  TYPE(nTracerCntl_Type) :: nTracerCntl
+  TYPE(PE_Type) :: PE    
+  REAL :: Tfmax
+  REAL, POINTER :: BurnUp(:, :)
+  
+  END SUBROUTINE
+  
+  SUBROUTINE Adjust_after_AA(tfvol, Tfuel, nr, ThVar, ThOpt)
+    USE PARAM
+    USE TYPEDEF,           ONLY : ThVar_Type,     ThOpt_Type
+    IMPLICIT NONE
+    REAL :: tfvol(nr-3)
+    REAL :: Tfuel(nr)
+    INTEGER :: nr
+    TYPE(ThVar_Type) :: ThVar
+    TYPE(ThOPT_Type) :: ThOPT
+  END SUBROUTINE
   SUBROUTINE SimpleTH(powlin, plevel, Tout, Tfmax, RelPW, Profile, FuelTh, CoolantTH, Thvar, ThOpt, PE)
   USE PARAM
   USE TYPEDEF,           ONLY : CoolantTh_Type,    FuelTh_Type,   ThVar_Type,       &
@@ -134,7 +235,7 @@ INTERFACE
 
   END SUBROUTINE
 
-  SUBROUTINE TransientTH(Core, CmInfo, FmInfo, ThInfo, GroupInfo, TranCntl, nTracerCntl, PE)
+  SUBROUTINE TransientTH(Core, CmInfo, FmInfo, ThInfo, GroupInfo, TranCntl, nTracerCntl, PE, delt_inp)
   USE PARAM
   USE TYPEDEF,                    ONLY : CoreInfo_Type,              FmInfo_Type,               CmInfo_Type,          &
                                          ThInfo_Type,                GroupInfo_Type,            TranCntl_Type,        &
@@ -151,6 +252,7 @@ INTERFACE
   TYPE(TranCntl_Type) :: TranCntl
   TYPE(nTracerCntl_Type) :: nTracerCntl
   TYPE(PE_Type) :: PE
+  REAL, OPTIONAL :: delt_inp
 
 END SUBROUTINE
 
@@ -165,6 +267,55 @@ END SUBROUTINE
   TYPE(TranCntl_Type) :: TranCntl
   TYPE(nTracerCntl_Type) :: nTracerCntl
   TYPE(PE_Type) :: PE
+  END SUBROUTINE
+
+  SUBROUTINE RecoverTranThSol(Core, ThInfo, TranCntl, nTracerCntl, PE)
+  USE PARAM
+  USE TYPEDEF,                     ONLY : CoreInfo_Type,           ThInfo_Type,             TranCntl_Type,      &
+                                          PE_Type
+  USE CNTL,                        ONLY : nTracerCntl_Type
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(ThInfo_Type) :: ThInfo
+  TYPE(TranCntl_Type) :: TranCntl
+  TYPE(nTracerCntl_Type) :: nTracerCntl
+  TYPE(PE_Type) :: PE
+  END SUBROUTINE
+
+  SUBROUTINE SaveBaseTH(Core, THInfo)
+  USE TYPEDEF,      ONLY : CoreInfo_Type,     ThInfo_Type,    CoolantTH_Type,   FuelTH_Type
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(ThInfo_Type) :: THInfo
+  END SUBROUTINE
+
+  SUBROUTINE RecoverBaseTH(Core, THInfo)
+  USE TYPEDEF,      ONLY : CoreInfo_Type,     ThInfo_Type,    CoolantTH_Type,   FuelTH_Type
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(ThInfo_Type) :: THInfo
+  END SUBROUTINE
+
+  SUBROUTINE SaveFxrTemp(Fxr, ithstep, nFxr, myzb, myze)
+  USE TYPEDEF,    ONLY : FxrInfo_Type
+  IMPLICIT NONE
+  TYPE(FxrInfo_Type), POINTER :: Fxr(:,:)
+  INTEGER :: ithstep, nFxr, myzb, myze
+  END SUBROUTINE
+  SUBROUTINE RecoverFxrTemp(Fxr, ithstep, nFxr, myzb, myze)
+  USE TYPEDEF,    ONLY : FxrInfo_Type
+  IMPLICIT NONE
+  TYPE(FxrInfo_Type), POINTER :: Fxr(:,:)
+  INTEGER :: ithstep, nFxr, myzb, myze
+  END SUBROUTINE
+
+  SUBROUTINE UpdtTdopErr(ThInfo, Tdoperr, TDopSave, nxy, nz)
+  USE TYPEDEF,     ONLY : ThInfo_Type,    CoolantTH_Type
+  IMPLICIT NONE
+  TYPE(ThInfo_Type) :: ThInfo
+  REAL :: TDopErr
+  REAL :: TDopSave(nz, nxy)
+  INTEGER :: nxy, nz
   END SUBROUTINE
 
   SUBROUTINE CalRelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, lGather)
@@ -199,7 +350,7 @@ END SUBROUTINE
 
   END SUBROUTINE
 
-  SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, lGather)
+  SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, GrpRelPower, ng, nTracerCntl, PE, lGather)
 
   !Update Normalized Power for T/H
   USE PARAM
@@ -214,6 +365,7 @@ END SUBROUTINE
   TYPE(PE_TYPE) :: PE
   INTEGER :: ng
   REAL, POINTER :: RelPower(:, :)
+  REAL, POINTER :: GrpRelPower(:, :)
    LOGICAL :: lGather
   END SUBROUTINE
 
@@ -249,6 +401,19 @@ END SUBROUTINE
 
   IMPLICIT NONE
   REAL :: TinK, Pexit, MdotFa, ACF
+  TYPE(CoolantTh_Type) :: CoolantTH(nxy)
+  INTEGER :: nrpallet, nxy, nz
+
+  END SUBROUTINE
+
+  SUBROUTINE InitCoolantVar_THCh(Core, ThVar, Tink, pexit, MdotFa, CoolantTh, nrpallet, nxy, nz)
+  USE PARAM
+  USE TYPEDEF,      ONLY : THInfo_TYPE,    ThVar_Type, CoolantTH_Type,    CoreInfo_Type,      Pin_Type
+  USE SteamTBL_mod, ONLY : steamtbl
+  IMPLICIT NONE
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(ThVar_Type) :: ThVar
+  REAL :: TinK, Pexit, MdotFa
   TYPE(CoolantTh_Type) :: CoolantTH(nxy)
   INTEGER :: nrpallet, nxy, nz
 
@@ -490,6 +655,24 @@ END SUBROUTINE
   SUBROUTINE ChangeFlowRate(Core, ThInfo, Thvar, FlowRateLevel)
   USE PARAM
   USE Typedef,          ONLY : CoreInfo_Type,     ThInfo_Type,      Thvar_Type
+  IMPLICIT NONE
+
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(ThInfo_Type) :: ThInfo
+  TYPE(ThVar_Type) :: ThVar
+  REAL :: FlowRateLevel
+
+  END SUBROUTINE
+
+  SUBROUTINE ChangeFlowRate_ThCh(Core, ThInfo, Thvar, FlowRateLevel)
+  USE PARAM
+  USE Typedef,          ONLY : CoreInfo_Type,     ThInfo_Type,      Thvar_Type
+  IMPLICIT NONE
+
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(ThInfo_Type) :: ThInfo
+  TYPE(ThVar_Type) :: ThVar
+  REAL :: FlowRateLevel
 
   END SUBROUTINE
 
@@ -502,6 +685,197 @@ USE TH_MOD, ONLY : ThOpt
 IMPLICIT NONE
 
 CONTAINS
+
+FUNCTION  RSGAPCOND(kf, kc, tf, tc)
+IMPLICIT NONE
+REAL :: RSGAPCOND
+REAL :: kf, kc, tf, tc
+
+REAL :: hr, hg, hc
+REAL :: km, tg
+REAL :: Rf, Rc, Ravg
+REAL :: ef, ec
+REAL :: geff, g0, gapwidth
+REAL :: Pratio
+REAL :: kg
+
+Rf = 1.E-6
+Rc = 0.8E-6
+Ravg = 0.905539E-6 ! RMS roughness
+g0 = 5.2E-6
+Pratio = 3.37667E-2 ! = 0.1013 / P (P = 3 MPa is assumed)
+
+tg = 0.5 * (tf + tc)
+
+geff = g0 * Pratio * tg / 273.0
+
+kg = 2.531E-3 * (tg**0.7146) ! Gas Thermal Conductivity (W/mK) from FRAPCON
+
+hg = kg / (1.5 * (Rf + Rc) + geff + 0.001 * (ThOpt%PinDim(2) - ThOpt%PinDim(1) -ThOpt%PinDim(3)))
+
+km = 2.*(kf * kc) / (kf + kc) 
+hc = km / sqrt(Ravg)
+hc = 0.
+
+ef = 1.5263 * 1.e-5 * tf + 0.7856
+ec = 0.1906 - 0.2166 * exp(-3.792*1.e-3 * tc)
+
+IF(ABS(tf-tc) .GT. 1.e-9) THEN 
+  hr = (5.67 * 1.e-8 * ef * ec * (tf**4 - tc**4)) / ((ef + ec -ef*ec)* (tf-tc) )
+ELSE
+  hr = 0
+END IF 
+
+RSGAPCOND = hg + hc + hr
+
+!PRINT'(4es14.6)', kf, kc, tf, tc
+!PRINT'(4es14.6)', RSGAPCOND, hg, hc, hr
+END FUNCTION 
+
+FUNCTION INTGAPCOND(qprime) ! Gap Conductance
+IMPLICIT NONE
+REAL :: INTGAPCOND
+REAL :: qprime
+REAL :: hgappwr(6), hgapval(6)
+
+REAL :: wt, wtbar
+INTEGER :: i, iq
+
+hgappwr = (/0.0000,  9845.2, 26246.7, 32808.4, 42650.9, 164042.0/) ! W/M
+hgapval = (/  56.8,  1022.1,  3865.6,  4258.7,  6246.1,   6246.1/) ! W/M^2.K
+iq = 0
+DO i = 1, 5
+  IF(qprime .LT. hgappwr(i+1)) THEN
+    iq = i
+    EXIT
+  ELSE
+    iq = 6
+  END IF
+END DO
+IF(iq .EQ. 0) THEN
+  INTGAPCOND = hgapval(1)
+ELSE IF(iq .EQ. 6) THEN
+  INTGAPCOND = hgapval(6)
+ELSE
+  wt = (qprime - hgappwr(iq)) / (hgappwr(iq+1) - hgappwr(iq))
+  wtbar = 1.-wt
+  INTGAPCOND = wt * hgapval(iq+1) + wtbar * hgapval(iq)
+END IF
+!print*, iq, wt, INTGAPCOND, qprime
+END FUNCTION
+
+FUNCTION FTHCON(t, burnup) ! Thermal conductivity from FRAPCON-4 
+IMPLICIT NONE
+REAL :: FTHCON
+REAL :: t , burnup
+REAL :: akfuel(0:5)
+REAL :: a, b, burn, fbu, f, gbu, h, l, k, gadc
+SELECT CASE (THOpt%kFuelModel)
+CASE (1)
+  akfuel = ThOpt%kFUelCorrelation
+  FTHCON = akfuel(0) + t*(akfuel(1)+t*(akfuel(2)+t*akfuel(3)))+akfuel(4)/(t-akfuel(5))
+CASE (2)
+  ! UO2 fuel -> modified NFI model (gadolinia dependency is required)
+  a = 4.52e-2_8 ;
+  b = 2.46e-4_8;
+  gadc = 1.1599
+  burn = burnup;
+  fbu = 1.87e-3_8*burn;
+  f=(1-0.9_8*exp(-0.04_8*burn))
+  gbu = 0.038_8*burn**0.28_8;
+  h = 1.0_8/(1.0_8+396.0_8*exp(-6380.0_8/t));
+  l=3.5E+9_8/(t*t)*exp(-16361_8/t);
+  FTHCON = (1.0_8/(a+b*t+fbu+f*gbu*h)+l);
+  ! MOX fuel -> Duriez/NFI model
+END SELECT
+END FUNCTION
+
+FUNCTION CTHCON(t)
+IMPLICIT NONE
+REAL :: CTHCON
+REAL :: t
+REAL :: akclad(0:3)
+SELECT CASE (THOpt%kCladModel)
+CASE(1) !- Zirc
+  akclad = ThOpt%kCladCorrelation
+  CTHCON = akclad(0) + t*(akclad(1) + t*(akclad(2) + t*akclad(3)))
+CASE(2) !- SS304 from NUREG/CR-6150
+  IF(t<1671) THEN
+    CTHCON = 7.58 + 0.0189 * t
+  ELSE
+    IF(t<1727) THEN
+      CTHCON = 610.9393 - 0.3421767 * t
+    ELSE
+      CTHCON = 20      
+    END IF
+  END IF
+END SELECT
+END FUNCTION
+
+FUNCTION FRHOCP(t)
+IMPLICIT NONE
+REAL :: FRHOCP
+REAL :: t
+REAL :: rho, k1, k2, k3, theta, ED, Y, R
+REAL :: exptht
+
+rho = THOpt%RhoFuel * 1000
+SELECT CASE(THOpt%CpFuelModel)
+CASE(1) ! NEACRP-l-335
+  FRHOCP = 162.3 + t*(0.3038 + t * (-2.391E-4 + t * (6.404E-8)))
+CASE(2) ! FRAPCON-4
+  k1 = 296.7
+  k2 = 2.43E-2
+  k3 = 8.745E7
+  theta = 535.285
+  ED = 1.577E5
+  R = 8.3143
+  Y = 2.
+  exptht = exp(theta/t)
+  FRHOCP = k1*(theta**2)*exptht/((t*(exptht-1))**2) + k2*t + 0.5*y*k3*ED*exp(-ED/(R*t))/(R*t*t)
+END SELECT
+  FRHOCP = FRHOCP * rho
+END FUNCTION
+
+FUNCTION CRHOCP(t)
+IMPLICIT NONE
+REAL :: CRHOCP
+REAL :: t
+REAL :: rho, ttbl(15), Cptbl(15)
+INTEGER :: it, ntemp, it1
+rho = THOpt%RhoFuel * 1000
+SELECT CASE(THOpt%CpCladModel) 
+CASE(1) ! Zirc NEACRP-l-335
+  CRHOCP = 252.24 + 0.11474 * t   
+  CRHOCP = CRHOCP * rho
+  RETURN
+CASE(2) ! SS304
+  IF(t .LT. 1671) THEN
+    CRHOCP = 326 - 0.242 * t + 3.71 * t**0.719      
+  ELSE
+    CRHOCP = 691.98
+  END IF
+  CRHOCP = CRHOCP * rho
+CASE(3) ! Zirc FRAPCON-4
+  ntemp = 15
+  ttbl(1:15) = (/300, 400, 640, 1090, 1093, 1113, 1133, 1153, 1173, 1193, 1213, 1233, 1248, 2098, 2099/)
+  Cptbl(1:15) = (/281, 302, 331, 375, 502, 590, 615, 719, 816, 770, 619, 469, 356, 356, 356/)
+  IF(t .LT. ttbl(1)) THEN
+    CRHOCP = Cptbl(1) * rho
+    RETURN
+  END IF
+  IF(t .GT. ttbl(ntemp)) THEN
+    CRHOCP = Cptbl(ntemp) * rho
+    RETURN
+  END IF
+  DO it = 2, ntemp
+    IF(ttbl(it) .GE. t) EXIT
+  END DO
+  CRHOCP = (ttbl(it) - t) * Cptbl(it-1) + (t - ttbl(it-1)) * Cptbl(it)
+  CRHOCP = CRHOCP * rho / (ttbl(it) - ttbl(it-1))
+END SELECT
+
+END FUNCTION
 
 FUNCTION CondFuel_FRAPCON(T, Burnup)
 IMPLICIT NONE
@@ -526,6 +900,7 @@ REAL :: akfuel(0:5)
 akfuel = ThOpt%kFUelCorrelation
 CondFuel = akfuel(0) + t*(akfuel(1)+t*(akfuel(2)+t*akfuel(3)))+akfuel(4)/(t-akfuel(5))
 END FUNCTION
+
 
 FUNCTION CondClad(t)
 !Fuel thermal conductivity Clad

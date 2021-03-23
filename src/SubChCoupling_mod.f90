@@ -10,13 +10,16 @@ public :: is_coupled,             &
           ActiveAsymIndex,        &
           last_TH,                &
           coupled_maxsteps,       &
-          coupled_relconv
+          coupled_relconv,        &
+          Courant,                &
+          sbch_outop
 
 logical :: is_coupled=.false., last_TH=.false.
 character (len=10) :: CodeName
 integer :: coupled_maxsteps=-1
-real*8 :: coupled_relconv=-1.
-integer :: nxy, nz
+real*8 :: coupled_relconv= 0.02, Courant = 0.6
+integer :: nxy, nz, &
+           sbch_outop(2) = [0, 0]      !1: Txt output 2: 3D output
 real*8 :: PowLin, PowLv
 
 type (Asy_type), pointer :: Asy(:)
@@ -31,6 +34,7 @@ type SubChCode
   integer, allocatable :: id_SubCh_to_nT(:), id_nT_to_SubCh(:), &
                           core_conf(:,:)
   logical :: run_parallel=.false.
+  real*8 :: actcore_wt
   character(len=10) :: CodeName
   type(PE_type) :: PE
   type(bd_idx) :: nxa_act, nya_act
@@ -51,6 +55,68 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !preprocessing: Index converter, MPIGrouping
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#ifdef __PGI
+
+SUBROUTINE Preproc(self, Core, PE_nT)
+IMPLICIT NONE
+
+CLASS(SubChCode) :: self
+TYPE(CoreInfo_TYPE), INTENT(IN) :: Core
+TYPE(PE_TYPE), INTENT(IN) :: PE_nT
+
+INTEGER :: iz, iasy, iasytype, id
+INTEGER :: ierr
+INTEGER, POINTER :: proc_list(:)
+#ifdef HAVE_MPI
+INCLUDe 'mpif.h'
+#endif
+
+Asy => Core%Asy
+AsyInfo => Core%AsyInfo
+self%nz=Core%nz
+self%nxy=Core%nxy
+self%nxya=Core%nxya
+self%nxa=Core%nxa
+self%nya=Core%nya
+self%CodeName=CodeName
+self%run_parallel=PE_nT%AxialParallel
+
+CALL SetActCoreReg(self, Core)
+
+CALL IndexConversion(self, Core)
+
+IF (self%run_parallel) THEN
+  SELECT CASE(self%CodeName)
+  CASE("ESCOT")
+    self%PE%nproc = PE_nT%nproc
+  CASE("CTF")
+    self%PE%nproc = self%nasy_act
+    IF (self%PE%nproc .LE. 1) self%run_parallel = .FALSE.
+  END SELECT
+#ifdef HAVE_ESCOT
+  CALL MPI_Comm_Group(PE_nT%MPI_CMFD_COMM, self%PE%WorldGroup, ierr)
+#endif
+  IF (PE_nT%myrank .LE. self%PE%nProc) THEN
+    ALLOCATE(proc_list(self%PE%nproc))
+    DO id = 0, self%PE%nproc - 1
+      proc_list(id + 1) = id
+    END DO
+#ifdef HVAE_MPI
+    CALL MPI_Group_incl(self%PE%WorldGroup, self%PE%nproc, proc_list, &
+                        self%PE%LocalGroup, ierr)
+    self%PE%MPI_COMM = PE_nT%MPI_CMFD_COMM
+#endif
+    self%PE%lSubCh_proc = .TRUE.
+    DEALLOCATE(proc_list)
+  END IF
+ELSE
+  self%PE%nproc = 1
+  self%PE%lSubCh_proc = .TRUE.
+END IF
+
+END SUBROUTINE
+
+#else
 subroutine preproc(self, Core, PE_nT)
   class (SubChCode) :: self
   type(CoreInfo_type), intent (in) :: Core
@@ -120,6 +186,7 @@ subroutine preproc(self, Core, PE_nT)
 
 end subroutine
 
+#endif
 subroutine SetSubChData(self,Core,ThInfo, set_rodpowers_W_cm)
   class (SubChCode) :: self
   type(CoreInfo_type), intent (in) :: Core
@@ -133,18 +200,25 @@ subroutine SetSubChData(self,Core,ThInfo, set_rodpowers_W_cm)
   integer :: iz, iasy, iasytype, ix, iy, id_Subch, ixy
   real*8 :: qprime
 
-  do iz=1,self%nz
-    do iasy=1,self%nxya
-      iasytype = Core%CoreMap(iasy)
-      if (.not.AsyInfo(iasytype)%lFuel) cycle
+!  do iz=1,self%nz
+!    do ixy = 1, self%nxy
+!      id_SubCh=self%id_nT_to_SubCh(ixy)
+!      if(id_SubCh == 0) cycle
+!      qprime=ThInfo%RelPower(iz, ixy)*ThInfo%PowLin*ThInfo%Powlv/100._8   !W/m -> W/cm
+!      call set_rodpowers_W_cm(id_SubCh,iz,qprime)
+!    enddo
+!  enddo
+
+  !$OMP PARALLEL DO SCHEDULE(GUIDED) PRIVATE(iz, ixy, id_SubCh, qprime)
       do ixy = 1, self%nxy
         id_SubCh=self%id_nT_to_SubCh(ixy)
-        if(id_SubCh == 0) cycle
+    IF (id_SubCh .EQ. 0) CYCLE
+    DO iz = 1, self%nz
         qprime=ThInfo%RelPower(iz, ixy)*ThInfo%PowLin*ThInfo%Powlv/100._8   !W/m -> W/cm
         call set_rodpowers_W_cm(id_SubCh,iz,qprime)
       enddo    
     enddo
-  enddo
+  !$OMP END PARALLEL DO
 
 end subroutine SetSubChData
 
@@ -173,19 +247,37 @@ subroutine GetSubChData(self,Core,ThInfo,get_coolant_temp,get_coolant_dens, &
     idum=0
   endif
 
+!  do iz=1,self%nz
+!    do ixy = 1, self%nxy
+!      id_SubCh=self%id_nT_to_SubCh(ixy)
+!      if(id_SubCh == 0) cycle
+!      iz_subch=iz+idum
+!      call get_coolant_temp(id_SubCh,iz_subch,ThInfo%Tcool(iz,ixy))
+!      call get_coolant_dens(id_SubCh,iz_subch,ThInfo%DenCool(iz,ixy))
+!    enddo
+!  enddo
+
+  !$OMP PARALLEL
+  !$OMP DO SCHEDULE(GUIDED) PRIVATE(iz, ixy, id_SubCh)
+  DO ixy = 1, self%nxy
+    id_SubCh = self%id_nT_to_SubCh(ixy)
+    IF (id_SubCh .EQ. 0) CYCLE
   do iz=1,self%nz
-    do iasy=1,self%nxya
-      iasytype = Core%CoreMap(iasy)
-      if (.not.AsyInfo(iasytype)%lFuel) cycle
+      CALL get_coolant_temp(id_SubCh, iz, ThInfo%Tcool(iz,ixy))
+    END DO
+  END DO
+  !$OMP END DO
+
+  !$OMP DO SCHEDULE(GUIDED) PRIVATE(iz, ixy, id_SubCh)
       do ixy = 1, self%nxy
         id_SubCh=self%id_nT_to_SubCh(ixy)
-        if(id_SubCh == 0) cycle
-        iz_subch=iz+idum
-        call get_coolant_temp(id_SubCh,iz_subch,ThInfo%Tcool(iz,ixy))
-        call get_coolant_dens(id_SubCh,iz_subch,ThInfo%DenCool(iz,ixy))
+    IF (id_SubCh .EQ. 0) CYCLE
+    DO iz = 1, self%nz
+      CALL get_coolant_dens(id_SubCh, iz, ThInfo%DenCool(iz,ixy))
       enddo    
     enddo
-  enddo
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 end subroutine
 
@@ -259,18 +351,27 @@ subroutine SetAsyGapCoolinfo(self,Core,ThInfo)
   
 end subroutine
 
-subroutine Bcast_SubChOut(self,ThInfo,PE)
+subroutine Bcast_SubChOut(self,ThInfo,is_ftemp_comm,PE)
   use MPIComm_Mod, only : BCAST
   class (SubChCode) :: self
   type(PE_TYPE) :: PE
   type(ThInfo_Type) :: ThInfo
-  integer :: comm
+	logical, intent(in) :: is_ftemp_comm
+  integer :: comm, i, j, npr2
 
   comm = PE%MPI_CMFD_COMM
 
   call BCAST(ThInfo%Tcool, self%nz, self%nxy+2, COMM)
   call BCAST(ThInfo%Dencool, self%nz, self%nxy+2, COMM)
   
+	if (.not. is_ftemp_comm) return
+
+	npr2 = size(Thinfo%Tfvol,1)
+	call BCAST(ThInfo%Tfvol, npr2, self%nz, self%nxy, COMM)
+	do i = 1, self%nxy
+		if (.not. ThInfo%FuelTH(i)%lFuel) cycle
+		call BCAST(ThInfo%FuelTH(i)%Tfuel, npr2+3, self%nz, COMM)
+	enddo
 end subroutine
 
 subroutine Finalize(self)
@@ -285,9 +386,11 @@ subroutine Finalize(self)
   
   if (.not. self%run_parallel) return
 #ifdef HAVE_MPI
+#ifndef __PGI
   call MPI_Group_Free(self%PE%LocalGroup,ierr)
   call MPI_Group_Free(self%PE%WorldGroup,ierr)
   call MPI_Comm_Free(self%PE%MPI_COMM,ierr)
+#endif
 #endif
 end subroutine
 !Rule for indexing
@@ -364,6 +467,7 @@ subroutine SetActCoreReg(self,Core)
   
   self%nz_act=0
   self%nasy_act=0
+  self%actcore_wt = 0.
   do iz=1, self%nz
     if (.not. Core%lFuelPlane(iz)) cycle
     self%nz_act = self%nz_act +1
@@ -373,6 +477,7 @@ subroutine SetActCoreReg(self,Core)
     iasytype = Core%CoreMap(iasy)
     if (.not. AsyInfo(iasytype)%lFuel) cycle
     self%nasy_act=self%nasy_act+1
+    self%actcore_wt = self%actcore_wt + Asy(iasy)%wt
   enddo
 
   self%nxa_act%ibeg=self%nxa

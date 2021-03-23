@@ -221,8 +221,6 @@ CALL MPI_FINALIZE(ierr)
 #endif
 END SUBROUTINE
 
-
-
 SUBROUTINE SetGeomPEVariables(PE)
 USE PARAM
 USE TYPEDEF, ONLY : PE_TYPE
@@ -304,6 +302,106 @@ PE%nzfm = PE%myzef
 
 END SUBROUTINE
 
+
+SUBROUTINE SetGeomPEVariables_subpln(PE)
+USE PARAM
+USE TYPEDEF, ONLY : PE_TYPE
+USE GEOM,    ONLY : Core, AsyInfo, nz, nzfm, nSubPlane, SubPlaneRange
+USE CNTL,    ONLY : nTracerCntl
+USE HexData, ONLY : nHexPin
+USE ALLOCS
+IMPLICIT NONE
+TYPE(PE_TYPE) :: PE
+INTEGER :: n, nxy, CMFDGrp, Buf(2, 0:1000)
+INTEGER :: AsyBeg, AsyEnd, PinBeg, PinEnd, FsrBeg, FsrEnd
+INTEGER :: ixya, iasy, ixy, iz
+INTEGER :: i, j
+LOGICAL :: lfuelProc ! Edit by LHG, 201230
+#ifdef MPI_ENV
+n = PE%nz / PE%nCMFDproc
+CMFDGrp = PE%nCMFDGrp
+IF(PE%lUsrAxDcp .AND. PE%UsrAxDecomp(0) .EQ. PE%nCMFDproc) THEN
+  PE%myzb = 0; PE%myzbf = 0
+  DO j = 1, CMFDGrp
+    PE%myzb = PE%myzb + PE%UsrAxDecomp(j)
+  ENDDO
+  !PE%myzbf = PE%myzb * nSubPlane; PE%myzef = PE%myzbf +  PE%UsrAxDecomp(CmfdGrp+1)*nSubPlane;
+  !PE%myzbf = PE%myzbf + 1
+  PE%myze = PE%myzb + PE%UsrAxDecomp(CmfdGrp+1); PE%myzb = PE%myzb + 1
+  PE%myzbf = SubPlaneRange(1, PE%myzb)
+  PE%myzef = SubPlaneRange(2, PE%myze)
+  !PRINT *, CmfdGrp, PE%myzbf, PE%myzef
+ELSE
+  PE%myzb = CMFDGrp * n+1; PE%myze = (CMFDGrp+1) * n
+  !PE%myzbf = CMFDGrp * nSubPlane * n+1; PE%myzef = (CMFDGrp + 1) * nSubPlane * n
+  !PE%myzbf = (PE%myzb - 1) * nSubPlane + 1;
+  !PE%myzef = PE%myze * nSubPlane
+  PE%myzbf = SubPlaneRange(1, PE%myzb)
+  PE%myzef = SubPlaneRange(2, PE%myze)
+ENDIF
+
+!PE%nzfm = PE%nz * nSubPlane
+PE%nzfm = nzfm
+
+!GetRangeDecomp
+IF (nTracerCntl%lHex) THEN ! KSC
+  nxy = nHexPin
+ELSE
+  nxy = 0
+  DO ixya = 1, Core%nxya
+    iasy = Core%CoreMap(ixya)
+    nxy = nxy + AsyInfo(iasy)%nxy
+  ENDDO
+END IF
+
+!lfuelProc = .FALSE.
+!DO j = PE%myzb, PE%myze
+!  lfuelProc = Core%lFuelPlane(j) .OR. lfuelProc
+!END DO
+!IF (.not. lfuelProc) THEN
+!  nTracerCntl%lScat1 = .TRUE.
+!  nTracerCntl%ScatOd = max(1, nTracerCntl%ScatOd)
+!  nTracerCntl%lAFSS = .TRUE.
+!END IF
+PE%nxy = nxy
+
+PE%AxDomRange(1:2, 0) = (/1, PE%nz/); PE%RadDomRange(1:2, 0) = (/1, nxy/)
+CALL GetRangeDecomp(1, nxy, PE%nCMFDproc, CMFDGrp, PE%myNxyBeg, PE%myNxyEnd)
+IF(PE%lCmfdGrp) THEN
+  PE%AxDomRange(1:2, 0:PE%nCMFDproc) = 0; PE%AxDomRange(1:2, 0:PE%nCMFDproc) = 0
+  Buf(1:2, 0:PE%nCMFDproc) = 0;   Buf(1:2, PE%myCMFDrank) = (/PE%myzb, PE%myze/)
+  CALL Reduce(Buf(1:2, 0:PE%nCMFDproc-1), PE%AxDomRange(1:2, 0:PE%nCMFDproc-1), 2, PE%nCMFDproc, PE%MPI_CMFD_COMM, TRUE)
+  Buf(1:2, 0:PE%nCMFDproc) = 0; Buf(1:2, PE%myCMFDrank) = (/PE%MynxyBeg, PE%MyNxyEnd/)
+  CALL Reduce(Buf(1:2, 0:PE%nCMFDproc-1), PE%RadDomRange(1:2, 0:PE%nCMFDproc-1), 2, PE%nCMFDproc, PE%MPI_CMFD_COMM, TRUE)
+  CALL Dmalloc(PE%AxDomList,nz); CALL Dmalloc(PE%RadDomList,nxy)
+  DO j = 0, PE%nCMFDProc - 1
+    DO i = PE%RadDomRange(1, j), PE%RadDomRange(2, j)
+      PE%RadDomList(i) = j
+    ENDDO
+    DO i = PE%AxDomRange(1, j), PE%AxDomRange(2, j)
+      PE%AxDomList(i) = j
+    ENDDO
+  ENDDO
+
+  DO j = 0, PE%nCMFDProc - 1
+    !PE%SubPlnDomRange(1, j) = nSubPlane * (PE%AxDomRange(1, j) - 1) + 1
+    !PE%SubPlnDomRange(2, j) = nSubPlane * PE%AxDomRange(2, j)
+    PE%SubPlnDomRange(1, j) = SubPlaneRange(1, PE%AxDomRange(1, j))
+    PE%SubPlnDomRange(2, j) = SubPlaneRange(2, PE%AxDomRange(2, j))
+  ENDDO
+ENDIF
+!
+IF(PE%nCMFDproc .GT. 1) PE%lAxSolParallel = .TRUE.
+!PE%myzb = 1; PE%myze = nz
+!PE%myzbf = 1; PE%myzef = nz*nSubPlane
+#else
+PE%myzb = 1; PE%myze = nz
+PE%myzbf = 1; PE%myzef = nzfm !nz*nSubPlane
+PE%nzfm = PE%myzef
+#endif
+
+END SUBROUTINE
+
 !--- CNJ Edit : Domain Decomposition + MPI
 SUBROUTINE SetDcmpPEVariables(PE)
 USE PARAM
@@ -335,7 +433,6 @@ DO i = 0, PE%nRTProc - 1
   
   FsrBeg = Core%Pin(PinBeg)%FsrIdxSt
   FsrEnd = Core%Pin(PinEnd)%FsrIdxSt + Core%PinInfo(Core%Pin(PinEnd)%PinType)%nFsrMax - 1
-  
   PE%nAsy(i) = AsyEnd - AsyBeg + 1
   PE%nPin(i) = PinEnd - PinBeg + 1
   PE%nFsr(i) = FsrEnd - FsrBeg + 1

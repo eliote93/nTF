@@ -7,9 +7,9 @@ USE RAYS,           ONLY : RayInfo
 USE FILES,          ONLY : IO8
 USE CNTL,           ONLY : nTracerCntl
 USE DcplCore_Mod,   ONLY : DcplInfo
-USE VTK_Mod,        ONLY : ProcessVTK
+USE VTK_Mod,        ONLY : ProcessVTK2DPlnModel
 USE PE_MOD,         ONLY : PE,           DcplPE
-USE MPIConfig_Mod,  ONLY : SetMPIEnv, SetGeomPEVariables
+USE MPIConfig_Mod,  ONLY : SetMPIEnv
 USE LpShf_mod,      ONLY : LP_Shuffling
 USE CNTLROD_mod,    ONLY : InitCntlRodConf,                                           &
                            SetCrBankPosition
@@ -18,7 +18,9 @@ USE FXRVAR_MOD,     ONLY : lFXRVAR
 #ifdef __INTEL_MKL
 USE MKL_INIT
 #endif
+USE XS_COMMON,      ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
 USE MOC_COMMON,     ONLY : AllocCoreMacXs
+USE MPIComm_Mod,    ONLY : MPI_SYNC
 IMPLICIT NONE
 INTEGER :: i
 !USE CNTL, ONLY : lXsLib
@@ -34,29 +36,29 @@ IF(PE%lidle) RETURN
 
 IF (nTracerCntl%lHex) THEN
   CALL HexInit()
+  !Control Rod Position
+!Set Control Rod Information
+IF(PE%RTMASTER .AND. nTracerCntl%lCrInfo) CALL InitCntlRodConf(Core, FmInfo, CMInfo, GroupInfo, nTracerCntl, PE)
 ELSE
-  IF (nTracerCntl%lnTIGRst) CALL CopyBaseCell()
-  
-  CALL SetGeometries()
-  
-  IF(nTracerCntl%lDcpl) CALL initDcpl()
-  
-  !Generate modular ray information
-  CALL MakeRays()
-END IF
 
+IF (nTracerCntl%lnTIGRst) CALL CopyBaseCell()
+
+CALL SetGeometries()
+
+!Control Rod Position
+!Set Control Rod Information
+IF(PE%RTMASTER .AND. nTracerCntl%lCrInfo) CALL InitCntlRodConf(Core, FmInfo, CMInfo, GroupInfo, nTracerCntl, PE)
+IF(nTracerCntl%lDcpl) CALL initDcpl()
+
+!Generate modular ray information
+CALL MakeRays()
+END IF
 
 !Allocate Problem Dependent Memory
 CALL AllocPDM()
 
 !Loading Patern
 IF(nTracerCntl%LPShf .OR. nTracerCntl%lCooling) CALL LP_Shuffling(Core, FmInfo, GroupInfo,  nTRACERCntl, PE)
-
-!Control Rod Position
-!Set Control Rod Information
-IF(PE%RTMASTER) CALL InitCntlRodConf(Core, FmInfo, CMInfo, GroupInfo, nTracerCntl, PE)
-
-!IF(nTracerCntl%lCrInfo) CALL SetCrBankPosition(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 
 !Initialize and Set up Caterogies information of resonanase isotope and Eq. XS
 IF(nTracerCntl%lXsLib) THEN
@@ -88,6 +90,13 @@ IF (PE%lMKL) CALL SetMKLEnv(Core, FmInfo, RayInfo)
 
 !--- CNJ Edit : GPU Acceleration
 #ifdef __PGI
+IF (PE%lCUDA .AND. nTracerCntl%lXsAlign) THEN
+  CALL AlignIsodata(GroupInfo)
+  CALL AlignFxrs(FmInfo%Fxr, GroupInfo)
+  CALL AlignMLGdata
+  CALL AlignResVarPin
+  CALL AlignResIsoData(GroupInfo)
+END IF
 IF (PE%lCUDA) CALL CUDAInitialize(Core, RayInfo, FmInfo)
 #endif
 
@@ -97,7 +106,12 @@ IF (nTracerCntl%lGamma) CALL PrepareGamma(Core, RayInfo)
 #endif
 
 !Input Edit - writing output file
-!CALL ProcessVTK(Core, FmInfo, GroupInfo%ng, PE)
+IF(nTracerCntl%OutpCntl%VisMod .EQ. 4) THEN
+  CALL ProcessVTK2DPlnMOdel(Core, FmInfo, GroupInfo, nTracerCntl, PE)
+  CALL MPI_SYNC(PE%MPI_CMFD_COMM)
+  STOP
+END IF
+
 IF(PE%master .AND. nTracerCntl%lDetailOutput) CALL InputEdit(io8)
 
 END SUBROUTINE

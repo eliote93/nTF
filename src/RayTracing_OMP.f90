@@ -139,7 +139,6 @@ DO l = 1, nxy
   FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
-    
     phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
   ENDDO
 ENDDO
@@ -445,7 +444,6 @@ DO l = 1, nxy
   FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
-    
     phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
   ENDDO
 ENDDO

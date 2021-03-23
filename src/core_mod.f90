@@ -9,6 +9,8 @@ INTEGER :: nCoreFsr, nCoreFxr, nPhiAngSv
 
 REAL :: eigv = 1.0_8
 REAL :: peigv = 1.0_8
+REAL :: eigv_adj = 1.0_8
+REAL :: peigv_adj = 1.0_8
 REAL :: xkconv, xkcrit                                      !Converged K, Critical K
 
 REAL, POINTER, SAVE :: PHIS(:,:,:)                          !Scalar Flux Vectors
@@ -52,7 +54,7 @@ REAL, POINTER :: GcPhiC(:, :, :)
 !Critical Spectrum
 REAL, POINTER, SAVE :: PhiCrit(:), SpecConv(:)              ! Critical Spectrum and Conversion Factor
 
-!Transient Variables
+!Transient Variables------------------------------------------------------------------------------------
 REAL, POINTER, SAVE :: TranPhi(:, :, :)
 REAL, POINTER, SAVE :: TranPhiCm(:, :, :), TranPhiFm(:, :, :)   
 
@@ -66,7 +68,32 @@ REAL, POINTER, SAVE :: TranPsiFm(:, :), TranPsiFmd(:, :)
 REAL, POINTER, SAVE :: ResSrcCm(:, :, :), ResSrcFm(:, :, :)   !Theta Method Source 
 
 REAL, POINTER, SAVE :: GcTranSrc(:, :, :)
-!
+
+!Adaptive Theta
+REAL, POINTER, SAVE :: ThetaCM(:, :, :)
+
+!BDF Variables
+REAL, POINTER, SAVE :: TranPhi2(:, :, :), TranPhi3(:, :, :), TranPhi4(:, :, :), TranPhi5(:, :, :)
+REAL, POINTER, SAVE :: TranPhiCm2(:, :, :), TranPhiCm3(:, :, :), TranPhiCm4(:, :, :), TranPhiCm5(:, :, :)
+REAL, POINTER, SAVE :: TranPhiFm2(:, :, :), TranPhiFm3(:, :, :), TranPhiFm4(:, :, :), TranPhiFm5(:, :, :)
+
+!SCM Variables
+REAL, POINTER, SAVE :: TranPrec(:, :, :)
+REAL, POINTER, SAVE :: ShpFrqCM(:, :, :), ShpFrqCMd(:, :, :)
+REAL, POINTER, SAVE :: ShpFrqFM(:, :, :), ShpFrqFMd(:, :, :)
+REAL, POINTER, SAVE :: AvgShpFrqCM(:, :, :), AvgShpFrqFM(:, :, :)
+REAL, POINTER, SAVE :: PrecFrqCM(:, :, :), PrecFrqFM(:, :, :)
+
+REAL, POINTER, SAVE :: PhiSCM(:, :, :), PhiCSCM(:, :, :)
+REAL, POINTER, SAVE :: PsiSCM(:, :), PsiCSCM(:, :)
+REAL, POINTER, SAVE :: xsnfSCM(:, :, :)
+
+!AfSrc
+REAL, POINTER, SAVE :: TranPhi1a(:, :, :, :, :), TranPhi2a(:, :, :, :, :)
+
+!AM3
+REAL, POINTER, SAVE :: ResSrcCMd(:, :, :), ResSrcFMd(:, :, :)
+!-------------------------------------------------------------------------------------------------------
 
 TYPE(CMFDLS_TYPE), POINTER :: CoreCMFDLs(:)
 TYPE(Fxrinfo_type), POINTER, SAVE :: Fxr(:,:)

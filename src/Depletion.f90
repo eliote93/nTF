@@ -436,6 +436,7 @@ USE DeplType,           ONLY : DeplVars_Type
 USE BasicOperation,     ONLY : MULTI_CA,  CP_CA
 USE nuclidmap_mod,      ONLY : iposiso,   PndCrit, nuclide
 USE XsUtil_mod,         ONLY : SetXeDynEnv
+USE ieee_arithmetic
 IMPLICIT NONE
 TYPE(FxrInfo_Type) :: Fxr
 TYPE(DeplVars_Type) :: DeplVars
@@ -496,6 +497,7 @@ DO i = 1, nIsoDepl
   IF(j .EQ. 0) CYCLE
   IF(abs(IsoNum(i)) .LT. epsm20) CYCLE
   IF(IsoNum(i) .LT. pndcrit(j)) CYCLE
+  IF(ieee_is_nan(IsoNum(i))) STOP 'DEPL NaN Wow!'
   niso = niso + 1
   IdXs = nuclide(j)
   pnum(niso) = IsoNum(i)

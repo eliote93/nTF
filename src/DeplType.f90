@@ -1,4 +1,4 @@
-MODULE DeplType 
+MODULE DeplType
 !     --------------------------------------------------------------------------------
 !     @ NISODEP                (I)    THE NUMBER OF ISOTOPES IN LIBRARY              +
 !     @ NATOMDEP               (I)    MAXIMUM ATOMIC NUMBER                          +
@@ -38,7 +38,7 @@ MODULE DeplType
 !                                      4 : (N,P)  (Z,A,0)->(Z-1,A,0)                 +
 !                                      5 : (N,R') (Z,A,0)->(Z,A+1,1)                 +
 !                                      6 : (N,2N') (Z,A,0)->(Z,A-1,1)                +
-!                                      3 : (N,3N) (Z,A,0)->(Z,A-2,0) FOR ACTINIDE (J=3) 
+!                                      3 : (N,3N) (Z,A,0)->(Z,A-2,0) FOR ACTINIDE (J=3)
 !                                      4 : FISSION FOR ACTINIDE (J=4)                +
 !     @        %Y(I)           (R)    FISSION PRODUCT YIELDS                         +
 !     @ ISOTOPEKIND(:)%        (T)    TYPE FOR BURNABLE ISOTOPES                     +
@@ -69,28 +69,24 @@ IMPLICIT NONE
 INTEGER, PARAMETER, PRIVATE :: nMAXSTATE=100
 
 TYPE STATEKIND
-  SEQUENCE
   INTEGER :: IGRP, IMAT, NTO1, NTO2, NFR3, idum
   INTEGER, POINTER :: ITO1(:,:), ITO2(:,:), IFR3(:,:)
   REAL :: RAMBDA, FRAC(8)
   REAL :: XS(0:6),kappa
   REAL, POINTER :: Y(:)
-END TYPE 
+END TYPE
 
 TYPE ISOTOPEKIND
-  SEQUENCE
   INTEGER :: NSTATE, idum
   TYPE(STATEKIND),POINTER :: STAT(:)
 END TYPE
 
 TYPE ATOMKIND
-  SEQUENCE
   INTEGER :: IB,IE
-  TYPE(ISOTOPEKIND), POINTER :: A(:)  ! ATOMIC WEIGHT 
+  TYPE(ISOTOPEKIND), POINTER :: A(:)  ! ATOMIC WEIGHT
 END TYPE
 
 TYPE FisYield_TYPE
-  SEQUENCE
   INTEGER :: MatID
   INTEGER :: AtomNum
   INTEGER :: AtomWeight
@@ -98,7 +94,6 @@ TYPE FisYield_TYPE
 END TYPE
 
 TYPE DeplLib_Type
-  SEQUENCE
   TYPE(ATOMKIND), POINTER :: AtomLib0(:), AtomLib1(:)
   TYPE(FisYield_TYPE), POINTER :: FisYield(:)
   INTEGER :: NISODEP, NFISYLD, NATOMDEP
@@ -109,7 +104,6 @@ TYPE DeplLib_Type
 END TYPE
 
 TYPE CoreState_Type
-  SEQUENCE
   INTEGER :: nBurnupStep=0
   !LOGICAL :: lBoronSearch = .FALSE.
   LOGICAL :: LinStateChg = .FALSE.
@@ -125,7 +119,6 @@ TYPE CoreState_Type
 END TYPE
 
 TYPE DeplCntl_Type
-  SEQUENCE
   INTEGER :: NowStep = 0
   INTEGER :: BurnUpType = 1
   INTEGER :: nBurnUpStep
@@ -135,12 +128,13 @@ TYPE DeplCntl_Type
   LOGICAL :: lDeplFile = .FALSE.
   LOGICAL :: lB10Depl = .FALSE.    !Boron-10 Depletion
   INTEGER :: B10DeplMod = 0       !Boron-10 Depletion   0 : TurnOff 1: Online  2 : Post Boron
+  REAL :: vratio = 0.05
   INTEGER :: nSubStep = 8         !SubStep for Gd Depletion
-  
+
   LOGICAL :: lXeDyn = .FALSE.
   LOGICAL :: lTrXe = .TRUE.
-  LOGICAL :: lEqXe = .FALSE. 
-  
+  LOGICAL :: lEqXe = .FALSE.
+
   REAL, POINTER :: T_efpd(:)
   REAL, POINTER :: T_mwdkghm(:)
   REAL :: Hm_Mass0_ton = 0.  !Initially Loaded Heavy Metal in Ton Unit
@@ -150,9 +144,9 @@ TYPE DeplCntl_Type
   REAL :: PTsec = 0.
   REAL :: NowBurnUp(2) = 0 !1: EFPD, 2 : mwd/kghm
   !LOGICAL :: lAutoOrder = .FALSE. !  which was originally .TRUE.   !BYS test 15/12/31
-  LOGICAL :: lAutoOrder = .TRUE. 
+  LOGICAL :: lAutoOrder = .TRUE.
   LOGICAL :: lPredict = .TRUE.
-  
+
   LOGICAL :: lCoreFollow = .FALSE.
   TYPE(CoreState_Type) :: CoreState
 END TYPE
@@ -160,18 +154,17 @@ END TYPE
 
 
 TYPE DeplVars_Type
-  SEQUENCE
   INTEGER :: nIsoDepl, nIsoXs, tid
   TYPE(Mat_TYPE), POINTER :: DMat
   REAL, POINTER :: IsoNum(:), BurnUpXs(:, :)
   REAL :: phi1g
   INTEGER, POINTER :: MapXs2Dep(:), MapDep2XS(:)
-  
+
   REAL :: GdXsFtn(0:2, 64152:64160)
 ENDTYPE
 
 !TYPE MatExp_Type
-!  SEQUENCE
+!
 !  INTEGER :: nisodepl
 !  TYPE(Mat_TYPE), POINTER :: Mat
 !  LOGICAL :: lAllocVec = .FALSE.
@@ -179,7 +172,6 @@ ENDTYPE
 !ENDTYPE
 
 TYPE DeplXs_Type
-  SEQUENCE
   LOGICAL :: lAlloc = .FALSE.
   INTEGER :: ndim
   REAL, POINTER :: xsa(:), xsf(:)      !Absorption, Fission

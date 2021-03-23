@@ -528,14 +528,21 @@ END INTERFACE
     ENDDO
     
 ENDSUBROUTINE
-
+  
+#define H2H
 SUBROUTINE GCHom_pin(Core, THInfo, FmInfo, GroupInfo, nTracerCntl, PE, ng)
     USE TYPEDEF,      ONLY : CoreInfo_Type, FmInfo_Type, CMInfo_Type, THInfo_Type, GroupInfo_Type,PE_TYPE, XsMac_Type
     USE CNTL,         ONLY : nTracerCntl_Type
     USE GC_mod
+    USE GCpin_mod
     USE XsUtil_mod, ONLY : FreeXsIsoMac
     USE BenchXs,      ONLY : MacXsBen
     USE TH_Mod,           ONLY : GetPinFuelTemp
+    USE TRAN_MOD, ONLY : TranInfo
+#ifdef H2H    
+    USE DEPL_MOD,         ONLY : FxrBurnUp, ConstDeplVas, MakeDeplXs1g, fluxnormalizefactor,DeplCntl
+    USE MOC_Mod,          ONLY : FxrAvgPhi
+#endif    
     IMPLICIT NONE
     TYPE(CoreInfo_Type) :: Core
     TYPE(FMInfo_Type) :: FmInfo
@@ -550,10 +557,20 @@ SUBROUTINE GCHom_pin(Core, THInfo, FmInfo, GroupInfo, nTracerCntl, PE, ng)
     INTEGER :: ig, ig2
     
     INTEGER :: iso, isoidx, id, idiso, nisoinFxr, imix
-    INTEGER :: ix, iy, ixy, ixyl
+    INTEGER :: ix, iy, ixy, ixyl, iprec
     INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, iCel, iFxr, ifsr, nFsrInFxr
-    REAL :: myPhiVol, Vol
-    REAL :: FSV, isoFSV ! Fission Source*Volume
+    REAL :: myPhiVol, Vol, areasum
+    REAL :: FSV, isoFSV, FSV_nu, isoFSV_nu ! Fission Source*Volume
+    REAL :: locFSV_nu(0:6), FSV_nu_Adj, FSV_chi(ng)
+#ifdef H2H
+    REAL :: BUTime
+    REAL :: normFactor
+    INTEGER :: ngDep, nIsoLib, nIsoDepl, nFxrPin, ihetfxr, isogd
+    REAL(8), ALLOCATABLE :: BurnupXS(:,:), avgphi(:), pinND(:), refND(:)
+    REAL(8) :: fxrA, pinA, numinfxr
+    LOGICAL :: lDeplPin
+    INTEGER :: GdIsoIdx(7) = (/64152, 64154, 64155, 64156, 64157, 64158, 64160/)
+#endif
     
 INTERFACE
     SUBROUTINE GenFxrIsoMacXS(XsMac, IsoMacXsSm, IsoMacXsSmP1, Fxr, ifxr, Tempref, ig1, ig2, Core, ipin, iz, GroupInfo, nTRACERCntl, PE)
@@ -577,7 +594,86 @@ INTERFACE
     END SUBROUTINE
 END INTERFACE
     
+#ifdef H2H
+    nFxrPin = 0; ngDep = GroupInfo%ng; nIsoDepl = DeplLibPin%nIsoDep
+    DO iy = yst, yed
+      DO  ix = xbg, xed
+        ixyl = AsyInfo(IasyType)%Pin2DIdx(ix,iy)
+        ixy = Asy(iasy)%GlobalPinIdx(ixyl)
+        icel = Pin(ixy)%Cell(iz)
+        nlocalFxr = Cell(icel)%nFxr
+        nFxrPin = nFxrPin+nlocalFxr
+      END DO
+    END DO
+    hetNreg = nFxrPin
+    ALLOCATE(hetRxFrac(nFxrPin,7), hetNumFrac(nFxrPin,7))
+    hetRxFrac = 0.; hetNumFrac = 0.;
+    IF (DeplCntl%lInitDepl) THEN
+      ngDep = GroupInfo%ng; BUTime = DeplCntl%Tsec
+      nIsoLib = GroupInfo%ntiso; nIsoDepl = DeplLibPin%nIsoDep
+      NormFactor = FluxNormalizeFactor(Core, FmInfo, GroupInfo, DeplCntl%PowerCore, nTracerCntl%lCritSpec, TRUE, PE)
+      NormFactor = NormFactor*nTracerCntl%PowerLevel
+      ALLOCATE(BurnupXS(4,nIsoDepl),avgphi(ngDep),pinND(nIsoDepl),refND(nIsoDepl))
+      DO iy = yst, yed
+        DO ix = xbg, xed
+          ixyl= AsyInfo(iasytype)%Pin2DIdx(ix, iy)
+          ixy = Asy(iasy)%GlobalPinIdx(ixyl) 
+          icel = Pin(ixy)%Cell(iz)
+          Vol=Vol+Core%PinVol(ixy,iz)
+          FxrIdxSt = Pin(ixy)%FxrIdxSt
+          FsrIdxSt = Pin(ixy)%FsrIdxSt
+          nlocalFxr = Cell(icel)%nFxr
+          BurnupXS = 0.; avgphi = 0.; pinND = 0.; refND = 0.; pinA = 0.; lDeplPin = .FALSE.
+          DO j = 1, nLocalFxr
+            ifxr = FxrIdxSt + j -1
+            myFxr => FmInfo%FXR(ifxr,iz)
+            fxrA = myFxr%area; pinA = pinA+fxrA
+            DeplXSPin%AvgPhi = FxrAvgPhi(Core, FmInfo%Fxr, FmInfo%Phis, ixy, j, iz, ngDep, PE)
+            avgphi(:) = avgphi(:)+fxrA*DeplXsPin%AvgPhi(:)
+            IF (.NOT. myFxr%lDepl) CYCLE
+            lDeplPin = .TRUE.
+            nFsrInFxr = myFxr%nFsrInFxr
+            CALL MakeDeplXs1g(FmInfo%Fxr, ifxr, ngDep, DeplXsPin, NormFactor, Core, ixy, iz, GroupInfo, PE, DeplCntl)
+            CALL ConstDeplVas(DeplVarPin, DeplXsPin, myFxr, nIsoLib, nIsoDepl)
+            DO  k = 1, 4
+            BurnupXS(k,:) = BurnupXS(k,:) + fxrA*DeplVarPin%BurnupXs(k,:)*DeplXSPin%phi1g*DeplVarPin%IsoNum(:)
+            END DO
+            pinND(:) = pinND(:)+DeplVarPin%IsoNUM(:)*fxrA
+            CALL FxrBurnUp(DeplVarPin, DeplLibPin, DeplCntl)
+            refND(:) = refND(:)+DeplVarPin%IsoNum(:)*fxrA
+          END DO
+          IF (.NOT. lDeplPin) CYCLE
+          avgphi(:) = avgphi(:)/pinA; DeplXSPin%phi1g = SUM(avgphi)*NormFactor
+          DO k = 1, nIsoDepl
+            pinND(k) = pinND(k)/pinA; refND(k) = refND(k)/pinA; DeplVarPin%IsoNum(k) = pinND(k)
+            IF (pinND(k) .LT. 1.e-30) CYCLE
+            BurnupXS(:,k) = BurnupXS(:,k)/DeplXSPin%phi1g/pinA/pinND(k)
+            DeplVarPin%BurnupXS(:,k) = BurnupXS(:,k)
+          END DO
+          CALL FxrBurnUp(DeplVarPin, DeplLibPin, DeplCntl)
+          pinND(:) = DeplVarPin%IsoNum(:)
+          DO k = 1, nIsoDepl
+            IF (pinND(k) .LT. 1.e-30) CYCLE
+            h2hfactorpin(k) = LOG(refND(k)/pinND(k))/BUTime
+          END DO
+        END DO
+      END DO
+      DEALLOCATE(BurnupXS, avgphi, pinND, refND)
+    END IF
+#endif   
+#ifdef H2H    
+    ihetfxr = 0
+#endif    
     FSV=0; !fission source *Volume
+    Vol=0
+    areasum = 0
+#ifdef H2H    
+    ihetfxr = 0
+#endif
+
+    KinParMac_velo = 0._8
+    TranInfo%ChiD = (/ 4*0._8, 0.005_8, 0.021_8, 0.269_8, 0.247_8, 0.429_8, 0.029_8, 37*0._8/) 
+    FSV=0; FSV_nu=0._8!fission source *Volume
     Vol=0
     DO iy = yst, yed
     DO ix = xbg, xed
@@ -589,9 +685,16 @@ END INTERFACE
         FsrIdxSt = Pin(ixy)%FsrIdxSt
         nlocalFxr = Cell(icel)%nFxr
         DO j = 1, nLocalFxr
+#ifdef H2H          
+            ihetfxr = ihetfxr+1
+#endif            
             ifxr = FxrIdxSt + j -1
             myFxr => FmInfo%FXR(ifxr,iz)
             nFsrInFxr = myFxr%nFsrInFxr
+            IF( Fminfo%FXR(ifxr,iz)%lfuel )THEN
+                areasum=areasum+Fminfo%FXR(ifxr,iz)%area
+                bupin=bupin+Fminfo%FXR(ifxr,iz)%burnup*Fminfo%FXR(ifxr,iz)%area
+            ENDIF
             !FsrIdxSt = myFxr%FsrIdxSt
             nisoInFxr = myFxr%niso
             IF( nTracerCntl%lXsLib ) CALL GenFxrIsoMacXS(XsMac, IsoMacXsSm, IsoMacXsSmP1, FmInfo%FXR, ifxr, Tempref, 1, ng, Core, ixy, iz, GroupInfo, nTRACERCntl, PE)
@@ -604,6 +707,27 @@ END INTERFACE
                     PinPhiVol(ig,ixy)=PinPhiVol(ig,ixy)+FsrPhiVol(ifsr,ig)
                 ENDDO
             ENDDO        
+            DO k = 1, nFsrInFxr
+                ifsr = FsrIdxSt-1+core%cellinfo(icel)%mapfxr2fsridx(k,j)
+                DO ig = 1, ng
+                    U238phi=U238phi+      FsrPhiVol(ifsr,ig)
+                    u238phiMG(ig) = u238phiMG(ig) + FsrPhiVol(ifsr,ig)
+                ENDDO !---END of G sweep
+            ENDDO !---END of Fsr sweep
+#ifdef H2H
+            IF (nTracerCntl%lXsLib) THEN
+              DO iso = 1, nisoInFxr
+                idiso = myFxr%idiso(iso)
+                isogd = 0;
+                DO  k = 1, 7
+                  IF (idiso.EQ. gdisoidx(k)) isogd = k
+                END DO
+                IF (isogd.GT.0) THEN
+                  hetNumFrac(ihetfxr,isogd) = hz*myFxr%area*myFxr%pnum(iso)
+                END IF
+              END DO
+            END IF
+#endif
             ! 13/11/01 end
             IF( nTracerCntl%lXsLib )THEN
                 DO iso = 1, nisoInFxr
@@ -623,11 +747,12 @@ END INTERFACE
                         !ifsr = FsrIdxSt + k -1
                         !--- EDIT 14/12/23 Sq. cell problem
                         ifsr = FsrIdxSt-1+core%cellinfo(icel)%mapfxr2fsridx(k,j)
-                        isoFSV=0
+                        isoFSV=0; isoFSV_nu=0._8
                         DO ig2 = 1, ng
                             isoFSV=isoFSV+XsMac%isoXsMacKF(iso,ig2) *FsrPhiVol(ifsr,ig2)
+                            isoFSV_nu=isoFSV_nu+XsMac%isoXsMacNF(iso,ig2)*FsrPhiVol(ifsr,ig2)
                         ENDDO
-                        FSV=FSV+isoFSV
+                        FSV=FSV+isoFSV; FSV_nu=FSV_nu+isoFSV_nu
                         DO ig = 1, ng
                             myPhiVol=FsrPhiVol(ifsr,ig)
                             
@@ -645,6 +770,7 @@ END INTERFACE
                             ENDDO
                             isoMacXs(0,4,ig)=isoMacXs(0,4,ig)+XsMac%isoXsMacNF(iso,ig) *myPhiVol  !nu-fission
                             isoMacXs(0,5,ig)=isoMacXs(0,5,ig)+XsMac%isoXsMacKF(iso,ig) *myPhiVol  !kappa-fission
+                            IF (iso .EQ. 1 .AND. nTracerCntl%lTranON .EQ. .TRUE.) KinParMac_velo(0,ig) = KinParMac_velo(0,ig) + 1._8/myFXR%velo(ig) * myPhiVol
                             IF( ig .LE. groupinfo%nchi .AND. isoFSV .NE. 0)THEN
                                 isoMacXs(0,6,ig)=isoMacXs(0,6,ig)+myFXR%CHI(ig) *isoFSV           !CHI
                             ENDIF
@@ -679,6 +805,28 @@ END INTERFACE
                             
                         ENDDO !---END of G sweep
                     ENDDO !---END of Fsr sweep
+                    IF( idiso.EQ.92238 )THEN !--- U238 N2N
+                        DO k = 1, nFsrInFxr
+                            ifsr = FsrIdxSt-1+core%cellinfo(icel)%mapfxr2fsridx(k,j)
+                            DO ig = 1, ng
+                                CALL GenU238N2N(myn2n, TempRef, ig)
+                                U238n2n=U238n2n+myn2n*myfxr%pnum(iso)*FsrPhiVol(ifsr,ig)
+                                u238n2nMG(ig) = u238n2nMG(ig) + myn2n*myfxr%pnum(iso)*FsrPhiVol(ifsr,ig)
+                            ENDDO !---END of G sweep
+                        ENDDO !---END of Fsr sweep
+                    ENDIF ! END OF U238 N2N
+#ifdef H2H                    
+                    isogd = 0;
+                    DO k = 1, 7
+                      IF (GdIsoIdx(k) .EQ. idiso) isogd = k;
+                    END DO
+                    IF (isogd.GT.0) THEN
+                      DO ig = 1, ng
+                        hetRxFrac(ihetfxr, isogd) = hetRxFrac(ihetfxr,isogd)+isoMacXS(isoidx,2,ig)
+                      END DO
+                      !hetRxFrac(ihetfxr,isogd) = hetRxFrac(ihetfxr,isogd)/hetNumFrac(ihetfxr,isogd)
+                    END IF
+#endif                    
                 ENDDO !---END of Iso sweep
             ELSE
                 iso=1
@@ -687,11 +835,12 @@ END INTERFACE
                     !ifsr = FsrIdxSt + k -1
                     !--- EDIT 14/12/23 Sq. cell problem
                     ifsr = FsrIdxSt-1+core%cellinfo(icel)%mapfxr2fsridx(k,j)
-                    isoFSV=0._8
+                    isoFSV=0._8; isoFSV_nu=0._8
                     DO ig2 = 1, ng
                         isoFSV=isoFSV+MacXsBen(imix)%XsKF(ig2) *FsrPhiVol(ifsr,ig2)
+                        isoFSV_nu=isoFSV_nu+MacXsBen(imix)%Xsnf(ig2)*FsrPhiVol(ifsr,ig2)
                     ENDDO
-                    FSV=FSV+isoFSV
+                    FSV=FSV+isoFSV; FSV_nu=FSV_nu+isoFSV_nu
                     DO ig = 1, ng
                         myPhiVol=FsrPhiVol(ifsr,ig)
                         
@@ -749,6 +898,83 @@ END INTERFACE
         ENDDO !---END of Fxr sweep
     ENDDO    
     ENDDO !---END of nPin sweep
+
+    IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+      FSV_nu=0._8
+      FSV_nu_Adj = 0._8
+      KinParMac_beta = 0._8
+      KinParMac_betaeff = 0._8
+      DO iy=yst, yed
+        DO ix=xbg, xed
+          ixyl = AsyInfo(iasytype)%Pin2DIdx(ix,iy)
+          ixy = Asy(iasy)%GlobalPinIdx(ixyl)
+          icel = Pin(ixy)%Cell(iz)
+          Vol = Vol + Core%PinVol(ixy,iz)
+          FxrIdxSt = Pin(ixy)%FxrIdxSt
+          nlocalFxr = Cell(icel)%nFxr
+          locFSV_nu = 0._8; FSV_chi = 0._8
+          DO j=1, nLocalFxr
+            ifxr = FxrIdxSt + j -1
+            myFxr => FmInfo%FXR(ifxr,iz)
+            nFsrInFxr = myFxr%nFsrInFxr
+            nisoInFxr = myFxr%niso
+            CALL GenFxrIsoMacXS(XsMac, IsoMacXsSM, IsoMacXsSMP1, FMInfo%FXR, ifxr, Tempref, 1, ng, Core, ixy, iz, GroupInfo, nTracerCntl, PE)
+            isoFSV_nu = 0._8
+            DO iso=1, nisoInFxr
+              DO k=1, nFsrInFxr
+                DO ig2=1, ng
+                  isoFSV_nu = isoFSV_nu + XsMac%isoXsMacNF(iso,ig2)*FsrPhiVol(ifsr,ig2)
+                END DO
+              END DO
+            END DO
+            FSV_nu = FSV_nu + isoFSV_nu
+            IF (myFxr%lFuel) THEN
+              DO ig=1, ng
+                FSV_chi(ig) = FSV_chi(ig) + myFxr%Chi(ig) * isoFSV_nu
+              END DO
+            END IF
+            DO iprec=1, 6
+              KinParMac_beta(0,iprec) = KinParMac_beta(0,iprec) + myFxr%beta(iprec) * isoFSV_nu
+              locFSV_nu(iprec) = locFSV_nu(iprec) + myFxr%beta(iprec) * isoFSV_nu
+            END DO
+          END DO
+          DO iprec=1, 6
+            DO ig=1, ng
+              !KinParMac_betaeff(0,iprec) = KinParMac_betaeff(0,iprec) + TranInfo%ChiD(ig) * CMInfo%Phic_Adj(ixy,iz,ig) * locFSV_nu(iprec)
+            END DO
+          END DO
+          DO ig=1, ng
+            !FSV_nu_Adj = FSV_nu_Adj + CMInfo%Phic_Adj(ixy,iz,ig) * FSV_chi(ig)
+          END DO
+        END DO
+      END DO
+      iso=0;
+      DO iprec = 1, 6
+        DO ig = 1, ng 
+          KinParMac_ChiDg(iso, ig, iprec) = TranInfo%chidk(ig, iprec)
+        END DO 
+      END DO 
+      KinParMac_fisrate(iso) = FSV_nu
+      IF (FSV_nu .NE. 0._8) KinParMac_beta(iso,:)=KinParMac_beta(iso,:)/FSV_nu
+      IF (FSV_nu_Adj .NE. 0._8) KinParMac_betaeff(iso,:)=KinParMac_betaeff(iso,:)/FSV_nu_Adj
+    END IF
+
+#ifdef H2H
+    DO j = 1, HetNreg-1
+      hetRxFrac(HetNreg-j+1,:) = hetRxFrac(HetNreg-j+1,:)-hetRxFrac(HetNreg-j,:)
+      hetRxFrac(HetNreg-j+1,:) = hetRxFrac(HetNreg-j+1,:)/hetNumFrac(HetNreg-j+1,:)
+      DO i = 1, 7
+        IF (hetNumFrac(HetNreg-j+1,i) .LE. 1.e-60) hetRxFrac(HetNreg-j+1,i) = 0.
+      END DO
+    END DO
+    
+    DO i = 1, 7
+      hetRxFrac(:,i) = hetRxFrac(:,i)/SUM(hetRxFrac(:,i))
+      hetNumFrac(:,i) = hetNumFrac(:,i)/SUM(hetNumFrac(:,i))
+    END DO
+#endif    
+    bupin = bupin/areasum ! Edit by LHG 19/03/14
+    IF (areasum .LT. 1.e-40) bupin = 0.
     
     DO ig = 1, ng
         DO iy = yst, yed
@@ -767,6 +993,10 @@ END INTERFACE
             isoMacXs(iso,i,ig)=isoMacXs(iso,i,ig)/PhiVol(ig)
         ENDDO
         XSt(ig)=isoMacXs(iso,0,ig)
+        IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+          KinParMac_velo(iso,ig)=KinParMac_velo(iso,ig)/PhiVol(ig)
+          KinParMac_velo(iso,ig)=1._8/KinParMac_velo(iso,ig)
+        END IF
         IF( FSV .NE. 0 )THEN
             isoMacXs(iso,6,ig)=isoMacXs(iso,6,ig)/FSV !chi
         ELSE

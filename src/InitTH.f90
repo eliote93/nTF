@@ -6,7 +6,7 @@ USE Geom,         ONLY : Core,           CellInfo,        CellPitch,     &
                          AsyPitch
 USE PE_MOD,       ONLY : PE                         
 USE Core_MOD,     ONLY : THInfo
-USE TH_MOD,       ONLY : ThOpt,          ThVar
+USE TH_MOD,       ONLY : ThOpt,          ThVar,           hGapArray
 USE CNTL,         ONLY : nTracerCntl
 USE IOUTIL,       ONLY : OpenFile
 USE FILES,        ONLY : io4,            filename,        SteamTblIdx
@@ -25,7 +25,7 @@ USE HexGeoConst, ONLY : HexSetThGeo
 IMPLICIT NONE
 
 REAL :: rs, rw, tw, rgt, TinK
-INTEGER :: icel, i, nEd
+INTEGER :: icel, i, ich, nEd
 INTEGER :: nxy, nz, nrpallet
 
 IF(nTracerCntl%lHex) THEN
@@ -40,6 +40,9 @@ ENDDO
 
 nxy = Core%nxy; nz = Core%nz
 nrpallet = ThOpt%nrpellet
+
+CALL Dmalloc0(hGapArray, 1, nz, 1, nxy)
+
 !Allocation
 CALL Dmalloc0(ThInfo%Tdop, 0, nz, 0, nxy + 1)
 CALL Dmalloc0(ThInfo%Tcool, 1, nz, 0, nxy + 1)
@@ -100,14 +103,27 @@ END IF
 Thvar%zetap = Thvar%zeta / ThVar%acf
 Thvar%Deq = 4. * ThVar%acf / ThVar%xi                
 !Heat Deposition Rate
-ThVar%FracDc = 0.
+!ThVar%FracDc = 0.
 ThVar%Fracdf = 1._8 - ThVar%FracDc 
 
+IF(nTracerCntl%lthchconf) THEN 
+  DO ich = 1, ThVar%nChType
+    ThVar%ThCh(ich)%acf = (ThVar%ThCh(ich)%AsyPitch**2 - PI*(ThVar%ThCh(ich)%nAsyCh * rw**2 + ThVar%ThCh(ich)%nAsyGT * rgt**2))/ThVar%ThCh(ich)%nAsyCh  
+    ThVar%ThCh(ich)%xi = 2 * PI * (ThVar%ThCh(ich)%nAsyCh * rw + ThVar%ThCh(ich)%nAsyGT * rgt) / ThVar%ThCh(ich)%nAsyCh
+    Thvar%ThCh(ich)%zetap = Thvar%zeta / ThVar%ThCh(ich)%acf
+    Thvar%ThCh(ich)%Deq = 4. * ThVar%ThCh(ich)%acf / ThVar%ThCh(ich)%xi
+  END DO 
+END IF
+
 !Active Height
-THvar%Hact = 0
-DO i = 1, Core%nz
-  IF(Core%lFuelPlane(i)) THvar%Hact = THvar%Hact + Core%hz(i) * epsm2
-ENDDO
+IF(Thvar%lhact) THEN 
+  Thvar%hact = Thvar%hact * epsm2
+ELSE
+  THvar%Hact = 0
+  DO i = 1, Core%nz
+    IF(Core%lFuelPlane(i)) THvar%Hact = THvar%Hact + Core%hz(i) * epsm2
+  ENDDO
+END IF
 CALL Dmalloc0(THvar%hz, 0,THvar%nzTH+1)
 THvar%hz(1:Thvar%nzTH) = Core%Hz(1:Thvar%nzTH) * epsm2
 
@@ -118,7 +134,11 @@ CALL SetInLetTHInfo(ThInfo, THVar, Core%Pin, nTracerCntl, nxy, nz)
 TinK = ThInfo%Tin + CKELVIN
 ALLOCATE(ThInfo%CoolantTh(nxy))
 CALL AllocCoolantTH(Core%Pin, ThInfo, nrpallet, nxy ,nz)
-CALL InitCoolantVar(Tink, ThInfo%PExit, ThVar%MdotFa, ThVar%acf, ThInfo%CoolantTh, nrpallet, nxy ,nz)
+IF(nTracerCntl%lthchconf) THEN
+  CALL InitCoolantVar_thch(Core, ThVar, Tink, ThInfo%PExit, ThVar%MdotFa, ThInfo%CoolantTh, nrpallet, nxy ,nz)
+ELSE
+  CALL InitCoolantVar(Tink, ThInfo%PExit, ThVar%MdotFa, ThVar%acf, ThInfo%CoolantTh, nrpallet, nxy ,nz)
+END IF
 
 ALLOCATE(ThInfo%FuelTh(nxy)); 
 CALL AllocFuelTh(Core%Pin, ThInfo, nrpallet, nxy ,nz)
@@ -130,18 +150,19 @@ IF(nTracerCntl%ThCh_mod .GT. 0) CALL InitThChGrp(Core, nTracerCntl)
 
 ! Initial Geuss Power Shape
 CALL InitTHPwShape(THInfo, THvar, Core%lfuelPlane, nxy, nz)
-CALL SetBoilingTemp(Thvar%BoilingTemp, ThInfo%PEXIT)
+CALL SetBoilingTemp(Thvar%BoilingTemp, ThInfo%PEXIT, ThInfo%Tin)
 IF(nTracerCntl%lProblem .EQ. lTransient) CALL AllocTransientTH(THInfo, ThVar, nxy, nz)
 END SUBROUTINE
 
-SUBROUTINE SetBoilingTemp(BoilingTemp, PEXIT)
+SUBROUTINE SetBoilingTemp(BoilingTemp, PEXIT, Tin)
 USE PARAM
 USE SteamTBL_mod, ONLY : steamtbl
 IMPLICIT NONE
-REAL :: BoilingTemp, PEXIT
+REAL :: BoilingTemp, PEXIT, Tin
 REAL :: wt, wh, hin, wrho, wvin, wxin, wbetain, wkapain, wcpin
 
-wt = 270 + CKELVIN
+!wt = 270 + CKELVIN
+wt = Tin + CKELVIN
 CALL SteamTBL(TRUE, pexit, wt, wh, wrho, wvin, wxin, wbetain, wkapain, wcpin)
 
 BoilingTemp = 0
@@ -162,8 +183,7 @@ USE PARAM
 USE TYPEDEF,      ONLY : THInfo_Type,           Pin_Type,     ThVar_Type
 USE CNTL,         ONLY : nTracerCntl_Type
 USE SteamTBL_mod, ONLY : steamtbl
-
-
+USE geom,         ONLY : Core
 IMPLICIT NONE
 
 TYPE(THInfo_Type) :: ThInfo
@@ -173,15 +193,39 @@ TYPE(nTracerCntl_Type) :: nTracerCntl
 INTEGER :: nz, nxy
 
 REAL :: Tink, pexit, hin, din, wvin, wxin, wbetain, wkapain, wcpin
+REAL :: avgnch, avghnch
 INTEGER :: i
+INTEGER :: ixya, ncha, ichtyp, ityp
+
+IF(nTracerCntl%lThChConf) THEN 
+  ncha = 0
+  avgnch = 0. ; avghnch = 0.
+  DO ixya = 1, Core%nxya
+    ityp = Core%CoreMap(ixya)
+    IF(.NOT. Core%AsyInfo(ityp)%lfuel) CYCLE
+    ichtyp = Core%ThChMap(ixya)
+    ncha = ncha + 1
+    IF(ichtyp .EQ. 0) THEN
+      avgnch = avgnch + ThVar%nAsyCh
+      avghnch = avghnch + ThVar%nAsyCh * ThVar%hact
+    ELSE
+      avgnch = avgnch + ThVar%ThCh(ichtyp)%nAsyCh
+      avghnch = avghnch + ThVar%ThCh(ichtyp)%nAsyCh * ThVar%ThCh(ichtyp)%hact
+    END IF
+  END DO
+  avgnch = avgnch / ncha
+  avghnch = avghnch / ncha
+ELSE
+  avgnch = ThVar%nAsyCh
+  avghnch = THvar%Hact * ThVar%nAsyCh
+END IF
 
 ThInfo%Tin = nTracerCntl%TempInlet
 ThInfo%PowFa = nTracerCntl%PowerFA !* 1.E6_8
 ThInfo%PExit = nTracerCntl%PExit !* 1.E6_8
-ThInfo%PowLin = ThInfo%PowFa/THvar%Hact/ThVar%nAsyCh
+ThInfo%PowLin = ThInfo%PowFa/avghnch
 ThInfo%PowLv = nTracerCntl%PowerLevel
-ThInfo%MdotFa = nTracerCntl%fMdotFA/ThVar%nAsyCh
-
+ThInfo%MdotFa = nTracerCntl%fMdotFA/avgnch
 
 ThVar%Tin = ThInfo%Tin
 ThVar%MdotFa = ThInfo%MdotFa
@@ -223,6 +267,51 @@ Uin = RhoUin/Rhoin
 
 DO i = 1, nxy
   IF(.NOT. CoolantTH(i)%lFuel) CYCLE
+  CoolantTH(i)%hcool(1:nz) = hin
+  CoolantTH(i)%rhou(0:nz) = RhoUin
+  CoolantTH(i)%RhoHU(0:nz) = RhoHUin
+  CoolantTH(i)%u(0:nz) = Uin
+  CoolantTH(i)%ud(0:nz) = Uin
+  CoolantTH(i)%DenCool(1:nz) = Din
+  !CoolantTH(i)%tfuel(:, :) = Tink
+ENDDO
+END SUBROUTINE
+
+SUBROUTINE InitCoolantVar_ThCh(Core, ThVar, Tink, pexit, MdotFa, CoolantTh, nrpallet, nxy, nz)
+USE PARAM
+USE TYPEDEF,      ONLY : THInfo_TYPE,    ThVar_Type, CoolantTH_Type,    CoreInfo_Type,      Pin_Type
+USE SteamTBL_mod, ONLY : steamtbl
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(ThVar_Type) :: ThVar
+REAL :: TinK, Pexit, MdotFa
+TYPE(CoolantTh_Type) :: CoolantTH(nxy)
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+INTEGER :: nrpallet, nxy, nz, I
+INTEGER :: ixya, ichtyp
+REAL :: hin, din, wvin, wxin, wbetain, wkapain, wcpin, acf_i
+REAL :: RhoIn, RhoUin, RhoHUin, uin
+
+CALL SteamTBL(TRUE, pexit, tink, hin, din, wvin, wxin, wbetain, wkapain, wcpin)
+Rhoin = Din; 
+
+Pin => Core%Pin
+
+DO i = 1, nxy
+  IF(.NOT. CoolantTH(i)%lFuel) CYCLE
+  ixya = Pin(i)%iasy
+  ichtyp = Core%THChMap(ixya)
+  IF(ichtyp .EQ. 0) THEN 
+    acf_i = ThVar%acf
+  ELSE
+    acf_i = ThVar%ThCH(ichtyp)%acf
+  END IF
+
+  RhoUin = MdotFA / Acf_i
+  RhoHUin = RhoUin * hin
+  Uin = RhoUin/Rhoin
+
   CoolantTH(i)%hcool(1:nz) = hin
   CoolantTH(i)%rhou(0:nz) = RhoUin
   CoolantTH(i)%RhoHU(0:nz) = RhoHUin
@@ -498,6 +587,55 @@ Uin = RhoUin/Rhoin
 
 DO i = 1, Core%nxy
   IF(.NOT. ThInfo%CoolantTH(i)%lFuel) CYCLE
+  ThInfo%CoolantTH(i)%rhou(0) = RhoUin
+  ThInfo%CoolantTH(i)%RhoHU(0) = RhoHUin
+  ThInfo%CoolantTH(i)%u(0) = Uin
+  ThInfo%CoolantTH(i)%ud(0) = Uin
+ENDDO
+
+END SUBROUTINE
+
+SUBROUTINE ChangeFlowRate_ThCh(Core, ThInfo, Thvar, FlowRateLevel)
+USE PARAM
+USE Typedef,          ONLY : CoreInfo_Type,     ThInfo_Type,      Thvar_Type,     &
+                             CoolantTH_Type,    Pin_Type
+USE SteamTBL_mod, ONLY : steamtbl
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(ThInfo_Type) :: ThInfo
+TYPE(ThVar_Type) :: ThVar
+REAL :: FlowRateLevel
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+REAL :: ACF, RhoUin, RhoHUin, RhoIn, Uin, MdotFa
+REAL :: PEXIT, TinK, Hin ,Din, wvin, wxin, wbetain, wkapin, wkapain, wcpin
+
+INTEGER :: i, ixya, ichtyp
+
+TinK = ThInfo%Tin + CKELVIN
+PEXIT = ThInfo%PExit 
+
+CALL SteamTBL(TRUE, pexit, tink, hin, din, wvin, wxin, wbetain, wkapain, wcpin)
+
+ThVar%MdotFa = ThInfo%MdotFa * FlowRateLevel
+MdotFa = ThVar%MdotFa
+
+Pin => Core%Pin
+DO i = 1, Core%nxy
+  IF(.NOT. ThInfo%CoolantTH(i)%lFuel) CYCLE
+  ixya = Pin(i)%iasy
+  ichtyp = Core%ThChMap(ixya)
+  IF(ichtyp .EQ. 0) THEN 
+    Acf = ThVar%ACF
+  ELSE
+    Acf = ThVar%ThCh(ichtyp)%acf
+  END IF
+
+  RhoUin = MdotFA / Acf
+  RhoHUin = RhoUin * hin
+  Uin = RhoUin/Rhoin
+
   ThInfo%CoolantTH(i)%rhou(0) = RhoUin
   ThInfo%CoolantTH(i)%RhoHU(0) = RhoHUin
   ThInfo%CoolantTH(i)%u(0) = Uin

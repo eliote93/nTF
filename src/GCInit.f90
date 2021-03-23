@@ -1,8 +1,65 @@
+#define H2H
 SUBROUTINE GCInit(Core, CmInfo, ng)
     USE GC_mod
     USE GCpin_mod
     USE TYPEDEF,         ONLY : CoreInfo_Type, CMInfo_Type
+    USE Cntl
+#ifdef H2H
+    USE FILES,          ONLY : FILENAME,          DeplFileIdx,                 &
+                           io_quick
+    USE DEPL_MOD,        ONLY : ReadDeplFile, AllocDeplXs
+    USE Core_mod,        ONLY : GroupInfo
+#endif
     IMPLICIT NONE
+#ifdef H2H    
+    INTERFACE
+      SUBROUTINE SetDepMappingVec(DeplLib)
+      USE PARAM
+      USE DeplType,       ONLY : DeplLib_Type,  ATOMKIND
+      USE ALLOCS
+      IMPLICIT NONE
+      TYPE(DeplLib_Type) :: DeplLib
+      END SUBROUTINE
+      SUBROUTINE SetChildrenNFisProduct(DeplLib)
+      USE PARAM
+      USE DeplType,       ONLY : DeplLib_Type,  ATOMKIND
+      USE ALLOCS
+      IMPLICIT NONE
+      TYPE(DeplLib_Type) :: DeplLib
+      END SUBROUTINE
+      SUBROUTINE MakeAtomLib1(DeplLib)
+      USE PARAM
+      USE MatExp_Mod,     ONLY : Mat_Type
+      USE DeplType,       ONLY : DeplLib_Type,      ATOMKIND,       STATEKIND,    &
+                                 FisYield_Type
+      USE ALLOCS
+      IMPLICIT NONE
+      TYPE(DeplLib_Type) :: DeplLib
+      END SUBROUTINE
+      SUBROUTINE SetDeplMatDim(DMAT, DeplLib)
+      USE PARAM
+      USE MatExp_Mod,     ONLY : Mat_Type
+      USE DeplType,       ONLY : DeplLib_Type,      ATOMKIND,       STATEKIND,    &
+                                 FisYield_Type
+      USE DEPL_MOD,       ONLY : ElmtLocFindnUpdt
+      USE ALLOCS
+      IMPLICIT NONE
+      TYPE(Mat_Type) :: DMAT
+      TYPE(DeplLib_Type) :: DeplLib
+      END SUBROUTINE
+      SUBROUTINE MakeXsDeplLibMap(DeplVars, GroupInfo) !Mapping Between
+      USE PARAM
+      USE TYPEDEF,      ONLY : GroupInfo_TYPE
+      USE DeplType,     ONLY : DeplVars_Type
+      USE DeplLib_MOD,  ONLY : GetnDeplIso,      GetDeplIsoList
+      USE nuclidmap_mod,ONLY : iposiso
+      USE Allocs
+      IMPLICIT NONE
+      TYPE(DeplVars_TYPE) :: DeplVars
+      TYPE(GroupINfo_Type) :: GroupInfo
+      END SUBROUTINE
+    END INTERFACE
+#endif    
     TYPE(CoreInfo_Type) :: Core
     TYPE(CMInfo_Type) :: CMInfo
     INTEGER :: ng
@@ -69,6 +126,7 @@ SUBROUTINE GCInit(Core, CmInfo, ng)
     ALLOCATE(pinSin(nCorexy,ng),pinSout(nCorexy,ng),pinAbs(nCorexy,ng))
     ALLOCATE(pinSinG(nCorexy,ng),pinSoutG(nCorexy,ng))
     ALLOCATE(pinJdir(nCorexy,ng,4))
+    ALLOCATE(u238n2nMG(ng),u238phiMG(ng),u238n2nFG(ngrp),u238phiFG(ngrp)) !-- HHS 19/02/12
     !ALLOCATE(SrcR(nCorexy,ng),lossr(nCorexy,ng))
     pinrmv=0;pinfis=0;pinss=0;pinr=0;pinFlux=0;pinJ=0;
     pinSin=0;pinSout=0;pinAbs=0;
@@ -76,6 +134,37 @@ SUBROUTINE GCInit(Core, CmInfo, ng)
     pinJdir=0;
     
     u238n2n=0.;u238phi=0.0
+    u238n2nMG = 0.; u238n2nFG = 0.; u238phiMG = 0.; u238phiFG = 0. !-- HHS 19/02/12
+
+    IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+      ALLOCATE(KinParMac_beta(0:nisotot,8), KinParMac_velo(0:nisotot,ng), KinParMac_ChiD(0:nisotot,ng), KinParMac_ChiDg(0:nisotot,ng,8))
+      ALLOCATE(KinParMac_velo2g(0:nisotot,ngrp), KinParMac_velo2gAdj(0:nisotot,ngrp), KinParMac_ChiDg2g(0:nisotot,ngrp,8))
+      ALLOCATE(KinParMac_betaeff(0:nisotot,8))
+      ALLOCATE(KinParMac_fisrate(0:nisotot), KinParMac_phiadj(0:nisotot, ng), KinParMac_phiadj2g(0:nisotot, ngrp))
+      KinParMac_beta=0._8;KinParMac_velo=0._8;KinParMac_ChiD=0._8;KinParMac_ChiDg=0._8
+      KinParMac_velo2g=0._8; KinParMac_velo2gAdj=0._8
+      KinParMac_betaeff=0._8
+    END IF
+    
+    bupin = 0. ! Edit by LHG 19/03/14
+#ifdef H2H    
+    IF (.NOT. lInitDepl) THEN
+      lInitDepl = .TRUE.
+      CALL ReadDeplFile(io_quick, FileName(DeplFileIdx), DeplLibPin, GroupInfo%ntiso_depl)
+      CALL SetDepMappingVec(DeplLibPin)
+      CALL SetChildrenNFisProduct(DeplLibPin)
+      
+      ALLOCATE(DeplVarPin%DMat); DeplVarPin%nIsoDepl=DeplLibPin%nIsoDep; DeplVarPin%tid = 1
+      CALL SetDeplMatDim(DeplVarPin%DMat, DeplLibPin)
+      CALL MakeAtomLib1(DeplLibPin)
+      CALL MakeXSDeplLibMap(DeplVarPin,GroupInfo)
+      ALLOCATE(DeplVarPin%BurnupXS(4,DeplLibPin%nisodep))
+      ALLOCATE(DeplVarPin%IsoNum(DeplLibPin%nisodep))
+      
+      CALL AllocDeplXs(DeplXsPin,DeplLibPin%nIsoDep, GroupInfo%ng); DeplXsPin%tid = 1
+    END IF    
+    ALLOCATE(h2hfactorpin(DeplLibPin%nIsoDep)); h2hfactorpin = 0.
+#endif H2H
 
 ENDSUBROUTINE
 
@@ -1282,6 +1371,14 @@ SUBROUTINE GCFin
     DEALLOCATE(pinSin,pinSout,pinAbs)
     DEALLOCATE(pinSinG,pinSoutG)
     DEALLOCATE(pinJdir)
+    DEALLOCATE(u238n2nFG, u238n2nMG, u238phiFG, u238phiMG)
+#ifdef H2H
+    DEALLOCATE(h2hfactorpin)
+    !DeplXSPin%xsa = 0.; DeplXSPin%xsf = 0.; DeplXSPin%xsn2n = 0.;
+    !DeplXSPin%xsn3n = 0.; DeplXSPin%AvgPhi = 0.;
+    !DeplXSPin%Phi1g = 0.;
+    !DeplVarPin%BurnUpXs = 0.; DeplVarPin%IsoNum = 0.;
+#endif  
 
 ENDSUBROUTINE
 

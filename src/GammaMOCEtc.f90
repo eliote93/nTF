@@ -3,13 +3,16 @@
 #ifdef __GAMMA_TRANSPORT    
 FUNCTION GammaMocResidual(Core, FmInfo, GroupInfo, PE, nTracerCntl)
 USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        GroupInfo_Type,     &
-                           Cell_Type,           Pin_Type,           FxrInfo_Type,       &
+USE TYPEDEF,        ONLY : CoreInfo_Type,           FmInfo_Type,            GroupInfo_Type,         &
+                           Cell_Type,               Pin_Type,               FxrInfo_Type,           &
                            PE_Type
-USE GammaCore_mod,  ONLY : gphis,               gJout,              GamGroupInfo
-USE GamMOC_MOD,     ONLY : SetGamSrc,           SetGamSrcNM,        SetGamMacXs,        &
-                           SetGamMacXsNM,       gxst1g,             gsrc1g,             &
-                           gphisnm,             gxstnm,             gsrcnm
+USE GammaCore_mod,  ONLY : gphis,                   gJout,                  gAxSrc,                 &
+                           gAxPXS
+USE GamMOC_MOD,     ONLY : SetGamSrc,               SetGamSrcNM,            SetGamMacXs,            &
+                           SetGamMacXsNM,           GamPseudoAbsorption,    GamPseudoAbsorptionNM,  &
+                           gxst1g,                  gsrc1g,                 gAxSrc1g,               &
+                           gAxPXS1g,                gphisnm,                gxstnm,                 &
+                           gsrcnm
 USE CNTL,           ONLY : nTracerCntl_Type
 #ifdef MPI_ENV
 USE MPICOMM_MOD,    ONLY : REDUCE
@@ -24,7 +27,6 @@ REAL :: GammaMocResidual
 
 TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 REAL, POINTER :: phis(:, :, :), phisnm(:, :)
-REAL, POINTER :: AxSrc(:, :, :), AxSrc1g(:)
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: Cell(:)
 INTEGER :: ng, ngg, nxy, nFsr, nlocalFsr, FsrIdxSt, myzb, myze
@@ -42,17 +44,21 @@ l3dim = nTracerCntl%l3dim
 lscat1 = nTracerCntl%lGammaScat1
 lTrCorrection = .NOT. lscat1
 myzb = PE%myzb; myze = PE%myze
-nFsr = Core%nCoreFsr; nxy = Core%nxy; nbd = 4; ng = GroupInfo%ng; ngg = GamGroupInfo%ngg
+nFsr = Core%nCoreFsr; nxy = Core%nxy; nbd = 4; ng = GroupInfo%ng; ngg = GroupInfo%ngg
 GammaMocResidual = 0; SrcSum = 0
-
 IF (lscat1) THEN
 
 DO ig = 1, ngg
   DO iz = myzb, myze
     IF (.NOT. Core%lFuelPlane(iz)) CYCLE
+    gAxSrc1g => gAxSrc(:, ig, iz)
+    gAxPXS1g => gAxPXS(:, ig, iz)
     CALL SetGamMacXs(Core, Fxr(:, iz), gxst1g, iz, ig, ngg, lTrCorrection, PE)
-    CALL SetGamSrc(Core, Fxr(:, iz), gsrc1g, phis, gphis, AxSrc1g, gxst1g, iz, ig, ng, ngg,                   &
-                   l3dim, lscat1, PE, GamGroupInfo)
+#ifdef LkgSplit
+    CALL GamPseudoAbsorption(Core, Fxr(:, iz), gAxPXS1g, gxst1g, iz, l3dim)
+#endif            
+    CALL SetGamSrc(Core, Fxr(:, iz), gsrc1g, phis, gphis, gAxSrc1g, gxst1g, iz, ig, ng, ngg,                   &
+                   l3dim, lscat1, PE, GroupInfo)
     DO ipin = 1, nxy
       FsrIdxSt = Pin(ipin)%FsrIdxSt
       icel = Pin(ipin)%Cell(iz)
@@ -85,7 +91,10 @@ DO iz = myzb, myze
   ENDDO
   gphisnm => gphis(:, :, iz)
   CALL SetGamMacXsNM(Core, Fxr(:, iz), gxstnm, iz, ngg, lTrCorrection, PE)
-  CALL SetGamSrcNM(Core, Fxr(:, iz), gsrcnm, phisnm, gphisnm, AxSrc, gxstnm, iz,                               &
+#ifdef LkgSplit
+  CALL GamPseudoAbsorptionNM(Core, Fxr(:, iz), gAxPXS, gxstnm, iz, ngg, l3dim)
+#endif       
+  CALL SetGamSrcNM(Core, Fxr(:, iz), gsrcnm, phisnm, gphisnm, gAxSrc, gxstnm, iz,                               &
                    1, ngg, ng, ngg, l3dim, lscat1, PE)
   DO ipin = 1, nxy
     FsrIdxSt = Pin(ipin)%FsrIdxSt
@@ -164,7 +173,7 @@ Pin => Core%Pin
 CellInfo => Core%CellInfo
 nFsr = Core%nCoreFsr
 nxy = Core%nxy
-
+gPower =0.
 IF (nTracerCntl%lGammaScat1) THEN
   DO iz = myzb, myze
     DO ig = 1, ng
@@ -217,32 +226,30 @@ ENDDO
 
 END SUBROUTINE
   
-SUBROUTINE NeutronLocalQUpdate(Core, Fxr, phis, localpower, myzb, myze, ng, PE)
+SUBROUTINE NeutronLocalQUpdate(Core, Fxr, phis, localpower, GPOWERGEN, myzb, myze, ng, PE)
 USE PARAM
 USE TYPEDEF,        ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
-                           PE_TYPE
+                           PE_TYPE,             XsMac_TYPE
 USE CNTL,           ONLY : nTracerCntl
 USE CORE_MOD,       ONLY : GroupInfo
 USE GamXsLib_Mod,   ONLY : GetLocalQMat
 #ifdef MPI_ENV      
 USE MPIComm_Mod,    ONLY : BCAST
 #endif              
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
-USE GammaCore_mod,  ONLY : GamGroupInfo
 IMPLICIT NONE
 
 TYPE(coreinfo_type) :: CORE
 TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
 TYPE(PE_Type) :: PE
 REAL, POINTER :: phis(:, :, :)
-REAL, POINTER :: localpower(:, :)
+REAL, POINTER :: localpower(:, :), GPOWERGEN(:, :)
 INTEGER :: myzb, myze, ng, ngg
 
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
 TYPE(Fxrinfo_type),POINTER :: myFxr
 
-TYPE(GamMacXS_TYPE) :: XsMac
+TYPE(XsMac_TYPE) :: XsMac
 
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
 INTEGER :: ipin, icel, ifsr, ifxr, iz, ig
@@ -255,10 +262,10 @@ Pin => Core%Pin
 CellInfo => Core%CellInfo; nCoreFsr = Core%nCoreFsr
 nCoreFxr = Core%nCoreFxr; nxy = Core%nxy
 
-ngg = GamGroupInfo%ngg
+ngg = GroupInfo%ngg
 
 localpower = 0.
-
+GPOWERGEN = 0.
 DO iz = myzb, myze
   DO ipin = 1, nxy
     FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
@@ -267,13 +274,12 @@ DO iz = myzb, myze
       ifxr = FxrIdxSt + j -1
       nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
       myFxr => Fxr(ifxr, iz)
-      lfis = myFxr%lres .and. Core%lFuelPlane(iz)
-      CALL GetLocalQMat(XSMac, myFxr, 1, ng, ng, ngg, lfis)
-      MacLocalQ => XsMac%LocalQ
+      CALL GetLocalQMat(XSMac, myFxr, 1, ng, ng, .TRUE.)
       DO i = 1, nFsrInFxr
         ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
         DO ig = 1, ng
-          localpower(ifsr, iz) = localpower(ifsr, iz) + MacLocalQ(ig) * phis(ifsr, iz, ig)
+          localpower(ifsr, iz) = localpower(ifsr, iz) + XsMac%MacKERMA_t(ig) * phis(ifsr, iz, ig)
+          GPOWERGEN(ifsr, iz)        = GPOWERGEN(ifsr, iz)        + XsMac%MacKERMA_P(ig) * phis(ifsr, iz, ig)
         ENDDO
         CONTINUE
       ENDDO !Fsr Sweep    
@@ -286,4 +292,123 @@ DO iz = 1, Core%nz
 ENDDO
 #endif
 END SUBROUTINE
+  
+FUNCTION FxrAvgGPhi(Core, Fxr, GPhis, ipin, iLocalfxr, iz, ng, PE)
+USE PARAM
+USE TYPEDEF,     ONLY : CoreInfo_Type,    PE_Type,     FxrInfo_Type,               &
+                        Cell_Type,    Pin_Type
+USE CNTL,        ONLY : nTRACERCNTL
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+TYPE(PE_Type) :: PE
+REAL, POINTER :: GPhis(:, :, :)
+INTEGER :: iLocalfxr, ipin, iz, ng
+REAL :: FxrAvgGPhi(ng)
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+
+REAL :: area, areasum
+INTEGER :: FsrIdxSt, FxrIdxSt, nFsrInFxr
+INTEGER :: ifxr, ifsr, icell
+INTEGER :: i, j
+
+CellInfo => Core%CellInfo
+Pin => Core%Pin
+
+FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+
+ifxr = FxrIdxSt + iLocalFxr - 1; icell = Pin(ipin)%Cell(iz)
+nFsrInFxr = Fxr(ifxr, iz)%nFsrInFxr
+FxrAvgGPhi = 0; areasum = 0
+IF (nTracerCntl%lGammaScat1) THEN
+  DO i = 1, nFsrInFxr
+    j = CellInfo(icell)%MapFxr2FsrIdx(i, iLocalFxr)
+    iFsr = FsrIdxSt + j - 1
+    Area = CellInfo(icell)%vol(j); AreaSum = AreaSum + Area
+    FxrAvgGPhi = FxrAvgGPhi + Area * GPhis(ifsr, 1:ng, iz)
+  ENDDO
+ELSE
+  DO i = 1, nFsrInFxr
+    j = CellInfo(icell)%MapFxr2FsrIdx(i, iLocalFxr)
+    iFsr = FsrIdxSt + j - 1
+    Area = CellInfo(icell)%vol(j); AreaSum = AreaSum + Area
+    FxrAvgGPhi = FxrAvgGPhi + Area * GPhis(1:ng, ifsr, iz)
+  ENDDO
+END IF
+FxrAvgGPhi = FxrAvgGPhi / AreaSum
+
+NULLIFY(Pin, CellInfo)
+END FUNCTION  
+
+SUBROUTINE CompensateGPower(Core,Fxr,GPowerGen,GPower, myzb, myze,PE)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
+                         PE_TYPE
+USE CNTL,         ONLY : nTracerCntl
+USE GamXsLib_Mod, ONLY : GamXsBase
+#ifdef MPI_ENV
+USE MPIComm_Mod, ONLY : BCAST
+#endif
+USE GammaTYPEDEF, ONLY : GamMacXS_TYPE
+
+IMPLICIT NONE
+
+TYPE(coreinfo_type) :: CORE
+TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
+TYPE(PE_Type) :: PE
+REAL, POINTER, DIMENSION(:, :) :: GPowerGen, gpower
+INTEGER :: myzb, myze
+
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE(Fxrinfo_type),POINTER :: myFxr
+TYPE(GamMacXS_TYPE), SAVE :: GamXsMac
+
+INTEGER :: nxy, nFsr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
+INTEGER :: i, j, ipin, icel, ifsr, ifxr, iz, ig
+
+REAL :: TotGPower, TotGPowerGen, RatioGPower
+
+REAL, POINTER :: xsmackerma(:)
+
+Pin => Core%Pin
+CellInfo => Core%CellInfo
+nFsr = Core%nCoreFsr
+nxy = Core%nxy
+! Core%hz, FXR%area
+TotGPower= 0.
+TotGPowerGen = 0.
+DO iz = myzb, myze
+    DO ipin = 1, nxy
+      FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+      icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+      DO j = 1, nLocalFxr
+        ifxr = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        myFxr => Fxr(ifxr, iz)
+        DO i = 1, nFsrInFxr
+          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
+          TotGPower = TotGPower + GPower(ifsr,iz) * Core%hz(iz) * CellInfo(icel)%Vol(Cellinfo(icel)%MapFxr2FsrIdx(i, j))
+          TotGPowerGen = TotGPowerGen + GPowerGen(ifsr,iz) * Core%hz(iz) * CellInfo(icel)%Vol(Cellinfo(icel)%MapFxr2FsrIdx(i, j))
+        ENDDO
+      ENDDO !Fsr Sweep
+    ENDDO
+ENDDO   
+RatioGPower = (TotGPowerGen / TotGPower)
+GPower = GPower * RatioGPower
+
+PRINT '(a,es14.6)', 'RatioGPower: ', RatioGPower
+
+#ifdef MPI_ENV
+DO iz = 1, Core%nz
+  CALL BCAST(gPower(:, iz), nFsr, PE%MPI_RTMASTER_COMM, PE%AxDomList(iz))
+ENDDO
+#endif
+
+END SUBROUTINE  
+  
+  
 #endif

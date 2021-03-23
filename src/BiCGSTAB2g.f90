@@ -64,8 +64,9 @@ itermax = itrcntl%ninmax
 itermin = itrcntl%ninmin
 !Initialized Solution related Array set
 rho = 1._8; prho = 1._8; alpha = 1._8; omega = 1._8;
-CALL CP_CA(P(1:2, 1:nxy, myzbf - 1:myzef + 1), 0._8, 2, nxy, myzef - myzbf + 3)
-CALL CP_CA(v(1:2, 1:nxy, myzbf - 1:myzef + 1), 0._8, 2, nxy, myzef - myzbf + 3)
+
+P(1:2, 1:nxy, myzbf-1:myzef+1) = 0.
+v(1:2, 1:nxy, myzbf-1:myzef+1) = 0.
 
 CALL Residual2g(Sol, RHS, ResV)
 
@@ -78,8 +79,7 @@ IF(reserr0 .lt. 1.0e-8_8) then
   RETURN
 ENDIF
 
-CALL CP_VA(resvhat(1:2, 1:nxy, myzbf - 1:myzef + 1), RESV(1:2, 1:nxy, myzbf - 1:myzef + 1),  &
-            2, nxy, myzef - myzbf + 3)
+resvhat(1:2, 1:nxy, myzbf-1:myzef+1) = resv(1:2, 1:nxy, myzbf-1:myzef+1)
 lconv = .FALSE.
 DO iter = 1, 100
   prho = rho

@@ -1,3 +1,13 @@
+MODULE HexTLkg
+  
+USE TYPEDEF,   ONLY : AxFlx_TYPE, PinXS_TYPE, CoreInfo_TYPE, CmInfo_Type
+
+IMPLICIT NONE
+
+INTEGER, PARAMETER :: ConvLkg2ndMod  = 0
+INTEGER, PARAMETER :: IntraLkg2ndMod = 1
+
+CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. Rad tLkg Update Type 0
 ! ------------------------------------------------------------------------------------------------------------
@@ -5,7 +15,6 @@ SUBROUTINE HexRadTlkgUpdt(Core, CmInfo, TLKG, ixy1, ixy2, iz1, iz2, ng)
 
 USE PARAM,   ONLY : ZERO
 USE CNTL,    ONLY : nTracerCntl
-USE TYPEDEF, ONLY : AxFlx_TYPE, PinXS_TYPE, CoreInfo_TYPE, CmInfo_Type
 USE HexType, ONLY : Type_HexCmfdPin
 USE HexData, ONLY : hcPin, hPinInfo
 
@@ -90,3 +99,5 @@ RETURN
 
 END SUBROUTINE HexStabGapPinLkg
 ! ------------------------------------------------------------------------------------------------------------
+
+END MODULE HexTLkg

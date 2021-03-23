@@ -70,12 +70,12 @@ END SUBROUTINE
 
 SUBROUTINE SetGammaCMFDSystem(CoreInfo, GroupInfo, PinXS, GammaCMFD, lDhat)
 USE PARAM
-USE TYPEDEF,		    ONLY : CoreInfo_Type
-USE GammaTYPEDEF,       ONLY : gPinXS_Type,         GammaGroupInfo_Type,        GammaCMFD_Type
+USE TYPEDEF,		    ONLY : CoreInfo_Type,          GroupInfo_Type
+USE GammaTYPEDEF,       ONLY : gPinXS_Type,        GammaCMFD_Type
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(GammaGroupInfo_Type) :: GroupInfo
+TYPE(GroupInfo_Type) :: GroupInfo
 TYPE(gPinXS_Type), POINTER :: PinXS(:, :)
 TYPE(GammaCMFD_Type) :: GammaCMFD
 LOGICAL :: lDhat
@@ -97,13 +97,13 @@ END SUBROUTINE
 
 SUBROUTINE UpdateCellPhi(CoreInfo, PinXS, GroupInfo, GammaCMFD)
 USE PARAM
-USE TYPEDEF,            ONLY : CoreInfo_Type
-USE GammaTYPEDEF,       ONLY : gPinXS_Type,         GammaCMFD_Type,     GammaGroupInfo_Type
+USE TYPEDEF,            ONLY : CoreInfo_Type,       GroupInfo_Type
+USE GammaTYPEDEF,       ONLY : gPinXS_Type,         GammaCMFD_Type
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
 TYPE(gPinXS_Type), POINTER :: PinXS(:, :)
-TYPE(GammaGroupInfo_Type) :: GroupInfo
+TYPE(GroupInfo_Type) :: GroupInfo
 TYPE(GammaCMFD_Type) :: GammaCMFD
 
 END SUBROUTINE
@@ -113,14 +113,14 @@ END SUBROUTINE
 SUBROUTINE UpdateFsrPhi(CoreInfo, CmInfo, PinXS, GroupInfo, GammaCMFD, gPhis, gPhiAngIn)
 USE PARAM
 USE TYPEDEF,            ONLY : CoreInfo_Type,       CmInfo_Type,        RayInfo_Type,                               &
-                               Pin_Type,            Cell_Type
-USE GammaTYPEDEF,       ONLY : gPinXS_Type,         GammaCMFD_Type,     GammaGroupInfo_Type
+                               Pin_Type,            Cell_Type,          GroupInfo_Type
+USE GammaTYPEDEF,       ONLY : gPinXS_Type,         GammaCMFD_Type
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
 TYPE(CmInfo_Type) :: CmInfo
 TYPE(gPinXS_Type), POINTER :: PinXS(:, :)
-TYPE(GammaGroupInfo_Type) :: GroupInfo
+TYPE(GroupInfo_Type) :: GroupInfo
 TYPE(GammaCMFD_Type) :: GammaCMFD
 REAL, POINTER :: gPhis(:, :, :), gPhiAngIn(:, :, :, :)
 

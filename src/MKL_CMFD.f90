@@ -1,5 +1,5 @@
 #include <defines.h>
-!--- CNJ Edit : 3D CMFD Acceleration Modules with Intel MKL 
+!--- CNJ Edit : 3D CMFD Acceleration Modules with Intel MKL
 #ifdef __INTEL_MKL
 
 MODULE MKL_HOMOXS
@@ -28,6 +28,7 @@ INTEGER :: ig, ifxr, ixy, ixy_map, ipin, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 INTEGER, POINTER :: pinMap(:), planeMap(:)
 
+LOGICAL :: lFreeSth
 Pin => CoreInfo%Pin
 Fxr => FmInfo%Fxr
 superPin => mklGeom%superPin
@@ -37,10 +38,12 @@ nzCMFD = mklGeom%nzCMFD
 planeMap => mklGeom%planeMap
 pinMap => mklGeom%pinMap
 
+lFreeSth = .FALSE.
 DO izf = 1, nzCMFD
   iz = planeMap(izf)
   DO ixy = 1, nxy
     IF (.NOT. mklGeom%lH2OCell(izf, ixy)) CYCLE
+    lFreeSth = .TRUE.
     ixy_map = pinMap(ixy)
     ipin = superPin(ixy_map)%pin(1)
     ifxr = Pin(ipin)%FxrIdxSt
@@ -52,6 +55,13 @@ DO izf = 1, nzCMFD
 !    mklAxial%SmP3(:, :, izf, ixy) = XsMac%XsMacP3Sm
   ENDDO
 ENDDO
+
+IF (lFreeSth) THEN
+DEALLOCATE(XsMac%xsmaca,XsMac%xsmacf,XsMac%xsmackf,XsMac%xsmacnf)
+DEALLOCATE(XsMac%xsmacp1sm,XsMac%xsmacp2sm,XsMac%xsmacp3sm)
+DEALLOCATE(XsMac%xsmacs,XsMac%xsmacstr,XsMac%xsmacsm)
+DEALLOCATE(XsMac%xsmact,XsMac%xsmactr)
+END IF
 
 END SUBROUTINE
 
@@ -246,7 +256,7 @@ DO igc = 1, ngc
           Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
           jfdm = - Dtil * (neighphi - myphi)
           Dhat = - (Jnet(ibd, ipin, izf, igc) - jfdm) / (myphi + neighphi)
-        ENDIF 
+        ENDIF
         GcPinXS(ipin_map, izf)%Dtil(ibd, igc) = Dtil
         GcPinXS(ipin_map, izf)%Dhat(ibd, igc) = Dhat
       ENDDO
@@ -383,9 +393,9 @@ DEALLOCATE(Jnet)
 END SUBROUTINE HexSetRadialGcCoupling
 
 END MODULE
-    
+
 !--- Driver & General Routines --------------------------------------------------------------------
-    
+
 MODULE MKL_CMFD
 
 USE MKL_3D
@@ -477,7 +487,7 @@ CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
 CALL HomogenizeXS(CoreInfo, mklGeom%superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, FALSE)
 CALL SetRadialCoupling(mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
 IF (lAxRefFDM) CALL SetReflectorDhatZero(PinXS)
-IF (l3dim) CALL SetAxialDtil(PinXS)
+IF (l3dim) CALL SetAxialDtil(mklCMFD, mklAxial)
 IF (l3dim .AND. lxslib) CALL HomogenizePnXS(CoreInfo, FmInfo, GroupInfo)
 
 CALL SetCMFDPhis(mklCMFD, PinXS, lFirstCMFD)
@@ -671,7 +681,7 @@ IF(nTracerCntl%lBsq) THEN
 ENDIF
 #endif
 CALL SetRadialCoupling(mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
-IF (l3dim) CALL SetAxialDtil(PinXS)
+IF (l3dim) CALL SetAxialDtil(mklCMFD, mklAxial)
 
 WRITE(mesg, '(a)') 'Performing CMFD Calculation...'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
@@ -1185,7 +1195,7 @@ DO ig = 1, ng
 ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
-    
+
 AxPXS(:, myzb : myze, :) = 0.0
 
 IF (nTracerCntl%LkgSplitLv .EQ. 0) THEN

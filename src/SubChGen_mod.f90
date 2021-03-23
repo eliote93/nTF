@@ -10,7 +10,6 @@ IMPLICIT NONE
 
 TYPE ChInfo_Type
   !Each Subchannel Information
-  SEQUENCE
   LOGICAL :: lUse = .FALSE.
   REAL :: area = 0 
   REAL :: w_peri = 0      !Wetted Perimeter
@@ -35,7 +34,6 @@ TYPE ChInfo_Type
 END TYPE
 
 TYPE RodInfo_Type
-  SEQUENCE
   LOGICAL :: lUse = .False.
   LOGICAL :: lFuel = .FALSE.
   LOGICAL :: lGT = .FALSE.
@@ -55,7 +53,6 @@ TYPE RodInfo_Type
 END TYPE
 
 TYPE NodeInfo_Type
-  SEQUENCE
   INTEGER :: irod
   !Node Information
   INTEGER :: ixnbeg, ixnend, iynbeg, iynend

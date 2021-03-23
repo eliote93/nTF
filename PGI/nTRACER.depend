@@ -1,0 +1,938 @@
+# depslib dependency file v1.0
+1578903767 source:d:\onedrive\git\ntracer\src\cards.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\clfortran.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cp_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\csrmatrix.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\dmalloc.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\files.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\fxrvar_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hextype.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\inflowmathutil.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mat2x2op.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\param.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\rng.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\scalprods.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setpe.f90
+	<defines.h>
+
+1578902962 d:\onedrive\git\ntracer\src\defines.h
+
+1578919222 source:d:\onedrive\git\ntracer\src\timer.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\typedef.f90
+
+1578905187 source:d:\onedrive\git\ntracer\src\typedef_common.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\auxiliarycsr.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\basicoperation.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\benchxs_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cadgeom_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\cmfd_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\cntl.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\core_mod.f90
+
+1578904286 source:d:\onedrive\git\ntracer\src\cudatypedef.f90
+	<CUDADEFINES.h>
+
+1578904258 d:\onedrive\git\ntracer\src\cudadefines.h
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplcore_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gamma_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\geom.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexcmfd_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexdata.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmoc_ur.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hpdepltype.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\itrcntl.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\lu_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\material_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcdefine.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mciterlog.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mtbl2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\p1senm_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\pe_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\rays.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setray_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\sp3typedef.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\stemtbl_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\tlkg_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\xslib_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\allocth.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\b1_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\bicg2g.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\corraygen.f90
+
+1578904003 source:d:\onedrive\git\ntracer\src\cuda_common.f90
+	<CUDADEFINES.h>
+	<Depletion.h>
+
+1578902962 d:\onedrive\git\ntracer\src\depletion.h
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplcmfd_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplpinxswrt.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\deplinit.f90
+	<Depletion.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\deplmod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\deplsetvars.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammacmfd_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammamoc_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammaxsutil.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gccmfd_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\groupconstantmod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyray_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyrayconst_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyrayconst_360_v.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomcp.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomngh.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomoxs.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhompin.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomutil.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmoc_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexngh.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexngh_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexngh_360_v.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexpinconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexpinconst_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexpinconst_360.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hextlkg.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hextst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexutil.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\initsubplane.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\ioutil.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\matexp_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\matexponential.f90
+	<Depletion.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\mkl_3d.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mocsolupdt.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\nuclidmap.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\senmmatsolver_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setcmfdlinearsystem.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\sp3senmop_mod.f90
+	<SP3DEFINES.H>
+
+1578902962 d:\onedrive\git\ntracer\src\sp3defines.h
+
+1578902962 source:d:\onedrive\git\ntracer\src\sph_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\sth2xc.f
+
+1578902962 source:d:\onedrive\git\ntracer\src\subgrp_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\tranaxnutil_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\trancmfd_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\trangccmfd_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\tranmoc_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\utilfunction.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\volcorrection.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\xsutil.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\abi1d2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\banner.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cmfd2g_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_axrt.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_moc.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_nodal.f90
+	<CUDADEFINES.h>
+
+1578905358 source:d:\onedrive\git\ntracer\src\cuda_pcr.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_workspace.f90
+	<Depletion.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\deplsolvepostproc.f90
+	<Depletion.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\depltype.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\directsenm_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\facilu1d2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\facilu2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammaxslib.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\geomtreatment_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\globalcoremap.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyconst_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyconst_360.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyrayconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexgeoconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomasyconst_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomasyconst_360.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomcmfd_const.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomrayconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexinput.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexlgh.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexraybasic.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\highordersc.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\initbicg2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\inputedit.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\lsraddecomp.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcp_util.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\minv2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_bilu.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_fdm.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_flatmoc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_linmoc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_nodal.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_polymoc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mpicomm_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\procmat.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\readbenchxs.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\readlibgamma.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\readmesh.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\readxsec.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\reorderlib.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setasygeom.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setcentgeom.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\sol1d2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\sol2d2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\solbicg2g.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\ssphfactorout.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\subchgen_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\tranmacxslib.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\xsperturb_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\axialsp3_mod.f90
+	<SP3DEFINES.H>
+
+1578902990 source:d:\onedrive\git\ntracer\src\bilu.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\boron_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cmfdcomm_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\corepowercal.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_matexp.f90
+	<Depletion.h>
+
+1578905466 source:d:\onedrive\git\ntracer\src\cuda_solver.f90
+	<CUDADEFINES.h>
+
+1578905496 source:d:\onedrive\git\ntracer\src\cuda_system.f90
+	<CUDADEFINES.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\depletion_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\depllib_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\deplsetsys.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammacmfdacc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammamocetc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammamocsweep.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammasetrtvar.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gccmfdutil.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gddepl_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyray_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyray_360_v.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexasyray_sng.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexcmfd_const.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexcmfd_etc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexcorepowercal.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomasyray_060.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomasyray_360.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexhomgeo.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexsngcelconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcp_restart_main.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\miscstructgeom.f90
+	<defines.h>
+
+1578904760 source:d:\onedrive\git\ntracer\src\mkl_davidson.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_power.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mpiconfig_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mpidcpl_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\procgeom.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\readdeplfile.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\restart_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\setasyray.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setcellray.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setcellraybase.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setmodray.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setpingeom.f90
+
+1579010032 source:d:\onedrive\git\ntracer\src\subchcoupling_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\th_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\thfunction.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\trancmfd.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\xedyn_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\xsec4mc.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\bicgstab.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\bicgstab2g.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\binoutputedit.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cmfdtally.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cooling_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\crcsp_mod.f90
+	<defines.h>
+
+1578903854 source:d:\onedrive\git\ntracer\src\ctfth_mod.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_solproc.f90
+	<Depletion.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplth_mod.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\deplinfoout.f90
+	<defines.h>
+
+1578900690 source:d:\onedrive\git\ntracer\src\escotth_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\fuelconduction.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\fxrvariation.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammahomoxsgen.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\gddepl.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmkl_power.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\init_depl.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\initdcpl.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\initth.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\isotopeout.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\makerays.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\matrath_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\outputeditmc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\preprocess.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\setgeometry.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\setthcell.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\subch_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\subgrpfspnm.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\thinfoout.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\transientth.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\userdefth.f90
+	<defines.h>
+
+1578905816 source:d:\onedrive\git\ntracer\src\xs_common.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\cmfd2gacc.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cmfd2gutil.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\cntlrod_mod.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_xs.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplthutil.f90
+	<defines.h>
+
+1578904414 source:d:\onedrive\git\ntracer\src\finalize.f90
+	<defines.h>
+	<DefDBG.h>
+
+1578902961 d:\onedrive\git\ntracer\src\defdbg.h
+
+1578902962 source:d:\onedrive\git\ntracer\src\gccmfdacc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexpreparecmfd.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\lpshf_mod.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\macxslib.f90
+	<defines.h>
+	<DefDBG.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mccmfd.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\preparecmfd.f90
+	<defines.h>
+
+1578904974 source:d:\onedrive\git\ntracer\src\steadystateth.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\thfeedback.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\trangccmfd.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\boroncoolant.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\calrelpower.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cmfdetc.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\crsearch_driver.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_axmoc.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplmicxsftn_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmkl_homxs.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\homoxsgen.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\initvar.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcxslib.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\moc_common.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\moc_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mpiaxsolver_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\preparexs.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\setrtlinsrc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\setrtsrc.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\setrtxs.f90
+	<defines.h>
+
+1578905091 source:d:\onedrive\git\ntracer\src\subgrpeffxs.f90
+	<defines.h>
+	<DefDBG.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\xedyn.f90
+	<defines.h>
+	<DefDBG.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\allocaxsol.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\allocpdm.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\approxexp.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\b10depl.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\cmfd_common.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\cmfdpowermethod.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\crcspgen_mod.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\criticalspec_mod.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_axial.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcmpraygen.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplcmfd3d.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplcmfdxsgen.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplxsgen_mod.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\depletion.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\effmat0out.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\effmgxsout.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\effxsout.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\effxsoutdepl.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\fastmocutil.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gammaraytracing.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\getfsrcentroid.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexallocpdm.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexcmfd.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexcp.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmoc_sweep.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexrayconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\inflow.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\kineticparam.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcmap.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mocsweep.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\phimout.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\pinxsout.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\precursor.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\preparegamma.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\raytracing.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\raytracing_dcmp.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\raytracing_omp.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\raytracinglinsrc.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\raytracingp1.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\raytracingp1_omp.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\rotraygen.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\subgrpfsp.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\trancmfd_driver.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\tranmoc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\tranmoc_driver.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\transient_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\transientetc.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\crcspgen_driver.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_cmfd.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\cuda_depl.f90
+	<defines.h>
+	<DefDBG.h>
+	<Depletion.h>
+
+1578904191 source:d:\onedrive\git\ntracer\src\cuda_init.f90
+	<CUDADEFINES.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcpllogout.f90
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplplnmoc.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplsseig.f90
+	<defines.h>
+
+1578902961 source:d:\onedrive\git\ntracer\src\dcplthplnmoc.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\depletc.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\gc_mod.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\groupconstantgenold.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexconst.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmoc_etc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\inittransient.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcbasics.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mctally.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_axial.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\mkl_depl.f90
+	<defines.h>
+	<Depletion.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mkl_init.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\mocetc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\nulltransient.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\scaninput.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\scaninput_include.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\trancondmoc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\transient_driver.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\vtk_mod.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\xedyn_driver.f90
+	<defines.h>
+
+1578915368 source:d:\onedrive\git\ntracer\src\cuda_driver.f90
+	<defines.h>
+	<CUDADEFINES.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\depletion_driver.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\gcadf.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\gccon.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\gcedit.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\gcgen.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\gchom.f90
+
+1578902990 source:d:\onedrive\git\ntracer\src\gcinit.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\genfxrmacxs.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\groupconstantgen.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmain.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmkl_cmfd.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexmkl_init.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexoutputedit.f90
+	<defines.h>
+
+1578912713 source:d:\onedrive\git\ntracer\src\initialize.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\initializemc.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcfuelrect.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcgaprect.f90
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcvacrect.f90
+
+1578905609 source:d:\onedrive\git\ntracer\src\mkl_cmfd.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\outputedit.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexinitialize.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\hexsseig.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\mcmodular.f90
+	<defines.h>
+
+1578904864 source:d:\onedrive\git\ntracer\src\readinpcard.f90
+	<defines.h>
+
+1578904923 source:d:\onedrive\git\ntracer\src\sseig.f90
+	<defines.h>
+
+1578902990 source:d:\onedrive\git\ntracer\src\main.f90
+	<defines.h>
+
+1578902962 source:d:\onedrive\git\ntracer\src\readinput.f90
+	<defines.h>
+

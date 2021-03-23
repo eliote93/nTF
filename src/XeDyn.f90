@@ -1,5 +1,6 @@
 #include <defines.h>
-  
+#include <DefDBG.h>
+
 SUBROUTINE SetDeplXeDynMode(Core, FmInfo, DeplCntl, nTracerCntl, PE)
 USE PARAM
 USE TYPEDEF,          ONLY : CoreInfo_Type,   FmInfo_Type,  PE_Type
@@ -71,7 +72,7 @@ DO iz = myzb, myze
     IF(.NOT. lXe) THEN
       niso = niso + 1; niso_depl = niso_depl + 1
       idiso(niso) = 54635
-      pnum(niso) = 1.E-30_8      
+      pnum(niso) = 1.E-30_8
     ENDIF
     Fxr(ifxr, iz)%niso = niso; Fxr(ifxr, iz)%niso_depl = niso_depl
     NULLIFY(XeDyn, pnum, idiso)
@@ -113,7 +114,7 @@ ENDIF
 WRITE(mesg, '(A)') 'Update Xenon Dynamics ...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 SELECT CASE(nTracerCntl%lProblem)
-CASE(lsseigv)  
+CASE(lsseigv)
   IF(nTracerCntl%lEqXe) THEN
     CALL  EqXeUpdate(Core, FmInfo, ThInfo, GroupInfo, nTracerCntl, PE)
   ENDIF
@@ -139,12 +140,14 @@ USE CNTL,             ONLY : nTracerCntl_Type
 USE Depl_mod,         ONLY : FluxNormalizeFactor,decayXe135,decayI135,yieldXe135,yieldI135
 USE MacXsLib_mod,     ONLY : EffMacXS,            MacXsBase
 USE NuclidMap_mod,    ONLY : lFissile!,            yieldxesm,                            &
-                             !decayxe135,          decayI135       
-USE XsUtil_mod,       ONLY : AllocXsMac,          GetXsMacDat,       ReturnXsMacDat
+                             !decayxe135,          decayI135
+USE XsUtil_mod,       ONLY : AllocXsMac,          GetXsMacDat,       ReturnXsMacDat,    &
+                             FreeXsIsoMac,        FreeXsMac
 USE XSLIB_MOD,        ONLY : mapnucl
-USE XeDyn_Mod,        ONLY : UpdtXe,              InitXe,            FinalXe   
+USE XeDyn_Mod,        ONLY : UpdtXe,              InitXe,            FinalXe
 USE BasicOperation,   ONLY : CP_CA, CP_VA, MULTI_VA
 USE TH_Mod,           ONLY : GetPinFuelTemp
+USE OMP_LIB
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
 TYPE(FmInfo_Type) :: FmInfo
@@ -158,26 +161,16 @@ INTEGER, INTENT(IN) :: Mode
 TYPE(FxrInfo_Type), POINTER :: Fxr(:, :), myFxr
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(XsMac_Type), SAVE :: XsMac
+!TYPE(XsMac_Type), SAVE :: XsMac
 REAL, POINTER :: Phis(:, :, :)
 
-INTEGER, PARAMETER :: MaxGrp = 1000
-
-REAL :: PhiFxr(MaxGrp)
-!REAL, POINTER :: SigFOld(:, :)!, SigNfOld(:, :)
-REAL, POINTER :: IsoXsMacf(:, :), IsoXsMacA(:, :) !EQXS(:, :)
-REAL, POINTER :: pnum(:), pnum_past(:)!, SubGrpLv(:, :)
-INTEGER, POINTER :: idiso(:), idiso_past(:)
-REAL :: NormFactor, fisrate, AbsRate, Area, Temp
-REAL :: yd, ydi, ydxe, ydpm, lamXe, lamI, Prate_Xe135, Prate_I135
-REAL :: ExpI, ExpXe, dt
-REAL :: PnI, PnXe, PnI0, PnXe0
-INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nLocalFsr, nFsrInFxr
-INTEGER :: ng, nFsr, nFxr, nxy, nz, myzb, myze, xyb, xye, norg, nchi, niso, niso_past   !--- CNJ Edit : Domain Decomposition + MPI
+REAL :: NormFactor, dt
+REAL :: lamXe, lamI
+INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr
+INTEGER :: ng, nFsr, nFxr, nxy, nz, myzb, myze, xyb, xye, norg   !--- CNJ Edit : Domain Decomposition + MPI
 INTEGER :: iresoGrp1, iresoGrp2
-INTEGER :: iz, ixy, icel, ifxr, ifsr, ifsrlocal, ism, ixe, iI
-INTEGER :: i, j, ig, ig2
-LOGICAL :: lXsLib, lRes, FlagF
+INTEGER :: iz, ixy, icel, ifxr
+INTEGER :: j
 ng = GroupInfo%ng
 iresoGrp1 = GroupInfo%nofg + 1; iresoGrp2 = GroupInfo%nofg + GroupInfo%norg
 
@@ -197,133 +190,164 @@ Pin => Core%Pin; CellInfo => Core%CellInfo
 NormFactor = FluxNormalizeFactor(Core, FmInfo, GroupInfo, nTracerCntl%PowerCore, FALSE, TRUE, PE)
 NormFactor = NormFactor * nTracerCntl%PowerLevel  !Adjusting Power Level
 
-!lamI = DecayI135(); lamXe = DecayXe135() 
+!lamI = DecayI135(); lamXe = DecayXe135()
 lamI = decayI135; lamXe = decayXe135
 
-IF(.NOT. XsMac%lAlloc) THEN
-  XsMac%ng = ng
-  CALL AllocXsMac(XsMac)
-ENDIF
+!IF(.NOT. XsMac%lAlloc) THEN
+!  XsMac%ng = ng
+!  CALL AllocXsMac(XsMac)
+!ENDIF
 
 
 !CALL GetXsMacDat(XsMac,ng, .TRUE.)
-
+CALL OMP_SET_NUM_THREADS(PE%nDeplThread)
 DO iz = myzb, myze
+!$OMP PARALLEL DEFAULT(SHARED)&
+!$OMP PRIVATE(FsrIdxSt, FxrIdxSt, icel, nLocalFxr, j, ifxr, myFxr)
+!$OMP DO SCHEDULE(GUIDED)
   DO ixy = xyb, xye
     FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-    icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+    icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
     DO j = 1, nLocalFxr
       ifxr = FxrIdxSt + j -1
       IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
       myFxr => Fxr(ifxr, iz)
-      niso = myFxr%niso; niso_past = myFxr%niso_past
-      CALL MacXsBase(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
-      idiso => myFxr%idiso; pnum => myFxr%pnum; lres = myFxr%lres
-      idiso_past => myFxr%idiso_past; pnum_past => myFxr%pnum_past
-      IsoXsMacf => XsMac%IsoXsMacf
-      IsoXsMacA => XsMac%IsoXsMacA
-      IF(myFxr%lRes) THEN
-          DO ig = iResoGrp1, iResoGrp2
-              DO i = 1, niso
-                  IsoXsMacF(i,ig) = IsoXsMacF(i,ig) * myFXR%fresoFIso(i,ig)
-                  IsoXsMacA(i,ig) = IsoXsMacA(i,ig) * myFXR%fresoAIso(i,ig)
-              ENDDO
-          ENDDO
-      ENDIF
-      PhiFxr(1:ng) = 0
-      DO i = 1, nFsrInFxr
-        ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i, j)
-        iFsr = FsrIdxSt + ifsrlocal - 1
-        Area = CellInfo(icel)%vol(ifsrlocal)
-        PhiFxr(1:ng) = PhiFxr(1:ng) + Area * Phis(iFsr, iz, 1:ng)
-      ENDDO
-      PhiFxr(1:ng) = PhiFxr(1:ng) / myFxr%Area
-       
-      Prate_Xe135 = 0; Prate_I135 = 0
-      DO i = 1, niso
-        IF(idiso(i) .EQ. 54635) ixe = i
-        IF(idiso(i) .EQ. 53635) ii = i
-        IF(idiso(i) .EQ. 62649) ism = i
-        IF(.NOT. lfissile(idiso(i))) CYCLE
-        fisrate = 0
-        DO ig = 1, ng
-          FisRate = FisRate + IsoXsMacf(i, ig) * PhiFxr(ig)
-        ENDDO
-        !CALL yieldxesm(IdIso(i), ydi, ydxe, ydpm)
-        ydxe = yieldXe135(mapnucl(IdIso(i)))
-        ydi = yieldI135(mapnucl(IdIso(i)))
-        Prate_Xe135 = Prate_Xe135 + ydxe * FisRate
-        Prate_I135 = Prate_I135 + ydi * FisRate
-      ENDDO
-      Prate_I135 = NormFactor * Prate_I135
-      Prate_Xe135 = NormFactor * Prate_Xe135
-      
-      AbsRate = 0
-      DO ig = 1, ng
-        AbsRate = AbsRate + IsoXsMacA(ixe, ig) * PhiFxr(ig)
-      ENDDO
-      AbsRate = NormFactor * AbsRate /pnum(ixe)     
-      
-      !Save Production Rate Information
-      Fxr(ifxr, iz)%XeDyn%ARate_Xe135(2) = AbsRate            !Xe 135 Absorption Rate
-      Fxr(ifxr, iz)%XeDyn%Prate_I135(2) = Prate_I135
-      Fxr(ifxr, iz)%XeDyn%Prate_Xe135(2) = Prate_Xe135      
-      
-      IF(Mode .EQ. UpdtXe .OR. Mode .EQ. FinalXe) THEN
-        PnI0 = epsm30; PnXe0 = epsm30
-        IF(nTracerCntl%lProblem .EQ. lDepletion) THEN
-        DO i = 1, niso_past
-          IF(idiso_past(i) .EQ. 53635) THEN
-            PnI0 = pnum_past(i)
-          ENDIF        
-          IF(idiso_past(i) .EQ. 54635) THEN
-            PnXe0 = pnum_past(i)
-          ENDIF 
-        ENDDO
-        ELSEIF(nTracerCntl%lProblem .EQ. lXenonDynamics) THEN
-          PnI0 = Fxr(ifxr, iz)%XeDyn%Pn_I135(1)
-          PnXe0 = Fxr(ifxr, iz)%XeDyn%Pn_Xe135(1)
-        ENDIF
-#define AvgPrate
-#ifdef AvgPrate
-        AbsRate = 0.5_8 * (AbsRate + Fxr(ifxr, iz)%XeDyn%ARate_Xe135(1))
-        Prate_Xe135 = 0.5_8 * (Prate_Xe135 + Fxr(ifxr, iz)%XeDyn%PRate_Xe135(1))
-        Prate_I135 = 0.5_8 * (Prate_I135 + Fxr(ifxr, iz)%XeDyn%PRate_I135(1))
-#endif
-        ExpI = exp(-dt*lamI)
-        ExpXe = exp(-dt*(lamXe+1.e-24_8*AbsRate))
-        PnI = PnI0 * ExpI + 1.e-24_8 * Prate_I135 * (1._8-ExpI) / LamI
-        PnXe = PnXe0*ExpXe
-        PnXe = PnXe + (Prate_I135 + Prate_Xe135) / (LamXe*1.E+24_8+AbsRate)*(1._8-ExpXe)
-        PnXe = PnXe + (1.e+24_8*LamI*PnI0-Prate_I135) / (1.e+24_8*(LamXe-LamI)+AbsRate) * (ExpI-ExpXe)
-
-        pnum(ixe) = PnXe
-        pnum(ii) = PnI
-      ENDIF
-      
-      IF(Mode .EQ. InitXe .OR. Mode .EQ. FinalXe) THEN
-        Fxr(ifxr, iz)%XeDyn%ARate_Xe135(1) = Fxr(ifxr, iz)%XeDyn%ARate_Xe135(2)           !Xe 135 Absorption Rate
-        Fxr(ifxr, iz)%XeDyn%Prate_I135(1) = Fxr(ifxr, iz)%XeDyn%Prate_I135(2)
-        Fxr(ifxr, iz)%XeDyn%Prate_Xe135(1) = Fxr(ifxr, iz)%XeDyn%Prate_Xe135(2)
-        Fxr(ifxr, iz)%XeDyn%Pn_I135 = pnum(iI)
-        Fxr(ifxr, iz)%XeDyn%Pn_Xe135 = pnum(ixe)
-      ELSEIF(Mode .EQ. UpdtXe) THEN
-        Fxr(ifxr, iz)%XeDyn%Pn_I135(2) = pnum(iI)
-        Fxr(ifxr, iz)%XeDyn%Pn_Xe135(2) = pnum(ixe)        
-      ENDIF
-
-    ENDDO    
+      CALL FxrWiseTrXe(myFxr, iz, icel, j, FsrIdxSt)
+    ENDDO
   ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
 ENDDO
 
 !CALL ReturnXsMacDat(XsMac)
 NULLIFY(PIN); NULLIFY(CellINfo); NULLIFY(myFxr)
-NULLIFY(idiso); NULLIFY(pnum)
-NULLIFY(IsoXsMacA);NULLIFY(IsoXsMacF)
 
+CONTAINS
 
-    END SUBROUTINE
+  SUBROUTINE FxrWiseTrXe(myFxr, iz, icel, ifxrlocal, FsrIdxSt)
+  IMPLICIT NONE
+  TYPE(Fxrinfo_type), POINTER :: myFxr
+  INTEGER :: iz, icel, ifxrlocal, FsrIdxSt
+
+  INTEGER :: niso, niso_past, nFsrInFxr
+  INTEGER :: ig, i, ism, ixe, iI, ifsr, ifsrlocal
+  TYPE(XsMac_Type) :: XsMac
+  INTEGER, PARAMETER :: MaxGrp = 1000
+
+  REAL :: PhiFxr(MaxGrp)
+  REAL, POINTER :: IsoXsMacf(:, :), IsoXsMacA(:, :)
+  REAL, POINTER :: pnum(:), pnum_past(:)
+  INTEGER, POINTER :: idiso(:), idiso_past(:)
+
+  REAL :: fisrate, AbsRate, Area
+  REAL :: ydi, ydxe, ydpm, Prate_Xe135, Prate_I135
+  REAL :: ExpI, ExpXe
+  REAL :: PnI, PnXe, PnI0, PnXe0
+
+  LOGICAL :: lres
+
+  nFsrInFxr = CellInfo(icel)%nFsrInFxr(ifxrlocal)
+  niso = myFxr%niso; niso_past = myFxr%niso_past
+  CALL MacXsBase(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
+  idiso => myFxr%idiso; pnum => myFxr%pnum; lres = myFxr%lres
+  idiso_past => myFxr%idiso_past; pnum_past => myFxr%pnum_past
+  IsoXsMacf => XsMac%IsoXsMacf
+  IsoXsMacA => XsMac%IsoXsMacA
+  IF(myFxr%lRes) THEN
+      DO ig = iResoGrp1, iResoGrp2
+          DO i = 1, niso
+              IsoXsMacF(i,ig) = IsoXsMacF(i,ig) * myFXR%fresoFIso(i,ig)
+              IsoXsMacA(i,ig) = IsoXsMacA(i,ig) * myFXR%fresoAIso(i,ig)
+          ENDDO
+      ENDDO
+  ENDIF
+  PhiFxr(1:ng) = 0
+  DO i = 1, nFsrInFxr
+    ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i, ifxrlocal)
+    iFsr = FsrIdxSt + ifsrlocal - 1
+    Area = CellInfo(icel)%vol(ifsrlocal)
+    PhiFxr(1:ng) = PhiFxr(1:ng) + Area * Phis(iFsr, iz, 1:ng)
+  ENDDO
+  PhiFxr(1:ng) = PhiFxr(1:ng) / myFxr%Area
+
+  Prate_Xe135 = 0; Prate_I135 = 0
+  DO i = 1, niso
+    IF(idiso(i) .EQ. 54635) ixe = i
+    IF(idiso(i) .EQ. 53635) ii = i
+    IF(idiso(i) .EQ. 62649) ism = i
+    IF(.NOT. lfissile(idiso(i))) CYCLE
+    fisrate = 0
+    DO ig = 1, ng
+      FisRate = FisRate + IsoXsMacf(i, ig) * PhiFxr(ig)
+    ENDDO
+    !CALL yieldxesm(IdIso(i), ydi, ydxe, ydpm)
+    ydxe = yieldXe135(mapnucl(IdIso(i)))
+    ydi = yieldI135(mapnucl(IdIso(i)))
+    Prate_Xe135 = Prate_Xe135 + ydxe * FisRate
+    Prate_I135 = Prate_I135 + ydi * FisRate
+  ENDDO
+  Prate_I135 = NormFactor * Prate_I135
+  Prate_Xe135 = NormFactor * Prate_Xe135
+
+  AbsRate = 0
+  DO ig = 1, ng
+    AbsRate = AbsRate + IsoXsMacA(ixe, ig) * PhiFxr(ig)
+  ENDDO
+  AbsRate = NormFactor * AbsRate /pnum(ixe)
+
+  !Save Production Rate Information
+  myFxr%XeDyn%ARate_Xe135(2) = AbsRate            !Xe 135 Absorption Rate
+  myFxr%XeDyn%Prate_I135(2) = Prate_I135
+  myFxr%XeDyn%Prate_Xe135(2) = Prate_Xe135
+
+  IF(Mode .EQ. UpdtXe .OR. Mode .EQ. FinalXe) THEN
+    PnI0 = epsm30; PnXe0 = epsm30
+    IF(nTracerCntl%lProblem .EQ. lDepletion) THEN
+    DO i = 1, niso_past
+      IF(idiso_past(i) .EQ. 53635) THEN
+        PnI0 = pnum_past(i)
+      ENDIF
+      IF(idiso_past(i) .EQ. 54635) THEN
+        PnXe0 = pnum_past(i)
+      ENDIF
+    ENDDO
+    ELSEIF(nTracerCntl%lProblem .EQ. lXenonDynamics) THEN
+      PnI0 = myFxr%XeDyn%Pn_I135(1)
+      PnXe0 = myFxr%XeDyn%Pn_Xe135(1)
+    ENDIF
+#define AvgPrate
+#ifdef AvgPrate
+    AbsRate = 0.5_8 * (AbsRate + myFxr%XeDyn%ARate_Xe135(1))
+    Prate_Xe135 = 0.5_8 * (Prate_Xe135 + myFxr%XeDyn%PRate_Xe135(1))
+    Prate_I135 = 0.5_8 * (Prate_I135 + myFxr%XeDyn%PRate_I135(1))
+#endif
+    ExpI = exp(-dt*lamI)
+    ExpXe = exp(-dt*(lamXe+1.e-24_8*AbsRate))
+    PnI = PnI0 * ExpI + 1.e-24_8 * Prate_I135 * (1._8-ExpI) / LamI
+    PnXe = PnXe0*ExpXe
+    PnXe = PnXe + (Prate_I135 + Prate_Xe135) / (LamXe*1.E+24_8+AbsRate)*(1._8-ExpXe)
+    PnXe = PnXe + (1.e+24_8*LamI*PnI0-Prate_I135) / (1.e+24_8*(LamXe-LamI)+AbsRate) * (ExpI-ExpXe)
+
+    pnum(ixe) = PnXe
+    pnum(ii) = PnI
+  ENDIF
+
+  IF(Mode .EQ. InitXe .OR. Mode .EQ. FinalXe) THEN
+    myFxr%XeDyn%ARate_Xe135(1) = myFxr%XeDyn%ARate_Xe135(2)           !Xe 135 Absorption Rate
+    myFxr%XeDyn%Prate_I135(1) = myFxr%XeDyn%Prate_I135(2)
+    myFxr%XeDyn%Prate_Xe135(1) = myFxr%XeDyn%Prate_Xe135(2)
+    myFxr%XeDyn%Pn_I135 = pnum(iI)
+    myFxr%XeDyn%Pn_Xe135 = pnum(ixe)
+  ELSEIF(Mode .EQ. UpdtXe) THEN
+    myFxr%XeDyn%Pn_I135(2) = pnum(iI)
+    myFxr%XeDyn%Pn_Xe135(2) = pnum(ixe)
+  ENDIF
+
+  CALL FreeXsIsoMac(XsMac)
+  CALL FreeXsMac(XsMac)
+
+  END SUBROUTINE
+END SUBROUTINE
 
 !--- CNJ Edit : Unused
 !--- PHS : Also Invalid for the resonance treatment
@@ -338,10 +362,10 @@ USE CNTL,             ONLY : nTracerCntl_Type
 USE Depl_mod,         ONLY : FluxNormalizeFactor,decayXe135,decayI135,yieldXe135,yieldI135
 USE MacXsLib_mod,     ONLY : EffMacXS,            MacXsBase
 USE NuclidMap_mod,    ONLY : lFissile!,            yieldxesm,                            &
-                             !decayxe135,          decayI135       
+                             !decayxe135,          decayI135
 USE XsUtil_mod,       ONLY : AllocXsMac,          GetXsMacDat,       ReturnXsMacDat
 USE XSLIB_MOD,        ONLY : mapnucl
-USE XeDyn_Mod,        ONLY : UpdtXe,              InitXe,            FinalXe   
+USE XeDyn_Mod,        ONLY : UpdtXe,              InitXe,            FinalXe
 USE BasicOperation,   ONLY : CP_CA, CP_VA, MULTI_VA
 USE TH_Mod,           ONLY : GetPinFuelTemp
 IMPLICIT NONE
@@ -391,7 +415,7 @@ Pin => Core%Pin; CellInfo => Core%CellInfo
 NormFactor = FluxNormalizeFactor(Core, FmInfo, GroupInfo, nTracerCntl%PowerCore, FALSE, TRUE, PE)
 NormFactor = NormFactor * nTracerCntl%PowerLevel  !Adjusting Power Level
 
-!lamI = DecayI135(); lamXe = DecayXe135() 
+!lamI = DecayI135(); lamXe = DecayXe135()
 lamI = decayI135; lamXe = decayXe135
 
 IF(.NOT. XsMac%lAlloc) THEN
@@ -405,11 +429,11 @@ ENDIF
 DO iz = myzb, myze
   DO ixy = 1, nxy
     FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-    icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+    icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
     DO j = 1, nLocalFxr
       ifxr = FxrIdxSt + j -1
       IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
+      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
       myFxr => Fxr(ifxr, iz)
       niso = myFxr%niso; niso_past = myFxr%niso_past
       CALL MacXsBase(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
@@ -418,13 +442,15 @@ DO iz = myzb, myze
       IF(myFxr%lRes) THEN
         temp = myFxr%temp
         ALLOCATE(SigNfOld(niso, ng))
-        CALL CP_VA(SigNfOld(1:niso, 1:ng), XsMac%IsoXsMacnf(1:niso, 1:ng), niso, ng)        
+
+        SigNfOld(1:niso, 1:ng) = XsMac%IsoXsMacnf(1:niso, 1:ng)
+
         DO ig = iResoGrp1, iResoGrp2
           DO i = 1, niso
-            IF(SigNfOld(i, ig) * XsMac%IsoXsMacNf(i, ig) .NE. 0._8) THEN 
-              XsMac%IsoXsMacf(i, ig) = XsMac%IsoXsMacf(i, ig) * XsMac%IsoXsMacNf(i, ig) / SigNfOld(i, ig) 
+            IF(SigNfOld(i, ig) * XsMac%IsoXsMacNf(i, ig) .NE. 0._8) THEN
+              XsMac%IsoXsMacf(i, ig) = XsMac%IsoXsMacf(i, ig) * XsMac%IsoXsMacNf(i, ig) / SigNfOld(i, ig)
             ENDIF
-          ENDDO                              
+          ENDDO
         ENDDO
         DEALLOCATE(SigNfOld)
       ENDIF
@@ -438,7 +464,7 @@ DO iz = myzb, myze
         PhiFxr(1:ng) = PhiFxr(1:ng) + Area * Phis(iFsr, iz, 1:ng)
       ENDDO
       PhiFxr(1:ng) = PhiFxr(1:ng) / myFxr%Area
-       
+
       Prate_Xe135 = 0; Prate_I135 = 0
       DO i = 1, niso
         IF(idiso(i) .EQ. 54635) ixe = i
@@ -457,43 +483,43 @@ DO iz = myzb, myze
       ENDDO
       Prate_I135 = NormFactor * Prate_I135
       Prate_Xe135 = NormFactor * Prate_Xe135
-      
+
       AbsRate = 0
       DO ig = 1, ng
         AbsRate = AbsRate + IsoXsMacA(ixe, ig) * PhiFxr(ig)
       ENDDO
-      AbsRate = NormFactor * AbsRate /pnum(ixe)     
-      
+      AbsRate = NormFactor * AbsRate /pnum(ixe)
+
       !Save Production Rate Information
       Fxr(ifxr, iz)%XeDyn%ARate_Xe135(2) = AbsRate            !Xe 135 Absorption Rate
       Fxr(ifxr, iz)%XeDyn%Prate_I135(2) = Prate_I135
-      Fxr(ifxr, iz)%XeDyn%Prate_Xe135(2) = Prate_Xe135      
-      
+      Fxr(ifxr, iz)%XeDyn%Prate_Xe135(2) = Prate_Xe135
+
       IF(Mode .EQ. UpdtXe .OR. Mode .EQ. FinalXe) THEN
         PnI0 = epsm30; PnXe0 = epsm30
         IF(nTracerCntl%lProblem .EQ. lDepletion) THEN
         DO i = 1, niso_past
           IF(idiso_past(i) .EQ. 53635) THEN
             PnI0 = pnum_past(i)
-          ENDIF        
+          ENDIF
           IF(idiso_past(i) .EQ. 54635) THEN
             PnXe0 = pnum_past(i)
-          ENDIF 
+          ENDIF
         ENDDO
         ELSEIF(nTracerCntl%lProblem .EQ. lXenonDynamics) THEN
           PnI0 = Fxr(ifxr, iz)%XeDyn%Pn_I135(1)
           PnXe0 = Fxr(ifxr, iz)%XeDyn%Pn_Xe135(1)
         ENDIF
-         
+
         PnI0 = PnI0 * 1.0E+24_8; PnXe0 = PnXe0 *1.0E+24_8
         AbsRate = AbsRate *1.E-24_8; AbsRate0 = Fxr(ifxr, iz)%XeDyn%ARate_Xe135(1) * 1.0E-24_8
         Prate0_Xe135 = Fxr(ifxr, iz)%XeDyn%PRate_Xe135(1); Prate0_I135 = Fxr(ifxr, iz)%XeDyn%PRate_I135(1)
-        
-        
+
+
         a0 = Prate0_I135
         a1 = (Prate_I135 - Prate0_I135) / dt
         ExpI = exp(-dt*lamI)
-        
+
         c0 = (LamI * a0 - a1) / (LamI * LamI)
         c1 = a1 / LamI; c2 = PnI0 - c0
         PnI = c0 + c1 * dt + c2 * ExpI
@@ -501,20 +527,20 @@ DO iz = myzb, myze
         R0 = Prate0_Xe135 + LamI * PnI0; R1 = Prate_Xe135 + LamI * PnI
         Q0 = -(LamXe + AbsRate0); Q1 = -(LamXe + AbsRate)
         G0 = R0 + Q0 * PnXe0
-        
+
         F1 = Dt * 0.5_8
         F2 = Dt * Dt / 12._8
-        
+
         dIdT = Prate_I135 - Prate0_I135 - LamI * (PnI - PnI0)
         dQdT = (Q1 - Q0) / dt
-        
+
         PnXe = PnXe0 + F1 * (R1 + G0)
-        PnXe = PnXe + F2 * (LamI * dIdT - Q0 * G0 + Q1 * R1 -dQdT * PnXe0) 
+        PnXe = PnXe + F2 * (LamI * dIdT - Q0 * G0 + Q1 * R1 -dQdT * PnXe0)
         PnXe = PnXe / (1 - F1 * Q1 - F2 *(Q1 * Q1 + dQdT))
-        
+
         PnXe = PnXe * 1.0E-24_8;
         PnI = PnI * 1.0E-24_8;
-        
+
         pnum(ixe) = PnXe
         pnum(Ii) = PnI
 !#define AvgPrate
@@ -523,7 +549,7 @@ DO iz = myzb, myze
 !        Prate_Xe135 = 0.5_8 * (Prate_Xe135 + Fxr(ifxr, iz)%XeDyn%PRate_Xe135(1))
 !        Prate_I135 = 0.5_8 * (Prate_I135 + Fxr(ifxr, iz)%XeDyn%PRate_I135(1))
 !#endif
-        
+
 !        ExpXe = exp(-dt*(lamXe+1.e-24_8*AbsRate))
 !        PnI = PnI0 * ExpI + 1.e-24_8 * Prate_I135 * (1._8-ExpI) / LamI
 !        PnXe = PnXe0*ExpXe
@@ -533,7 +559,7 @@ DO iz = myzb, myze
 !        pnum(ixe) = PnXe
 !        pnum(ii) = PnI
       ENDIF
-      
+
       IF(Mode .EQ. InitXe .OR. Mode .EQ. FinalXe) THEN
         Fxr(ifxr, iz)%XeDyn%ARate_Xe135(1) = Fxr(ifxr, iz)%XeDyn%ARate_Xe135(2)           !Xe 135 Absorption Rate
         Fxr(ifxr, iz)%XeDyn%Prate_I135(1) = Fxr(ifxr, iz)%XeDyn%Prate_I135(2)
@@ -542,9 +568,9 @@ DO iz = myzb, myze
         Fxr(ifxr, iz)%XeDyn%Pn_Xe135 = pnum(ixe)
       ELSEIF(Mode .EQ. UpdtXe) THEN
         Fxr(ifxr, iz)%XeDyn%Pn_I135(2) = pnum(iI)
-        Fxr(ifxr, iz)%XeDyn%Pn_Xe135(2) = pnum(ixe)        
+        Fxr(ifxr, iz)%XeDyn%Pn_Xe135(2) = pnum(ixe)
       ENDIF
-    ENDDO    
+    ENDDO
   ENDDO
 ENDDO
 
@@ -562,13 +588,16 @@ USE TYPEDEF,          ONLY : CoreInfo_Type,       FmInfo_Type,       GroupInfo_T
                              XsMac_Type
 USE CNTL,             ONLY : nTracerCntl_Type
 USE Depl_mod,         ONLY : FluxNormalizeFactor,decayXe135,decayI135,yieldXe135,yieldI135
-USE MacXsLib_mod,     ONLY : EffMacXS,            MacXsBase
+USE MacXsLib_mod,     ONLY : EffMacXS,            MacXsBase, MacXsAF_CrCsp
 USE NuclidMap_mod,    ONLY : lFissile!,            yieldxesm,         decayxe135,        &
                              !decayI135
-USE XsUtil_mod,       ONLY : AllocXsMac,          GetXsMacDat,       ReturnXsMacDat
+USE XsUtil_mod,       ONLY : AllocXsMac,          GetXsMacDat,       ReturnXsMacDat,     &
+                             FreeXsMac,           FreeXsIsoMac
 USE XSLIB_MOD,        ONLY : mapnucl
 USE BasicOperation,   ONLY : CP_CA, CP_VA, MULTI_VA
 USE TH_Mod,           ONLY : GetPinFuelTemp
+USE XeDyn_Mod,        ONLY : lRelaxation
+USE OMP_LIB
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
 TYPE(FmInfo_Type) :: FmInfo
@@ -584,21 +613,16 @@ TYPE(Cell_Type), POINTER :: CellInfo(:)
 TYPE(XsMac_Type), SAVE :: XsMac
 REAL, POINTER :: Phis(:, :, :)
 
-INTEGER, PARAMETER :: MaxGrp = 1000
-
-REAL :: PhiFxr(MaxGrp)
 !REAL, POINTER :: SigFOld(:, :)!SigNfOld(:, :)
-REAL, POINTER :: IsoXsMacf(:, :), IsoXsMacA(:, :)!EQXS(:, :)
-REAL, POINTER :: pnum(:)!, SubGrpLv(:, :)
-INTEGER, POINTER :: idiso(:)
-REAL :: NormFactor, fisrate, AbsRate, Area, Temp
-REAL :: yd, ydi, ydxe, ydpm, pn, pnI, pneq, lambda, lambdaI
-INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nLocalFsr, nFsrInFxr
-INTEGER :: ng, nFsr, nFxr, nxy, nz, myzb, myze, xyb, xye, norg, nchi, niso   !--- CNJ Edit : Domain Decomposition + MPI
+REAL :: NormFactor
+INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nLocalFsr
+INTEGER :: ng, nFsr, nFxr, nxy, nz, myzb, myze, xyb, xye, norg, nchi  !--- CNJ Edit : Domain Decomposition + MPI
 INTEGER :: iresoGrp1, iresoGrp2
-INTEGER :: iz, ixy, icel, ifxr, ifsr, ifsrlocal, ism, ixe, iI
-INTEGER :: i, j, ig, ig2
+INTEGER :: iz, ixy, icel, ifxr
+INTEGER :: j
 LOGICAL :: lXsLib, FlagF
+
+REAL, PARAMETER :: f_relax = 0.3 ! Edit by LHG, 2021-0107
 
 IF(nTracerCntl%lReadXeEQ) RETURN
 lXsLib = nTracerCntl%lXsLib
@@ -624,85 +648,126 @@ NormFactor = NormFactor * nTracerCntl%PowerLevel  !Adjusting Power Level
 
 !CALL GetXsMacDat(XsMac,ng, .TRUE.)
 
-IF(.NOT. XsMac%lAlloc) THEN
-  XsMac%ng = ng
-  CALL AllocXsMac(XsMac)
-ENDIF
+!IF(.NOT. XsMac%lAlloc) THEN
+!  XsMac%ng = ng
+!  CALL AllocXsMac(XsMac)
+!ENDIF
 
+CALL OMP_SET_NUM_THREADS(PE%nDeplThread)
 DO iz = myzb, myze
+!$OMP PARALLEL DEFAULT(SHARED)&
+!$OMP PRIVATE(FsrIdxSt, FxrIdxSt, icel, nLocalFxr, j, ifxr, myFxr)
+!$OMP DO SCHEDULE(GUIDED)
   DO ixy = xyb, xye
     FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-    icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr 
+    icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
     DO j = 1, nLocalFxr
       ifxr = FxrIdxSt + j -1
       IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
       myFxr => Fxr(ifxr, iz)
-      niso = myFxr%niso; 
-      
-      CALL MacXsBase(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
-      idiso => myFxr%idiso; pnum => myFxr%pnum
-
-      IsoXsMacf => XsMac%IsoXsMacf
-      IsoXsMacA => XsMac%IsoXsMacA
-      IF(myFxr%lRes) THEN
-          DO ig = iResoGrp1, iResoGrp2
-              DO i = 1, niso
-                  IsoXsMacF(i,ig) = IsoXsMacF(i,ig) * myFXR%fresoFIso(i,ig)
-                  IsoXsMacA(i,ig) = IsoXsMacA(i,ig) * myFXR%fresoAIso(i,ig)
-              ENDDO
-          ENDDO
-      ENDIF
-      PhiFxr(1:ng) = 0
-      DO i = 1, nFsrInFxr
-        ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i, j)
-        iFsr = FsrIdxSt + ifsrlocal - 1
-        Area = CellInfo(icel)%vol(ifsrlocal)
-        PhiFxr(1:ng) = PhiFxr(1:ng) + Area * Phis(iFsr, iz, 1:ng)
-      ENDDO
-      PhiFxr(1:ng) = PhiFxr(1:ng) / myFxr%Area
-      pn = 0; pnI = 0
-      DO i = 1, niso
-        IF(idiso(i) .EQ. 54635) ixe = i
-        IF(idiso(i) .EQ. 62649) ism = i
-        IF(idiso(i) .EQ. 53635) ii = i
-        IF(.NOT. lfissile(idiso(i))) CYCLE
-        fisrate = 0
-        DO ig = 1, ng
-          FisRate = FisRate + IsoXsMacf(i, ig) * PhiFxr(ig)
-        ENDDO
-        !CALL yieldxesm(IdIso(i), ydi, ydxe, ydpm)
-        ydxe = yieldXe135(mapnucl(IdIso(i)))
-        ydi = yieldI135(mapnucl(IdIso(i)))
-        yd = ydi + ydxe  !Sum yeild of I-135 + Xe-134
-        pn = pn + yd * FisRate
-        pnI = pnI + ydi * FisRate
-      ENDDO
-      pn = Pn * NormFactor
-      pnI = pnI * NormFactor
-      AbsRate = 0
-      DO ig = 1, ng
-        AbsRate = AbsRate + IsoXsMacA(ixe, ig) * PhiFxr(ig)
-      ENDDO
-      AbsRate = NormFactor * AbsRate
-      AbsRate = AbsRate / pnum(ixe)  ! Macro -> Micro
-      lambda = decayxe135!()
-      lambdaI = decayI135!()
-      
-      pnum(ixe) = pn / (AbsRate + 1.e24_8 * lambda)
-      
-      !pn = ydi * FisRate * NormFactor
-      pnum(iI) = pnI / (1.e24_8 * lambdaI)
-      !Fxr(ifxr, iz)%XeDyn%Prate_I135(1) = PnI
-      
-    ENDDO    
+      CALL FxrWiseEqXe(myFxr, iz, icel, j, FsrIdxSt)
+    ENDDO
   ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
 ENDDO
-
 !CALL ReturnXsMacDat(XsMac)
-NULLIFY(PIN); NULLIFY(CellINfo); NULLIFY(myFxr)
-NULLIFY(idiso); NULLIFY(pnum)
-NULLIFY(IsoXsMacA);NULLIFY(IsoXsMacF)
+CONTAINS
+  SUBROUTINE FxrWiseEqXe(myFxr, iz, icel, ifxrlocal, FsrIdxSt)
+  IMPLICIT NONE
+  TYPE(FxrInfo_Type), POINTER :: myFxr
+  INTEGER :: iz, icel, ifxrlocal, FsrIdxSt
+
+  INTEGER :: i, ig, ism, ixe, iI, ifsr, ifsrlocal
+  INTEGER :: niso, nFsrInFxr
+  REAL, POINTER :: IsoXsMacf(:, :), IsoXsMacA(:, :)!EQXS(:, :)
+  REAL, POINTER :: pnum(:)!, SubGrpLv(:, :)
+  INTEGER, POINTER :: idiso(:)
+  TYPE(XsMac_Type) :: XsMac
+  INTEGER, PARAMETER :: MaxGrp = 1000
+
+  REAL :: PhiFxr(MaxGrp)
+  REAL :: yd, ydi, ydxe, ydpm, pn, pnI, pneq, lambda, lambdaI, fisrate, AbsRate, Area
+  REAL :: pnD, pnID, absD
+
+  REAL :: locf_relax
+
+  nFsrInFxr = CellInfo(icel)%nFsrInFxr(ifxrlocal)
+  niso = myFxr%niso;
+  ALLOCATE(IsoXsMacA(niso,ng), IsoXsMacF(niso,ng))
+  !CALL MacXsBase(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
+  CALL MacXsAF_CrCSP(IsoXsMacA,IsoXsMacf, myFxr, 1, ng, ng, TRUE)
+  idiso => myFxr%idiso; pnum => myFxr%pnum
+
+  IF (lRelaxation) THEN
+    locf_relax = f_relax
+  ELSE
+    locf_relax = 0.0
+  END IF
+
+  !IsoXsMacf => XsMac%IsoXsMacf
+  !IsoXsMacA => XsMac%IsoXsMacA
+  IF(myFxr%lRes) THEN
+      DO ig = iResoGrp1, iResoGrp2
+          DO i = 1, niso
+              IsoXsMacF(i,ig) = IsoXsMacF(i,ig) * myFXR%fresoFIso(i,ig)
+              IsoXsMacA(i,ig) = IsoXsMacA(i,ig) * myFXR%fresoAIso(i,ig)
+          ENDDO
+      ENDDO
+  ENDIF
+  PhiFxr(1:ng) = 0
+  DO i = 1, nFsrInFxr
+    ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i, ifxrlocal)
+    iFsr = FsrIdxSt + ifsrlocal - 1
+    Area = CellInfo(icel)%vol(ifsrlocal)
+    PhiFxr(1:ng) = PhiFxr(1:ng) + Area * Phis(iFsr, iz, 1:ng)
+  ENDDO
+  PhiFxr(1:ng) = PhiFxr(1:ng) / myFxr%Area
+  pn = 0; pnI = 0
+  DO i = 1, niso
+    IF(idiso(i) .EQ. 54635) ixe = i
+    IF(idiso(i) .EQ. 62649) ism = i
+    IF(idiso(i) .EQ. 53635) iI = i
+    IF(.NOT. lfissile(idiso(i))) CYCLE
+    fisrate = 0
+    DO ig = 1, ng
+      FisRate = FisRate + IsoXsMacf(i, ig) * PhiFxr(ig)
+    ENDDO
+    !CALL yieldxesm(IdIso(i), ydi, ydxe, ydpm)
+    ydxe = yieldXe135(mapnucl(IdIso(i)))
+    ydi = yieldI135(mapnucl(IdIso(i)))
+    yd = ydi + ydxe  !Sum yeild of I-135 + Xe-134
+    pn = pn + yd * FisRate
+    pnI = pnI + ydi * FisRate
+  ENDDO
+  pn = Pn * NormFactor
+  pnI = pnI * NormFactor
+  AbsRate = 0
+  DO ig = 1, ng
+    AbsRate = AbsRate + IsoXsMacA(ixe, ig) * PhiFxr(ig)
+  ENDDO
+  AbsRate = NormFactor * AbsRate
+  AbsRate = AbsRate / pnum(ixe)  ! Macro -> Micro
+  lambda = decayxe135!()
+  lambdaI = decayI135!()
+
+  pnD = myFxr%pnXe; pnID = myFxr%pnI; absD = myFxr%absXe
+  myFxr%pnXe = pn; myFxr%pnI = pnI; myFxr%absXe = AbsRate
+  pn = pnD*locf_relax+(1.-locf_relax)*pn
+  AbsRate = absD*locf_relax+(1.-locf_relax)*AbsRate
+  !pnum(ixe) = locf_relax*pnum(ixe) + (1.-locf_relax) * pn / (AbsRate + 1.e24_8 * lambda)
+  pnum(ixe) = pn / (AbsRate + 1.e24_8 * lambda)
+
+  pnI = pnID*locf_relax+(1.-locf_relax)*pnI
+  !pn = ydi * FisRate * NormFactor
+  !pnum(iI) = locf_relax*pnum(iI) + (1.-locf_relax) * pnI / (1.e24_8 * lambdaI)
+  pnum(iI) = pnI / (1.e24_8 * lambdaI)
+  !Fxr(ifxr, iz)%XeDyn%Prate_I135(1) = PnI
+
+  !CALL FreeXsIsoMac(XsMac)
+  !CALL FreeXsMac(XsMac)
+  DEALLOCATE(IsoXsMacA,IsoXsMacf)
+  END SUBROUTINE
 END SUBROUTINE
 
 SUBROUTINE ReadXeND(Core, FmInfo, PE)
@@ -730,7 +795,7 @@ REAL :: rdum(1:20)
 master = PE%CmfdMaster
 Fxr => FmInfo%FXR
 
-nXeFxr0= 0 
+nXeFxr0= 0
 DO iz = PE%myzb, PE%myze
   DO ifxr = 1, Core%nCoreFxr
     IF(.NOT. Fxr(ifxr, iz)%lfuel) CYCLE

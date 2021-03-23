@@ -29,7 +29,7 @@ REAL, PARAMETER :: epsm5=1.e-5_8, epsm6=1.e-6_8, epsm7=1.e-7_8, epsm8=1.e-8_8
 REAL, PARAMETER :: epsm10=1.e-10_8, epsm20=1.e-20_8, epsm30=1.e-30_8
 
 INTEGER, PARAMETER :: lsseigv=1, ldcplsseigv=2, ldepletion=3, lTransient = 4 !lshape=2, lreactcoef=3, ladjoint=4, ltransient=5,
-INTEGER, PARAMETER :: lCrCspGen = 5, lXenonDynamics = 6, lBranch = 7, lEFTsearch =  8
+INTEGER, PARAMETER :: lCrCspGen = 5, lXenonDynamics = 6, lBranch = 7, lEFTsearch =  8, lNNFSP = 9
 INTEGER, PARAMETER :: lP1SENM = 1, lP3SENM = 2
 
 INTEGER, PARAMETER :: MaxAxialPlane = 500

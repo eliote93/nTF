@@ -387,6 +387,16 @@ data addtm /0./
 save tprinted,first,firsttm, addtm, iday, BaseDate
 
 REAL :: tlap
+INTEGER :: ilo
+!
+#ifdef __PGI
+INTERFACE
+FUNCTION setvbuf3f(lu, typ, size)
+INTEGER setvbuf3f, lu, typ, size
+END FUNCTION
+END INTERFACE
+ilo = setvbuf3f(indev, 2, 0)
+#endif
 !
 IFfdisp = IFdisp
 IF(.NOT. prtscrn) then

@@ -9,6 +9,7 @@ USE IOUTIL,        ONLY : toupper,   IFnumeric,    nfields,   fndchara,    nfiel
                           CharSkip,  terminate,    IfNumeric_except
 USE NuclidMap_mod, ONLY : lExistIsotope, AtomicWeight                          
 USE XsLib_Mod,     ONLY : mapnucl,   ldiso
+USE Boron_mod,     ONLY : b10frac0
 USE ALLOCS
 
 IMPLICIT NONE
@@ -17,10 +18,13 @@ character(512) :: dataline0, ReadLine
 character(512) :: MixtureInfo(200),dum
 INTEGER :: indev, outdev
 
+TYPE(Mixture_Type) :: bufMixture
+
 INTEGER :: ipos(5)
 INTEGER :: ndata, nspt, imix, niso, idiso, nsphiso, id
 INTEGER :: i, j, k, n, m, jfr, jend
 REAL :: fsum, fchk, aw
+REAL :: natB, fwt
 LOGICAL :: lRes,lAg,lIn,lCd
 LOGICAL, SAVE :: lfirst
 DATA lfirst /.TRUE./
@@ -159,7 +163,45 @@ DO i = 1, niso
   idiso = idiso/100
   IF(idiso == 641) Mixture(imix)%lGd = .TRUE.    
 ENDDO
-
+!Nat. Boron Conversion
+IF (Mixture(imix)%lh2o) THEN
+  DO i = 1, niso
+    idiso = Mixture(imix)%idiso(i)
+    IF (idiso .EQ. 5000) THEN
+      ALLOCATE(bufMixture%idiso(niso),bufMixture%pnum(niso),bufMixture%fweig(niso),bufMixture%lSSPH(niso))
+      bufMixture%idiso = Mixture(imix)%idiso
+      bufMixture%pnum = Mixture(imix)%pnum
+      bufMixture%fweig = Mixture(imix)%fweig
+      bufMixture%lSSPH = Mixture(imix)%lSSPH
+      DEALLOCATE(Mixture(imix)%idiso,Mixture(imix)%pnum,Mixture(imix)%fweig,Mixture(imix)%lSSPH)
+      
+      Mixture(imix)%niso = niso+1
+      ALLOCATE(Mixture(imix)%idiso(niso+1),Mixture(imix)%pnum(niso+1),Mixture(imix)%fweig(niso+1),Mixture(imix)%lSSPH(niso+1))
+      DO k = 1, i-1
+        Mixture(imix)%idiso(k) = bufMixture%idiso(k)
+        Mixture(imix)%pnum(k) = bufMixture%pnum(k)
+        Mixture(imix)%fweig(k) = bufMixture%fweig(k)
+        Mixture(imix)%lSSPH(k) = bufMixture%lSSPH(k)
+      END DO
+      DO k = i+2, niso+1
+        Mixture(imix)%idiso(k) = bufMixture%idiso(k-1)
+        Mixture(imix)%pnum(k) = bufMixture%pnum(k-1)
+        Mixture(imix)%fweig(k) = bufMixture%fweig(k-1)
+        Mixture(imix)%lSSPH(k) = bufMixture%lSSPH(k-1)
+      END DO
+      Mixture(imix)%idiso(i) = 5010; Mixture(imix)%idiso(i+1) = 5011;
+      natB = bufMixture%pnum(i)
+      Mixture(imix)%pnum(i) = natB*b10frac0; Mixture(imix)%pnum(i+1) = natB*(1.-b10frac0)
+      natB = bufMixture%fweig(i); fwt = AtomicWeight(5011)*(1.-b10frac0)/AtomicWeight(5010)/b10frac0
+      Mixture(imix)%fweig(i) = natB/(1.+fwt); Mixture(imix)%fweig(i+1) = natB*fwt/(1.+fwt)
+      Mixture(imix)%lSSPH(i) = bufMixture%lSSPH(i); Mixture(imix)%lSSPH(i+1) = bufMixture%lSSPH(i);
+      
+      DEALLOCATE(bufMixture%idiso, bufMixture%pnum, bufMixture%fweig, bufMixture%lSSPH)
+      EXIT
+    END IF
+  END DO  
+END IF
+  
 ! Check Resonance
 DO i=1, niso
   idiso = Mixture(imix)%idiso(i)

@@ -6,6 +6,7 @@ IMPLICIT NONE
 
 REAL, POINTER :: gphis1g(:), gphim1g(:, :), gxst1g(:), gsrc1g(:), gsrcm1g(:, :)
 REAL, POINTER :: gPhiAngIn1g(:, :), gJout1g(:, :, :)
+REAL, POINTER :: gAxSrc1g(:), gAxPXS1g(:)
 
 REAL, POINTER :: gphisnm(:, :), gxstnm(:, :), gsrcnm(:, :)
 REAL, POINTER :: gPhiAngInnm(:, :, :), gJoutnm(:, :, :, :)
@@ -34,21 +35,20 @@ INTEGER :: iz, igg, ngg
 logical :: lGamma, lTrCorrection
 END SUBROUTINE
 
-SUBROUTINE SetGamSrc(Core, Fxr, src, phis, gphis, axsrc, xstr1g, iz, igg, ng, ngg,                  &
-                        l3dim, lscat1, PE, GamGroupInfo)
+SUBROUTINE SetGamSrc(Core, Fxr, src, phis, gphis, gaxsrc1g, xstr1g, iz, igg, ng, ngg,                  &
+                        l3dim, lscat1, PE, GroupInfo)
 ! Photon Source Generation Routine in Photon Transport Equation
 !         Production by Neutron-Isotope Reaction and Photo-Atomic Reaction
 USE PARAM
-USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE
-USE GammaTYPEDEF,   ONLY : GAMMAGROUPINFO_TYPE
+USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE,  GROUPINFO_TYPE
 IMPLICIT NONE
 ! INPUT VARIABLES
 TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(PE_TYPE) :: PE
-TYPE(GAMMAGROUPINFO_TYPE) :: GamGroupInfo
+TYPE(GROUPINFO_TYPE) :: GroupInfo
 
-REAL, POINTER :: src(:), phis(:, :, :), gphis(:, :, :), AxSrc(:), xstr1g(:)
+REAL, POINTER :: src(:), phis(:, :, :), gphis(:, :, :), gAxSrc1g(:), xstr1g(:)
 INTEGER :: igg, ng, iz, ifsr, ifxr, ngg
 LOGICAL :: lscat1, l3dim
 
@@ -88,7 +88,7 @@ LOGICAL :: lGamma, lTrCorrection
 
 END SUBROUTINE
 
-SUBROUTINE SetGamSrcNM(Core, Fxr, srcNM, phisNM, gphisNM, AxSrc, xstnm, iz, igb, ige,               &
+SUBROUTINE SetGamSrcNM(Core, Fxr, srcNM, phisNM, gphisNM, gAxSrc, xstnm, iz, igb, ige,               &
                        ng, ngg, l3dim, lscat1, PE)
 ! Photon Source Generation Routine in Photon Transport Equation
 !      FOR NODE MAJOR
@@ -98,11 +98,39 @@ IMPLICIT NONE
 ! INPUT VARIABLES
 TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type) :: Fxr(:)
-REAL, POINTER :: srcNM(:,:), phisNM(:, :), gphisNM(:, :), AxSrc(:, :, :), xstnm(:, :)
+REAL, POINTER :: srcNM(:,:), phisNM(:, :), gphisNM(:, :), gAxSrc(:, :, :), xstnm(:, :)
 REAL :: eigv
 INTEGER :: iz, igb, ige, ng, ngg, ifsr, ifxr, fsridx
 LOGICAL :: l3dim, lscat1
 TYPE(PE_TYPE) :: PE
+
+END SUBROUTINE
+
+SUBROUTINE GamPseudoAbsorption(Core, Fxr, AxPXS, xstr1g, iz, l3dim)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
+                         pin_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+REAL, POINTER :: AxPXS(:), xstr1g(:)
+INTEGER :: iz
+LOGICAL :: l3dim
+
+END SUBROUTINE
+
+SUBROUTINE GamPseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, l3dim)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
+                         pin_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+REAL, POINTER :: AxPXS(:, :, :), xstnm(:, :)
+INTEGER :: iz, ng
+LOGICAL :: l3dim
 
 END SUBROUTINE
 
@@ -164,7 +192,7 @@ TYPE(PE_Type) :: PE
 
 END SUBROUTINE
 
-SUBROUTINE NeutronLocalQUpdate(Core, Fxr, phis, localpower, myzb, myze, ng, PE)
+SUBROUTINE NeutronLocalQUpdate(Core, Fxr, phis, localpower, GPOWERGEN, myzb, myze, ng, PE)
 USE PARAM
 USE TYPEDEF,        ONLY : coreinfo_type,       Fxrinfo_type,       PE_TYPE
 IMPLICIT NONE
@@ -172,9 +200,37 @@ TYPE(coreinfo_type) :: CORE
 TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
 TYPE(PE_Type) :: PE
 REAL, POINTER :: phis(:, :, :)
-REAL, POINTER :: localpower(:, :)
+REAL, POINTER :: localpower(:, :), GPOWERGEN(:, :)
 INTEGER :: myzb, myze, ng
 
+END SUBROUTINE
+
+
+FUNCTION FxrAvgGPhi(Core, Fxr, GPhis, ipin, iLocalfxr, iz, ng, PE)
+USE PARAM
+USE TYPEDEF,     ONLY : CoreInfo_Type,    PE_Type,     FxrInfo_Type,               &
+                        Cell_Type,    Pin_Type
+USE CNTL,        ONLY : nTRACERCNTL
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+TYPE(PE_Type) :: PE
+REAL, POINTER :: GPhis(:, :, :)
+INTEGER :: iLocalfxr, ipin, iz, ng
+REAL :: FxrAvgGPhi(ng)
+END FUNCTION
+
+SUBROUTINE CompensateGPower(Core,Fxr,GPowerGen,GPower, myzb, myze,PE)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,          PE_TYPE
+
+IMPLICIT NONE
+
+TYPE(coreinfo_type) :: CORE
+TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
+TYPE(PE_Type) :: PE
+REAL, POINTER, DIMENSION(:, :) :: GPowerGen, gpower
+INTEGER :: myzb, myze
 END SUBROUTINE
 
 END INTERFACE

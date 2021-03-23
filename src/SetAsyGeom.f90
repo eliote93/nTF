@@ -220,25 +220,21 @@ INTEGER :: GapRange(4, 4, 3)
 INTEGER :: ix, iy, iasy, itype 
 INTEGER :: i
 
-GapRange(:, :, 1) = RESHAPE((/        2, nCellX-1,        1,        1,  &
-                                      2, nCellX-1,   nCellX,   nCellX,  &
-                                      0,       -1,        0,       -1, &
-                                      0,       -1,        0,       -1/),&
-                             (/4, 4/))
-!Left-Right
-GapRange(:, :, 2) = RESHAPE((/        1,        1,        2, nCellX-1,  &
-                                  nCellX,   nCellX,        2, nCellX-1,  &
-                                       0,       -1,        0,       -1, &
-                                       0,       -1,        0,       -1/),&
-                             (/4, 4/))
-!Corner Gap
-GapRange(:, :, 3) = RESHAPE((/      1,      1,      1,     1,  &
-                               nCellX, nCellX,      1,     1,  &
-                                    1,      1, nCellX, nCellX, &
-                               nCellX, nCellX, nCellX, nCellX/),&
-                            (/4, 4/))
+GapRange = RESHAPE((/      2, nCellX-1,        1,        1,  &
+                           2, nCellX-1,   nCellX,   nCellX,  &
+                           0,       -1,        0,       -1,  &
+                           0,       -1,        0,       -1,  &
+                           1,        1,        2, nCellX-1,  &
+                      nCellX,   nCellX,        2, nCellX-1,  &
+                           0,       -1,        0,       -1,  &
+                           0,       -1,        0,       -1,  &
+                           1,        1,        1,        1,  &
+                      nCellX,   nCellX,        1,        1,  &
+                           1,        1,   nCellX,   nCellX,  &
+                      nCellX,   nCellX,   nCellX,   nCellX/),&
+                      SHAPE(GapRange))
 
-BaseGapPin = (/nPinType0-2, nPinType-1, nPinType/)
+BaseGapPin = (/nPinType0-2, nPinType0-1, nPinType0/)
 CALL CP_CA(BaseAsyGap2D, 0, nCellXMax, nCellXMax)
 DO itype = 1, 3
   DO i = 1, 4

@@ -83,7 +83,7 @@ DO iang = 1, nAziAng
 ENDDO
 
 !Extended Assembly Map(including dummy ) in the core
-CALL CP_CA(Asy_Extd(0:nxa, 0:nya), 0, nxa+1, nya+1 )
+Asy_Extd(0:nxa, 0:nya) = 0.
 DO iya = 1, nya
   DO ixa = 1, nxa
     IF(CoreIdx(ixa, iya) .NE. 0) THEN
@@ -215,13 +215,13 @@ DO i = 1, nCoreRay
   CALL Dmalloc(CoreRay(iCoreRay)%AsyRayIdx, iRay)
   CALL Dmalloc(CoreRay(iCoreRay)%AsyIdx, iRay)
 
-  CALL CP_VA(CoreRay(iCoreRay)%AsyRayIdx(1:iRay), AsyRayIdx(1:iRay), iRay)
-  CALL CP_VA(CoreRay(iCoreRay)%AsyIdx(1:iRay), AsyIdx(1:iRay), iRay)
+  CoreRay(iCoreRay)%AsyRayIdx(1:iRay) = AsyRayIdx(1:iRay)
+  CoreRay(iCoreRay)%AsyIdx(1:iRay) = AsyIdx(1:iRay)
   
   CALL Dmalloc(CoreRay(iCoreRay)%ixa, iRay)
   CALL Dmalloc(CoreRay(iCoreRay)%iya, iRay)
-  CALL CP_VA(CoreRay(iCoreRay)%ixa(1:iRay), IxaIdx, iRay)
-  CALL CP_VA(CoreRay(iCoreRay)%iya(1:iRay), IyaIdx, iRay)
+  CoreRay(icoreray)%ixa(1:iray) = IxaIdx(1:iRay)
+  CoreRay(icoreray)%iya(1:iray) = IyaIdx(1:iray)
 
   CoreRay(iCoreRay)%InOutSurf = (/ISURF, OSURF/)
   CoreRay(icoreRay)%iang = iang

@@ -130,6 +130,7 @@ IF(master) THEN
   ENDDO !
 ENDIF
 #endif
+PowerDist%pwsum = pwsum
 !2D Pin Power
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
@@ -230,15 +231,15 @@ Asy3DNormalizer = FuelAsyVol / pwsum
 Asy2DNolmalizer = Asy3DNormalizer / hactive
 Axial1Dnormalizer = hactive / pwsum
 
-IF(nTracerCntl%lProblem .EQ. lTransient) THEN
-  Pin3DNormalizer = Pin3DNormalizer * nTracerCntl%PowerLevel
-  Fm3DNormalizer = Fm3DNormalizer * nTracerCntl%PowerLevel
-  Pin2DNormalizer = Pin2DNormalizer * nTracerCntl%PowerLevel
-  Fm2DNormalizer = Fm2DNormalizer * nTracerCntl%PowerLevel
-  Asy3DNormalizer = Asy3DNormalizer * nTracerCntl%PowerLevel
-  Asy2DNolmalizer = Asy2DNolmalizer * nTracerCntl%PowerLevel
-  Axial1Dnormalizer = Axial1Dnormalizer * nTracerCntl%PowerLevel
-ENDIF
+!IF(nTracerCntl%lProblem .EQ. lTransient) THEN
+!  Pin3DNormalizer = Pin3DNormalizer * nTracerCntl%PowerLevel
+!  Fm3DNormalizer = Fm3DNormalizer * nTracerCntl%PowerLevel
+!  Pin2DNormalizer = Pin2DNormalizer * nTracerCntl%PowerLevel
+!  Fm2DNormalizer = Fm2DNormalizer * nTracerCntl%PowerLevel
+!  Asy3DNormalizer = Asy3DNormalizer * nTracerCntl%PowerLevel
+!  Asy2DNolmalizer = Asy2DNolmalizer * nTracerCntl%PowerLevel
+!  Axial1Dnormalizer = Axial1Dnormalizer * nTracerCntl%PowerLevel
+!ENDIF
 
 !Pin3DNormalizer = 1
 !Pin2DNormalizer = 1

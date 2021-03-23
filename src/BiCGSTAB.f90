@@ -12,7 +12,7 @@ USE OMP_LIB
 USE CNTL,           ONLY : nTracerCntl
 USE BiLU_MOD,       ONLY : FreeBiluSolverEnv,     SetBiluSolverEnv,     SolveBilu,     &
                            SolveBiLU_OMP
-                           
+
 IMPLICIT NONE
 TYPE(CMFDLS_TYPE),POINTER, PRIVATE :: LS
 REAL, POINTER, PRIVATE :: resv(:, :), resvhat(:, :)
@@ -28,11 +28,11 @@ REAL, PRIVATE :: GlobalBuf(0:100)
 LOGICAL, PRIVATE :: lssor = .FALSE.
 LOGICAL, PRIVATE :: lbilu = .TRUE.
 #endif
-CONTAINS 
+CONTAINS
 
 SUBROUTINE AllocBiCGSTAB(nxy0, myzbf0, myzef0)
 USE ALLOCS
-IMPLICIT NONE 
+IMPLICIT NONE
 INTEGER :: nxy0, myzbf0, myzef0
 
 CALL Dmalloc0(resv, 1, nxy0, myzbf0 - 1, myzef0 + 1)
@@ -46,7 +46,7 @@ CALL Dmalloc0(vz, 1, nxy0, myzbf0 - 1, myzef0 + 1)
 CALL Dmalloc0(temp, 1, nxy0, myzbf0 - 1, myzef0 + 1)
 END SUBROUTINE
 
-SUBROUTINE BiCGSTAB(A, Sol, RHS, itrcntl)
+SUBROUTINE BiCGSTAB(A, Sol, RHS, itrcntl, initer)
 USE PARAM
 #ifdef MPI_ENV
 USE MPIComm_Mod, ONLY : GetNeighDat
@@ -56,6 +56,8 @@ IMPLICIT NONE
 TYPE(CMFDLS_TYPE), TARGET :: A
 REAL, POINTER :: Sol(:, :), RHS(:, :)
 TYPE(InSolverItrCntl_TYPE) :: itrcntl
+INTEGER, OPTIONAL :: initer
+
 INTEGER :: iter, itermax, itermin
 INTEGER :: ixy, iz
 INTEGER :: i, j, k, n
@@ -63,7 +65,6 @@ REAL :: rho,prho,alpha,omega,gamma,beta
 REAL :: reserr, reserr0, temp, convcrit
 REAL :: Tbeg, Tend
 LOGICAL :: lconv
-
 
 IF (A%nThread .GT. 1) THEN
 !  CALL BiCGSTAB_OMP(A, Sol, RHS, itrcntl)
@@ -93,9 +94,8 @@ convcrit = ItrCntl%convcrit
 
 !Initialized Solution related Array set
 rho = 1._8; prho = 1._8; alpha = 1._8; omega = 1._8;
-CALL CP_CA(P(1:nxy, myzbf - 1:myzef + 1), 0._8, nxy, myzef - myzbf + 3)
-CALL CP_CA(v(1:nxy, myzbf - 1:myzef + 1), 0._8, nxy, myzef - myzbf + 3)
-
+P(1:nxy,myzbf-1:myzef+1) = 0.;
+v(1:nxy,myzbf-1:myzef+1) = 0.;
 CALL Residual(Sol, RHS, ResV)
 
 reserr0 = DotProduct(resv, resv)
@@ -107,8 +107,7 @@ IF(reserr0 .lt. 1.0e-8_8) then
   RETURN
 ENDIF
 
-CALL CP_VA(resvhat(1:nxy, myzbf - 1:myzef + 1), RESV(1:nxy, myzbf - 1:myzef + 1), nxy, myzef - myzbf + 3)
-!CALL CP_VA(resvhat(1:nxy, myzbf - 1:myzef + 1), RESV(1:nxy, myzbf - 1:myzef + 1), nxy, myzef - myzbf + 3)
+resvhat(1:nxy, myzbf-1:myzef+1) = resv(1:nxy, myzbf-1:myzef+1)
 
 lconv = .FALSE.
 #define bicgstab2
@@ -131,10 +130,10 @@ DO iter = 1, itermax
     CALL MatVecOP(vy, v)
   END IF
 #else
-  CALL MatVecOP(p, v)  
-#endif  
+  CALL MatVecOP(p, v)
+#endif
 
-  !Update Gamma  = 
+  !Update Gamma  =
   gamma = DOtProduct(resvhat, v)
   alpha = rho/gamma
   !Update s = r(i-1)-alpha*v
@@ -143,7 +142,7 @@ DO iter = 1, itermax
       s(ixy, iz) = resv(ixy, iz) - alpha * v(ixy, iz)
     ENDDO
   ENDDO
-#ifdef pre  
+#ifdef pre
 
   IF (nTracerCntl%lHex) THEN ! KSC edit
     CALL MatVecOP(s, t)
@@ -153,7 +152,7 @@ DO iter = 1, itermax
   END IF
 #else
   CALL MatVecOP(s, t)
-#endif  
+#endif
   !Update Omega = <t, s>/ <t, t>
   omega = DotProduct(t, s); temp = DotProduct(t, t)
 !  IF(temp .NE. 0) omega = omega/temp
@@ -170,26 +169,26 @@ DO iter = 1, itermax
         sol(ixy, iz) = sol(ixy, iz) + alpha * p(ixy, iz)
 #endif
       ENDDO
-    ENDDO    
+    ENDDO
     CALL Residual(Sol, RHS, ResV)
     reserr = DotProduct(resv, resv)
     reserr = sqrt(reserr)
-    CONTINUE    
+    CONTINUE
     EXIT
   ELSE
     omega = omega/temp
   ENDIF
-  
+
   !Update r = s - omega * t
   DO iz = myzbf, myzef
     DO ixy = 1, nxy
       resv(ixy, iz) = s(ixy, iz) - omega * t(ixy, iz)
     ENDDO
   ENDDO
-  
+
   reserr = DotProduct(resv, resv)
   reserr = sqrt(reserr)
-  !IF(myrank .eq. 0) PRINT *, alpha, omega, reserr    
+  !IF(myrank .eq. 0) PRINT *, alpha, omega, reserr
   !Solution Update
   DO iz = myzbf, myzef
     DO ixy = 1, nxy
@@ -201,7 +200,7 @@ DO iter = 1, itermax
       END IF
 #else
       sol(ixy, iz) = sol(ixy, iz) + alpha * p(ixy, iz) + omega * s(ixy, iz)
-#endif      
+#endif
     ENDDO
   ENDDO
 
@@ -220,6 +219,9 @@ ENDIF
 CALL FreeBiluSolverEnv()
 Tend = nTracer_dclock(FALSE, FALSE)
 TimeChk%AxBTime = TimeChk%AxBTime + (Tend - Tbeg)
+
+IF(present(initer)) initer = initer + iter
+
 END SUBROUTINE
 
 SUBROUTINE MatVecOP(x, y)
@@ -272,13 +274,13 @@ IF(nproc .GT. 1) THEN
 #else
  CALL  GetNeighDatFast(X(1:nxy, myzbf-1:myzef+1), nxy, myzbf, &
                         myzef, myrank, nproc, comm, 1)
-#endif                        
+#endif
 ENDIF
 
 DO iz = myzbf, myzef
   DO ixy = 1, nxy
     lmnt = Ls%AxOffDiag(2, ixy, iz) * X(ixy, iz + 1)
-    lmnt = lmnt + Ls%AxOffDiag(1, ixy, iz) * X(ixy, iz - 1)    
+    lmnt = lmnt + Ls%AxOffDiag(1, ixy, iz) * X(ixy, iz - 1)
     Y(ixy, iz) = Y(ixy, iz) + lmnt
   ENDDO
 ENDDO
@@ -286,7 +288,7 @@ ENDDO
 END SUBROUTINE
 FUNCTION DotProduct(x, y)
 #ifdef MPI_ENV
-USE MpiComm_mod, ONLY : REDUCE 
+USE MpiComm_mod, ONLY : REDUCE
 #endif
 IMPLICIT NONE
 INTEGER :: ixy, iz
@@ -316,7 +318,7 @@ DO iz = myzbf, myzef
   DO ixy = 1, nxy
     ResidualVec(ixy, iz) = y(ixy, iz) - ResidualVec(ixy, iz)
   ENDDO
-ENDDO  
+ENDDO
 END SUBROUTINE
 
 SUBROUTINE Minv(b, x)
@@ -466,8 +468,8 @@ IF(nproc .GT. 1) THEN
 #else
  CALL  GetNeighDatFast(X(1:nxy, myzbf-1:myzef+1), nxy, myzbf, &
                         myzef, myrank, nproc, comm, 1)
-#endif      
-!$OMP END MASTER    
+#endif
+!$OMP END MASTER
 !$OMP BARRIER
 ENDIF
 
@@ -475,7 +477,7 @@ DO iz = myzbf, myzef
   DO i = 1, nxylocal
     ixy = list(i)
     lmnt = Ls%AxOffDiag(2, ixy, iz) * X(ixy, iz + 1)
-    lmnt = lmnt + Ls%AxOffDiag(1, ixy, iz) * X(ixy, iz - 1)    
+    lmnt = lmnt + Ls%AxOffDiag(1, ixy, iz) * X(ixy, iz - 1)
     Y(ixy, iz) = Y(ixy, iz) + lmnt
   ENDDO
 ENDDO
@@ -511,12 +513,12 @@ INTEGER, POINTER :: List(:, :)
 
 tbeg = nTracer_dclock(FALSE, FALSE)
 LS => A;
-#ifdef pre 
+#ifdef pre
 CALL SetBiluSolverEnv(A)
 #endif
 myzbf = LS%myzbf; myzef = LS%myzef; nxy = LS%nxy
 n = nxy * (myzef - myzbf + 1)
-nbd = LS%nbd     
+nbd = LS%nbd
 #ifdef MPI_ENV
 comm = Ls%comm; myrank = Ls%myrank
 nproc = Ls%nproc
@@ -527,8 +529,8 @@ itermax = itrcntl%ninmax
 itermin = itrcntl%ninmin
 !Initialized Solution related Array set
 rho = 1._8; prho = 1._8; alpha = 1._8; omega = 1._8;
-CALL CP_CA(P(1:nxy, myzbf - 1:myzef + 1), 0._8, nxy, myzef - myzbf + 3)
-CALL CP_CA(v(1:nxy, myzbf - 1:myzef + 1), 0._8, nxy, myzef - myzbf + 3)
+P(1:nxy, myzbf-1:myzef+1) = 0.;
+v(1:nxy, myzbf-1:myzef+1) = 0.;
 
 CALL Residual(Sol, RHS, ResV)
 
@@ -541,13 +543,12 @@ IF(reserr0 .lt. 1.0e-8_8) then
   RETURN
 ENDIF
 
-CALL CP_VA(resvhat(1:nxy, myzbf - 1:myzef + 1), RESV(1:nxy, myzbf - 1:myzef + 1), nxy, myzef - myzbf + 3)
-!CALL CP_VA(resvhat(1:nxy, myzbf - 1:myzef + 1), RESV(1:nxy, myzbf - 1:myzef + 1), nxy, myzef - myzbf + 3)
+resvhat(1:nxy, myzbf-1:myzef) = RESV(1:nxy, myzbf-1:myzef+1)
 
 lconv = .FALSE.
 nThread = A%nThread
 !$  call omp_set_dynamic(.FALSE.)
-!$  call omp_set_num_threads(nThread) 
+!$  call omp_set_num_threads(nThread)
 
 list => RadDcmp%PinIdx
 !t1 = OMP_GET_WTIME()
@@ -559,7 +560,7 @@ nxylocal = RadDcmp%nxylocal(tid)
 rho = 1._8; prho = 1._8; alpha = 1._8; omega = 1._8;
 DO iter = 1, itermax
   prho = rho
-  
+
   tmp = DotProduct_OMP(resvhat, resv, tid)
   rho = tmp
   beta = (rho*alpha)/(prho*omega)
@@ -578,8 +579,8 @@ DO iter = 1, itermax
 !!$OMP END MASTER
   CALL MatVecOP_OMP(vy, v, tid)
 #else
-  CALL MatVecOP_OMP(p, v, tid)  
-#endif    
+  CALL MatVecOP_OMP(p, v, tid)
+#endif
 
   tmp = DOtProduct_OMP(resvhat, v, tid)
   gamma = tmp
@@ -590,12 +591,12 @@ DO iter = 1, itermax
       s(ixy, iz) = resv(ixy, iz) - alpha * v(ixy, iz)
     ENDDO
   ENDDO
-#ifdef pre  
+#ifdef pre
   CALL SolveBilu_OMP(s, vz, tid)
   Call MatVecOP_OMP(vz, t, tid)
 #else
   CALL MatVecOP_OMP(s, t, tid)
-#endif 
+#endif
 !Update Omega = <t, s>/ <t, t>
   tmp  = DotProduct_OMP(t, s, tid)
   tmp2 = DotProduct_OMP(t, t, tid)
@@ -607,21 +608,21 @@ DO iter = 1, itermax
 !    DO iz = myzbf, myzef
 !      DO i = 1, nxylocal
 !        ixy = list(i, tid)
-!#ifdef pre    
+!#ifdef pre
 !        sol(ixy, iz) = sol(ixy, iz) + alpha * vy(ixy, iz)
 !#else
 !        sol(ixy, iz) = sol(ixy, iz) + alpha * p(ixy, iz)
 !#endif
 !      ENDDO
-!    ENDDO   
-!!$OMP BARRIER 
+!    ENDDO
+!!$OMP BARRIER
 !!$OMP Master
 !    CALL Residual(Sol, RHS, ResV)
 !    reserr = DotProduct(resv, resv)
 !    reserr = sqrt(reserr)
-!!$OMP END Master 
+!!$OMP END Master
 !!$OMP BARRIER
-!    CONTINUE    
+!    CONTINUE
 !    EXIT
 !  ENDIF
   !Update r = s - omega * t
@@ -636,15 +637,15 @@ DO iter = 1, itermax
 !$OMP MASTER
   reserr = sqrt(tmp)
 !$OMP END MASTER
-!$OMP BARRIER   
+!$OMP BARRIER
   DO iz = myzbf, myzef
     DO i = 1, nxylocal
       ixy = list(i, tid)
-#ifdef pre    
+#ifdef pre
       sol(ixy, iz) = sol(ixy, iz) + alpha * vy(ixy, iz) + omega * vz(ixy, iz)
 #else
       sol(ixy, iz) = sol(ixy, iz) + alpha * p(ixy, iz) + omega * s(ixy, iz)
-#endif      
+#endif
     ENDDO
   ENDDO
 !$OMP BARRIER

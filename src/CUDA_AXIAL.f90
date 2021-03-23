@@ -55,7 +55,7 @@ CASE (NODAL)
 CASE (MOC)
 
   IF (lFirstAxial) CALL cuSetBoundaryFlux(cuCMFD, cuAxial, cuDevice)
-
+  
   IF (cuCntl%lCASMO) THEN
 
     WRITE(mesg, '(a)') 'Performing Axial Calculation :  Linear Source MOC'
@@ -85,6 +85,59 @@ TimeChk%AxialNodalTime = TimeChk%AxialNodalTime + (AxNTimeEnd - AxNTimeBeg)
 
 END SUBROUTINE
 
+SUBROUTINE cuTranAxialSolver(TranInfo, TranCntl, eigv0)
+USE PARAM
+USE TYPEDEF,        ONLY : TranInfo_Type,     TranCntl_Type
+USE TIMER,          ONLY : nTracer_dclock,      TimeChk
+USE PE_MOD,         ONLY : PE
+USE IOUTIL,         ONLY : message,             terminate
+USE FILES,          ONLY : io8
+USE CUDA_NODAL,     ONLY : cuNodalDriver
+USE CUDA_AXMOC,     ONLY : cuTranFlatMOCDriver,     cuLinearMOCDriver
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+REAL :: eigv0
+
+INTEGER :: ierr
+REAL :: AxNTimeBeg, AxNTimeEnd
+
+AxNTimeBeg = nTracer_dclock(.FALSE., .FALSE.)
+
+SELECT CASE (cuCntl%AxSolver)
+CASE (NODAL)
+  IF (cuCntl%lSENM) THEN
+    WRITE(mesg, '(a)') 'Performing Axial Calculation :  P1 SENM'
+    IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
+    CALL terminate('Underconstruction')
+  ELSE
+    WRITE(mesg, '(a)') 'Performing Axial Calculation :  P1 NEM'
+    IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
+    CALL terminate('Underconstruction')
+  ENDIF
+  !CALL cuNodalDriver(cuCMFD, cuAxial, cuDevice, eigv)
+CASE (MOC)
+  !IF (lFirstAxial) CALL cuSetBoundaryFlux(cuCMFD, cuAxial, cuDevice)
+  IF (cuCntl%lCASMO) THEN
+    WRITE(mesg, '(a)') 'Performing Axial Calculation :  Linear Source MOC'
+    IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
+    CALL terminate('Underconstruction')
+    !CALL cuLinearMOCDriver(cuCMFD, cuAxial, cuDevice, eigv)
+  ELSE
+    WRITE(mesg, '(a)') 'Performing Axial Calculation :  Flat Source MOC'
+    IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
+    CALL cuTranFlatMOCDriver(TranInfo, TranCntl, eigv0)
+  ENDIF
+END SELECT
+
+CALL cuSetAxialDhat(cuCMFD, cuAxial, cuDevice)
+
+CALL MPI_BARRIER(MPI_CUDA_COMM, ierr)
+AxNTimeEnd = nTracer_dclock(.FALSE., .FALSE.)
+TimeChk%AxialNodalTime = TimeChk%AxialNodalTime + (AxNTimeEnd - AxNTimeBeg)
+
+END SUBROUTINE
+
 SUBROUTINE cuSetAxialSourceOperator(CoreInfo, FmInfo, GroupInfo, cuCMFD, cuAxial, cuDevice)
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        GroupInfo_Type
 USE CUDA_AXMOC,     ONLY : cuSetSourceOperator
@@ -98,6 +151,23 @@ TYPE(cuAxial_Type) :: cuAxial
 TYPE(cuDevice_Type) :: cuDevice
 
 CALL cuSetSourceOperator(CoreInfo, FmInfo, GroupInfo, cuCMFD, cuAxial, cuDevice)
+
+END SUBROUTINE
+
+SUBROUTINE cuSetTranAxialSourceOperator(CoreInfo, FmInfo, GroupInfo, TranInfo, TranCntl, cuCMFD, cuAxial, cuDevice)
+USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        GroupInfo_Type,     TranInfo_Type,    TranCntl_Type
+USE CUDA_AXMOC,     ONLY : cuSetTranSourceOperator
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: CoreInfo
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(cuCMFD_Type) :: cuCMFD
+TYPE(cuAxial_Type) :: cuAxial
+TYPE(cuDevice_Type) :: cuDevice
+
+CALL cuSetTranSourceOperator(CoreInfo, FmInfo, GroupInfo, TranInfo, TranCntl, cuCMFD, cuAxial, cuDevice)
 
 END SUBROUTINE
 

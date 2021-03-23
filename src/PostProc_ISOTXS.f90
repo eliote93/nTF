@@ -142,6 +142,29 @@ SUBROUTINE PostProc_ISOTXS
     ENDDO
     
 !   allocate(resoset(nresoset))
-    
     RETURN
 END SUBROUTINE PostProc_ISOTXS
+
+SUBROUTINE PostProc_GAMISO
+USE XSLIB_MOD,    ONLY : phatom, nelmGAM, noggphl, mapEleGAM
+IMPLICIT NONE
+INTEGER :: iso, jso, ig, jg
+INTEGER :: idiso
+
+
+DO iso = 1, nelmGAM
+  IF(phatom(iso)%nid /= 0) CYCLE 
+  idiso = NINT(phatom(iso)%aw)
+  idiso = idiso*10
+  DO WHILE(.TRUE.)
+    IF(mapEleGAM(idiso) .EQ. 0) EXIT
+    idiso = idiso + 1
+  END DO 
+  phatom(iso)%nid = idiso
+END DO 
+
+
+
+
+
+END SUBROUTINE 

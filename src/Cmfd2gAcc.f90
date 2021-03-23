@@ -122,7 +122,7 @@ DO iter = 1, nitermax
   CALL ConvertArray2G(PhiC2G(:, :, :), GcPhiC(:, :, :), nxy, myzbf-1, myzef+1, 2)
 
   peigv = eigv
-  CALL CP_VA(GcPsiCD(1 : nxy, myzbf : myzef), GcPsiC(1 : nxy, myzbf : myzef), nxy, myzef - myzbf + 1)
+  GcPsiCD(1:nxy, myzbf:myzef) = GcPsiC(1:nxy, myzbf:myzef)
   CALL GcCmfdPsiUpdt(GcPhiC, GcPsiC)
 IF(.NOT. lwielandt) THEN
   CALL GcCmfdEigUpdt(GcPsiC, GcPsiCD, Eigv, psierr, PE)
@@ -187,9 +187,9 @@ REAL :: Vol, neighVol, lmnt, offlmnt, dhat, dtil, alpha, dhmax
 Diag => GcCmfdLs(1)%Diag2g
 RadOffDiag => GcCmfdLs(1)%RadOffDiag2g
 AxOffDiag => GcCmfdLs(1)%AxOffDiag2g
-CALL CP_CA(diag(:, :, myzbf:myzef), zero, 4, nxy, myzef-myzbf + 1)
-CALL CP_CA(RadOffDiag(:, :, :, myzbf:myzef), zero, 4, 4, nxy, myzef-myzbf + 1)
-CALL CP_CA(AxOffDiag(:, :, :, myzbf:myzef), zero, 4, 2, nxy, myzef-myzbf + 1)
+diag(1:4,1:nxy,myzbf:myzef) = ZERO
+RadOffDiag(1:4,1:4,1:nxy, myzbf:myzef) = ZERO
+AxOffDiag(1:4,1:2,1:nxy,myzbf:myzef) = ZERO
 DO iz = myzbf, myzef
   iz0 = SubPlaneMap(iz)
   DO ixy = 1, nxy

@@ -1,6 +1,5 @@
 #include <defines.h>
 SUBROUTINE CalRelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, lGather)
-
 !Update Normalized Power for T/H
 USE PARAM
 USE TypeDef,        ONLY : CoreInfo_Type,            CmInfo_Type,         PE_Type,          &
@@ -8,6 +7,10 @@ USE TypeDef,        ONLY : CoreInfo_Type,            CmInfo_Type,         PE_Typ
 USE CNTL,           ONLY : nTracerCntl_Type
 USE BasicOperation, ONLY : CP_CA,                    CP_VA,              DotProduct
 USE TH_Mod,         ONLY : GatherRelPower
+#ifdef __PGI
+USE CUDA_MASTER,    ONLY : cuCntl,  cuPwDist
+USE CUDA_PWDIST,    ONLY : cuSetCMRelPower, cuUpdtPinPw
+#endif
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
@@ -18,12 +21,13 @@ INTEGER :: ng
 REAL, POINTER :: RelPower(:, :)
 LOGICAL :: lGather
 
-
 TYPE(PinXs_Type), POINTER :: PinXS(:, :)
 TYPE(Pin_Type), POINTER :: Pin(:)
 REAL, POINTER :: PinVol(:, :)
 REAL, POINTER :: PhiC(:, :, :)
 REAL, POINTER :: hz(:)
+REAL :: hzeff, inv_hzeff
+INTEGER :: nch, icel
 INTEGER :: ig, iz, ixy
 INTEGER :: nxy, nz, myzb, myze
 REAL :: Volsum, hactive, TotPow, localPow, vol, sum0
@@ -41,6 +45,40 @@ DO iz = 1, nz
   IF(Core%lFuelPlane(iz)) Hactive = Hactive + Core%hz(iz)
 ENDDO
 
+#ifdef __PGI
+IF(PE%lCUDACMFD .AND. cuCntl%lPwDist) THEN
+  IF(.NOT. cuPwDist%lTran) CALL cuUpdtPinPw(cuPwDist, .FALSE., .FALSE.)
+  CALL cuSetCMRelPower(cuPwDist, RelPower, PE, nz, lGather)
+  hzeff = 0.
+  nch = 0
+  DO ixy = 1, nxy
+    IF(.NOT. Pin(ixy)%lfuel) CYCLE
+    nch = nch + 1
+    DO iz = 1, nz
+      icel = Pin(ixy)%cell(iz)
+      IF(.NOT. Core%CellInfo(icel)%lfuel) CYCLE
+      hzeff = hzeff + Core%hz(iz)
+    END DO
+  END DO
+  hzeff = hzeff / nch
+  inv_hzeff = 1./hzeff
+  DO ixy = 1, nxy
+    IF(.NOT. Pin(ixy)%lfuel) THEN
+      RelPower(0, ixy) = 0.
+      CYCLE
+    END IF
+    sum0 = 0.
+    DO iz = 1, nz
+      icel = Pin(ixy)%cell(iz)
+      IF(.NOT. Core%CellInfo(icel)%lfuel) CYCLE
+      sum0 = sum0 + RelPower(iz, ixy) * Core%hz(iz)
+    END DO
+    RelPower(0, ixy) = sum0 * inv_hzeff
+  END DO
+  RETURN
+END IF
+#endif
+
 !--- CNJ Edit : MKL, CUDA Reorder Pin Cross Section
 
 #ifdef __INTEL_MKL
@@ -52,12 +90,13 @@ IF (PE%lCUDACMFD) CALL CUDAReorderPinXS(Core, CmInfo)
 #endif
 
 TotPow = 0; Volsum = 0
-CALL CP_CA(RelPower(1:nz, 1:nxy), zero, nxy, nz)
+RelPower(1:nz,1:nxy) = ZERO
 DO iz = myzb, myze
   IF(.NOT. Core%lFuelPlane(iz)) CYCLE
   DO ixy = 1, nxy
     localPow = DotProduct(PinXS(ixy, iz)%XSKF(1:ng), PhiC(ixy, iz, 1:ng), ng)
-    IF(localPow .eq. 0._8) CYCLE
+    !IF(localPow .eq. 0._8) CYCLE
+    IF(localPow .LE. 0._8) CYCLE
     vol = PinVol(ixy, iz); localPow = localPow * vol
     RelPower(iz, ixy) = localPow
     Volsum = Volsum + vol; TotPow = TotPow + LocalPow
@@ -66,17 +105,12 @@ ENDDO
 
 #ifdef MPI_ENV
 IF(lGather) THEN
-
   CALL GatherRelPower(Core, RelPower, PE)
-!  IF(PE%myrank .EQ. 1) THEN
-!    PRINT *, myzb, myze, RelPower(1:nz, 1)
-!  ENDIF
-!  STOP
   DO iz = 1, nz
     IF(.NOT. Core%lFuelPlane(iz)) CYCLE
     IF((iz-myzb)*(iz-myze) .LE. 0) CYCLE
     DO ixy = 1, nxy
-      IF(RelPower(iz, ixy) .eq. 0_8) CYCLE
+      IF(RelPower(iz, ixy) .LE. 0_8) CYCLE
       Volsum = Volsum + PinVol(ixy, iz);; TotPow = TotPow + RelPower(iz, ixy)
     ENDDO
   ENDDO
@@ -165,14 +199,14 @@ DO iz = myzb, myze
     fxrprofile(j) = 0
     ifxr = FxrIdxSt + j -1
     IF(.NOT. Fxr(ifxr,iz)%lfuel) CYCLE
-    
+
     nFsrInFxr = Cell(icel)%nFsrInFxr(j)
     CALL MacXsKf(XsMac, Fxr(ifxr, iz), 1, ng, ng, 1._8, FALSE)
     xsmackf => XsMac%XsMackf
     DO ig = iResoGrpBeg,iResoGrpEnd
-      XsMackf(ig) = XsMackf(ig) * Fxr(ifxr, iz)%fresoF(ig)
+      XsMackf(ig) = XsMackf(ig) * Fxr(ifxr, iz)%fresokF(ig)
     ENDDO
-    
+
     DO i = 1, nFsrInFxr
       ifsrlocal = Cell(icel)%MapFxr2FsrIdx(i, j)
       ifsr = FsrIdxSt + ifsrlocal - 1
@@ -183,7 +217,7 @@ DO iz = myzb, myze
     IF(fxrprofile(j) .GT. 0._8) volsum= volsum + Fxr(ifxr, iz)%area
   ENDDO
   psum=volsum/SUM(fxrprofile(1:nLocalFxr))
-  !Profile(1:nLocalFxr, iz) = Profile(1:nLocalFxr, iz) 
+  !Profile(1:nLocalFxr, iz) = Profile(1:nLocalFxr, iz)
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j - 1
     fxrprofile(j) = fxrprofile(j) * psum / Fxr(ifxr, iz)%area
@@ -250,7 +284,7 @@ DEALLOCATE(Buf)
 #endif
 END SUBROUTINE
 
-SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, lGather)
+SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, RelPower_Grp, ng, nTracerCntl, PE, lGather)
 !Update Normalized Power for T/H
 USE PARAM
 USE TypeDef,        ONLY : CoreInfo_Type,            CmInfo_Type,         PE_Type,          &
@@ -266,6 +300,7 @@ TYPE(nTracerCntl_Type) :: nTracerCntl
 TYPE(PE_TYPE) :: PE
 INTEGER :: ng
 REAL, POINTER :: RelPower(:, :)
+REAL, POINTER :: RelPower_Grp(:,:)
 LOGICAL :: lGather
 
 TYPE(Pin_Type), POINTER :: Pin(:)
@@ -286,7 +321,8 @@ nasytype = Core%nAsyType; nasy = Core%nxya
 DO iz = 1, nz
   DO iasy = 1, nasy
     iasytype = Asy(iasy)%AsyType
-    PW_ThChGrp(1000) = 0; Vol_ThChGrp  = 0
+    !PW_ThChGrp(1000) = 0; Vol_ThChGrp  = 0
+    PW_ThChGrp = 0; Vol_ThChGrp  = 0
     DO ixy0 = 1, AsyInfo(iasytype)%nxy
       igrp = AsyInfo(iasytype)%ThChGrp(ixy0)
       ixy = Asy(iasy)%GlobalPinIdx(ixy0)
@@ -300,8 +336,8 @@ DO iz = 1, nz
     DO ixy0 = 1, AsyInfo(iasytype)%nxy
       igrp = AsyInfo(iasytype)%ThChGrp(ixy0)
       ixy = Asy(iasy)%GlobalPinIdx(ixy0)
-      RelPower(iz, ixy) =  Pw_ThChGrp(igrp)
-    ENDDO    
+      RelPower_Grp(iz, ixy) =  Pw_ThChGrp(igrp)
+    ENDDO
   ENDDO
 ENDDO
 NULLIFY(Pin, PinVol, Hz)

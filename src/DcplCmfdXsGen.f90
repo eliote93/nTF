@@ -382,9 +382,10 @@ USE PARAM
 USE TYPEDEF,        ONLY : PinXs_Type      ,CellXsData_Type     ,GroupInfo_Type        &
                           ,Cell_Type       ,FxrInfo_Type        
 USE CMFD_mod,       ONLY : XsMac           ,HomoCellXsGen
-USE BenchXs,        ONLY : XsBaseBen
+USE BenchXs,        ONLY : XsBaseBen,       XsBaseDynBen
 USE MacXsLib_Mod,   ONLY : MacXsBase        ,MacXsScatMatrix  
 USE BasicOperation, ONLY : CP_VA            ,CP_CA             ,MULTI_VA
+USE TRAN_MOD,       ONLY : TranInfo,        TranCntl
 IMPLICIT NONE
 TYPE(PinXs_Type) :: PinXs
 TYPE(CellXsData_Type) :: CellXsData
@@ -421,8 +422,8 @@ DO j = 1, nFxr
          enddo
          IF(lFuelPln) THEN
            do ig = iResoGrpBeg, iResoGrpEnd
-             XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoF(ig)    
-             XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresoF(ig)    
+             XsMac(j)%XsMacNf(ig) = XsMac(j)%XsMacNf(ig) * myFxr%FresoNF(ig)    
+             XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresokF(ig)    
            enddo
          ENDIF
        ELSE
@@ -440,7 +441,11 @@ DO j = 1, nFxr
   ELSE
     i = CellInfo%MapFxr2FsrIdx(1,j); !itype = CellInfo%iReg(i)
     itype=myFxr%imix
-    CALL xsbaseBen(itype, 1, ng, 1, ng, FALSE, XsMac(j))
+    !IF(TranCntl%lDynamicBen) THEN
+    !  CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, FALSE, XsMac(j))
+    !ELSE
+      CALL xsbaseBen(itype, 1, ng, 1, ng, FALSE, XsMac(j))
+    !END IF
   ENDIF
 ENDDO
 !

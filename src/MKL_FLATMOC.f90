@@ -2,15 +2,13 @@
 !--- CNJ Edit : 1D Axial Flat MOC Modules with Intel MKL
 #ifdef __INTEL_MKL
 
-#define FLUX_SHAPE
-
 MODULE MKL_FLATMOC
 
 USE MKL_3D
 IMPLICIT NONE
 
-REAL, POINTER, PRIVATE :: phisShape(:, :, :), phis(:, :, :), phim(:, :, :, :)
-REAL, POINTER, PRIVATE :: psi(:, :), psiShape(:, :), src(:, :, :), srca(:, :, :, :, :), srcm(:, :, :, :), lkg(:, :, :)
+REAL, POINTER, PRIVATE :: phis(:, :, :), phim(:, :, :, :)
+REAL, POINTER, PRIVATE :: psi(:, :), src(:, :, :), srca(:, :, :, :, :), srcm(:, :, :, :), lkg(:, :, :)
 REAL, POINTER, PRIVATE :: xst(:, :, :), pxs(:, :, :)
 REAL, POINTER, PRIVATE :: S(:, :, :, :), F(:, :, :), Chi(:, :, :)
 
@@ -30,29 +28,25 @@ CONTAINS
 
 !--- Public Routines ------------------------------------------------------------------------------
 
-SUBROUTINE AllocFlatMOC()
+SUBROUTINE AllocFlatMOC(Axial)
 
 IMPLICIT NONE
 
+TYPE(mklAxial_Type) :: Axial
+
 INTEGER :: ng, nxy, nzCMFD, nPolarAngle
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 nPolarAngle = mklGeom%nPolar1D
 
-CALL SetSphericalHarmonics()
+CALL SetSphericalHarmonics(Axial)
 CALL SetSubmesh()
 
 ALLOCATE(phis(ng, nzMOC, nxy))
 ALLOCATE(phim(3, ng, nzMOC, nxy)); phim = 0.0
-#ifdef FLUX_SHAPE
-ALLOCATE(phisShape(ng, nzMOC, nxy)); phisShape = 1.0
-#endif
 ALLOCATE(psi(nzMOC, nxy))
-#ifndef FLUX_SHAPE
-ALLOCATE(psiShape(nzMOC, nxy)); psiShape = 1.0
-#endif
 ALLOCATE(src(ng, nzMOC, nxy))
 ALLOCATE(srca(2, nPolarAngle, ng, nzMOC, nxy)); srca = 0.0
 ALLOCATE(srcm(3, ng, nzMOC, nxy)); srcm = 0.0
@@ -68,76 +62,73 @@ ALLOCATE(Chi(ng, nzCMFD, nxy)); Chi = 0.0
 
 END SUBROUTINE
 
-SUBROUTINE FlatMOCDriver(PinXS, eigv)
+SUBROUTINE FlatMOCDriver(CMFD, Axial, eigv)
 USE TYPEDEF,        ONLY : PinXS_Type
 USE PE_MOD,         ONLY : PE
 USE TIMER,          ONLY : nTracer_dclock,      TimeChk
 IMPLICIT NONE
 
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklAxial_Type) :: Axial
 REAL :: eigv
 
+TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 INTEGER :: i, ig, ixy, iz, izf, ng, nxy, nzCMFD, nNeg(1000)
 INTEGER :: ierr, iter, itermax = 10
 REAL :: AxNSolverBeg, AxNSolverEnd
 
-ng = mklGeom%ng
+PinXS => CMFD%PinXS
+ng = CMFD%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
-CALL SetSourceOperator(PinXS)
-CALL SetFlux()
-CALL SetPsi()
-CALL SetLeakage(PinXS)
-CALL SetPseudoAbsorption()
-CALL SetCrossSection(PinXS)
-CALL SetConstant(PinXS)
+CALL SetSourceOperator(Axial, PinXS)
+CALL SetFlux(CMFD, Axial)
+CALL SetPsi(Axial)
+CALL SetLeakage(CMFD, Axial, PinXS)
+CALL SetPseudoAbsorption(Axial)
+CALL SetCrossSection(Axial, PinXS)
+CALL SetConstant(Axial, PinXS)
 
-! PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phis .LT. 0.0)
-! PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngIn .LT. 0.0)
+PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phis .LT. 0.0)
+PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(Axial%PhiAngIn .LT. 0.0)
 
 DO iter = 1, itermax
   AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
-  CALL SetSource(eigv)
-  CALL SetSourceMoment(); CALL SetP1Source()
+  CALL SetSource(Axial, eigv)
+  CALL SetSourceMoment(Axial); CALL SetP1Source(Axial)
   phis = 0.0; phim = 0.0
-  !$OMP PARALLEL DO SCHEDULE(GUIDED) NUM_THREADS(6)
+  !$OMP PARALLEL DO SCHEDULE(GUIDED)
   DO ixy = 1, nxy
-    CALL FlatRayTraceP0(ixy, FALSE)
+    CALL FlatRayTraceP0(Axial, ixy, FALSE)
   ENDDO
   !$OMP END PARALLEL DO
-  CALL SetFluxMoment()
+  CALL SetFluxMoment(Axial)
   AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
   TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
-  CALL SetBoundaryFlux()
+  CALL SetBoundaryFlux(Axial)
 ENDDO
 
-phis = 0.0; phim = 0.0; mklAxial%Jout = 0.0
+phis = 0.0; phim = 0.0; Axial%Jout = 0.0
 AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
 !$OMP PARALLEL DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
-  CALL FlatRayTraceP0(ixy, TRUE)
+  CALL FlatRayTraceP0(Axial, ixy, TRUE)
 ENDDO
 !$OMP END PARALLEL DO
-CALL SetFluxMoment()
+CALL SetFluxMoment(Axial)
 AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
 TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
-CALL SetBoundaryFlux()
+CALL SetBoundaryFlux(Axial)
+CALL SetCellFlux(Axial)
 
-#ifdef FLUX_SHAPE
-CALL SetFluxShape()
-#else
-CALL SetPsiShape()
-CALL SetCellFlux()
-#endif
+DO iz = 1, nzMOC
+  nNeg(iz) = COUNT(phis(:, iz, :) .LT. 0.0)
+ENDDO
 
-! DO iz = 1, nzMOC
-!   nNeg(iz) = COUNT(phis(:, iz, :) .LT. 0.0)
-! ENDDO
-! 
-! PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze
-! PRINT *, nNeg(1 : nzMOC)
-! PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngOut .LT. 0.0)
+PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze
+PRINT *, nNeg(1 : nzMOC)
+PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngOut .LT. 0.0)
 
 lFirst = .FALSE.
 
@@ -186,15 +177,17 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetSphericalHarmonics()
+SUBROUTINE SetSphericalHarmonics(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 TYPE(mklAngle_Type), POINTER :: Angle(:)
 INTEGER :: nPolarAngle
 INTEGER :: ipol
 
-Angle => mklAxial%Angle
+Angle => Axial%Angle
 nPolarAngle = mklGeom%nPolar1D
 
 ALLOCATE(Comp(3, nPolarAngle), mwt(3, nPolarAngle))
@@ -216,17 +209,18 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetSourceOperator(PinXS)
+SUBROUTINE SetSourceOperator(Axial, PinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
 
+TYPE(mklAxial_Type) :: Axial
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 
 INTEGER :: ig, igs, ipin, ipin_map, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 INTEGER, POINTER :: pinMap(:), planeMap(:)
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 pinMap => mklGeom%pinMap
@@ -284,117 +278,18 @@ ENDDO
 
 END SUBROUTINE
 
-#ifdef FLUX_SHAPE
-
-SUBROUTINE SetFlux()
+SUBROUTINE SetFlux(CMFD, Axial)
 
 IMPLICIT NONE
 
-INTEGER :: ig, ipin, iz, izf
-INTEGER :: ng, nxy, nzCMFD
-
-ng = mklGeom%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-
-!$OMP PARALLEL
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
-DO ipin = 1, nxy
-  DO iz = 1, nzCMFD
-    DO ig = 1, ng
-      IF (mklCMFD%phis(ipin, iz, ig) .LT. 0.0) CYCLE
-      DO izf = fmRange(iz, 1), fmRange(iz, 2)
-        phis(ig, izf, ipin) = mklCMFD%phis(ipin, iz, ig)
-        phis(ig, izf, ipin) = phis(ig, izf, ipin) * phisShape(ig, izf, ipin)
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-END SUBROUTINE
-
-SUBROUTINE SetFluxShape()
-
-IMPLICIT NONE
-
-INTEGER :: ig, ipin, iz, izf
-INTEGER :: ng, nxy, nzCMFD
-LOGICAL :: lNegative
-
-ng = mklGeom%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-
-IF (mklCntl%lRefPinFDM) THEN
-  !$OMP PARALLEL
-  !$OMP DO SCHEDULE(GUIDED)
-  DO ipin = 1, nxy
-    IF (.NOT. mklGeom%lRefPin(ipin)) CYCLE
-    DO izf = 1, nzMOC
-      phis(:, izf, ipin) = 1.0
-    ENDDO
-  ENDDO
-  !$OMP END DO
-  !$OMP END PARALLEL
-ENDIF
-
-mklAxial%phic = 0.0
-
-!$OMP PARALLEL
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
-DO ipin = 1, nxy
-  DO iz = 1, nzCMFD
-    DO izf = fmRange(iz, 1), fmRange(iz, 2)
-      DO ig = 1, ng
-        mklAxial%phic(ig, ipin, iz) = mklAxial%phic(ig, ipin, iz) + phis(ig, izf, ipin)
-      ENDDO
-    ENDDO
-    mklAxial%phic(:, ipin, iz) = mklAxial%phic(:, ipin, iz) / nDiv(iz)
-    DO izf = fmRange(iz, 1), fmRange(iz, 2)
-      DO ig = 1, ng
-        phisShape(ig, izf, ipin) = phis(ig, izf, ipin) / mklAxial%phic(ig, ipin, iz)
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-!$OMP PARALLEL PRIVATE(lNegative)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
-DO ipin = 1, nxy
-  DO iz = 1, nzCMFD
-    DO ig = 1, ng
-      lNegative = .FALSE.
-      DO izf = fmRange(iz, 1), fmRange(iz, 2)
-        IF (phis(ig, izf, ipin) .LT. 0.0) lNegative = .TRUE.
-      ENDDO
-      IF (lNegative) THEN
-        DO izf = fmRange(iz, 1), fmRange(iz, 2)
-          phisShape(ig, izf, ipin) = 1.0
-        ENDDO
-      ENDIF
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-END SUBROUTINE
-
-#else
-
-SUBROUTINE SetFlux()
-
-IMPLICIT NONE
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ig, ipin, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 REAL :: fmult
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
@@ -405,13 +300,13 @@ DO ipin = 1, nxy
     DO ig = 1, ng
       IF (lFirst) THEN
         DO izf = fmRange(iz, 1), fmRange(iz, 2)
-          phis(ig, izf, ipin) = mklCMFD%phis(ipin, iz, ig)
+          phis(ig, izf, ipin) = CMFD%phis(ipin, iz, ig)
         ENDDO
       ELSE
-!        fmult = mklCMFD%phis(ipin, iz, ig) / mklAxial%phic(ig, ipin, iz)
-!        DO izf = fmRange(iz, 1), fmRange(iz, 2)
-!          phis(ig, izf, ipin) = fmult * phis(ig, izf, ipin)
-!        ENDDO
+        fmult = CMFD%phis(ipin, iz, ig) / Axial%phic(ig, ipin, iz)
+        DO izf = fmRange(iz, 1), fmRange(iz, 2)
+          phis(ig, izf, ipin) = fmult * phis(ig, izf, ipin)
+        ENDDO
       ENDIF
     ENDDO
   ENDDO
@@ -421,19 +316,119 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetCellFlux()
+! SUBROUTINE SetFlux()
+! 
+! IMPLICIT NONE
+! 
+! INTEGER :: ig, ipin, iz, izf
+! INTEGER :: ng, nxy, nzCMFD
+! 
+! ng = mklGeom%ng
+! nxy = mklGeom%nxy
+! nzCMFD = mklGeom%nzCMFD
+! 
+! !$OMP PARALLEL
+! !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+! DO ipin = 1, nxy
+!   DO iz = 1, nzCMFD
+!     DO ig = 1, ng
+!       IF (mklCMFD%phis(ipin, iz, ig) .LT. 0.0) CYCLE
+!       DO izf = fmRange(iz, 1), fmRange(iz, 2)
+!         phis(ig, izf, ipin) = mklCMFD%phis(ipin, iz, ig)
+!         phis(ig, izf, ipin) = phis(ig, izf, ipin) * phisShape(ig, izf, ipin)
+!       ENDDO
+!     ENDDO
+!   ENDDO
+! ENDDO
+! !$OMP END DO
+! !$OMP END PARALLEL
+! 
+! END SUBROUTINE
+!
+! SUBROUTINE SetFluxShape()
+! 
+! IMPLICIT NONE
+! 
+! INTEGER :: ig, ipin, iz, izf
+! INTEGER :: ng, nxy, nzCMFD
+! LOGICAL :: lNegative
+! 
+! ng = mklGeom%ng
+! nxy = mklGeom%nxy
+! nzCMFD = mklGeom%nzCMFD
+! 
+! IF (mklCntl%lRefPinFDM) THEN
+!   !$OMP PARALLEL
+!   !$OMP DO SCHEDULE(GUIDED)
+!   DO ipin = 1, nxy
+!     IF (.NOT. mklGeom%lRefPin(ipin)) CYCLE
+!     DO izf = 1, nzMOC
+!       phis(:, izf, ipin) = 1.0
+!     ENDDO
+!   ENDDO
+!   !$OMP END DO
+!   !$OMP END PARALLEL
+! ENDIF
+! 
+! mklAxial%phic = 0.0
+! 
+! !$OMP PARALLEL
+! !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+! DO ipin = 1, nxy
+!   DO iz = 1, nzCMFD
+!     DO izf = fmRange(iz, 1), fmRange(iz, 2)
+!       DO ig = 1, ng
+!         mklAxial%phic(ig, ipin, iz) = mklAxial%phic(ig, ipin, iz) + phis(ig, izf, ipin)
+!       ENDDO
+!     ENDDO
+!     mklAxial%phic(:, ipin, iz) = mklAxial%phic(:, ipin, iz) / nDiv(iz)
+!     DO izf = fmRange(iz, 1), fmRange(iz, 2)
+!       DO ig = 1, ng
+!         phisShape(ig, izf, ipin) = phis(ig, izf, ipin) / mklAxial%phic(ig, ipin, iz)
+!       ENDDO
+!     ENDDO
+!   ENDDO
+! ENDDO
+! !$OMP END DO
+! !$OMP END PARALLEL
+! 
+! !$OMP PARALLEL PRIVATE(lNegative)
+! !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+! DO ipin = 1, nxy
+!   DO iz = 1, nzCMFD
+!     DO ig = 1, ng
+!       lNegative = .FALSE.
+!       DO izf = fmRange(iz, 1), fmRange(iz, 2)
+!         IF (phis(ig, izf, ipin) .LT. 0.0) lNegative = .TRUE.
+!       ENDDO
+!       IF (lNegative) THEN
+!         DO izf = fmRange(iz, 1), fmRange(iz, 2)
+!           phisShape(ig, izf, ipin) = 1.0
+!         ENDDO
+!       ENDIF
+!     ENDDO
+!   ENDDO
+! ENDDO
+! !$OMP END DO
+! !$OMP END PARALLEL
+! 
+! END SUBROUTINE
+
+SUBROUTINE SetCellFlux(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ig, ipin, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 LOGICAL :: lNegative
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
-mklAxial%phic = 0.0
+Axial%phic = 0.0
 
 !$OMP PARALLEL
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
@@ -441,10 +436,10 @@ DO ipin = 1, nxy
   DO iz = 1, nzCMFD
     DO izf = fmRange(iz, 1), fmRange(iz, 2)
       DO ig = 1, ng
-        mklAxial%phic(ig, ipin, iz) = mklAxial%phic(ig, ipin, iz) + phis(ig, izf, ipin)
+        Axial%phic(ig, ipin, iz) = Axial%phic(ig, ipin, iz) + phis(ig, izf, ipin)
       ENDDO
     ENDDO
-    mklAxial%phic(:, ipin, iz) = mklAxial%phic(:, ipin, iz) / nDiv(iz)
+    Axial%phic(:, ipin, iz) = Axial%phic(:, ipin, iz) / nDiv(iz)
   ENDDO
 ENDDO
 !$OMP END DO
@@ -452,23 +447,23 @@ ENDDO
 
 END SUBROUTINE
 
-#endif
-
-SUBROUTINE SetFluxMoment()
+SUBROUTINE SetFluxMoment(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 TYPE(mklAngle_Type), POINTER :: Angle(:)
 INTEGER :: ipol, ig, ipin, izf
 INTEGER :: ng, nxy, nPolarAngle
 REAL :: rsigv
 
-Angle => mklAxial%Angle
-ng = mklGeom%ng
+Angle => Axial%Angle
+ng = Axial%ng
 nxy = mklGeom%nxy
 nPolarAngle = mklGeom%nPolar1D
 
-!$OMP PARALLEL PRIVATE(rsigv) NUM_THREADS(6)
+!$OMP PARALLEL PRIVATE(rsigv)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
 DO ipin = 1, nxy
   DO izf = 1, nzMOC
@@ -486,17 +481,18 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetCrossSection(PinXS)
+SUBROUTINE SetCrossSection(Axial, PinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
 
+TYPE(mklAxial_Type) :: Axial
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 
 INTEGER :: ig, ipin, ipin_map, iz, izc, izf
 INTEGER :: ng, nxy, nzCMFD
 INTEGER, POINTER :: pinMap(:), planeMap(:)
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 pinMap => mklGeom%pinMap
@@ -527,16 +523,16 @@ ENDDO
   
 END SUBROUTINE
 
-#ifdef FLUX_SHAPE
-
-SUBROUTINE SetPsi()
+SUBROUTINE SetPsi(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ig, igs, ipin, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
@@ -558,91 +554,12 @@ ENDDO
 
 END SUBROUTINE
 
-#else
-
-SUBROUTINE SetPsi()
-
-IMPLICIT NONE
-
-INTEGER :: ig, igs, ipin, iz, izf
-INTEGER :: ng, nxy, nzCMFD
-
-ng = mklGeom%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-
-!$OMP PARALLEL
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
-DO ipin = 1, nxy
-  DO iz = 1, nzCMFD
-    DO izf = fmRange(iz, 1), fmRange(iz, 2)
-      psi(izf, ipin) = mklCMFD%psi(ipin, iz)
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-CALL vdmul(nxy * nzMOC, psiShape, psi, psi)
-
-END SUBROUTINE
-
-SUBROUTINE SetPsiShape()
-
-IMPLICIT NONE
-
-INTEGER :: ig, ipin, iz, izf
-INTEGER :: ng, nxy, nzCMFD
-REAL :: psic
-
-ng = mklGeom%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-
-psi = 0.0
-
-!$OMP PARALLEL
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
-DO ipin = 1, nxy
-  DO iz = 1, nzCMFD
-    DO izf = fmRange(iz, 1), fmRange(iz, 2)
-      DO ig = 1, ng
-        psi(izf, ipin) = psi(izf, ipin) + F(ig, iz, ipin) * phis(ig, izf, ipin)
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-psiShape = 0.0
-
-!$OMP PARALLEL PRIVATE(psic)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
-DO ipin = 1, nxy
-  DO iz = 1, nzCMFD
-    psic = 0.0
-    DO izf = fmRange(iz, 1), fmRange(iz, 2)
-      psic = psic + psi(izf, ipin)
-    ENDDO
-    IF (psic .NE. 0.0) THEN
-      DO izf = fmRange(iz, 1), fmRange(iz, 2)
-        psiShape(izf, ipin) = psi(izf, ipin) / psic
-      ENDDO
-    ENDIF
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-END SUBROUTINE
-
-#endif
-
-SUBROUTINE SetLeakage(PinXS)
+SUBROUTINE SetLeakage(CMFD, Axial, PinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
 
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklAxial_Type) :: Axial
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 
 TYPE(superPin_Type), POINTER :: Pin(:)
@@ -652,7 +569,7 @@ INTEGER, POINTER :: pinMap(:), pinMapRev(:), planeMap(:)
 REAL :: Dtil, Dhat, myphi, neighphi
 REAL, POINTER :: radLkg(:, :, :)
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 Pin => mklGeom%superPin
@@ -669,8 +586,8 @@ DO iz = 1, nzCMFD
   DO ipin = 1, nxy
     ipin_map = pinMap(ipin)
     DO ig = 1, ng
-      myphi = mklCMFD%phis(ipin, iz, ig)
-      DO ibd = 1, Pin(ipin)%nNgh
+      myphi = CMFD%phis(ipin, iz, ig)
+      DO ibd = 1, Pin(ipin_map)%nNgh
         ineighpin = Pin(ipin_map)%NeighIdx(ibd)
         ineighpin = pinMapRev(ineighpin)
         IF (ineighpin .EQ. VoidCell) THEN
@@ -678,7 +595,7 @@ DO iz = 1, nzCMFD
         ELSEIF (ineighpin .EQ. RefCell) THEN
           neighphi = myphi
         ELSE
-          neighphi = mklCMFD%phis(ineighpin, iz, ig)
+          neighphi = CMFD%phis(ineighpin, iz, ig)
         ENDIF
         Dtil = PinXS(ipin_map, izc)%Dtil(ibd, ig)
         Dhat = PinXS(ipin_map, izc)%Dhat(ibd, ig)
@@ -707,14 +624,14 @@ IF (mklGeom%lTop) THEN
 ENDIF
 
 DO iz = 1, nzCMFD
-  CALL LeakageExpansion(radLkg(:, :, iz - 1), radLkg(:, :, iz), radLkg(:, :, iz + 1), iz)
+  CALL LeakageExpansion(radLkg(:, :, iz - 1), radLkg(:, :, iz), radLkg(:, :, iz + 1), iz, ng, nxy)
 ENDDO
 
 DEALLOCATE(radLkg)
 
 END SUBROUTINE
 
-SUBROUTINE LeakageExpansion(L0, L1, L2, iz)
+SUBROUTINE LeakageExpansion(L0, L1, L2, iz, ng, nxy)
 
 IMPLICIT NONE
 
@@ -728,9 +645,6 @@ REAL :: x0, x1
 REAL :: a, b, c
 INTEGER :: ig, ipin, izf
 INTEGER :: ng, nxy
-
-ng = mklGeom%ng
-nxy = mklGeom%nxy
 
 h0 = mklGeom%hzfm(iz - 1)
 h1 = mklGeom%hzfm(iz)
@@ -784,14 +698,16 @@ END FUNCTION
 
 END SUBROUTINE
 
-SUBROUTINE SetPseudoAbsorption()
+SUBROUTINE SetPseudoAbsorption(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ig, ipin, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
@@ -834,10 +750,11 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetConstant(PinXS)
+SUBROUTINE SetConstant(Axial, PinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
 
+TYPE(mklAxial_Type) :: Axial
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 
 TYPE(mklAngle_Type), POINTER :: Angle(:)
@@ -846,11 +763,11 @@ INTEGER :: ng, nxy, nPolarAngle
 INTEGER, POINTER :: pinMap(:)
 REAL :: tau
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nPolarAngle = mklGeom%nPolar1D
 pinMap => mklGeom%pinMap
-Angle => mklAxial%Angle
+Angle => Axial%Angle
 
 !$OMP PARALLEL PRIVATE(tau)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(4)
@@ -869,19 +786,23 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetSourceMoment()
+SUBROUTINE SetSourceMoment(Axial)
+
+IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ig, igs, ipin, iz, izf
 INTEGER :: ng, nxy, nzCMFD
 INTEGER :: gb, ge
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
 srcm = 0.0
 
-!$OMP PARALLEL PRIVATE(gb, ge) NUM_THREADS(6)
+!$OMP PARALLEL PRIVATE(gb, ge)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO ipin = 1, nxy
   DO iz = 1, nzCMFD
@@ -891,9 +812,9 @@ DO ipin = 1, nxy
         gb = mklGeom%InScatRange(1, ig)
         ge = mklGeom%InScatRange(2, ig)
         DO igs = gb, ge
-          srcm(1, ig, izf, ipin) = srcm(1, ig, izf, ipin) + mklAxial%SmP1(igs, ig, iz, ipin) * phim(1, igs, izf, ipin)
-!          srcm(2, ig, izf, ipin) = srcm(2, ig, izf, ipin) + mklAxial%SmP2(igs, ig, iz, ipin) * phim(2, igs, izf, ipin)
-!          srcm(3, ig, izf, ipin) = srcm(3, ig, izf, ipin) + mklAxial%SmP3(igs, ig, iz, ipin) * phim(3, igs, izf, ipin)
+          srcm(1, ig, izf, ipin) = srcm(1, ig, izf, ipin) + Axial%SmP1(igs, ig, iz, ipin) * phim(1, igs, izf, ipin)
+!          srcm(2, ig, izf, ipin) = srcm(2, ig, izf, ipin) + Axial%SmP2(igs, ig, iz, ipin) * phim(2, igs, izf, ipin)
+!          srcm(3, ig, izf, ipin) = srcm(3, ig, izf, ipin) + Axial%SmP3(igs, ig, iz, ipin) * phim(3, igs, izf, ipin)
         ENDDO
         srcm(1, ig, izf, ipin) = 3.0 * srcm(1, ig, izf, ipin) / xst(ig, izf, ipin)
 !        srcm(2, ig, izf, ipin) = 5.0 *srcm(2, ig, izf, ipin) / xst(ig, izf, ipin)
@@ -907,10 +828,11 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetSource(eigv)
+SUBROUTINE SetSource(Axial, eigv)
 
 IMPLICIT NONE
 
+TYPE(mklAxial_Type) :: Axial
 REAL :: eigv, reigv
 
 TYPE(mklAngle_Type), POINTER :: Angle(:)
@@ -919,8 +841,8 @@ INTEGER :: ng, nxy, nzCMFD, nPolarAngle
 INTEGER :: gb, ge
 REAL :: tau
 
-Angle => mklAxial%Angle
-ng = mklGeom%ng
+Angle => Axial%Angle
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 nPolarAngle = mklGeom%nPolar1D
@@ -929,7 +851,7 @@ reigv = 1.0 / eigv
 
 src = 0.0
 
-!$OMP PARALLEL PRIVATE(gb, ge) NUM_THREADS(6)
+!$OMP PARALLEL PRIVATE(gb, ge)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO ipin = 1, nxy
   DO iz = 1, nzCMFD
@@ -966,19 +888,21 @@ CALL vddiv(ng * nxy * nzMOC, src, xst, src)
 
 END SUBROUTINE
 
-SUBROUTINE SetP1Source()
+SUBROUTINE SetP1Source(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ipol, ig, ipin, izf
 INTEGER :: ng, nxy, nzCMFD, nPolarAngle
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 nPolarAngle = mklGeom%nPolar1D
 
-!$OMP PARALLEL NUM_THREADS(6)
+!$OMP PARALLEL
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(4)
 DO ipin = 1, nxy
   DO izf = 1, nzMOC
@@ -999,15 +923,17 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetBoundaryFlux()
+SUBROUTINE SetBoundaryFlux(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: n, ng, nxy, nPolarAngle
 INTEGER :: ipol, ig, ipin, iz
 REAL, POINTER :: PhiAngIn(:, :, :, :)
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nPolarAngle = mklGeom%nPolar1D
 n = nPolarAngle * ng * nxy
@@ -1015,15 +941,15 @@ n = nPolarAngle * ng * nxy
 ALLOCATE(PhiAngIn(nPolarAngle, ng, nxy, 2))
 
 CALL InitFastComm()
-CALL GetNeighborFast(n, mklAxial%PhiAngOut(:, :, :, bottom), PhiAngIn(:, :, :, top), bottom)
-CALL GetNeighborFast(n, mklAxial%PhiAngOut(:, :, :, top), PhiAngIn(:, :, :, bottom), top)
+CALL GetNeighborFast(n, Axial%PhiAngOut(:, :, :, bottom), PhiAngIn(:, :, :, top), bottom)
+CALL GetNeighborFast(n, Axial%PhiAngOut(:, :, :, top), PhiAngIn(:, :, :, bottom), top)
 CALL FinalizeFastComm()
 
 IF (mklGeom%lBottom) THEN
   IF (mklGeom%AxBC(bottom) .EQ. VoidCell) THEN
     PhiAngIn(:, :, :, bottom) = 0.0
   ELSEIF (mklGeom%AxBC(bottom) .EQ. RefCell) THEN
-    CALL dcopy(n, mklAxial%PhiAngOut(:, :, :, bottom), 1, PhiAngIn(:, :, :, bottom), 1)
+    CALL dcopy(n, Axial%PhiAngOut(:, :, :, bottom), 1, PhiAngIn(:, :, :, bottom), 1)
   ENDIF
 ENDIF
 
@@ -1031,23 +957,25 @@ IF (mklGeom%lTop) THEN
   IF (mklGeom%AxBC(top) .EQ. VoidCell) THEN
     PhiAngIn(:, :, :, top) = 0.0
   ELSEIF (mklGeom%AxBC(top) .EQ. RefCell) THEN
-    CALL dcopy(n, mklAxial%PhiAngOut(:, :, :, top), 1, PhiAngIn(:, :, :, top), 1)
+    CALL dcopy(n, Axial%PhiAngOut(:, :, :, top), 1, PhiAngIn(:, :, :, top), 1)
   ENDIF
 ENDIF
 
-CALL dcopy(n * 2, PhiAngIn, 1, mklAxial%PhiAngIn, 1)
+CALL dcopy(n * 2, PhiAngIn, 1, Axial%PhiAngIn, 1)
 
 DEALLOCATE(PhiAngIn)
 
 END SUBROUTINE
 
-SUBROUTINE FlatRayTraceP0(ipin, lJout)
+SUBROUTINE FlatRayTraceP0(Axial, ipin, lJout)
 
 IMPLICIT NONE
 
+TYPE(mklAxial_Type) :: Axial
+
 TYPE(mklAngle_Type), POINTER :: Angle(:)
 REAL, POINTER :: Jout(:, :, :, :), PhiAngIn(:, :, :, :), PhiAngOut(:, :, :, :)
-REAL :: del_phi, track_phi(mklGeom%nPolar1D, mklGeom%ng)
+REAL :: del_phi, track_phi(mklGeom%nPolar1D, Axial%ng)
 INTEGER :: ig, ipin, ipol, iz, izf
 INTEGER :: ng, nxy, nzCMFD, nPolarAngle
 LOGICAL :: lJout
@@ -1056,12 +984,12 @@ IF (mklCntl%lRefPinFDM) THEN
   IF (mklGeom%lRefPin(ipin)) RETURN
 ENDIF
 
-PhiAngIn => mklAxial%PhiAngIn
-PhiAngOut => mklAxial%PhiAngOut
-Jout => mklAxial%Jout(:, :, :, :, ipin)
-Angle => mklAxial%Angle
+PhiAngIn => Axial%PhiAngIn
+PhiAngOut => Axial%PhiAngOut
+Jout => Axial%Jout(:, :, :, :, ipin)
+Angle => Axial%Angle
 
-ng = mklGeom%ng
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 nPolarAngle = mklGeom%nPolar1D

@@ -1,4 +1,5 @@
 #include <defines.h>
+#include <DefDBG.h>
 SUBROUTINE Finalize()
 USE PARAM
 USE TYPEDEF,       ONLY : PE_TYPE
@@ -10,6 +11,8 @@ USE TIMER,         ONLY : TimeChk
 USE itrcntl_mod,   ONLY : ItrCntl
 USE CNTL,          ONLY : nTracerCntl
 USE PE_MOD,        ONLY : PE
+USE SubChCoupling_mod,    ONLY : is_coupled, CodeName
+USE ESCOTTh_mod,          ONLY : Finalize_ESCOT
 #ifdef MPI_ENV
 USE MPIConfig_MOD, ONLY : PeFinalize
 USE MPICOMM_MOD,   ONLY : MPI_SYNC,     MPI_MAX_REAL
@@ -37,6 +40,13 @@ INTEGER :: istatus
 #endif
 #endif
 
+IF (is_coupled) THEN
+  SELECT CASE (TRIM(CodeName))
+  CASE("ESCOT")
+    CALL Finalize_ESCOT
+  END SELECT
+END IF
+
 CALL MPI_MAX_REAL(TimeChk%AxBTime, PE%MPI_NTRACER_COMM, .FALSE.)
 CALL MPI_MAX_REAL(TimeChk%CmfdInitTime, PE%MPI_NTRACER_COMM, .FALSE.)
 CALL MPI_MAX_REAL(TimeChk%AxNSolverTime, PE%MPI_NTRACER_COMM, .FALSE.)
@@ -62,8 +72,10 @@ IF(PE%MASTER) THEN
   ENDIF
   Write(mesg, 222)  'MOC MG =', TimeChk%MocTime, 'Sec', ',', 'N =', ItrCntl%MocIt,',', '# THREAD =', PE%nThread
   CALL message(io8, FALSE, TRUE, MESG)
+#ifdef __PGI
   Write(mesg, 111)  'MOC RT. =', TimeChk%MocRtTime, 'Sec'
   CALL message(io8, FALSE, TRUE, MESG)
+#endif
   Write(mesg, 111)  'CMFD MG =', TimeChk%CmfdTime, 'Sec', ',', 'N =', ItrCntl%Cmfdit
   CALL message(io8, FALSE, TRUE, MESG)
 #ifdef __INTEL_MKL
@@ -87,6 +99,42 @@ IF(PE%MASTER) THEN
   CALL message(io8, FALSE, TRUE, MESG)
   Write(mesg, 111)  'DEPL =', TimeChk%DeplTime, 'Sec'
   CALL message(io8, FALSE, TRUE, MESG)
+  IF (PE%lMKL .OR. PE%lCUDADepl) THEN
+#ifdef DEPL_TCHK
+    Write(mesg, 111)  'Preset DEPL =', TimeChk%DeplSetTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+    Write(mesg, 111)  'Sys. Setup DEPL =', TimeChk%DeplSysTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+    Write(mesg, 111)  'Sol DEPL =', TimeChk%DeplSolTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+    Write(mesg, 111)  'Post DEPL =', TimeChk%DeplPostTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+#endif
+#ifdef DEPL_SUB_TCHK
+    Write(mesg, 111)  'Base 1G DEPL =', TimeChk%DeplBase1GTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+    Write(mesg, 111)  'Base MG DEPL =', TimeChk%DeplBaseMGTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+    IF (.NOT. PE%lMKL) Write(mesg, 111)  'CUDA Copy DEPL =', TimeChk%DeplcuSysTime, 'Sec'
+    CALL message(io8, FALSE, TRUE, MESG)
+#endif
+  END IF
+#ifdef XS_TCHK
+!  Write(mesg, 111)  'XS Gen =', TimeChk%XSTime, 'Sec'
+!  CALL message(io8, FALSE, TRUE, MESG)
+  Write(mesg, 111)  'Sub Eff Gen =', TimeChk%XSsubTime, 'Sec'
+  CALL message(io8, FALSE, TRUE, MESG)
+#ifdef XSsub_TCHK
+  Write(mesg, 111)  'cuXS Sub Siglp Gen =', TimeChk%cuXSPreTime, 'Sec'
+  CALL message(io8, FALSE, TRUE, MESG)
+  Write(mesg, 111)  'cuXS Sub Main Part =', TimeChk%cuXSMainTime, 'Sec'
+  CALL message(io8, FALSE, TRUE, MESG)
+!  Write(mesg, 111)  'RIF Eff Gen =', TimeChk%XSefriTime, 'Sec'
+!  CALL message(io8, FALSE, TRUE, MESG)
+!  Write(mesg, 111)  'Mac Eff Gen =', TimeChk%XSefmcTime, 'Sec'
+!  CALL message(io8, FALSE, TRUE, MESG)
+#endif
+#endif
   Write(mesg, 111)  'T-H =', TimeChk%ThTime, 'Sec'
   CALL message(io8, FALSE, TRUE, MESG)
   Write(mesg, 111)  'Comm  =', TimeChk%CommTime, 'Sec'

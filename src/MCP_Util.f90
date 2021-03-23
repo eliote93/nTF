@@ -7,21 +7,18 @@ MODULE MCP_Util
   CHARACTER(512), ALLOCATABLE :: MCP_Path(:)
   
   TYPE TYPE_MCP_Internal_Info
-    SEQUENCE
     INTEGER :: Macro_Region
     INTEGER :: Micro_Region
     REAL :: vol
   END TYPE
 
   TYPE TYPE_Radius
-    SEQUENCE
     INTEGER :: nRing
     REAL, ALLOCATABLE :: Ring_Volume(:)
     REAL, ALLOCATABLE :: Ring_Radius(:)
   END TYPE
 
   TYPE TYPE_MCP_Info
-    SEQUENCE
     INTEGER :: Assem_Type
     INTEGER :: nMaxMacro
     INTEGER :: nMaxMicro

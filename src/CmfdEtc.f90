@@ -285,9 +285,10 @@ USE TYPEDEF,        ONLY : CoreInfo_Type,    FXRInfo_Type,      PinXs_Type,     
                            Pin_Type,         PinInfo_Type,      Cell_Type
 USE CMFD_mod,       ONLY : XsMac
 USE Core_mod,       ONLY : GroupInfo
-USE BenchXs,        ONLY : XsBaseBen
+USE BenchXs,        ONLY : XsBaseBen,        XsBaseDynBen
 USE MacXsLib_Mod,   ONLY : MacXsBase,        MacXsScatMatrix
 USE BasicOperation, ONLY : CP_VA,            CP_CA,             MULTI_VA
+USE TRAN_MOD,       ONLY : TranInfo,         TranCntl
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type), INTENT(IN) :: Core
@@ -348,7 +349,11 @@ DO iz = myzb, myze
         ifsrlocal = Cell(icel)%MapFxr2FsrIdx(1,j)
         !itype = Cell(icel)%iReg(ifsrlocal)
         itype=Fxr(ifxr,iz)%imix
+        IF(TranCntl%lDynamicBen) THEN
+          CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ixy, iz), 1, ng, 1, ng, FALSE, XsMac(j))
+        ELSE
         CALL xsbaseBen(itype, 1, ng, 1, ng, FALSE, XsMac(j))
+      ENDIF
       ENDIF
     ENDDO !Fxr sweep in the Cell
     DO ig = 1, ng
@@ -357,7 +362,6 @@ DO iz = myzb, myze
         ifxr = FxrIdxSt + j -1; nFsrInFxr = Cell(icel)%nFsrInFxr(j)
         DO i = 1, nFsrInFxr
           k = Cell(icel)%MapFxr2FsrIdx(i, j)
-                    
           ifsr = FsrIdxSt + k - 1
           PhiSum = PhiSum + Phis(ifsr, iz, ig) * Cell(icel)%vol(k)
           IF((XsMac(j)%xsMacTr(ig)) .LT. epsm3) CYCLE
@@ -384,7 +388,7 @@ SUBROUTINE ConvertSubPlnPhi(PhiC, PhiFm, imod)
 USE PARAM
 USE CMFD_Mod,      ONLY : myzb,          myze,          myzbf,        myzef,     &
                           nxy,           ng,                                     &
-                          SubPlaneMap,   SubPlaneRange,nSubPlane  
+                          SubPlaneMap,   SubPlaneRange,nSubPlane,     nSubPlanePtr 
 IMPLICIT NONE
 REAL, POINTER :: PhiC(:, :, :), PhiFm(:, :, :)
 INTEGER :: imod
@@ -392,9 +396,10 @@ INTEGER :: imod
 INTEGER :: ixy, iz, iz0, iz1, iz2, ig
 REAL :: phiavg, nsubpln_inv, fmult
 
-nSubPln_inv = 1._8 / nSubPlane
+!nSubPln_inv = 1._8 / nSubPlane
 DO ig = 1, ng
   DO iz0 = myzb, myze
+    nSubPln_inv = 1._8 / nSubPlanePtr(iz0)
     iz1 = SubPlaneRange(1, iz0); iz2 = SubPlaneRange(2, iz0)
     DO ixy = 1, nxy
       phiavg = sum(PhiFm(ixy, iz1:iz2, ig)) * nSubPln_inv

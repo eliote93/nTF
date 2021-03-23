@@ -8,8 +8,6 @@ USE CMFD_COMMON,    ONLY : odCMFD
 USE MKL_3D
 IMPLICIT NONE
 
-#define mpCMFD
-
 LOGICAL :: lFirstAxial = TRUE
 
 CONTAINS
@@ -84,18 +82,18 @@ CASE (MOC)
     WRITE(mesg, '(a)') 'Performing Axial Calculation :  Linear Source MOC'
     IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
     
-    IF (lFirstAxial) CALL UpdateBoundaryFlux()
+    IF (lFirstAxial) CALL UpdateBoundaryFlux(mklCMFD, mklAxial)
     CALL LinearMOCDriver(PinXS, eigv)
-    CALL SetAxialDhat()
+    CALL SetAxialDhat(mklCMFD, mklAxial)
     
   ELSE
   
     WRITE(mesg, '(a)') 'Performing Axial Calculation :  Flat Source MOC'
     IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
     
-    IF (lFirstAxial) CALL UpdateBoundaryFlux()
-    CALL FlatMOCDriver(PinXS, eigv)
-    CALL SetAxialDhat()
+    IF (lFirstAxial) CALL UpdateBoundaryFlux(mklCMFD, mklAxial)
+    CALL FlatMOCDriver(mklCMFD, mklAxial, eigv)
+    CALL SetAxialDhat(mklCMFD, mklAxial)
     
   ENDIF
   
@@ -110,15 +108,18 @@ TimeChk%AxialNodalTime = TimeChk%AxialNodalTime + (AxNTimeEnd - AxNTimeBeg)
 
 END SUBROUTINE
 
-SUBROUTINE UpdateBoundaryFlux()
+SUBROUTINE UpdateBoundaryFlux(CMFD, Axial)
 
 IMPLICIT NONE
+
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ng, nxy, nzCMFD
 INTEGER :: ig, ipin
 REAL :: atil, myphi, neighphi, surfphifdm
 
-ng = mklGeom%ng
+ng = CMFD%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
   
@@ -127,24 +128,24 @@ nzCMFD = mklGeom%nzCMFD
 DO ig = 1, ng
   DO ipin = 1, nxy
     !--- Update Bottom Boundary Flux
-    atil = mklAxial%atil(bottom, ipin, 1, ig)
-    myphi = mklCMFD%phis(ipin, 1, ig)
-    neighphi = mklCMFD%neighphis(ipin, ig, bottom)
+    atil = Axial%atil(bottom, ipin, 1, ig)
+    myphi = CMFD%phis(ipin, 1, ig)
+    neighphi = CMFD%neighphis(ipin, ig, bottom)
     surfphifdm = atil * myphi + (1.0 - atil) * neighphi
     IF (mklGeom%lBottom .AND. mklGeom%AxBC(bottom) .EQ. VoidCell) THEN
-      mklAxial%PhiAngIn(:, ig, ipin, bottom) = 0.0
+      Axial%PhiAngIn(:, ig, ipin, bottom) = 0.0
     ELSE
-      mklAxial%PhiAngIn(:, ig, ipin, bottom) = surfphifdm
+      Axial%PhiAngIn(:, ig, ipin, bottom) = surfphifdm
     ENDIF
     !--- Update Top Boundary Flux
-    atil = mklAxial%atil(top, ipin, nzCMFD, ig)
-    myphi = mklCMFD%phis(ipin, nzCMFD, ig)
-    neighphi = mklCMFD%neighphis(ipin, ig, top)
+    atil = Axial%atil(top, ipin, nzCMFD, ig)
+    myphi = CMFD%phis(ipin, nzCMFD, ig)
+    neighphi = CMFD%neighphis(ipin, ig, top)
     surfphifdm = atil * myphi + (1.0 - atil) * neighphi
     IF (mklGeom%lTop .AND. mklGeom%AxBC(top) .EQ. VoidCell) THEN
-      mklAxial%PhiAngIn(:, ig, ipin, top) = 0.0
+      Axial%PhiAngIn(:, ig, ipin, top) = 0.0
     ELSE
-      mklAxial%PhiAngIn(:, ig, ipin, top) = surfphifdm
+      Axial%PhiAngIn(:, ig, ipin, top) = surfphifdm
     ENDIF
   ENDDO
 ENDDO
@@ -153,12 +154,14 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetAxialDtil(PinXS)
+SUBROUTINE SetAxialDtil(CMFD, Axial)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
 
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklAxial_Type) :: Axial
 
+TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 INTEGER :: ng, nxy, nz, nzCMFD
 INTEGER :: ig, iz, ipin
 INTEGER :: myzb, myze
@@ -166,7 +169,8 @@ REAL :: Dtil, atil, mybeta, neighbeta
 REAL, POINTER :: hzfm(:)
 REAL, POINTER :: myD(:, :, :), neighD(:, :, :)
 
-ng = mklGeom%ng
+PinXS => CMFD%PinXS
+ng = CMFD%ng
 nxy = mklGeom%nxy
 nz = mklGeom%nz
 nzCMFD = mklGeom%nzCMFD
@@ -176,8 +180,8 @@ hzfm => mklGeom%hzfm
 
 ALLOCATE(myD(nxy, ng, nzCMFD), neighD(nxy, ng, 2))
 
-IF (mklCntl%odCMFD) CALL SetTheta()
-CALL GetDiffusionCoeff(mklCMFD, myD, neighD)
+IF (mklCntl%odCMFD) CALL SetTheta(CMFD)
+CALL GetDiffusionCoeff(CMFD, myD, neighD)
 
 !$OMP PARALLEL PRIVATE(Dtil, atil, mybeta, neighbeta)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
@@ -198,8 +202,8 @@ DO ig = 1, ng
       ENDIF
       Dtil = 2.0 * mybeta * neighbeta / (mybeta + neighbeta)
       atil = mybeta / (mybeta + neighbeta)
-      mklCMFD%AxDtil(bottom, ipin, iz, ig) = Dtil
-      mklAxial%atil(bottom, ipin, iz, ig) = atil
+      CMFD%AxDtil(bottom, ipin, iz, ig) = Dtil
+      Axial%atil(bottom, ipin, iz, ig) = atil
       !--- Coupling with Top Plane
       IF (iz .EQ. nzCMFD) THEN
         IF (mklGeom%lTop) THEN
@@ -213,8 +217,8 @@ DO ig = 1, ng
       ENDIF
       Dtil = 2.0 * mybeta * neighbeta / (mybeta + neighbeta)
       atil = mybeta / (mybeta + neighbeta)
-      mklCMFD%AxDtil(top, ipin, iz, ig) = Dtil
-      mklAxial%atil(top, ipin, iz, ig) = atil
+      CMFD%AxDtil(top, ipin, iz, ig) = Dtil
+      Axial%atil(top, ipin, iz, ig) = atil
     ENDDO
   ENDDO
 ENDDO
@@ -290,9 +294,11 @@ DEALLOCATE(myD, neighD)
 
 END SUBROUTINE
 
-SUBROUTINE SetTheta()
+SUBROUTINE SetTheta(CMFD)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
+
+TYPE(mklCMFD_Type) :: CMFD
 
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 INTEGER :: ig, ipin, ipin_map, iz, izf
@@ -301,8 +307,8 @@ INTEGER, POINTER :: pinMap(:), planeMap(:)
 REAL :: h
 REAL, POINTER :: hzfm(:)
 
-PinXS => mklCMFD%PinXS
-ng = mklGeom%ng
+PinXS => CMFD%PinXS
+ng = CMFD%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 pinMap => mklGeom%pinMap
@@ -317,7 +323,7 @@ DO izf = 1, nzCMFD
   DO ipin = 1, nxy
     ipin_map = pinMap(ipin)
     DO ig = 1, ng
-      mklCMFD%theta(ig, ipin, izf) = odCMFD(h, PinXS(ipin_map, iz)%XSt(ig))
+      CMFD%theta(ig, ipin, izf) = odCMFD(h, PinXS(ipin_map, iz)%XSt(ig))
     ENDDO
   ENDDO
   !$OMP END DO
@@ -359,16 +365,19 @@ ENDDO
 
 END SUBROUTINE
 
-SUBROUTINE SetAxialDhat()
+SUBROUTINE SetAxialDhat(CMFD, Axial)
 
 IMPLICIT NONE
+
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ng, nxy, nz, nzCMFD
 INTEGER :: ig, iz, ipin
 REAL :: Dtil, Dhat, myphi, neighphi, jfdm, jmoc
 REAL, POINTER :: neighphic(:, :, :)
 
-ng = mklGeom%ng
+ng = CMFD%ng
 nxy = mklGeom%nxy
 nz = mklGeom%nz
 nzCMFD = mklGeom%nzCMFD
@@ -376,8 +385,8 @@ nzCMFD = mklGeom%nzCMFD
 ALLOCATE(neighphic(ng, nxy, 2)); neighphic = 0.0
 
 CALL InitFastComm()
-CALL GetNeighborFast(ng * nxy, mklAxial%phic(:, :, 1), neighphic(:, :, top), bottom)
-CALL GetNeighborFast(ng * nxy, mklAxial%phic(:, :, nzCMFD), neighphic(:, :, bottom), top)
+CALL GetNeighborFast(ng * nxy, Axial%phic(:, :, 1), neighphic(:, :, top), bottom)
+CALL GetNeighborFast(ng * nxy, Axial%phic(:, :, nzCMFD), neighphic(:, :, bottom), top)
 CALL FinalizeFastComm()
 
 !$OMP PARALLEL PRIVATE(Dtil, Dhat, myphi, neighphi, jfdm, jmoc)
@@ -388,31 +397,31 @@ DO iz = 1, nzCMFD
       IF (mklCntl%lRefPinFDM) THEN
         IF (mklGeom%lRefPin(ipin)) CYCLE
       ENDIF
-      myphi = mklAxial%phic(ig, ipin, iz)
+      myphi = Axial%phic(ig, ipin, iz)
       !--- Coupling with Bottom Plane
       IF (iz .EQ. 1) THEN
         neighphi = neighphic(ig, ipin, bottom)
       ELSE
-        neighphi = mklAxial%phic(ig, ipin, iz - 1)
+        neighphi = Axial%phic(ig, ipin, iz - 1)
       ENDIF
-      Dtil = mklCMFD%AxDtil(bottom, ipin, iz, ig)
+      Dtil = CMFD%AxDtil(bottom, ipin, iz, ig)
       jfdm = - Dtil * (neighphi - myphi)
-      jmoc = mklAxial%Jout(out, ig, bottom, iz, ipin) - mklAxial%Jout(in, ig, bottom, iz, ipin)
+      jmoc = Axial%Jout(out, ig, bottom, iz, ipin) - Axial%Jout(in, ig, bottom, iz, ipin)
       Dhat = - (jmoc - jfdm) / (myphi + neighphi)
-      IF (myphi .LT. 0.0 .OR. neighphi .LT. 0.0) Dhat = 0.0
-      mklCMFD%AxDhat(bottom, ipin, iz, ig) = Dhat
+      ! IF (myphi .LT. 0.0 .OR. neighphi .LT. 0.0) Dhat = 0.0
+      CMFD%AxDhat(bottom, ipin, iz, ig) = Dhat
       !--- Coupling with Top Plane
       IF (iz .EQ. nzCMFD) THEN
         neighphi = neighphic(ig, ipin, top)
       ELSE
-        neighphi = mklAxial%phic(ig, ipin, iz + 1)
+        neighphi = Axial%phic(ig, ipin, iz + 1)
       ENDIF
-      Dtil = mklCMFD%AxDtil(top, ipin, iz, ig)
+      Dtil = CMFD%AxDtil(top, ipin, iz, ig)
       jfdm = - Dtil * (neighphi - myphi)
-      jmoc = mklAxial%Jout(out, ig, top, iz, ipin) - mklAxial%Jout(in, ig, top, iz, ipin)
+      jmoc = Axial%Jout(out, ig, top, iz, ipin) - Axial%Jout(in, ig, top, iz, ipin)
       Dhat = - (jmoc - jfdm) / (myphi + neighphi)
-      IF (myphi .LT. 0.0 .OR. neighphi .LT. 0.0) Dhat = 0.0
-      mklCMFD%AxDhat(top, ipin, iz, ig) = Dhat
+      ! IF (myphi .LT. 0.0 .OR. neighphi .LT. 0.0) Dhat = 0.0
+      CMFD%AxDhat(top, ipin, iz, ig) = Dhat
     ENDDO
   ENDDO
   !$OMP END DO

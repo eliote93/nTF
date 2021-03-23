@@ -10,8 +10,10 @@ IMPLICIT NONE
 
 !INTEGER, PARAMETER :: FirXeND = 0
 INTEGER, PARAMETER :: UpdtXe = 1
-INTEGER, PARAMETER :: InitXe = 2 
-INTEGER, PARAMETER :: FinalXe = 3 
+INTEGER, PARAMETER :: InitXe = 2
+INTEGER, PARAMETER :: FinalXe = 3
+
+LOGICAL :: lRelaxation = .FALSE.
 
 TYPE(XeDynInfo_Type), SAVE :: XeDynInfo
 
@@ -129,6 +131,12 @@ END INTERFACE
 
 CONTAINS
 
+SUBROUTINE XeDynRelaxContrl(activity)
+IMPLICIT NONE
+LOGICAL :: activity
+lRelaxation = activity
+END SUBROUTINE
+
 SUBROUTINE GetInp_TimeStep(Oneline)
 USE IOUTIL,            ONLY : FndChara,        nfields,         Terminate
 IMPLICIT NONE
@@ -159,7 +167,7 @@ DO j = 1, nspt
   nField = nFields(aline)
   IF(nField .LT. 2) CYCLE
   READ(oneline(ipos(j)+1:256), *) tend, DelT
-  
+
   nsub = NINT((Tend - Tbeg)/DelT)
   DO k = 1, nsub
     i = i + 1
@@ -272,7 +280,7 @@ SELECT CASE(XeDynInfo%Unit)
     f = M2s
 END SELECT
 
-  
+
 DO i = 1, XeDynInfo%nTimeStep
   XeDynInfo%Tsec(i) = XeDynInfo%Tsec(i) * f
   XeDynInfo%Tmin(i) = XeDynInfo%Tsec(i) * s2m
@@ -286,7 +294,7 @@ ENDDO
 
 XeDynInfo%Tsec(0) = 1.0E-6_8
 !Core State Mapping
-DO i = 0, XeDynInfo%nTimeStep 
+DO i = 0, XeDynInfo%nTimeStep
   XeDynInfo%lPerturb(i) = .FALSE.
   XeDynInfo%StateMapping(i) = -1
 ENDDO

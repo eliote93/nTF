@@ -9,7 +9,7 @@ USE PARAM
 USE TYPEDEF,  ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE
 USE OMP_LIB
 USE GammaTYPEDEF, ONLY : GamMacXS_TYPE
-USE GamXsLib_Mod, ONLY : GamXsBase, GamTotScatXs
+USE GamXsLib_Mod, ONLY : GamXsBase
 USE CNTL,             ONLY : nTracerCntl
 
 IMPLICIT NONE
@@ -87,7 +87,7 @@ SUBROUTINE SetGamMacXsNM(core, Fxr, xstnm, iz, ngg, lTrCorrection, PE)
 USE PARAM
 USE TYPEDEF,          ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE
 USE GammaTYPEDEF,     ONLY : GamMacXS_TYPE
-USE GamXsLib_Mod,     ONLY : GamXsBase, GamTotScatXs
+USE GamXsLib_Mod,     ONLY : GamXsBase
 USE OMP_LIB
 USE CNTL,             ONLY : nTracerCntl
 
@@ -108,7 +108,7 @@ INTEGER :: i, j, tid!, igg
 INTEGER :: xyb, xye   !--- CNJ Edit : Domain Decomposition + MPI
 REAL :: xsmactr(ngg)
 
-TYPE(GamMacXS_TYPE), POINTER :: GamMacXs(:)
+TYPE(GamMacXS_TYPE), SAVE :: GamMacXs(nThreadMax)
 
 Pin => Core%Pin
 Cellinfo => Core%CellInfo
@@ -117,15 +117,12 @@ nCoreFxr = Core%nCoreFxr
 nxy = Core%nxy
 xyb = PE%myPinBeg; xye = PE%myPinEnd
 
-ALLOCATE(GamMacXs(PE%nThread))
-
-IF (.NOT. PE%lCUDA) PE%nHelperThread = PE%nThread
-
-!$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(PE%nHelperThread)                                         &
-!$OMP PRIVATE(i, j, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr,                                        &
-!$OMP         icel, ipin, ifxr, ifsr, tid, xsmactr)
+!$  call omp_set_dynamic(.FALSE.)
+!$  call omp_set_num_threads(PE%nThread) 
+!$OMP PARALLEL DEFAULT(SHARED)   &
+!$OMP PRIVATE(i, j, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr,icel, ipin, ifxr, ifsr, tid, xsmactr)
 !$  tid = omp_get_thread_num() + 1
-!$OMP DO SCHEDULE(DYNAMIC)
+!$OMP DO
 DO ipin = xyb, xye
   FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
   icel = Pin(ipin)%Cell(iz)
@@ -151,23 +148,19 @@ ENDDO ! pin loop
 !$OMP END DO
 !$OMP END PARALLEL
 
-DEALLOCATE(GamMacXs)
-
-NULLIFY(Pin)
-NULLIFY(CellInfo)
 END SUBROUTINE
 
 
 ! Photon Source Generation Routine
-SUBROUTINE SetGamSrc(Core, Fxr, src, phis, gphis, axsrc, xstr1g, iz, igg, ng, ngg,                  &
-                        l3dim, lscat1, PE, GamGroupInfo)
+SUBROUTINE SetGamSrc(Core, Fxr, src, phis, gphis, gaxsrc1g, xstr1g, iz, igg, ng, ngg,                  &
+                        l3dim, lscat1, PE, GroupInfo)
 ! Photon Source Generation Routine in Photon Transport Equation
 !         Production by Neutron-Isotope Reaction and Photo-Atomic Reaction
 USE PARAM
-USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE
+USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE, GROUPINFO_TYPE
 USE BasicOperation, ONLY : CP_CA
 USE CNTL,           ONLY : nTracerCntl
-USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE, GAMMAGROUPINFO_TYPE
+USE GammaTYPEDEF,   ONLY : GamMacXS_TYPE
 USE GamXsLib_Mod,   ONLY : GamProdMatrix, GamScatMatrix
 USE OMP_LIB
 IMPLICIT NONE
@@ -175,15 +168,15 @@ IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(PE_TYPE) :: PE
-TYPE(GAMMAGROUPINFO_TYPE) :: GamGroupInfo
+TYPE(GROUPINFO_TYPE) :: GroupInfo
 
-REAL, POINTER :: src(:), phis(:, :, :), gphis(:, :, :), AxSrc(:), xstr1g(:)
+REAL, POINTER :: src(:), phis(:, :, :), gphis(:, :, :), gAxSrc1g(:), xstr1g(:)
 INTEGER :: igg, ng, iz, ifsr, ifxr, ngg
 LOGICAL :: lscat1, l3dim
 
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(GamMacXS_TYPE), POINTER :: GamMacXS(:)
+TYPE(GamMacXS_TYPE), SAVE :: GamMacXS(nThreadMax)
 REAL, POINTER :: xsmacs(:,:)
 REAL, POINTER :: prodmat(:,:)
 
@@ -192,22 +185,21 @@ INTEGER :: ipin, icel, ig, tid
 INTEGER :: i, j
 INTEGER :: iso, niso
 
-ALLOCATE(GamMacXS(PE%nThread))
+!ALLOCATE(GamMacXS(PE%nThread))
 
 Pin => Core%Pin
 CellInfo => Core%CellInfo
 nCoreFsr = Core%nCoreFsr
 nCoreFxr = Core%nCoreFxr
 nxy = Core%nxy
-
 !lNegSrcFix = FALSE   <=== what is this??
 
 src = zero
 
 tid = 1
 
-call omp_set_dynamic(.FALSE.)
-call omp_set_num_threads(PE%nThread)
+!$ call omp_set_dynamic(.FALSE.)
+!$ call omp_set_num_threads(PE%nThread)
 !$OMP PARALLEL DEFAULT(SHARED)      &
 !$OMP PRIVATE(i, j, ifsr, ifxr, ipin, icel, ig, tid, FsrIdxSt, FxrIdxSt,                         &
 !$OMP              nlocalFxr, nFsrInFxr, xsmacs, prodmat)
@@ -221,7 +213,7 @@ DO ipin = 1, nxy ! Do loop begin
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    CALL GamProdMatrix(GamMacXS(tid), Fxr(ifxr), igg, igg, ng, ngg, GamGroupInfo)
+    CALL GamProdMatrix(GamMacXS(tid), Fxr(ifxr), igg, igg, ng, ngg, GroupInfo, FALSE)
     prodmat => GamMacXS(tid)%GProdTot
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
@@ -236,7 +228,7 @@ DO ipin = 1, nxy ! Do loop begin
     ifxr = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
 
-    CALL GamScatMatrix(GamMacXS(tid), Fxr(ifxr), igg, igg, ngg, lscat1)
+    CALL GamScatMatrix(GamMacXS(tid), Fxr(ifxr), igg, igg, ngg, lscat1,.FALSE.)
     XsMacS => GamMacXS(tid)%XsMacSM
 
     DO i = 1, nFsrInFxr
@@ -246,19 +238,23 @@ DO ipin = 1, nxy ! Do loop begin
       ENDDO
     ENDDO !Fsr Sweep
   ENDDO !End of Fxr Sweep
-#ifdef LkgSplit
 !  Axial Source Substitue
   IF (l3dim) THEN
-  DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j - 1
-    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    DO i = 1, nFsrInFxr
-      ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      src(ifsr) = src(ifsr) - AxSrc(ipin)
-    END DO
-  END DO
-  END IF
+    DO j = 1, nLocalFxr
+      ifxr = FxrIdxSt + j - 1
+      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+      DO i = 1, nFsrInFxr
+        ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+#ifndef LkgSplit
+        src(ifsr) = src(ifsr) - gAxSrc1g(ipin)
+#else
+        IF(gAxSrc1g(ipin) .LT. 0 .AND. .NOT. Fxr(ifxr)%lvoid) THEN
+          src(ifsr) = src(ifsr) - gAxSrc1g(ipin)
+        ENDIF
 #endif
+      END DO
+    END DO
+  END IF
   DO j = 1, CellInfo(icel)%nFsr
     ifsr = FsrIdxSt + j - 1
     src(ifsr) = src(ifsr)/xstr1g(ifsr)
@@ -268,12 +264,12 @@ DO ipin = 1, nxy ! Do loop begin
 END DO   ! pin loop
 !$OMP END DO
 !$OMP END PARALLEL
-DEALLOCATE(GamMacXS)
+!DEALLOCATE(GamMacXS)
 NULLIFY(Pin)
 NULLIFY(CellInfo)
 END SUBROUTINE
 
-SUBROUTINE SetGamSrcNM(Core, Fxr, srcNM, phisNM, gphisNM, AxSrc, xstnm, iz, igb, ige,               &
+SUBROUTINE SetGamSrcNM(Core, Fxr, srcNM, phisNM, gphisNM, gAxSrc, xstnm, iz, igb, ige,               &
                        ng, ngg, l3dim, lscat1, PE)
 ! Photon Source Generation Routine in Photon Transport Equation
 !      FOR NODE MAJOR
@@ -282,14 +278,14 @@ USE TYPEDEF,          ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, P
 USE BasicOperation,   ONLY : CP_CA
 USE CNTL,             ONLY : nTracerCntl
 USE GammaTYPEDEF,     ONLY : GamMacXS_TYPE
-USE GammaCore_mod,    ONLY : GamGroupInfo
+USE Core_mod,         ONLY : GroupInfo
 USE GamXsLib_Mod,     ONLY : GamProdMatrix, GamScatMatrix
 USE OMP_LIB
 IMPLICIT NONE
 ! INPUT VARIABLES
 TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type) :: Fxr(:)
-REAL, POINTER :: srcNM(:,:), phisNM(:, :), gphisNM(:, :), AxSrc(:, :, :), xstnm(:, :)
+REAL, POINTER :: srcNM(:,:), phisNM(:, :), gphisNM(:, :), gAxSrc(:, :, :), xstnm(:, :)
 REAL :: eigv
 INTEGER :: iz, igb, ige, ng, ngg, ifsr, ifxr, fsridx
 LOGICAL :: l3dim, lscat1
@@ -297,7 +293,7 @@ TYPE(PE_TYPE) :: PE
 
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(GamMacXS_TYPE), POINTER :: GamMacXS(:)
+TYPE(GamMacXS_TYPE), SAVE :: GamMacXS(nThreadMax)
 REAL, POINTER :: prodmat(:,:)
 REAL, POINTER :: xsmacs(:,:)
 
@@ -312,17 +308,15 @@ nCoreFsr = Core%nCoreFsr
 nCoreFxr = Core%nCoreFxr
 nxy = Core%nxy
 
-ALLOCATE(GamMacXS(PE%nThread))
-
 SrcNM = zero
 
-IF (.NOT. PE%lCUDA) PE%nHelperThread = PE%nThread
 tid = 1
-!$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(PE%nHelperThread)                                        &
-!$OMP PRIVATE(i, j, ifsr, ifxr, ipin, icel, ig, igg, igg2, tid,                                  &
-!$OMP         FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, xsmacs, prodmat)
+!$  call omp_set_dynamic(.FALSE.)
+!$  call omp_set_num_threads(PE%nThread)
+!$OMP PARALLEL DEFAULT(SHARED)      &
+!$OMP PRIVATE(i, j, ifsr, ifxr, ipin, icel, ig, igg, igg2, tid, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, xsmacs, prodmat)
 tid = omp_get_thread_num() + 1
-!$OMP DO SCHEDULE(DYNAMIC)
+!$OMP DO
 DO ipin = 1, nxy
   FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
   icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
@@ -330,7 +324,7 @@ DO ipin = 1, nxy
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j - 1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    CALL GamProdMatrix(GamMacXS(tid), Fxr(ifxr), igb, ige, ng, ngg, GamGroupInfo)
+    CALL GamProdMatrix(GamMacXS(tid), Fxr(ifxr), igb, ige, ng, ngg, GroupInfo, FALSE)
     prodmat => GamMacXS(tid)%GProdTot
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
@@ -346,7 +340,7 @@ DO ipin = 1, nxy
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    CALL GamScatMatrix(GamMacXS(tid), Fxr(ifxr), igb, ige, ngg, lscat1)
+    CALL GamScatMatrix(GamMacXS(tid), Fxr(ifxr), igb, ige, ngg, lscat1,.FALSE.)
     XsMacS => GamMacXS(tid)%XsMacSM
 
     DO i = 1, nFsrInFxr
@@ -368,10 +362,10 @@ DO ipin = 1, nxy
         ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
         DO igg = igb, ige
 #ifndef LkgSplit
-          srcnm(igg, ifsr) = srcnm(igg, ifsr) - AxSrc(ipin, iz, igg)
+          srcnm(igg, ifsr) = srcnm(igg, ifsr) - gAxSrc(ipin, igg, iz)
 #else
-          IF(AxSrc(ipin, iz, igg) .LT. 0 .AND. .NOT. Fxr(ifxr)%lvoid) THEN
-            srcnm(igg, ifsr) = srcnm(igg, ifsr) - AxSrc(ipin, iz, igg)
+          IF(gAxSrc(ipin, igg, iz) .LT. 0 .AND. .NOT. Fxr(ifxr)%lvoid) THEN
+            srcnm(igg, ifsr) = srcnm(igg, ifsr) - gAxSrc(ipin, igg, iz)
           ENDIF
 #endif
         ENDDO
@@ -388,10 +382,6 @@ ENDDO ! pin loop
 !$OMP END DO
 !$OMP END PARALLEL
 
-DEALLOCATE(GamMacXS)
-
-NULLIFY(Pin)
-NULLIFY(CellInfo)
 END SUBROUTINE
 
 SUBROUTINE SetGamP1Src(Core, Fxr, srcm, phim, xstr1g, iz, igg, ngg, lscat1, ScatOd, PE)
@@ -415,7 +405,7 @@ TYPE(PE_Type) :: PE
 
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(GamMacXS_TYPE), POINTER :: GamMacXS(:)
+TYPE(GamMacXS_TYPE), SAVE :: GamMacXS(nThreadMax)
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nchi
 INTEGER :: ipin, icel, ifsrlocal, itype, igg2, tid
 INTEGER :: i, j
@@ -441,18 +431,15 @@ ELSEIF (ScatOd .EQ. 3) THEN
   CALL CP_CA(srcm(:, :), zero, 9, nCoreFsr)
 ENDIF
 
-ALLOCATE(GamMacXS(PE%nThread))
-IF (.NOT. PE%lCUDA) PE%nHelperThread = PE%nThread
 tid = 1
 
 !Scattering Source Update
 !$  call omp_set_dynamic(.FALSE.)
 !$  call omp_set_num_threads(PE%nThread)
-!$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(PE%nHelperThread)                                        &
+!$OMP PARALLEL DEFAULT(SHARED)      &
 !$OMP PRIVATE(i, j, ifsr, ifxr, ipin, icel, ifsrlocal, itype, igg2, tid, FsrIdxSt,                  &
 !$OMP                   FxrIdxSt, nlocalFxr, nFsrInFxr, XsMacP1Sm, XsMacP2Sm, XsMacP3Sm)
 !$  tid = omp_get_thread_num()+1
-
 !$OMP DO
 DO ipin = 1, nxy
   FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
@@ -525,12 +512,85 @@ ELSEIF(ScatOd .EQ. 3) THEN
     ENDDO
   ENDDO
 ENDIF
+END SUBROUTINE
 
-DEALLOCATE(GamMacXS)
+SUBROUTINE GamPseudoAbsorption(Core, Fxr, AxPXS, xstr1g, iz, l3dim)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
+                         pin_Type
+IMPLICIT NONE
 
-NULLIFY(XsMacP1Sm)
-NULLIFY(Pin)
-NULLIFY(CellInfo)
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+REAL, POINTER :: AxPXS(:), xstr1g(:)
+INTEGER :: iz
+LOGICAL :: l3dim
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+INTEGER :: nxy
+INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
+INTEGER :: i, j, ipin, icel, ifsr, ifxr
+
+IF(.NOT. l3dim) RETURN
+
+Pin => Core%Pin
+CellInfo => Core%CellInfo
+nxy = Core%nxy
+
+DO ipin = 1, nxy
+  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+  FxrIdxSt = Pin(ipin)%FxrIdxSt; nLocalFxr = CellInfo(icel)%nFxr
+  DO j = 1, nLocalFxr
+    ifxr = FxrIdxSt + j - 1
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    DO i = 1, nFsrInFxr
+      ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      IF(.NOT. Fxr(ifxr)%lVoid) xstr1g(ifsr) = xstr1g(ifsr)+AxPXS(ipin)
+    ENDDO
+  ENDDO
+ENDDO
+
+END SUBROUTINE
+
+SUBROUTINE GamPseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, l3dim)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
+                         pin_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+REAL, POINTER :: AxPXS(:, :, :), xstnm(:, :)
+INTEGER :: iz, ng
+LOGICAL :: l3dim
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+INTEGER :: nxy
+INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
+INTEGER :: i, j, ipin, icel, ifsr, ifxr, ig
+
+IF(.NOT. l3dim) RETURN
+
+Pin => Core%Pin
+CellInfo => Core%CellInfo
+nxy = Core%nxy
+
+DO ipin = 1, nxy
+  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+  FxrIdxSt = Pin(ipin)%FxrIdxSt; nLocalFxr = CellInfo(icel)%nFxr
+  DO j = 1, nLocalFxr
+    ifxr = FxrIdxSt + j - 1
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    DO i = 1, nFsrInFxr
+      ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      DO ig = 1, ng
+        IF(.NOT. Fxr(ifxr)%lVoid) xstnm(ig, ifsr) = xstnm(ig, ifsr) + AxPXS(ipin, ig, iz)
+      ENDDO
+    ENDDO
+  ENDDO
+ENDDO
 
 END SUBROUTINE
 #endif

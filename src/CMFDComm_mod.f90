@@ -10,7 +10,6 @@ INTEGER, PARAMETER :: ngmax = 1000, nbdmax = 6, nCommMax = 5000
 INTEGER, PRIVATE :: nAxMax, nRadMax, nRadCommMax, ng0
 TYPE PinXSComm_Type
   !INTEGER, DIMENSION(nbdmax) :: DTil, DHat
-  SEQUENCE
   INTEGER, DIMENSION(nbdmax) :: AxDtil, AxDhat
   INTEGER :: XST, XSTR, XSNF, CHI
   INTEGER :: Xss(ngmax), XssRange(2, ngmax)
@@ -21,7 +20,6 @@ TYPE PinXSComm_Type
 END TYPE
 
 TYPE XsQueueInfo_Type
-  SEQUENCE
   TYPE(PinXs_Type), POINTER ::  SendPinXs(:, :), RecvPinXs(:, :)
   REAL, POINTER :: SendPhi(:, :, :), SendLkg(:, :, :)
   REAL, POINTER :: RecvPhi(:, :, :), RecvLkg(:, :, :)
@@ -34,7 +32,6 @@ TYPE XsQueueInfo_Type
 END TYPE
 
 TYPE AxNqueueInfo_Type
-  SEQUENCE
   REAL, POINTER :: SendDhat(:, :, :, :), SendDTil(:, :, :, :)
   REAL, POINTER :: RecvDhat(:, :, :, :), RecvDTil(:, :, :, :)
   LOGICAL :: lSend = .FALSE.
@@ -44,7 +41,6 @@ TYPE AxNqueueInfo_Type
 END TYPE
 
 TYPE CommPinXS_Type   !Axial Nodal Solver Recv and Send Data
-  SEQUENCE
   LOGICAL :: lAlloc = .FALSE.
   REAL, POINTER :: SendPhi(:, :, :), SendLkg(:, :, :)
   REAL, POINTER :: RecvPhi(:, :, :), RecvLkg(:, :, :)
@@ -360,7 +356,6 @@ SUBROUTINE SetMpiCommOrder(CommOrderList, nStep, nproc)
 IMPLICIT NONE
 
 TYPE MpiCommOrder_Type
-  SEQUENCE
   LOGICAL :: lComm(200)
   LOGICAL :: lPartner, lFinish
   INTEGER :: CommDestList(200)

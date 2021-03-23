@@ -176,11 +176,11 @@ INTEGER :: nFxr
 END SUBROUTINE
 
 
-SUBROUTINE ReadDeplFile(InDev, filename, DeplLib)
+SUBROUTINE ReadDeplFile(InDev, filename, DeplLib, NISODEP)
 USE DeplType,    ONLY : DeplLib_Type
 IMPLICIT NONE
 TYPE(DeplLib_Type) :: DeplLib
-INTEGER :: InDev
+INTEGER :: InDev, NISODEP
 character(80) :: filename
 END SUBROUTINE
 
@@ -211,7 +211,7 @@ USE TYPEDEF,    ONLY : CoreInfo_Type,     FxrInfo_Type,         PE_TYPE,        
 USE ALLOCS
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: FXR(:, :)
+TYPE(FxrInfo_Type), POINTER :: FXR(:, :)
 TYPE(GroupInfo_Type) :: GroupInfo
 TYPE(PE_Type) :: PE
 
@@ -231,11 +231,10 @@ END SUBROUTINE
 !
 !END FUNCTION
 
-SUBROUTINE SetBurnUpStepInfo(PowerCore, DeplVars, DeplCntl)
+SUBROUTINE SetBurnUpStepInfo(PowerCore, DeplCntl)
 USE PARAM
-USE DeplType,   ONLY : DeplVars_Type,     DeplCntl_Type
+USE DeplType,   ONLY : DeplCntl_Type
 IMPLICIT NONE
-TYPE(DeplVars_Type) :: DeplVars
 TYPE(DeplCntl_Type) :: DeplCntl
 REAL :: PowerCore
 
@@ -248,8 +247,8 @@ USE TYPEDEF,       ONLY : CoreInfo_Type,   FxrInfo_Type, PE_Type,      &
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:, :)
-REAL :: Power(:, :)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+REAL, POINTER :: Power(:, :)
 REAL :: Normalizer, Tsec
 LOGICAL :: lCorrectStep
 TYPE(PE_TYPE) :: PE

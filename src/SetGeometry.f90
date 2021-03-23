@@ -6,7 +6,7 @@ USE GEOM,           ONLY : lEdge, lhgap
 USE Files,          ONLY : io8
 USE IOUTIL,         ONLY : message
 USE PE_MOD,         ONLY : PE
-USE MPIConfig_Mod,  ONLY : SetGeomPEVariables,  SetDcmpPEVariables
+USE MPIConfig_Mod,  ONLY : SetGeomPEVariables_subpln,  SetDcmpPEVariables
 IMPLICIT NONE
 IF(PE%Master) THEN
   mesg = 'Initialize the Problem Geometries'
@@ -30,12 +30,6 @@ ENDIF
 !Set Assembly Geometry
 CALL SetAsyGeom()
 
-CALL SetGeomPEVariables(PE)
-IF(nTracerCntl%lXsLib) THEN
-  IF(nTracerCntl%lrestrmt) THEN
-    IF(PE%RTmaster) CALL AllocResIsoInfo()
-  ENDIF
-ENDIF
 !SubPlane
 CALL InitSubPlane()
 !Global Pin Cell Map
@@ -44,6 +38,13 @@ CALL GlobalCoreMap()
 
 !Core Information
 CALL SetCoreInfo()
+
+CALL SetGeomPEVariables_subpln(PE)
+IF(nTracerCntl%lXsLib) THEN
+  IF(nTracerCntl%lrestrmt) THEN
+    IF(PE%RTmaster) CALL AllocResIsoInfo()
+  ENDIF
+ENDIF
 
 CALL SetThPinType()
 !Set Up Baffle Information
@@ -56,6 +57,7 @@ CALL SetDcmpPEVariables(PE)
 
 END SUBROUTINE
 
+
 SUBROUTINE CoreVolGen()
 !Generates(or Calculate) the Pin and Assembly Volumes
 USE PARAM
@@ -67,6 +69,7 @@ USE PE_MOD, ONLY :  PE
 USE ALLOCS
 IMPLICIT NONE
 INTEGER :: nxy, nxya, nz, nzfm,nSUbPlane
+INTEGER, POINTER :: nSubPlanePtr(:)
 INTEGER :: ixy, icel, ipin, ixya, iasy,iz
 
 REAL :: Vol, H
@@ -77,6 +80,7 @@ nz = Core%nz; nzfm = Core%nzfm
 nxy = Core%nxy; nxya = Core%nxya
 hz => Core%hz
 nSUbPlane = Core%nSubPlane
+nSubPlanePtr => Core%nSubPlanePtr
 
 CALL DMALLOC(PinVol, nxy, nz); CALL DMALLOC(AsyVol, nxya, nz)
 IF(nz .ne. nzfm) THEN
@@ -97,7 +101,8 @@ DO ixy = 1, nxy
     ixya = Pin(ixy)%iasy
     Vol = CellInfo(icel)%Geom%lx*CellInfo(icel)%Geom%ly * Core%hz(iz)
     PinVol(ixy, iz) = Vol
-    PinVolFM(ixy, iz) = Vol/nSubPlane
+    !PinVolFM(ixy, iz) = Vol/nSubPlane
+    PinVolFM(ixy, iz) = Vol/nSubPlanePtr(iz)
     AsyVol(ixya, iz) = AsyVol(ixya, iz) + Vol
   ENDDO
 ENDDO
@@ -115,7 +120,7 @@ USE CNTL,  only : nTracerCntl
 USE GEOM,  only : lEdge,       nz,          nCellX,     lgap,        nAsyType0,   &
                   nAsyType,    nCellType0,  nCellType,  nPinType0,   nPinType,    &
                   CellInfo,    AsyInfo,     PinInfo,    Core,                     &
-                  CellPitch,   BaseCellInfo, nBaseCell, nBaseCell0
+                  CellPitch,   BaseCellInfo, nBaseCell, nBaseCell0,  nCrCell
 USE SetCentGeom, only : SetCentCell,  SetCentCellBase,   SetCentPin,    SetCentAsy, SetCentCore
 IMPLICIT NONE
 
@@ -123,11 +128,18 @@ INTEGER :: icel, icel1, icel2, icel3
 INTEGER :: iPin, ipin1, ipin2, ipin3
 INTEGER :: iasy, iasy1, iasy2, iasy3
 INTEGER :: iType
+INTEGER :: crcelbeg, crcelend
 
 REAL :: HalfPitch
 
 !Cent Symmetry Cell
+IF(nTracerCntl%lCrInfo) THEN
+  crcelbeg = nCellType0 - 2 -nCrCell
+  crcelend = nCellType0 - 3
+END IF
+
 DO icel = 1, nCellType0
+  IF(nTracerCntl%lCrInfo .AND. icel .GE. crcelbeg .AND. icel .LE. crcelend) CYCLE 
   icel1 = nCellType0+icel; icel2 = icel1 + nCellType0; icel3 = icel2 + nCellType0
   iType = 1; CALL SetCentCell(icel, icel1, iType)
   iType = 2; CALL SetCentCell(icel, icel2, iType)

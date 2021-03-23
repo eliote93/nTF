@@ -13,12 +13,12 @@ LOGICAL, PRIVATE :: lSetGeom = .FALSE.
 
 REAL, POINTER, PRIVATE :: Au(:), del(:)                  !Size(nx)
 REAL, POINTER, PRIVATE :: ainvl(:), ainvu(:), ainvd(:)            !Size(nx)
-REAL, POINTER, PRIVATE ::  DelInv(:,:), Deliau(:, :), Al(:, :) 
+REAL, POINTER, PRIVATE ::  DelInv(:,:), Deliau(:, :), Al(:, :)
 LOGICAL, PRIVATE :: lPrivateVarAlloc = .FALSE.
 
 REAL, POINTER, PRIVATE :: Au2G(:, :), del2G(:, :)                  !Size(nx)
 REAL, POINTER, PRIVATE :: ainvl2G(:, :), ainvu2G(:, :), ainvd2G(:, :)            !Size(nx)
-REAL, POINTER, PRIVATE ::  DelInv2G(:, :,:), Deliau2G(:, :, :), Al2G(:, :, :) 
+REAL, POINTER, PRIVATE ::  DelInv2G(:, :,:), Deliau2G(:, :, :), Al2G(:, :, :)
 LOGICAL, PRIVATE :: lPrivateVar2GAlloc = .FALSE.
 
 REAL, POINTER, PRIVATE :: buf(:)
@@ -59,14 +59,14 @@ SUBROUTINE FreeBiluSolverEnv()
 NULLIFY(DelInv, Deliau, Al)
 NULLIFY(Diag1g, RadOffDiag1g, AxOffDiag1g)
 NULLIFY(NeighIdx, AxialPlaneMap)
-END SUBROUTINE 
+END SUBROUTINE
 
 
 SUBROUTINE FreeBilu2gSolverEnv()
 NULLIFY(DelInv2g, Deliau2g, Al2g)
 NULLIFY(Diag2g, RadOffDiag2g, AxOffDiag2g)
 NULLIFY(NeighIdx, AxialPlaneMap)
-END SUBROUTINE 
+END SUBROUTINE
 
 SUBROUTINE SolveBiLU(b, x)
 USE Geom,             ONLY : Core
@@ -75,8 +75,8 @@ REAL, POINTER :: B(:, :), X(:, :)
 INTEGER :: l, k, k0, kp1
 !REAL :: s(nxy), b0(nxy)
 
-CALL CP_CA(s, 0._8, nxy)
-CALL CP_CA(x(1:nxy, myzbf:myzef), 0._8, nxy, myzbf - myzef + 1)
+s(1:nxy) = 0.
+x(1:nxy, myzbf:myzef) = 0.
 
 DO k = myzbf, myzef
   k0 = AxialPlaneMap(k)
@@ -94,7 +94,7 @@ DO k = myzef-1, myzbf, -1
   k0 = AxialPlaneMap(k)
   DO l = 1, nxy
     b0(l) = x(l, kp1) * AxOffDiag1g(2, l, k)
-  ENDDO 
+  ENDDO
   CALL SolveBiLU2d(k, b0, s)
   DO l = 1, nxy
     x(l, k) = x(l, k) - s(l)
@@ -110,8 +110,8 @@ REAL, POINTER :: B(:, :, :), X(:, :, :)
 INTEGER :: l, k, k0, kp1
 !REAL :: s(nxy), b0(nxy)
 
-CALL CP_CA(s2g, 0._8, 2, nxy)
-CALL CP_CA(x(1:2, 1:nxy, myzbf:myzef), 0._8, 2, nxy, myzbf - myzef + 1)
+s2g(1:2, 1:nxy) = 0.;
+x(1:2, 1:nxy, myzbf:myzef) = 0.
 DO k = myzbf, myzef
   k0 = AxialPlaneMap(k)
   DO l = 1, nxy
@@ -128,7 +128,7 @@ DO k = myzef-1, myzbf, -1
   k0 = AxialPlaneMap(k)
   DO l = 1, nxy
     b02g(:, l) = SUBMATVECOP(x(:, l, kp1), AxOffDiag2g(:, 2, l, k))
-  ENDDO 
+  ENDDO
   CALL SolveBiLU2d2g(k, b02g, s2g)
   DO l = 1, nxy
     x(:, l, k) = x(:, l, k) - s2g(:, l)
@@ -140,7 +140,7 @@ ENDDO
 !  k0 = AxialPlaneMap(k)
 !  DO l = 1, nxy
 !    b0(l) = x(l, kp1) * AxOffDiag1g(2, l, k)
-!  ENDDO 
+!  ENDDO
 !  CALL SolveBiLU2d(k, b0, s)
 !  DO l = 1, nxy
 !    x(l, k) = x(l, k) - s(l)
@@ -186,7 +186,7 @@ DO j = ny - 1, 1, -1
     l = node(i, j)
     x(l) = x(l) - s1dl(i)
   ENDDO
-  jp1 = j 
+  jp1 = j
 ENDDO
 END SUBROUTINE
 
@@ -230,7 +230,7 @@ DO j = ny - 1, 1, -1
     l = node(i, j)
     x(:, l) = x(:, l) - s1dl(:, i)
   ENDDO
-  jp1 = j 
+  jp1 = j
 ENDDO
 
 END SUBROUTINE
@@ -348,7 +348,7 @@ DO k = myzef-1, myzbf, -1
   DO i = 1, nxylocal
      l = List(i)
     b0(l) = x(l, kp1) * AxOffDiag1g(2, l, k)
-  ENDDO 
+  ENDDO
 !$OMP BARRIER
   CALL SolveBiLU2d_OMP(k, b0, s, idom)
   DO i = 1, nxylocal
@@ -394,7 +394,7 @@ IF(jbeg .NE. 1) THEN
     s1dl(i) = b(l) / Diag1g(l, k)
   ENDDO
   CALL SolveBiLU1d(jbeg-1, k, b01d, s1dl)
-  
+
 ENDIF
 !forward solve
 DO j = jbeg, jend
@@ -411,7 +411,7 @@ ENDDO
 
 !$OMP BARRIER
  CALL DATACOPY_OMP(x, x0, idom)
- 
+
 !Backward solve
 IF(jend .NE. ny) THEN
   jp1 = jend + 1; jp2 = jend + 2; j = jend
@@ -450,7 +450,7 @@ DO j = jend - 1, jbeg, -1
     l = node(i, j)
     x(l) = x(l) - s1dl(i)
   ENDDO
-  jp1 = j 
+  jp1 = j
 ENDDO
 !$OMP BARRIER
 END SUBROUTINE
@@ -467,7 +467,7 @@ INTEGER :: idom1, idom0, lneigh, lneigh2
 INTEGER :: ibeg, iend, im1, im2, ip1, ip2
 INTEGER :: i, j, k, l
 
-ibeg = RadDcmp%nxbeg(irow, idom); iend = RadDcmp%nxend(irow, idom) 
+ibeg = RadDcmp%nxbeg(irow, idom); iend = RadDcmp%nxend(irow, idom)
 l = node(ibeg, irow); k = iz
 i = ibeg
 IF(ibeg .EQ. nxbeg(irow)) THEN
@@ -485,8 +485,8 @@ im2 = 0
 
 !Forward
 DO i = ibeg+1, iend
-  l = node(i, irow); 
-  b1i = b(i) - Al(l,k) * y(im1)  
+  l = node(i, irow);
+  b1i = b(i) - Al(l,k) * y(im1)
   y(i) = DelInv(l, k) * b1i
   im2 = im1
   im1 = i
@@ -500,7 +500,7 @@ ELSE
   lneigh = NeighIdx(4, l); lneigh2 = NeighIdx(4, lneigh)
   x2= Deliau(lneigh, k) * y(ip2)
   x1 = y(ip1) -x2
-  x(iend) = y(iend) - Deliau(l, k) * x1  
+  x(iend) = y(iend) - Deliau(l, k) * x1
 ENDIF
 ip1 = iend
 DO i = iend-1, ibeg, -1
@@ -530,10 +530,10 @@ DO ig = 1, ng_
   DelInv => A(ig)%BiLU%DelInv; Deliau =>  A(ig)%BiLU%DeliAu; Al => A(ig)%BiLU%Al
   Diag1g => A(ig)%Diag; RadOffDiag1g => A(ig)%RadOffDiag; AxOffDiag1g => A(ig)%AxOffDiag
   NeighIdx => A(ig)%NeighIdx; AxialPlaneMap => A(ig)%AxialPlaneMap
- 
+
   !2D incomplete LU
   DO iz = myzbf, myzef
-    !Factorize 2-D(Plane) 
+    !Factorize 2-D(Plane)
     CALL FactorizeILU2D(iz)
   ENDDO
   !
@@ -599,7 +599,7 @@ IF(imod .EQ. 1) THEN
       temp = 0
       IF(iz .NE. nzfm) temp = A(ig)%AxOffDiag(2, ixy, iz) * X(ixy, myzef+1, ig) / X(ixy, myzef, ig)
       A(ig)%Diag(ixy, iz) = A(ig)%Diag(ixy, iz) + temp
-    ENDDO    
+    ENDDO
   ENDDO
 ELSE
   DO ig = 1, ng_
@@ -616,7 +616,7 @@ ELSE
       temp = 0
       IF(iz .NE. nzfm) temp = A(ig)%AxOffDiag(2, ixy, iz) * X(ixy, myzef+1, ig) / X(ixy, myzef, ig)
       A(ig)%Diag(ixy, iz) = A(ig)%Diag(ixy, iz) - temp
-    ENDDO    
+    ENDDO
   ENDDO
 ENDIF
 
@@ -644,7 +644,7 @@ DO j = 2, ny
   !Factorize Del_j
   CALL FactorizeILU1D(jm1, k)
   !Inverse of Factorize 1-D(line)
-  CALL ApproxBlockInv1D(jm1, iz)    
+  CALL ApproxBlockInv1D(jm1, iz)
   !D_j+1 = a_j+1 - l_j+1 * inv(D_j) * u_j
   DO i = nxbeg(j), nxend(j)
     l = node(i, j)
@@ -654,28 +654,28 @@ DO j = 2, ny
     ELSE
       Del(i) = Diag1g(l, k)
     ENDIF
-    
+
     !Lower Diagonal Part
-    Al(l, k) = RadOffDiag1g(2, l, k0) 
-    
+    Al(l, k) = RadOffDiag1g(2, l, k0)
+
     IF(i .NE. nxbeg(j) .AND. (i-1) .GE. nxbeg(jm1) .AND. (i-1) .LE. nxend(jm1)) THEN
-      !IF(lnm1 .NE. 0) 
+      !IF(lnm1 .NE. 0)
       lnm1 = node(i-1, jm1)
       Al(l, k) = Al(l, k) - RadOffDiag1g(3, l, k0) * Ainvl(i) * RadOffDiag1g(1, lnm1, k0)
     ENDIF
-    
+
     !Upper Diagoanl Part
     Au(i) = RadOffDiag1g(4, l, k0)
     IF(i .NE. nxend(j) .AND. (i+1) .GE. nxbeg(jm1) .AND. (i+1).le.nxend(jm1)) then
       !IF(lnp1 .NE. 0)
-      lnp1 = node(i+1, jm1)  
+      lnp1 = node(i+1, jm1)
       Au(i) = Au(i) - RadOffDiag1g(3, l, k0) * Ainvu(i) * RadOffDiag1g(1, lnp1, k0)
     ENDIF
   ENDDO
   CONTINUE
 ENDDO
 CALL FactorizeILU1D(ny, k)
-END SUBROUTINE 
+END SUBROUTINE
 
 SUBROUTINE FactorizeILU2D2G(iz)   !FacILU
 USE MAT2x2OP
@@ -714,9 +714,9 @@ DO j = 2, ny
     ENDIF
 
     !Lower Diagonal Part
-    Al2G(:, l, k) = RadOffDiag2g(:, 2, l, k0)     
+    Al2G(:, l, k) = RadOffDiag2g(:, 2, l, k0)
     IF(i .NE. nxbeg(j) .AND. (i-1) .GE. nxbeg(jm1) .AND. (i-1) .LE. nxend(jm1)) THEN
-      !IF(lnm1 .NE. 0) 
+      !IF(lnm1 .NE. 0)
       lnm1 = node(i-1, jm1)
       Al2G(:, l, k) = Al2G(:, l, k) - MULTI_MATOP(RadOffDiag2g(:, 3, l, k0), Ainvl2g(:, i), RadOffDiag2g(:, 1, lnm1, k0))
     ENDIF
@@ -725,13 +725,13 @@ DO j = 2, ny
     Au2g(:, i) = RadOffDiag2g(:, 4, l, k0)
     IF(i .NE. nxend(j) .AND. (i+1) .GE. nxbeg(jm1) .AND. (i+1).le.nxend(jm1)) then
       !IF(lnp1 .NE. 0)
-      lnp1 = node(i+1, jm1)  
+      lnp1 = node(i+1, jm1)
       Au2G(:, i) = Au2G(:, i) - MULTI_MATOP(RadOffDiag2g(:, 3, l, k0), Ainvu2G(:, i), RadOffDiag2g(:, 1, lnp1, k0))
     ENDIF
-  ENDDO  
+  ENDDO
 ENDDO
 CALL FactorizeILU1D2g(ny, k)
-END SUBROUTINE 
+END SUBROUTINE
 
 SUBROUTINE FactorizeILU1D(irow, iz)
 INTEGER :: irow, iz
@@ -749,7 +749,7 @@ Deliau(l, k) = DelInv(l, k) * Au(i)
 im1 = i
 DO i = nxbeg(irow) + 1, nxend(irow)
   lm1 = l                     !previous row index
-  l = node(i, irow)           !current row index    
+  l = node(i, irow)           !current row index
   ald1 = al(l, k) * DelInv(lm1, k)
   Del(i) = Del(i) - ald1 * Au(im1)
   DelInv(l, k) = 1 / Del(i)
@@ -777,7 +777,7 @@ Deliau2g(:, l, k) = SUBMATOP(DelInv2g(:, l, k), Au2g(:, i))
 im1 = i
 DO i = nxbeg(irow) + 1, nxend(irow)
   lm1 = l                     !previous row index
-  l = node(i, irow)           !current row index    
+  l = node(i, irow)           !current row index
   ald1(:) = SUBMATOP(al2g(:, l, k), DelInv2g(:, lm1, k))
   Del2g(:, i) = Del2g(:, i) - SUBMATOP(ald1, Au2g(:, im1))
   DelInv2g(:, l, k) = MATINV(Del2g(:, i))
@@ -788,7 +788,7 @@ ENDDO
 !im1 = i
 !DO i = nxbeg(irow) + 1, nxend(irow)
 !  lm1 = l                     !previous row index
-!  l = node(i, irow)           !current row index    
+!  l = node(i, irow)           !current row index
 !  ald1 = al(l, k) * DelInv(lm1, k)
 !  Del(i) = Del(i) - ald1 * Au(im1)
 !  DelInv(l, k) = 1 / Del(i)
@@ -843,7 +843,7 @@ AInvd2g(:, ix) = DelInv2g(:, l, k)
 DO i = nxend(irow) -1, nxbeg(irow), -1
   lp1 = l;  mp1 = ix
   l = node(i, irow); ix = ix - 1
-  !Lower Index  
+  !Lower Index
   Al1(:) = SUBMATOP(AinvD2g(:, mp1), Al2g(:, lp1, k))
   Ainvl2g(:, mp1) = - SUBMATOP(Al1(:), DelInv2g(:, l, k))
   !Upper Indxe
@@ -908,7 +908,7 @@ SUBROUTINE AllocBiLUVar2G()
 IMPLICIT NONE
 CALL Dmalloc(Au2G, 4, nx);      CALL Dmalloc(Del2G, 4, nx)
 CALL Dmalloc(Ainvl2G, 4, nx);   CALL Dmalloc(Ainvu2G, 4, nx)
-CALL Dmalloc(AinvD2G, 4, nx);   
+CALL Dmalloc(AinvD2G, 4, nx);
 !CALL Dmalloc(Buf2G, 2, nxy)
 CALL Dmalloc(S2g, 2, nxy);   CALL Dmalloc(B02g, 2, nxy)
 !CALL Dmalloc(X0, nxy)
@@ -916,7 +916,7 @@ lPrivateVar2GAlloc = .TRUE.
 END SUBROUTINE
 
 SUBROUTINE AllocBiLUMat(BiLU)
-TYPE(BiLU_TYPE) :: BiLU 
+TYPE(BiLU_TYPE) :: BiLU
 CALL Dmalloc0(BiLU%DelInv, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(BiLU%Deliau, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(BiLU%Al, 1, nxy, myzbf, myzef)
@@ -924,7 +924,7 @@ BiLU%lAlloc = .TRUE.
 END SUBROUTINE
 
 SUBROUTINE AllocBiLUMat2G(BiLU)
-TYPE(BiLU_TYPE) :: BiLU 
+TYPE(BiLU_TYPE) :: BiLU
 CALL Dmalloc0(BiLU%DelInv2G, 1, 4, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(BiLU%Deliau2G, 1, 4, 1, nxy, myzbf, myzef)
 CALL Dmalloc0(BiLU%Al2G, 1, 4, 1, nxy, myzbf, myzef)

@@ -238,7 +238,7 @@ DO ig = 1, ng
       ir = ipin + (izf - 1) * nxy
       ipin_map = pinMap(ipin)
       diagVal = 0.0
-      DO ibd = 1, pin(ipin)%nNgh
+      DO ibd = 1, pin(ipin_map)%nNgh
         Dtil = PinXS(ipin_map, iz)%Dtil(ibd, ig)
         Dhat = PinXS(ipin_map, iz)%Dhat(ibd, ig)
         diagVal(ibd) = - (Dtil + Dhat) * hzfm(izf)
@@ -871,7 +871,7 @@ INTEGER :: nr, nc, nnz
 INTEGER, PARAMETER :: mtype = 1, phase = 12
 INTEGER, POINTER :: csrRowPtr(:), csrColIdx(:)
 REAL, POINTER :: csrVal(:)
-REAL, POINTER :: x(:), b(:)   !--- Dummy
+REAL, ALLOCATABLE :: x(:), b(:)   !--- Dummy
 
 csrVal => M%csrVal
 csrRowPtr => M%csrRowPtr
@@ -936,7 +936,7 @@ INTEGER :: nr, nc, nnz
 INTEGER, PARAMETER :: mtype = 1, phase = -1
 INTEGER, POINTER :: csrRowPtr(:), csrColIdx(:)
 REAL, POINTER :: csrVal(:)
-REAL, POINTER :: x(:), b(:)   !--- Dummy
+REAL, ALLOCATABLE :: x(:), b(:)   !--- Dummy
 
 csrVal => M%csrVal
 csrRowPtr => M%csrRowPtr

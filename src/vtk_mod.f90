@@ -11,7 +11,7 @@ USE Depl_Mod,  ONLY : DeplCntl
 USE Tran_MOD,  ONLY : TranCntl
 IMPLICIT NONE
 TYPE BaseCellVtk_TYPE
-  
+
   REAL, POINTER :: pt(:, :)
   INTEGER, POINTER :: elements(:, :)
   INTEGER, POINTER :: types(:)
@@ -19,7 +19,6 @@ TYPE BaseCellVtk_TYPE
 END TYPE
 
 TYPE CellVtk_TYPE
-  SEQUENCE
   REAL, POINTER :: pt(:, :)
   INTEGER, POINTER :: elements(:, :)
   INTEGER, POINTER :: types(:)
@@ -33,7 +32,6 @@ TYPE CellVtk_TYPE
 END TYPE
 
 TYPE PlaneConfig_TYPE
-  SEQUENCE
   REAL, POINTER :: CellBdPt(:, :, :, :) !(x & y, idx , surf, ixy)
   INTEGER, POINTER :: PtIdx(:, :, :)
   INTEGER, POINTER :: NODE(:, :)
@@ -42,8 +40,7 @@ TYPE PlaneConfig_TYPE
 END TYPE
 
 TYPE VisCntl_TYPE
-  SEQUENCE
-  INTEGER :: VisMod = 1       ! 1 : Plane-wise 2D visualizatoin 2: 3-D visualization 3: 
+  INTEGER :: VisMod = 1       ! 1 : Plane-wise 2D visualizatoin 2: 3-D visualization 3:
   INTEGER :: FluxOutMod = 1   ! 1 : Entire Flux, 2 : 2 Group Condensed
   INTEGER :: ThermalIdxSt     !
   INTEGER :: ThermalIdxSt47G = 36
@@ -127,7 +124,7 @@ DO i = 1, 80
 ENDDO
 i = i-1
 
-!icycle = 0; 
+!icycle = 0;
 !IF(nTracerCntl%lProblem .EQ. lTransient) THEN
 !  icycle = TranCntl%NowWriteStep
 !ELSEIF(nTracerCntl%lProblem .EQ. ldepletion) THEN
@@ -163,8 +160,8 @@ IF(PE%CMFDmaster) THEN
   OPEN(unit = io12, file=fn, status = 'replace')
   WRITE(io12, '(A, 1x, I5)') '!NBLOCKS', nproc
   DO k = 0, nproc-1
-    fn = '' 
-    icycle = 0; 
+    fn = ''
+    icycle = 0;
     !IF(nTracerCntl%lProblem .EQ. lTransient) THEN
     !  icycle = TranCntl%NowWriteStep
     !ELSEIF(nTracerCntl%lProblem .EQ. ldepletion) THEN
@@ -178,7 +175,7 @@ IF(PE%CMFDmaster) THEN
       WRITE(fn,'(A,A,A,I2,A)') caseid(1:i), '_HOM_proc','0', k, '.vtk'
     ELSE
       WRITE(fn,'(A,A,I3,A)') caseid(1:i), '_HOM_proc', k, '.vtk'
-    ENDIF   
+    ENDIF
     !WRITE(fn,'(A,A,A8,A)') caseid(1:i), '_HOM_', OutputId, '.vtk'
     DO j = 1, 100
       IF(fn(j:j)=='') exit
@@ -190,6 +187,94 @@ IF(PE%CMFDmaster) THEN
 ENDIF
 
 END SUBROUTINE
+
+SUBROUTINE ProcessVTK3DModel(Core, FMInfo, GroupInfo, nTracerCntl, PE)
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+
+TYPE(Cell_Type), POINTER :: Cell(:)
+INTEGER :: nCell, ng
+INTEGER :: i, j,  iz,n
+REAL :: FluxNorm0
+
+CHARACTER(256) :: fn, fn0, caseid0
+
+IF(PE%MASTER) PRINT *, 'WRITING VTK file...'
+
+ng = GroupInfo%ng
+Cell => Core%CellInfo
+nCell = Core%nCellType
+
+ALLOCATE(CellVTK(nCell))
+ALLOCATE(CellVTK3D(nCell))
+DO i = 1, nCell
+  IF(.NOT. Cell(i)%luse) CYCLE
+  IF(.NOT. Cell(i)%lRect) THEN
+    CALL MakeAnnualCellVTK(Cell(i), i)
+    IF(Cell(i)%lCentX .OR. Cell(i)%lCentY .OR. Cell(i)%lCentXY) THEN
+      CALL ProcessParialCell(Cell(i), i)
+    ENDIF
+    IF(Cell(i)%lCCell) THEN
+      CALL ProcessParialCell(Cell(i), i)
+    ENDIF
+  ENDIF
+  IF(Cell(i)%lRect) THEN
+    CALL MakeRectCellVTK(Cell(i), i)
+  ENDIF
+  CALL ConvertCellVTK3D(i)
+ENDDO
+
+DO i = 1, 80
+  if(caseid(i:i) .EQ. '') EXIT
+ENDDO
+i = i-1
+caseid0(1:i) = caseid(1:i)
+
+DO iz = PE%myzb, PE%myze
+  IF(iz .LT. 10) THEN
+    WRITE(fn,'(A,A,A,I1,A)') caseid0(1:i), '_3Dpln','00', iz, '.vtk'
+    WRITE(fn_base,'(A,A,A,I1,A)') caseid0(1:i), '_3Dpln','00', iz
+  ELSEIF(iz .LT.100) THEN
+    WRITE(fn,'(A,A,A,I2,A)') caseid0(1:i), '_3Dpln','0', iz, '.vtk'
+    WRITE(fn_base,'(A,A,A,I2,A)') caseid0(1:i), '_3Dpln','0', iz
+  ELSE
+    WRITE(fn,'(A,A,I3,A)') caseid0(1:i), '_3Dpln', iz, '.vtk'
+    WRITE(fn_base,'(A,A,I3,A)') caseid0(1:i), '_3Dpln', iz
+  ENDIF
+  OPEN(unit=io9, file = fn, status = 'replace')
+  CALL WriteGeomVTK3D(Core, iz)
+  WRITE(io9, '(A, x, 2I10)') 'CELL_DATA', nGlobalelmt(iz)
+
+  CALL Writematerial(Core, FmInfo, iz, nTracerCntl)
+  CLOSE(io9)
+ENDDO
+
+WRITE(fn,'(A,A,A)') caseid0(1:i), '_3D','.visit'
+OPEN(unit = io12, file=fn, status = 'replace')
+WRITE(io12, '(A, 1x, I5)') '!NBLOCKS', COre%nz
+DO iz = 1, CORE%nz
+  fn = ''
+  IF(iz .LT. 10) THEN
+    WRITE(fn,'(A,A,A,I1,A)') caseid0(1:i), '_3Dpln','00', iz, '.vtk'
+  ELSEIF(iz .LT.100) THEN
+    WRITE(fn,'(A,A,A,I2,A)') caseid0(1:i), '_3Dpln','0', iz, '.vtk'
+  ELSE
+    WRITE(fn,'(A,A,I3,A)') caseid0(1:i), '_3Dpln', iz, '.vtk'
+  ENDIF
+  DO j = 1, 80
+    if(fn(j:j) .EQ. '') EXIT
+  ENDDO
+  j = j-1
+  WRITE(io12, '(A)') fn(1:j)
+ENDDO
+close(io12)
+END SUBROUTINE
+
+
+
 
 SUBROUTINE ProcessVTK3D(Core, FMInfo, CmInfo, PowerDist, ThInfo, GroupInfo, nTracerCntl, PE)
 TYPE(CoreInfo_Type) :: Core
@@ -232,7 +317,7 @@ DO i = 1, nCell
     CALL MakeRectCellVTK(Cell(i), i)
   ENDIF
   CALL ConvertCellVTK3D(i)
-  
+
   !CALL WriteCellVtk3D(i)
 ENDDO
 
@@ -265,14 +350,14 @@ DO iz = PE%myzb, PE%myze
   OPEN(unit=io9, file = fn, status = 'replace')
   CALL WriteGeomVTK3D(Core, iz)
   WRITE(io9, '(A, x, 2I10)') 'CELL_DATA', nGlobalelmt(iz)
-  
+
   CALL WriteFlux(Core, FmInfo, fluxnorm0, ng, iz)
   CALL WritePower(Core, FmInfo, PowerDist, ThInfo, GroupInfo, iz, nTracerCntl, PE)
   IF(nTracerCntl%lFeedback) THEN
     CALL WritetEMP(Core, FmInfo, PowerDist, ThInfo, GroupInfo, iz, nTracerCntl)
     CALL WriteCoolTemp(Core, FmInfo, PowerDist, ThInfo, GroupInfo, iz, nTracerCntl)
   ENDIF
-  
+
   CLOSE(io9)
 ENDDO
 
@@ -332,7 +417,7 @@ DO i = 1, nCell
     IF(Cell(i)%lCCell) THEN
       CALL ProcessParialCell(Cell(i), i)
     ENDIF
-    
+
   ENDIF
   IF(Cell(i)%lRect) THEN
     CALL MakeRectCellVTK(Cell(i), i)
@@ -384,7 +469,7 @@ DO iz = PE%myzb, PE%myze
   !CALL  WriteGeomVtk(Core, iz)
   !WRITE Cell Data
   WRITE(io9, '(A, x, 2I10)') 'CELL_DATA', nGlobalelmt(iz)
-  
+
   CALL WriteFlux(Core, FmInfo, fluxnorm0, ng, iz)
   CALL WritePower(Core, FmInfo, PowerDist, ThInfo, GroupInfo, iz, nTracerCntl, PE)
   IF(nTracerCntl%lFeedback) THEN
@@ -396,6 +481,98 @@ DO iz = PE%myzb, PE%myze
 ENDDO
 END SUBROUTINE
 
+SUBROUTINE ProcessVTK2DplnModel(Core, FMInfo,  GroupInfo, nTracerCntl, PE)
+  TYPE(CoreInfo_Type) :: Core
+  TYPE(FmInfo_Type) :: FmInfo
+  TYPE(GroupInfo_Type) :: GroupInfo
+  TYPE(nTracerCntl_Type) :: nTracerCntl
+  TYPE(PE_Type) :: PE
+
+  TYPE(Cell_Type), POINTER :: Cell(:)
+  INTEGER :: nCell, ng
+  INTEGER :: i, iz,n
+
+  CHARACTER(256) :: fn, fn0,caseid0
+
+  REAL :: fluxnorm0
+
+  IF(PE%MASTER) PRINT *, 'WRITING VTK file...'
+
+  ng = GroupInfo%ng
+  Cell => Core%CellInfo
+  nCell = Core%nCellType
+
+  ALLOCATE(CellVTK(nCell))
+  DO i = 1, nCell
+    IF(.NOT. Cell(i)%luse) CYCLE
+    IF(.NOT. Cell(i)%lRect) THEN
+      CALL MakeAnnualCellVTK(Cell(i), i)
+      IF(Cell(i)%lCentX .OR. Cell(i)%lCentY .OR. Cell(i)%lCentXY) THEN
+        CALL ProcessParialCell(Cell(i), i)
+      ENDIF
+      IF(Cell(i)%lCCell) THEN
+        CALL ProcessParialCell(Cell(i), i)
+      ENDIF
+
+    ENDIF
+    IF(Cell(i)%lRect) THEN
+      CALL MakeRectCellVTK(Cell(i), i)
+
+    ENDIF
+    CALL BdCellVTK(Cell(i), i)
+  ENDDO
+
+  ALLOCATE(PlaneConfig(PE%myzb:PE%Myze))
+  DO iz = PE%myzb, PE%myze
+    CALL SetPlaneConfig(Core, iz)
+  ENDDO
+
+  !Find case id
+  DO i = 1, 80
+    if(caseid(i:i) .EQ. '') EXIT
+  ENDDO
+  i = i-1
+  caseid0(1:i) = caseid(1:i)
+  IF(nTracerCntl%CalNoId .LT. 10) THEN
+    WRITE(caseid0(i+1:256),'(A, A, I1)') '_cycle', '00', nTracerCntl%CalNoId
+  ELSEIF(nTracerCntl%CalNoId .LT. 100) THEN
+    WRITE(caseid0(i+1:256),'(A, A, I2)') '_cycle', '0', nTracerCntl%CalNoId
+  ELSE
+    WRITE(caseid0(i+1:256),'(A, I3)') '_cycle', nTracerCntl%CalNoId
+  ENDIF
+  i=i+9
+
+  iz = 1
+  DO iz = PE%myzb, PE%myze
+    IF(iz .LT. 10) THEN
+      !WRITE(fn,'(A,A)') caseid0(1:i), '.vtk'
+      !WRITE(fn_base,'(A,A)') caseid0(1:i)
+      WRITE(fn,'(A,A,A,I1,A)') caseid0(1:i), '_pln','00', iz, '.vtk'
+      WRITE(fn_base,'(A,A,A,I1,A)') caseid0(1:i), '_pln','00', iz
+    ELSEIF(iz .LT.100) THEN
+      WRITE(fn,'(A,A,A,I2,A)') caseid0(1:i), '_pln','0', iz, '.vtk'
+      WRITE(fn_base,'(A,A,A,I2,A)') caseid0(1:i), '_pln','0', iz
+    ELSE
+      WRITE(fn,'(A,A,I3,A)') caseid0(1:i), '_pln', iz, '.vtk'
+      WRITE(fn_base,'(A,A,I3,A)') caseid0(1:i), '_pln', iz
+    ENDIF
+    !WRITE(fn,'(A,A,A,I1,A)') caseid0(1:i), '.vtk'
+    !WRITE(fn_base,'(A,A,A,I1,A)') caseid0(1:i)
+    OPEN(unit=io9, file = fn, status = 'replace')
+
+    CALL WriteGeomVTK2D(Core, iz)
+    !CALL  WriteGeomVtk(Core, iz)
+    !WRITE Cell Data
+    WRITE(io9, '(A, x, 2I10)') 'CELL_DATA', nGlobalelmt(iz)
+
+    CALL Writematerial(Core ,FmInfo , iz, nTracerCntl)
+
+    CLOSE(io9)
+  ENDDO
+  END SUBROUTINE
+
+
+
 SUBROUTINE SetPlaneConfig(Core, iz)
 USE PARAM
 USE ALLOCS
@@ -404,7 +581,7 @@ USE UtilFunction,   ONLY : Array2DSORT
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
-INTEGER :: iz 
+INTEGER :: iz
 
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: Cell(:)
@@ -481,18 +658,18 @@ DO iy = 0, ny
   k = 0
   DO ix = 1, nx
     ixy1 = NODE(ix, iy); ixy2 = NODE(ix, iy +1)
-#ifndef CENT_OPT    
+#ifndef CENT_OPT
     IF(ixy1 .NE. 0) THEN
       icel1 = Pin(ixy1)%Cell(iz)
       IF(Cell(icel1)%lCentX) ixy1=0
       IF(Cell(icel1)%lCentY) ixy1=0
       IF(Cell(icel1)%lCentXY) ixy1=0
-    ENDIF 
+    ENDIF
     IF(ixy2 .NE. 0) THEN
       icel2 = Pin(ixy2)%Cell(iz)
       IF(Cell(icel2)%lCentX) ixy2=0
       IF(Cell(icel2)%lCentY) ixy2=0
-      IF(Cell(icel2)%lCentXY) ixy2=0      
+      IF(Cell(icel2)%lCentXY) ixy2=0
     ENDIF
 #endif
     IF(ixy1 .EQ. 0 .AND. ixy2 .EQ. 0) CYCLE
@@ -539,7 +716,7 @@ DO iy = 0, ny
         PlaneConfig(iz)%CellBdPT(1:2, i, isurf2, ixy2) = (/Pt(1, i), y2/)
         PlaneConfig(iz)%PtIdx(i, isurf2, ixy2) = npt
       ENDIF
-    ENDDO      
+    ENDDO
   ENDDO
 ENDDO
 
@@ -554,16 +731,16 @@ DO ix = 0, nx
       IF(Cell(icel1)%lCentX) ixy1=0
       IF(Cell(icel1)%lCentY) ixy1=0
       IF(Cell(icel1)%lCentXY) ixy1=0
-    ENDIF 
+    ENDIF
     IF(ixy2 .NE. 0) THEN
       icel2 = Pin(ixy2)%Cell(iz)
       IF(Cell(icel2)%lCentX) ixy2=0
       IF(Cell(icel2)%lCentY) ixy2=0
-      IF(Cell(icel2)%lCentXY) ixy2=0      
-    ENDIF    
+      IF(Cell(icel2)%lCentXY) ixy2=0
+    ENDIF
 #endif
     IF(ixy1 .EQ. 0 .AND. ixy2 .EQ. 0) CYCLE
-    
+
     icel1 = 0; icel2 = 0; m = 0
     IF(ixy1 .NE. 0) THEN
       icel1 = Pin(ixy1)%Cell(iz)
@@ -583,7 +760,7 @@ DO ix = 0, nx
     CALL Array2DSORT(pt(1, 1:m), pt(2, 1:m), m, n, .FALSE., .TRUE., 2)
 
     IF(ixy1 .NE. 0) THEN
-      l = PlaneConfig(iz)%PtIdx(0, 3, ixy1); l = PlaneConfig(iz)%PtIdx(l, 3, ixy1) 
+      l = PlaneConfig(iz)%PtIdx(0, 3, ixy1); l = PlaneConfig(iz)%PtIdx(l, 3, ixy1)
     ELSE
       l = PlaneConfig(iz)%PtIdx(1, 3, ixy2)
     ENDIF
@@ -611,7 +788,7 @@ DO ix = 0, nx
         PlaneConfig(iz)%PtIdx(i, isurf2, ixy2) = npt
       ENDIF
     ENDDO
-     
+
     i = n
     IF(ixy1 .NE. 0) THEN
       l = PlaneConfig(iz)%PtIdx(0, 1, ixy1);l = PlaneConfig(iz)%PtIdx(l, 1, ixy1)
@@ -625,8 +802,8 @@ DO ix = 0, nx
     IF(ixy2 .NE. 0) THEN
       PlaneConfig(iz)%CellBdPT(1:2, i, isurf2, ixy2) = (/x2, Pt(2, i)/)
       PlaneConfig(iz)%PtIdx(i, isurf2, ixy2) = l
-    ENDIF 
-    CONTINUE   
+    ENDIF
+    CONTINUE
   ENDDO
 ENDDO
 PlaneConfig(iz)%npt = npt
@@ -683,7 +860,7 @@ DO iy = 1, ny
 ENDDO
 Z(0) = 0
 DO iz = 1, nz
-  Z(iz) = Z(iz-1) + Core%hz(iz)  
+  Z(iz) = Z(iz-1) + Core%hz(iz)
 ENDDO
 
 WRITE(io9, '(A)') '# vtk DataFile Version 3.0'
@@ -754,7 +931,7 @@ DO iy = 1, ny
 ENDDO
 Z(0) = 0
 DO iz = 1, nz
-  Z(iz) = Z(iz-1) + Core%hz(iz)  
+  Z(iz) = Z(iz-1) + Core%hz(iz)
 ENDDO
 npt = 0
 DO iz = myzb - 1, myze
@@ -1008,7 +1185,7 @@ ndat = 0
 nelmt = 0
 DO ixy = 1, nxy
   icel = Pin(ixy)%Cell(iz)
-#ifndef CENT_OPT  
+#ifndef CENT_OPT
   IF(Cell(icel)%lCentX) CYCLE
   IF(Cell(icel)%lCentY) CYCLE
   IF(Cell(icel)%lCentXY) CYCLE
@@ -1053,7 +1230,7 @@ DO
 ENDDO
 10 continue
 WRITE(io9, '(A, x, 2I10)') 'CELL_TYPES', nelmt
-DO 
+DO
   READ(io11, *, END = 11)  dat(0)
   WRITE(io9, '(50I8)') dat(0)
 ENDDO
@@ -1093,7 +1270,7 @@ DO ixy = 1, nxy
   IF(Cell(icel)%lCentX) CYCLE
   IF(Cell(icel)%lCentY) CYCLE
   IF(Cell(icel)%lCentXY) CYCLE
-#endif  
+#endif
   npt = npt + CellVtk(icel)%ninpt
 ENDDO
 nGlobalPt(IZ) = NPT
@@ -1109,14 +1286,14 @@ DO iy = 0, ny
       IF(Cell(icel1)%lCentX) ixy1=0
       IF(Cell(icel1)%lCentY) ixy1=0
       IF(Cell(icel1)%lCentXY) ixy1=0
-    ENDIF 
+    ENDIF
     IF(ixy2 .NE. 0) THEN
       icel2 = Pin(ixy2)%Cell(iz)
       IF(Cell(icel2)%lCentX) ixy2=0
       IF(Cell(icel2)%lCentY) ixy2=0
-      IF(Cell(icel2)%lCentXY) ixy2=0      
+      IF(Cell(icel2)%lCentXY) ixy2=0
     ENDIF
-#endif    
+#endif
     IF(ixy1 .EQ. 0 .AND. ixy2 .EQ. 0) CYCLE
     icel1 = 0; icel2 = 0;
     IF(ixy1 .NE. 0) THEN
@@ -1135,7 +1312,7 @@ DO iy = 0, ny
     ELSE
       icel2 = Pin(ixy2)%Cell(iz)
       m = PlaneConfig(iz)%PtIdx(0, isurf2, ixy2)
-      CX0 = PlaneConfig(iz)%CX(ix); CY0 = PlaneConfig(iz)%CY(iy+1)      
+      CX0 = PlaneConfig(iz)%CX(ix); CY0 = PlaneConfig(iz)%CY(iy+1)
       DO i = 1, m
         n0 = PlaneConfig(iz)%PtIdx(i, isurf2, ixy2)
         IF(n .LT. n0) THEN
@@ -1144,8 +1321,8 @@ DO iy = 0, ny
           WRITE(io9, '(3F25.7)') X, Y, hz
           n = n0
         ENDIF
-      ENDDO      
-    ENDIF    
+      ENDDO
+    ENDIF
   ENDDO
 ENDDO
 DO ix = 0, nx
@@ -1158,14 +1335,14 @@ DO ix = 0, nx
       IF(Cell(icel1)%lCentX) ixy1=0
       IF(Cell(icel1)%lCentY) ixy1=0
       IF(Cell(icel1)%lCentXY) ixy1=0
-    ENDIF 
+    ENDIF
     IF(ixy2 .NE. 0) THEN
       icel2 = Pin(ixy2)%Cell(iz)
       IF(Cell(icel2)%lCentX) ixy2=0
       IF(Cell(icel2)%lCentY) ixy2=0
-      IF(Cell(icel2)%lCentXY) ixy2=0      
+      IF(Cell(icel2)%lCentXY) ixy2=0
     ENDIF
-#endif     
+#endif
     IF(ixy1 .EQ. 0 .AND. ixy2 .EQ. 0) CYCLE
     icel1 = 0; icel2 = 0;
     IF(ixy1 .NE. 0) THEN
@@ -1184,7 +1361,7 @@ DO ix = 0, nx
     ELSE
       icel2 = Pin(ixy2)%Cell(iz)
       m = PlaneConfig(iz)%PtIdx(0, isurf2, ixy2)
-      CX0 = PlaneConfig(iz)%CX(ix+1); CY0 = PlaneConfig(iz)%CY(iy)      
+      CX0 = PlaneConfig(iz)%CX(ix+1); CY0 = PlaneConfig(iz)%CY(iy)
       DO i = 1, m
         n0 = PlaneConfig(iz)%PtIdx(i, isurf2, ixy2)
         IF(n .LT. n0) THEN
@@ -1193,8 +1370,8 @@ DO ix = 0, nx
           WRITE(io9, '(3F25.7)') X, Y, hz
           n = n0
         ENDIF
-      ENDDO      
-    ENDIF    
+      ENDDO
+    ENDIF
   ENDDO
 ENDDO
 
@@ -1228,7 +1405,7 @@ TYPE(Pin_TYPE), POINTER :: Pin(:)
 
 REAL :: BdPtList1(2, 500), BdPtList2(2, 500)
 INTEGER :: BdIdxList1(0:500), BdIdxList2(0:500)
-INTEGER :: BdIdxList1_chk(0:500), BdIdxList2_chk(0:500) 
+INTEGER :: BdIdxList1_chk(0:500), BdIdxList2_chk(0:500)
 INTEGER :: SurfList(4), PtDir(4)
 INTEGER :: PtIdxMap(500), BdPtLoc1(500), BdPtLoc2(500)
 INTEGER :: BaseElmt(0:50), Elmt(0:50, 500)
@@ -1288,7 +1465,7 @@ ENDDO
 DO i = 1, CellVTK(icel)%npt
   IF(.NOT. CellVTK(icel)%lBdPt(i)) CYCLE
   !Seach Idx
-  x1 = CellVTK(icel)%Pt(1, i); y1 = CellVTK(icel)%Pt(2,i) 
+  x1 = CellVTK(icel)%Pt(1, i); y1 = CellVTK(icel)%Pt(2,i)
   DO j = 1, BdIdxList1(0)
     x2 = BdPtList1(1, j); y2 = BdPtList1(2, j)
     z = (x1-x2)**2 + (y2-y1)**2
@@ -1304,7 +1481,7 @@ DO i = 1, CellVTK(icel)%nelmt
   l = CellVTK(icel)%Elements(0,i)
   BaseElmt(0:l) =  CellVTK(icel)%Elements(0:l, i)
   BaseElmt(l+1) = BaseElmt(1)
-  BaseElmt(1:l+1) = BaseElmt(1:l+1) +1 
+  BaseElmt(1:l+1) = BaseElmt(1:l+1) +1
   Idx0 = BaseElmt(1)
   Elmt(1, i) = PtIdxMap(idx0)
   lBdpt0 = CellVTK(icel)%lbdpt(idx0)
@@ -1325,24 +1502,24 @@ DO i = 1, CellVTK(icel)%nelmt
 !          EXIT
 !        ENDIF
 !      ENDDO
-!      
+!
 !      DO k = ist2+1, iend2-1, 1
 !        IF(BdIdxList2_chk(k) .LT. 0) THEN
 !          lElmt_In = .TRUE.
 !          EXIT
-!        ENDIF        
+!        ENDIF
 !      ENDDO
     ENDIF
     IF(lElmt_In) THEN
       IF(ist1 .EQ. 1) ist1 = BdIdxList1(0)
       IF(ist2 .EQ. BdIdxList1(0)) ist2 = 1
       IF(iend1 .EQ. 1) iend1 = BdIdxList1(0)
-      IF(iend2 .EQ. BdIdxList1(0)) iend2 = 1  
+      IF(iend2 .EQ. BdIdxList1(0)) iend2 = 1
       lElmt_In = .FALSE.
       CALL Chk_InElmt(lElmt_In, ist1, iend1, ist2, iend2, BdIdxList1_chk(0:500), BdIdxList2_chk(0:500))
       IF(lElmt_In) THEN
         ist1 = BdPtLoc1(idx0); iend1 = BdPtLoc1(idx)
-        ist2 = BdPtLoc2(idx0); iend2 = BdPtLoc2(idx) 
+        ist2 = BdPtLoc2(idx0); iend2 = BdPtLoc2(idx)
       ENDIF
     ENDIF
     IF(.NOT. lBdPt .OR. .NOT. lBdPt0 .OR. lElmt_In) THEN
@@ -1363,7 +1540,7 @@ DO i = 1, CellVTK(icel)%nelmt
     ELSE
       DO k = ist2 + 1, iend2
         n = n + 1
-        Elmt(n, i) = BdIdxList2(k)      
+        Elmt(n, i) = BdIdxList2(k)
       ENDDO
       Idx0 = idx
       lBdPt0 = lBdPt
@@ -1405,7 +1582,7 @@ DO k = ist2+1, iend2-1, 1
   IF(BdIdxList2_chk(k) .LT. 0) THEN
     lElmt_In = .TRUE.
     EXIT
-  ENDIF        
+  ENDIF
 ENDDO
 END SUBROUTINE
 
@@ -1579,16 +1756,16 @@ Fxr => FmInfo%Fxr; Phis => FmInfo%Phis
 Pin => Core%Pin; CellInfo => Core%CellInfo
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
    ! IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j) 
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     myFxr => Fxr(ifxr, iz)
 
     DO i = 1, nFsrInFxr
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i,j)
-      ifsr = FsrIdxSt + ifsrlocal - 1  
+      ifsr = FsrIdxSt + ifsrlocal - 1
       FsrTemp(ifsrlocal) = myFxr%temp - CKELVIN
 
     ENDDO
@@ -1645,21 +1822,79 @@ Fxr => FmInfo%Fxr; Phis => FmInfo%Phis
 Pin => Core%Pin; CellInfo => Core%CellInfo
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
    ! IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j) 
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     myFxr => Fxr(ifxr, iz)
 
     DO i = 1, nFsrInFxr
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i,j)
-      ifsr = FsrIdxSt + ifsrlocal - 1  
+      ifsr = FsrIdxSt + ifsrlocal - 1
       FsrBurnup(ifsrlocal) = myFxr%burnup
     ENDDO
   ENDDO
   DO i = 1, CellInfo(icel)%nFsr
     WRITE(io9, '(e20.6)') FsrBurnup(i)
+  ENDDO
+ENDDO
+END SUBROUTINE
+
+SUBROUTINE Writematerial(Core, FmInfo, iz, nTracerCntl)
+USE PARAM
+USE TYPEDEF,          ONLY : FxrInfo_Type
+USE BasicOperation,   ONLY : CP_CA, CP_VA, MULTI_VA
+USE TH_Mod,           ONLY : GetPinFuelTemp
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+INTEGER :: iz
+
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :), myFxr
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+REAL, POINTER :: Phis(:, :, :)
+
+REAL, POINTER :: EQXS(:, :)
+REAL, POINTER :: xsmackf(:)
+REAL, POINTER :: pnum(:), SubGrpLv(:, :)
+INTEGER, POINTER :: idiso(:)
+REAL :: pwsum, volsum, volsum0
+INTEGER :: FsrMaterial(500)
+REAL :: TempRef, Temp, TempSubGrp, XsMacNfold
+INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nLocalFsr, nFsrInFxr
+INTEGER :: ng, nFsr, nFxr, nxy, nz, myzb, myze, norg, nchi, niso
+INTEGER :: ixy, ixy0, ixya, icel, ifxr, ifsr, ifsrlocal, itype, ig
+LOGICAL :: lXsLib, lRes
+INTEGER :: i, j
+
+lXsLib = nTracerCntl%lXsLib
+nxy = Core%nxy
+nFsr = Core%nCoreFsr;   nFxr = Core%nCoreFxr
+nxy = Core%nxy
+
+WRITE(io9, '(A, 2x, A, 2x, a, 2x, I1)') 'SCALARS', 'Material', 'int', 1
+WRITE(io9, '(A)') 'LOOKUP_TABLE default'
+Fxr => FmInfo%Fxr; Phis => FmInfo%Phis
+Pin => Core%Pin; CellInfo => Core%CellInfo
+DO ixy = 1, nxy
+  FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
+  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
+  DO j = 1, nLocalFxr
+    ifxr = FxrIdxSt + j -1
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    myFxr => Fxr(ifxr, iz)
+    DO i = 1, nFsrInFxr
+      ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i,j)
+      ifsr = FsrIdxSt + ifsrlocal - 1
+      FsrMaterial(ifsrlocal) = myFxr%imix
+    ENDDO
+  ENDDO
+  DO i = 1, CellInfo(icel)%nFsr
+    WRITE(io9, '(I3)') FsrMaterial(i)
   ENDDO
 ENDDO
 END SUBROUTINE
@@ -1711,16 +1946,16 @@ Fxr => FmInfo%Fxr; Phis => FmInfo%Phis
 Pin => Core%Pin; CellInfo => Core%CellInfo
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
    ! IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j) 
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     myFxr => Fxr(ifxr, iz)
-  
+
     DO i = 1, nFsrInFxr
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i,j)
-      ifsr = FsrIdxSt + ifsrlocal - 1  
+      ifsr = FsrIdxSt + ifsrlocal - 1
       FsrTemp(ifsrlocal) = TCOOL(iz, ixy)
     ENDDO
   ENDDO
@@ -1737,8 +1972,9 @@ USE TYPEDEF,          ONLY : FxrInfo_Type,        XsMac_Type, PE_Type
 USE MacXsLib_mod,     ONLY : EffMacXS,            EffRIFPin,        MacXsBase
 USE XsUtil_mod,       ONLY : AllocXsMac
 USE BasicOperation,   ONLY : CP_CA, CP_VA, MULTI_VA
-USE BenchXs,          ONLY : xskfBen
+USE BenchXs,          ONLY : xskfBen,             xskfDynBen
 !USE TH_Mod,           ONLY : GetPinFuelTemp
+USE TRAN_MOD,         ONLY : TranInfo
 IMPLICIT NONE
 
 TYPE(PE_Type) :: PE
@@ -1787,37 +2023,41 @@ Fxr => FmInfo%Fxr; Phis => FmInfo%Phis
 Pin => Core%Pin; CellInfo => Core%CellInfo
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
-  PinPower =0 
+  icel = Pin(ixy)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
+  PinPower =0
   !lAIC = CellInfo(icel)%lAIC
   !PinFuelTempAvgsq = dsqrt(GetPinFuelTemp(Core, FmInfo%Fxr, iz, ixy))
   !IF (ResVarPin(ixy,iz)%lres.and.nTracerCntl%lRIF) CALL EffRIFPin(ResVarPin(ixy,iz), PinFuelTempAvgsq, iz, lAIC, PE)
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j -1
     IF(.NOT. Fxr(ifxr, iz)%lFuel) CYCLE
-    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j) 
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     myFxr => Fxr(ifxr, iz)
     IF(lXsLib) Then
-      niso = myFxr%niso; 
+      niso = myFxr%niso;
       CALL MacXsBase(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE)
       XsMackf => XsMac%XsMackf
       IF(myFxr%lRes) THEN
         DO ig = iResoGrp1, iResoGrp2
           !XsMacFold = XsMac%XsMacF(ig)
-          !CALL EffMacXs(XsMac, ResVarPin(ixy,iz), myFxr, PinFuelTempAvgsq, niso, ig, ng, .TRUE., iz, ixy, j, PE) 
+          !CALL EffMacXs(XsMac, ResVarPin(ixy,iz), myFxr, PinFuelTempAvgsq, niso, ig, ng, .TRUE., iz, ixy, j, PE)
           !IF(XsMacFold .gt. epsm8) THEN
-            XsMac%XsMacKF(ig) = XsMac%XsMacF(ig) * myFxr%fresoF(ig)
+            XsMac%XsMacKF(ig) = XsMac%XsMacKF(ig) * myFxr%fresokf(ig)
           !ENDIF
         ENDDO
-      ENDIF  
-    ELSE    
+      ENDIF
+    ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
       itype = myFxr%imix
-      CALL xskfben(itype, 1, ng, xsmackf)      
+      IF(nTracerCntl%lDynamicBen) THEN
+        CALL xskfDynben(itype, TranInfo%fuelTemp(ixy, iz), 1, ng, xsmackf)
+      ELSE
+      CALL xskfben(itype, 1, ng, xsmackf)
+    ENDIF
     ENDIF
     DO i = 1, nFsrInFxr
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(i,j)
-      ifsr = FsrIdxSt + ifsrlocal - 1  
+      ifsr = FsrIdxSt + ifsrlocal - 1
       PinPower(ifsrlocal) = 0
       DO ig= 1, ng
         PinPower(ifsrlocal) = PinPower(ifsrlocal) + XsMackf(ig) * phis(ifsr, iz, ig)
@@ -1868,7 +2108,7 @@ DO ig = 1, ng
   WRITE(io9, '(A)') 'LOOKUP_TABLE default'
   DO l = 1, Core%nxy
     FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
-#ifndef CENT_OPT    
+#ifndef CENT_OPT
     IF(Cell(icel)%lCentX) CYCLE
     IF(Cell(icel)%lCentY) CYCLE
     IF(Cell(icel)%lCentXY) CYCLE
@@ -1876,7 +2116,7 @@ DO ig = 1, ng
     DO j = 1, Cell(icel)%nFsr
       ireg = FsrIdxSt + j - 1
       WRITE(io9, '(e20.6)') FmInfo%Phis(ireg, iz, ig)*normalizer
-    ENDDO  
+    ENDDO
   ENDDO
   WRITE(io9, '(e20.6)')
 ENDDO
@@ -1909,11 +2149,11 @@ DO iz = myzb, myze
   DO ixy = 1, nxy
     pwsum = 0
     DO ig = 1, ng
-      pwsum = pwsum + CmInfo%PhiC(ixy, iz, ig)*CmInfo%PinXs(ixy, iz)%xskf(ig) 
+      pwsum = pwsum + CmInfo%PhiC(ixy, iz, ig)*CmInfo%PinXs(ixy, iz)%xskf(ig)
     ENDDO
     pwsum = pwsum * normalizer
     WRITE(io9, '(e20.6)') pwsum
-  ENDDO    
+  ENDDO
 ENDDO
 DEALLOCATE(NODE)
 END SUBROUTINE
@@ -1952,7 +2192,7 @@ DO ig = 1, ng
     DO ixy = 1, nxy
       flux = CmInfo%PhiC(ixy, iz, ig)* normalizer
       WRITE(io9, '(e20.6)') flux
-    ENDDO    
+    ENDDO
   ENDDO
 ENDDO
 DEALLOCATE(NODE)
@@ -1979,11 +2219,11 @@ DO iz = myzb, myze
     WRITE(io9, '(e20.6)') ThInfo%TCool(iz, ixy)
     !pwsum = 0
     !DO ig = 1, ng
-    !  pwsum = pwsum + CmInfo%PhiC(ixy, iz, ig)*CmInfo%PinXs(ixy, iz)%xskf(ig) 
+    !  pwsum = pwsum + CmInfo%PhiC(ixy, iz, ig)*CmInfo%PinXs(ixy, iz)%xskf(ig)
     !ENDDO
     !pwsum = pwsum * normalizer
     !WRITE(io9, '(e20.6)') pwsum
-  ENDDO    
+  ENDDO
 ENDDO
 
 END SUBROUTINE
@@ -1999,7 +2239,7 @@ INTEGER :: myzb, myze
 INTEGER :: nxy, nx, ny
 INTEGER :: i, ig, iz, ixy, ix, iy
 INTEGER, POINTER :: NODE(:, :)
-INTEGER :: navg 
+INTEGER :: navg
 REAL :: temp
 nxy =  COre%nxy; nx = Core%nx; ny = Core%ny
 navg = THVar%npr5
@@ -2012,8 +2252,8 @@ DO iz = myzb, myze
     IF(Core%Pin(ixy)%lfuel) THEN
       Temp = ThInfo%FuelTh(ixy)%tfuel(navg, iz)
     ENDIF
-    WRITE(io9, '(e20.6)') Temp 
-  ENDDO    
+    WRITE(io9, '(e20.6)') Temp
+  ENDDO
 ENDDO
 
 END SUBROUTINE
@@ -2031,7 +2271,7 @@ INTEGER :: i, j, nbdpt, nbdpt0(4)
 REAL :: z, x(2), line(3)
 REAL :: bdpt(2, 100, 4)
 
-!Search Boundary Points 
+!Search Boundary Points
 nbdpt = 0
 ALLOCATE(CellVTK(icel)%lbdPT(CellVTK(icel)%npt))
 CellVTK(icel)%lbdPT = .FALSE.
@@ -2043,13 +2283,13 @@ DO j = 1, 4
     IF(abs(z) .LT. 1.e-5) THEN   !Checking the points in the cell boundary
       IF(.NOT. CellVTK(icel)%lbdPT(i)) nbdpt = nbdpt + 1
       CellVTK(icel)%lbdPT(i) = .TRUE.
-      
+
     ENDIF
   ENDDO
 ENDDO
 CellVTK(icel)%nbdpt = nbdpt
 CellVTK(icel)%ninpt = CellVTK(icel)%npt - nbdpt
-!Serach Boundary Points 
+!Serach Boundary Points
 CALL DMALLOC(CellVTK(icel)%BdDel,100, 4)
 CALL Dmalloc(CellVTK(icel)%BdPtList, 2, 100, 4)
 DO j = 1, 4
@@ -2073,7 +2313,7 @@ DO j = 1, 4
   n = nbdpt0(j)
   IF(l .EQ. 1) THEN
     CALL Array2DSORT(bdpt(1, 1:n, j), bdpt(2, 1:n, j), n, m, .TRUE., .TRUE., l)
-  ELSE 
+  ELSE
     CALL Array2DSORT(bdpt(1, 1:n, j), bdpt(2, 1:n, j), n, m, .FALSE., .TRUE., l)
   ENDIF
   CellVTK(icel)%nbddel(j) = m-1
@@ -2153,7 +2393,7 @@ REAL :: R(100), R_pt(2, 12, 0:100)
 REAL :: lx, ly, x, y, vertex(2,4)
 REAL :: l, cx, cy
 
-LOGICAL :: lreg 
+LOGICAL :: lreg
 
 nCircle = Cell%geom%ncircle
 lx = Cell%Geom%lx; ly = Cell%Geom%ly
@@ -2188,7 +2428,7 @@ IF(Cell%lCCell) THEN
   Vertex = 2 * Vertex
   lx = 2 * lx; ly = 2 * ly
 ENDIF
-  
+
 IF(R(1) .GT. lx/2._8) lReg = .FALSE.
 
 R_pt(1, 1, 0) = 0.5 * (Vertex(1, 1) + Vertex(1,4))
@@ -2254,7 +2494,7 @@ IF(lReg) THEN
     CellVtk(icel)%elements(1, k) = Pt_Idx(j, i)
     CellVtk(icel)%elements(2, k) = Pt_Idx(1, i)
     CellVtk(icel)%elements(3, k) = Pt_Idx(1, i+1)
-    CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)  
+    CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)
     CellVtk(icel)%elements(0, k) = 4
     CellVtk(icel)%types(k) = 9
   ENDDO
@@ -2284,21 +2524,21 @@ ELSE
       ENDDO
     ELSE
       l = sqrt(R(i)*R(i) - lx * lx /4)
-      R_pt(1, 1, i) = R_pt(1, 1, 0) - l ; R_pt(2, 1, i) = R_pt(2, 1, 0) 
+      R_pt(1, 1, i) = R_pt(1, 1, 0) - l ; R_pt(2, 1, i) = R_pt(2, 1, 0)
       R_pt(1, 2, i) =-R(i) / sqrt(2._8);  R_pt(2, 2, i) = R(i) / sqrt(2._8)
       R_pt(1, 3, i) = R_pt(1, 3, 0);      R_pt(2, 3, i) = R_pt(2, 3, 0) + l
-      
+
       R_pt(1, 4, i) = R_pt(1, 3, 0);      R_pt(2, 4, i) = R_pt(2, 3, 0) - l
       R_pt(1, 5, i) =-R(i) / sqrt(2._8);  R_pt(2, 5, i) =-R(i) / sqrt(2._8)
-      R_pt(1, 6, i) = R_pt(1, 5, 0) - l;  R_pt(2, 6, i) = R_pt(2, 5, 0) 
+      R_pt(1, 6, i) = R_pt(1, 5, 0) - l;  R_pt(2, 6, i) = R_pt(2, 5, 0)
 
-      R_pt(1, 7, i) = R_pt(1, 5, 0) + l;  R_pt(2, 7, i) = R_pt(2, 5, 0) 
+      R_pt(1, 7, i) = R_pt(1, 5, 0) + l;  R_pt(2, 7, i) = R_pt(2, 5, 0)
       R_pt(1, 8, i) = R(i) / sqrt(2._8);  R_pt(2, 8, i) =-R(i) / sqrt(2._8)
       R_pt(1, 9, i) = R_pt(1, 7, 0);      R_pt(2, 9, i) = R_pt(2, 7, 0) - l
 
       R_pt(1, 10, i) = R_pt(1, 7, 0);     R_pt(2, 10, i) = R_pt(2, 7, 0) + l
       R_pt(1, 11, i) = R(i) / sqrt(2._8); R_pt(2, 11, i) = R(i) / sqrt(2._8)
-      R_pt(1, 12, i) = R_pt(1, 1, 0) + l; R_pt(2, 12, i) = R_pt(2, 1, 0) 
+      R_pt(1, 12, i) = R_pt(1, 1, 0) + l; R_pt(2, 12, i) = R_pt(2, 1, 0)
     ENDIF
   ENDDO
 
@@ -2306,7 +2546,7 @@ ELSE
   DO j = 1, 12
     k = k + 1
     Pt_Idx(j, 0) = k-1
-  ENDDO  
+  ENDDO
   DO i = 1, nCircle
     IF(R(i) .LT. lx/2._8) THEN
       DO j = 1, 8
@@ -2317,18 +2557,18 @@ ELSE
       DO j = 1, 12
         k = k + 1
         Pt_Idx(j, i) = k-1
-      ENDDO    
+      ENDDO
     ENDIF
   ENDDO
 
   CellVtk(icel)%npt =k+1
   CALL DMALLOC(CellVtk(icel)%pt, 3, k+1)
-  CellVtk(icel)%pt(1:3, k+1) = (/Cell%Geom%cx,Cell%Geom%cy, 0._8/)  
+  CellVtk(icel)%pt(1:3, k+1) = (/Cell%Geom%cx,Cell%Geom%cy, 0._8/)
   k = 0
   DO j = 1, 12
     k = k + 1
     CellVtk(icel)%pt(1:3, k) = (/R_pt(1, j, 0), R_pt(2, j, 0), 0._8/)
-  ENDDO      
+  ENDDO
   DO i = 1, nCircle
     IF(R(i) .LT. lx/2._8) THEN
       DO j = 1, 8
@@ -2339,10 +2579,10 @@ ELSE
       DO j = 1, 12
         k = k + 1
         CellVtk(icel)%pt(1:3, k) = (/R_pt(1, j, i), R_pt(2, j, i), 0._8/)
-      ENDDO      
+      ENDDO
     ENDIF
   ENDDO
-  
+
   nelmt = 8 * (nCircle+1)
   CellVtk(icel)%nelmt = nelmt
   CALL DMALLOC0(CellVtk(icel)%elements, 0, 50, 1, nelmt)
@@ -2355,7 +2595,7 @@ ELSE
     CellVtk(icel)%elements(2, k) = Pt_Idx(3*j+2, 1)
     CellVtk(icel)%elements(3, k) = Pt_Idx(2*j+2, 0)
     CellVtk(icel)%elements(0, k) = 3
-    CellVtk(icel)%types(k) = 5  
+    CellVtk(icel)%types(k) = 5
     k = k + 1
     CellVtk(icel)%elements(1, k) = Pt_Idx(3*j+2, 1)
     CellVtk(icel)%elements(2, k) = Pt_Idx(3*j+3, 1)
@@ -2363,7 +2603,7 @@ ELSE
     CellVtk(icel)%elements(0, k) = 3
     CellVtk(icel)%types(k) = 5
   ENDDO
-  
+
   DO i = 1, nCircle-1
     IF(R(i) .LT. lx/2._8) THEN
       DO j = 1, 7
@@ -2380,7 +2620,7 @@ ELSE
       CellVtk(icel)%elements(1, k) = Pt_Idx(j, i)
       CellVtk(icel)%elements(2, k) = Pt_Idx(1, i)
       CellVtk(icel)%elements(3, k) = Pt_Idx(1, i+1)
-      CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)  
+      CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)
       CellVtk(icel)%elements(0, k) = 4
       CellVtk(icel)%types(k) = 9
     ELSEIF(R(i+1) .GT. lx/2._8) THEN
@@ -2398,7 +2638,7 @@ ELSE
         CellVtk(icel)%elements(3, k) = Pt_Idx(3*j + 3, i+1)
         CellVtk(icel)%elements(4, k) = Pt_Idx(3*j + 2, i+1)
         CellVtk(icel)%elements(0, k) = 4
-        CellVtk(icel)%types(k) = 9                
+        CellVtk(icel)%types(k) = 9
       ENDDO
     ELSE
       DO j = 0, 2
@@ -2417,8 +2657,8 @@ ELSE
         CellVtk(icel)%elements(4, k) = Pt_Idx(2*j + 3, i+1)
         CellVtk(icel)%elements(5, k) = Pt_Idx(2*j+3, 0)
         CellVtk(icel)%elements(0, k) = 5
-        CellVtk(icel)%types(k) = 7                
-      ENDDO    
+        CellVtk(icel)%types(k) = 7
+      ENDDO
       k = k + 1; j =3
       CellVtk(icel)%elements(1, k) = Pt_Idx(3*j + 1, i)
       CellVtk(icel)%elements(2, k) = Pt_Idx(3*j + 2, i)
@@ -2434,10 +2674,10 @@ ELSE
       CellVtk(icel)%elements(4, k) = Pt_Idx(1, i+1)
       CellVtk(icel)%elements(5, k) = Pt_Idx(1, 0)
       CellVtk(icel)%elements(0, k) = 5
-      CellVtk(icel)%types(k) = 7       
+      CellVtk(icel)%types(k) = 7
     ENDIF
   ENDDO
-  
+
   !Center Region
   i = nCircle
   DO j = 1, 7
@@ -2454,7 +2694,7 @@ ELSE
   CellVtk(icel)%elements(2, k) = Pt_Idx(1, i)
   CellVtk(icel)%elements(3, k) = CellVtk(icel)%npt-1
   CellVtk(icel)%elements(0, k) = 3
-  CellVtk(icel)%types(k) = 5  
+  CellVtk(icel)%types(k) = 5
 ENDIF
 
 IF(Cell%lCCell) THEN
@@ -2538,7 +2778,7 @@ REAL :: R(100), R_pt(2, 12, 0:100)
 REAL :: lx, ly, x, y, vertex(2,4)
 REAL :: l
 
-LOGICAL :: lreg 
+LOGICAL :: lreg
 
 nCircle = Cell%geom%ncircle
 lx = Cell%Geom%lx; ly = Cell%Geom%ly
@@ -2638,7 +2878,7 @@ IF(lReg) THEN
     CellVtk(icel)%elements(1, k) = Pt_Idx(j, i)
     CellVtk(icel)%elements(2, k) = Pt_Idx(1, i)
     CellVtk(icel)%elements(3, k) = Pt_Idx(1, i+1)
-    CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)  
+    CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)
     CellVtk(icel)%elements(0, k) = 4
     CellVtk(icel)%types(k) = 9
   ENDDO
@@ -2674,21 +2914,21 @@ ELSE
       ENDDO
     ELSE
       l = sqrt(R(i)*R(i) - lx * lx /4)
-      R_pt(1, 1, i) = R_pt(1, 1, 0) - l ; R_pt(2, 1, i) = R_pt(2, 1, 0) 
+      R_pt(1, 1, i) = R_pt(1, 1, 0) - l ; R_pt(2, 1, i) = R_pt(2, 1, 0)
       R_pt(1, 2, i) =-R(i) / sqrt(2._8);  R_pt(2, 2, i) = R(i) / sqrt(2._8)
       R_pt(1, 3, i) = R_pt(1, 3, 0);      R_pt(2, 3, i) = R_pt(2, 3, 0) + l
-      
+
       R_pt(1, 4, i) = R_pt(1, 3, 0);      R_pt(2, 4, i) = R_pt(2, 3, 0) - l
       R_pt(1, 5, i) =-R(i) / sqrt(2._8);  R_pt(2, 5, i) =-R(i) / sqrt(2._8)
-      R_pt(1, 6, i) = R_pt(1, 5, 0) - l;  R_pt(2, 6, i) = R_pt(2, 5, 0) 
+      R_pt(1, 6, i) = R_pt(1, 5, 0) - l;  R_pt(2, 6, i) = R_pt(2, 5, 0)
 
-      R_pt(1, 7, i) = R_pt(1, 5, 0) + l;  R_pt(2, 7, i) = R_pt(2, 5, 0) 
+      R_pt(1, 7, i) = R_pt(1, 5, 0) + l;  R_pt(2, 7, i) = R_pt(2, 5, 0)
       R_pt(1, 8, i) = R(i) / sqrt(2._8);  R_pt(2, 8, i) =-R(i) / sqrt(2._8)
       R_pt(1, 9, i) = R_pt(1, 7, 0);      R_pt(2, 9, i) = R_pt(2, 7, 0) - l
 
       R_pt(1, 10, i) = R_pt(1, 7, 0);     R_pt(2, 10, i) = R_pt(2, 7, 0) + l
       R_pt(1, 11, i) = R(i) / sqrt(2._8); R_pt(2, 11, i) = R(i) / sqrt(2._8)
-      R_pt(1, 12, i) = R_pt(1, 1, 0) + l; R_pt(2, 12, i) = R_pt(2, 1, 0) 
+      R_pt(1, 12, i) = R_pt(1, 1, 0) + l; R_pt(2, 12, i) = R_pt(2, 1, 0)
     ENDIF
   ENDDO
 
@@ -2696,7 +2936,7 @@ ELSE
   DO j = 1, 12
     k = k + 1
     Pt_Idx(j, 0) = k-1
-  ENDDO  
+  ENDDO
   DO i = 1, nCircle
     IF(R(i) .LT. lx/2._8) THEN
       DO j = 1, 8
@@ -2707,18 +2947,18 @@ ELSE
       DO j = 1, 12
         k = k + 1
         Pt_Idx(j, i) = k-1
-      ENDDO    
+      ENDDO
     ENDIF
   ENDDO
 
   CellVtk(icel)%npt =k+1
   CALL DMALLOC(CellVtk(icel)%pt, 3, k+1)
-  CellVtk(icel)%pt(1:3, k+1) = (/Cell%Geom%cx,Cell%Geom%cy, 0._8/)  
+  CellVtk(icel)%pt(1:3, k+1) = (/Cell%Geom%cx,Cell%Geom%cy, 0._8/)
   k = 0
   DO j = 1, 12
     k = k + 1
     CellVtk(icel)%pt(1:3, k) = (/R_pt(1, j, 0), R_pt(2, j, 0), 0._8/)
-  ENDDO      
+  ENDDO
   DO i = 1, nCircle
     IF(R(i) .LT. lx/2._8) THEN
       DO j = 1, 8
@@ -2729,7 +2969,7 @@ ELSE
       DO j = 1, 12
         k = k + 1
         CellVtk(icel)%pt(1:3, k) = (/R_pt(1, j, i), R_pt(2, j, i), 0._8/)
-      ENDDO      
+      ENDDO
     ENDIF
   ENDDO
 
@@ -2745,7 +2985,7 @@ ELSE
     CellVtk(icel)%elements(2, k) = Pt_Idx(3*j+2, 1)
     CellVtk(icel)%elements(3, k) = Pt_Idx(2*j+2, 0)
     CellVtk(icel)%elements(0, k) = 3
-    CellVtk(icel)%types(k) = 5  
+    CellVtk(icel)%types(k) = 5
     k = k + 1
     CellVtk(icel)%elements(1, k) = Pt_Idx(3*j+2, 1)
     CellVtk(icel)%elements(2, k) = Pt_Idx(3*j+3, 1)
@@ -2753,7 +2993,7 @@ ELSE
     CellVtk(icel)%elements(0, k) = 3
     CellVtk(icel)%types(k) = 5
   ENDDO
-  
+
   DO i = 1, nCircle-1
     IF(R(i) .LT. lx/2._8) THEN
       DO j = 1, 7
@@ -2770,7 +3010,7 @@ ELSE
       CellVtk(icel)%elements(1, k) = Pt_Idx(j, i)
       CellVtk(icel)%elements(2, k) = Pt_Idx(1, i)
       CellVtk(icel)%elements(3, k) = Pt_Idx(1, i+1)
-      CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)  
+      CellVtk(icel)%elements(4, k) = Pt_Idx(j, i+1)
       CellVtk(icel)%elements(0, k) = 4
       CellVtk(icel)%types(k) = 9
     ELSEIF(R(i+1) .GT. lx/2._8) THEN
@@ -2788,7 +3028,7 @@ ELSE
         CellVtk(icel)%elements(3, k) = Pt_Idx(3*j + 3, i+1)
         CellVtk(icel)%elements(4, k) = Pt_Idx(3*j + 2, i+1)
         CellVtk(icel)%elements(0, k) = 4
-        CellVtk(icel)%types(k) = 9                
+        CellVtk(icel)%types(k) = 9
       ENDDO
     ELSE
       DO j = 0, 2
@@ -2805,8 +3045,8 @@ ELSE
         CellVtk(icel)%elements(3, k) = Pt_Idx(2*j + 3, i+1)
         CellVtk(icel)%elements(4, k) = Pt_Idx(2*j + 2, i+1)
         CellVtk(icel)%elements(0, k) = 4
-        CellVtk(icel)%types(k) = 9                
-      ENDDO    
+        CellVtk(icel)%types(k) = 9
+      ENDDO
       k = k + 1; j =3
       CellVtk(icel)%elements(1, k) = Pt_Idx(3*j + 1, i)
       CellVtk(icel)%elements(2, k) = Pt_Idx(3*j + 2, i)
@@ -2820,10 +3060,10 @@ ELSE
       CellVtk(icel)%elements(3, k) = Pt_Idx(1, i+1)
       CellVtk(icel)%elements(4, k) = Pt_Idx(2*j + 2, i+1)
       CellVtk(icel)%elements(0, k) = 4
-      CellVtk(icel)%types(k) = 9       
+      CellVtk(icel)%types(k) = 9
     ENDIF
   ENDDO
-  
+
   !Center Region
   i = nCircle
   DO j = 1, 7
@@ -2840,13 +3080,12 @@ ELSE
   CellVtk(icel)%elements(2, k) = Pt_Idx(1, i)
   CellVtk(icel)%elements(3, k) = CellVtk(icel)%npt-1
   CellVtk(icel)%elements(0, k) = 3
-  CellVtk(icel)%types(k) = 5  
-  
+  CellVtk(icel)%types(k) = 5
+
 ENDIF
 END SUBROUTINE
 !
 !type basicgeom
-!  sequence
 !  INTEGER :: nbd
 !  logical :: lcircle,lrect,lCCent
 !  INTEGER :: ncircle,nline
@@ -3044,10 +3283,10 @@ volsum = 0;
 pwsum = 0;
 phisum = 0;
 DO iz = myzb, myze
-  DO ixy = 1, nxy 
+  DO ixy = 1, nxy
     pinpw = 0
     DO ig = 1, ng
-      PinPw = PinPw + PinXs(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig) 
+      PinPw = PinPw + PinXs(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig)
     ENDDO
     IF(PinPw .LT. 0._8) CYCLE
     vol = PinVol(ixy, iz)
@@ -3074,4 +3313,4 @@ ENDIF
 
 END FUNCTION
 
-END MODULE 
+END MODULE

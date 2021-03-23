@@ -6,7 +6,7 @@ SUBROUTINE HexOutputEdit()
 
 USE PARAM
 USE TYPEDEF,     ONLY : CoreInfo_Type, PowerDist_Type, FmInfo_Type, FXRinfo_Type, PinXs_Type, DancoffDist_Type
-USE GEOM,        ONLY : Core, ng
+USE GEOM,        ONLY : Core, ng, ngg
 USE Core_mod,    ONLY : FmInfo, CmInfo, eigv, ThInfo, GroupInfo
 USE TH_mod,      ONLY : THVar
 USE CNTL,        ONLY : nTracerCntl
@@ -15,6 +15,7 @@ USE PE_mod,      ONLY : PE
 USE ioutil,      ONLY : message, PrintReal1DarrayTo2Darray
 USE VTK_Mod,     ONLY : ProcessVTK
 USE BinOutp_Mod, ONLY : BinaryOutput
+USE GamCMFD_mod, ONLY : GammaCMFD
 USE CNTL,        ONLY : nTracerCntl
 USE SUBGRP_MOD,  ONLY : FxrChiGen
 
@@ -28,6 +29,7 @@ USE MpiComm_mod, ONLY : BCAST, MPI_SYNC
 IMPLICIT NONE
 
 TYPE(PowerDist_Type)   :: PowerDist
+TYPE(PowerDist_Type)   :: PhotonPower, NeutronPower, TotalExpPower
 TYPE(DancoffDist_Type) :: DancoffDist
 
 TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
@@ -80,12 +82,16 @@ IF (nTracerCntl%lED .AND. nTracerCntl%lrestrmt) CALL TreatDancoffData(Core,Danco
   CALL BCAST(PowerDist%Fm3DNormalizer,  PE%MPI_CMFD_COMM)
   CALL BCAST(PowerDist%Pin3DNormalizer, PE%MPI_CMFD_COMM)
 #endif
+IF(nTracerCntl%lExplicitKappa) CALL HexCalExplicitPower(Core, GammaCMFD, FmInfo, PhotonPower, NeutronPower, TotalExpPower, ng, ngg, nTracerCntl, PE)
 ! ----------------------------------------------------
 !                3. PRINT : Power
 ! ----------------------------------------------------
 IF(Master) THEN
+  WRITE(io, '(a)') '-------------------------Power Distribution------------------------------'
+  SELECT CASE(nTracerCntl%pout_mode)
+  CASE(0)
   !CALL PrintRadialPower(io, Core, PowerDist)
-  
+    WRITE(io, '(a)') '--- Fission Power' 
   CALL HexPrint2DPinPower   (io, Core, PowerDist)
   CALL HexPrintLocalPinPower(io, Core, PowerDist)
   
@@ -95,6 +101,44 @@ IF(Master) THEN
   CALL Axial1DPower         (io, Core, PowerDist)
   
   !IF (nTracerCntl%lED) CALL PrintDancoffFactor(io, Core, DancoffDist)
+  CASE(1)
+  CASE(2)
+    WRITE(io, '(a, ES14.6)') '--- Fission Power', PowerDist%pwsum
+  CALL HexPrint2DPinPower   (io, Core, PowerDist)
+  CALL HexPrintLocalPinPower(io, Core, PowerDist)
+  
+  !CALL Asy3DPower(io, Core, PowerDist)
+  
+  CALL HexAxialAvgAsy2DPower(io, Core, PowerDist)
+  CALL Axial1DPower         (io, Core, PowerDist)
+
+    WRITE(io, '(a, ES14.6)') '--- Neutron Power', NeutronPower%pwsum
+  CALL HexPrint2DPinPower   (io, Core, NeutronPower)
+  CALL HexPrintLocalPinPower(io, Core, NeutronPower)
+  
+  !CALL Asy3DPower(io, Core, PowerDist)
+  
+  CALL HexAxialAvgAsy2DPower(io, Core, NeutronPower)
+  CALL Axial1DPower         (io, Core, NeutronPower)
+
+    WRITE(io, '(a, ES14.6)') '--- Photon Power' , PhotonPower%pwsum
+  CALL HexPrint2DPinPower   (io, Core, PhotonPower)
+  CALL HexPrintLocalPinPower(io, Core, PhotonPower)
+  
+  !CALL Asy3DPower(io, Core, PowerDist)
+  
+  CALL HexAxialAvgAsy2DPower(io, Core, PhotonPower)
+  CALL Axial1DPower         (io, Core, PhotonPower)
+
+    WRITE(io, '(a, ES14.6)') '--- Explicit Power', TotalExpPower%pwsum
+  CALL HexPrint2DPinPower   (io, Core, TotalExpPower)
+  CALL HexPrintLocalPinPower(io, Core, TotalExpPower)
+  
+  !CALL Asy3DPower(io, Core, PowerDist)
+  
+  CALL HexAxialAvgAsy2DPower(io, Core, TotalExpPower)
+  CALL Axial1DPower         (io, Core, TotalExpPower)
+  END SELECT
 ENDIF
 ! ----------------------------------------------------
 !                4. PRINT : Flux
@@ -256,7 +300,7 @@ REAL :: VtxTypVolInv(7) = [6., 2., 1., 1., 1., 2., 2.]
 CHARACTER(12)  :: cTmp
 CHARACTER(512) :: sTmp
 
-301 FORMAT('Assembly', I5, x,'at' ,x'(', I7, I7,' )')
+301 FORMAT('Assembly', i5, x,'at' ,x,  '(', i7, i7,' )')
 302 FORMAT(2X, A)
 ! ----------------------------------------------------
 
@@ -279,7 +323,7 @@ WRITE(io, '(A, F12.5)') 'Eff Pin Num', EffPinNum
 WRITE(io, *)
 
 DO iz = 1, nz
-  IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  IF(.NOT. nTracerCntl%lExplicitKappa .AND. .NOT. Core%lFuelPlane(iz)) CYCLE
   WRITE(io, '(x, A5, I5)'), 'Plane', iz
   
   DO iAsy = 1, nxya
@@ -396,7 +440,6 @@ END SUBROUTINE HexAxialAvgAsy2DPower
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexAxAvg2DFlux(io, core, CmInfo, PowerDist, ng, PE)
 
-USE allocs
 USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type,   PowerDist_Type,  CMInfo_Type,     PE_TYPE,   &
                     AsyInfo_Type,    Asy_Type,        PinXs_Type
@@ -426,7 +469,7 @@ INTEGER :: nz, nxy, nxya, myzb, myze
 INTEGER :: nAsyType, AsyType
 INTEGER :: iz, ig, iasy, ixy, i, j, k
 LOGICAL :: master
-REAL,POINTER :: Avg2DFlx(:,:), row(:)
+REAL,POINTER :: Avg2DFlx(:,  :), row(:)
 
 #ifdef MPI_ENV
 REAL, POINTER :: Buf(:)
@@ -449,13 +492,15 @@ nAsyType = Core%nAsyType
 nxya     = Core%nxya
 nxy      = Core%nxy
 
-CALL dmalloc(Avg2DFlx, nxya, ng)
+ALLOCATE(Avg2DFlx(nxya, ng))
 
 #ifdef MPI_ENV
-CALL dmalloc(Buf, nxya)
+ALLOCATE(Buf(nxya)) 
 #endif
 
 DO ig = 1, ng
+  Avg2DFlx(:, ig) = 0
+
   DO iasy = 1, nxya
     AsyType = Asy(iasy)%AsyType
     nxy     = AsyInfo(AsyType)%nxy
@@ -507,8 +552,6 @@ END SUBROUTINE HexAxAvg2DFlux
 !                                     08. Rad Avg 1D Flux
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRadAvg1DFlux(io, core, CmInfo, PowerDist, ng, PE)
-
-USE allocs
 USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type,   PowerDist_Type,  CMInfo_Type,     PE_TYPE,   &
                     AsyInfo_Type,    Asy_Type,        PinXs_Type
@@ -559,8 +602,9 @@ nAsyType = Core%nAsyType
 nxya     = Core%nxya; 
 nxy      = Core%nxy
 
-CALL dmalloc(Avg1DFlx, ng, nz)
+ALLOCATE(Avg1DFlx(ng, nz))
 
+Avg1DFlx = 0
 DO ig = 1, ng  
   DO iasy = 1, nxya
     AsyType = Asy(iasy)%AsyType
@@ -684,8 +728,6 @@ END SUBROUTINE HexCoreSpectrum
 !                                     10. Pin 3D Flux
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexPin3DFlux(io, core, CmInfo, PowerDist, ng, PE, nTracerCntl)
-
-USE allocs
 USE PARAM
 USE TYPEDEF,             ONLY : CoreInfo_Type,   PowerDist_Type,    CmInfo_Type,  &
                                 PE_Type,                                          &
@@ -719,7 +761,7 @@ INTEGER :: nz, myzb, myze
 INTEGER :: npinout, nstep, nout
 
 CHARACTER(5) :: GrpIdx
-REAL, POINTER, DIMENSION(:,:,:) :: OutDat, buf
+REAL, POINTER :: OutDat(:, :, :), buf(:, :, :)
 ! ----------------------------------------------------
 
 Asy     => Core%Asy
@@ -733,8 +775,8 @@ npinout = nTracerCntl%OutpCntl%FluxOutList(1, 0)
 ! ----------------------------------------------------
 !               01. 
 ! ----------------------------------------------------
-CALL dmalloc(OutDat, ng, nz, noutline)
-CALL dmalloc(Buf,    ng, nz, noutline)
+ALLOCATE(OutDat (ng, nz, noutline))
+ALLOCATE(Buf    (ng, nz, noutline))
 
 nstep = INT(npinout / noutline)
 IF(mod(npinout, noutline) .NE. 0) nstep = nstep + 1

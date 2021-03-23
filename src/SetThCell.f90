@@ -47,6 +47,10 @@ DO i = 1, nFxr
   ENDIF  
 ENDDO
 
+IF(.NOT. CellInfo%lfuel) THEN
+  ThCell%FuelReg = (/nFxr+1, nFxr/)
+END IF
+
 rpallet = ThOpt%PinDim(1)*0.1; nrpellet = ThOpt%nrpellet
 delR = rPallet / nrpellet
 ThR = 0

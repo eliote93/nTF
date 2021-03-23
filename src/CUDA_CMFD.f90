@@ -402,6 +402,58 @@ ENDDO
 
 END SUBROUTINE
 
+SUBROUTINE cuSetCoarsePhis(Core, cuCMFD, cuDevice, phic)
+USE TYPEDEF,        ONLY : CoreInfo_Type,       Pin_Type,           Cell_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(cuCMFD_Type) :: cuCMFD
+TYPE(cuDevice_Type) :: cuDevice
+REAL, POINTER :: phic(:, :, :)
+
+TYPE(superPin_Type), POINTER :: superPin(:)
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: Cell(:)
+INTEGER :: ng, nxy 
+INTEGER :: i, j, ixy, ixy_map, ig, ipin, iz, izf, ierr
+INTEGER :: myzb, myze
+INTEGER, POINTER :: pinMap(:), fmRange(:, :)
+REAL :: phisum(cuCMFD%ng)
+REAL, POINTER :: hz(:), hzfm(:)
+
+Pin => Core%Pin
+Cell => Core%CellInfo
+superPin => cuGeometry%superPin
+ng = cuCMFD%ng
+nxy = cuGeometry%nxyc
+myzb = cuDevice%myzb
+myze = cuDevice%myze
+pinMap => cuGeometry%pinMap
+fmRange => cuGeometry%fmRange
+hz => cuGeometry%hz
+hzfm => cuGeometry%hzfm
+
+!$OMP PARALLEL PRIVATE(ixy_map, ipin, phisum)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+DO iz = myzb, myze
+  DO ixy = 1, nxy
+    phisum = 0.0
+    ixy_map = pinMap(ixy)
+    DO izf = fmRange(iz, 1), fmRange(iz, 2)
+      phisum = phisum + cuCMFD%h_phis8(:, ixy, izf) * (hzfm(izf) / hz(iz))
+    ENDDO
+    DO j = 1, superPin(ixy_map)%nxy
+      ipin = superPin(ixy_map)%pin(j)
+      phic(ipin, iz, :) = phisum
+    ENDDO
+    cuCMFD%h_phic8(:, ixy, iz) = phisum
+  ENDDO
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+END SUBROUTINE
+
 SUBROUTINE cuSetAxialSrc(cuCMFD, cuDevice, AxSrc, AxPXS, phic)
 USE CNTL,           ONLY : nTracerCntl
 IMPLICIT NONE
@@ -799,18 +851,19 @@ IF (cuCntl%lNatural) THEN
                     cudaMemcpyDeviceToDevice)
 ELSE
   ierr = cudaMemcpy(myphis8(1 : nb(black), bottom),                                                                 &
-                    cuCMFD%phis8(:, bottomRangeRB(1, black) : bottomRangeRB(2, black)),                             &
+                         cuCMFD%phis8(:, bottomRangeRB(1, black) : bottomRangeRB(2, black)),                        &
                     nb(black), cudaMemcpyDeviceToDevice)
   ierr = cudaMemcpy(myphis8(nb(black) + 1 : n, bottom),                                                             &
-                    cuCMFD%phis8(:, bottomRangeRB(1, red) : bottomRangeRB(2, red)),                                 &
+                         cuCMFD%phis8(:, bottomRangeRB(1, red) : bottomRangeRB(2, red)),                            &
                     nb(red), cudaMemcpyDeviceToDevice)
   ierr = cudaMemcpy(myphis8(1 : nt(black), top),                                                                    &
-                    cuCMFD%phis8(:, topRangeRB(1, black) : topRangeRB(2, black)),                                   &
+                         cuCMFD%phis8(:, topRangeRB(1, black) : topRangeRB(2, black)),                              &
                     nt(black), cudaMemcpyDeviceToDevice)
   ierr = cudaMemcpy(myphis8(nt(black) + 1 : n, top),                                                                &
-                    cuCMFD%phis8(:, topRangeRB(1, red) : topRangeRB(2, red)),                                       &
+                         cuCMFD%phis8(:, topRangeRB(1, red) : topRangeRB(2, red)),                                  &
                     nt(red), cudaMemcpyDeviceToDevice)     
 ENDIF
+
   
 CALL InitMPIComm()
 CALL MPIComm(n, n, myphis8(:, bottom), neighphis8(:, bottom), bottom, MPI_CUDA_COMM)
@@ -994,6 +1047,210 @@ DEALLOCATE(e)
 
 END FUNCTION
 
+SUBROUTINE CopyCMFDAdj(cuCMFD_adj, cuCMFD, l3dim)
+USE PARAM
+USE CSRMATRIX
+USE CUDA_PCR
+IMPLICIT NONE
+TYPE(cuCMFD_Type) :: cuCMFD_adj
+TYPE(cuCMFD_Type) :: cuCMFD
+LOGICAL :: l3dim
+
+INTEGER :: n, nxy, ng
+
+CALL transposeCsr(cuCMFD%M, cuCMFD_adj%M)  
+
+CALL finalizeCsr(cuCMFD_adj%M, .TRUE.)
+CALL transposeCsr(cuCMFD%F, cuCMFD_adj%F)  
+IF(cuCMFD_adj%F%nnz .NE. 0) THEN 
+  CALL finalizeCsr(cuCMFD_adj%F, .TRUE.)
+END IF
+CALL transposeCsr(cuCMFD%Chi, cuCMFD_adj%Chi)
+IF(cuCMFD_adj%Chi%nnz .NE. 0) THEN 
+  CALL finalizeCsr(cuCMFD_adj%Chi, .TRUE.)
+END IF
+
+CALL cuSetPreconditioner(cuCMFD_adj, cuDevice)
+! Copy offdiagonal terms
+IF(l3dim) THEN
+  nxy = cuGeometry%nxyc
+  ng = cuCMFD%ng
+  n = ng*nxy
+
+  CALL InitMPIComm()
+  CALL MPIComm(n, n, cuCMFD%offDiag(:,:,BOTTOM), cuCMFD_adj%offDiag(:,:, BOTTOM), bottom, MPI_CUDA_COMM)
+  CALL MPIComm(n, n, cuCMFD%offDiag(:,:,TOP), cuCMFD_adj%offDiag(:,:, TOP), TOP, MPI_CUDA_COMM)
+  CALL FinalizeMPIComm()
+
+  CALL InitMPIComm()
+  CALL MPIComm(n, n, cuCMFD%offDiag8(:,:,BOTTOM), cuCMFD_adj%offDiag8(:,:, BOTTOM), bottom, MPI_CUDA_COMM)
+  CALL MPIComm(n, n, cuCMFD%offDiag8(:,:,TOP), cuCMFD_adj%offDiag8(:,:, TOP), TOP, MPI_CUDA_COMM)
+  CALL FinalizeMPIComm()
+END IF
+
+END SUBROUTINE
+
+SUBROUTINE cuInitAdjPhis(cuCMFD_adj, cuCMFD, lGcCMFD)
+IMPLICIT NONE
+TYPE(cuCMFD_Type) :: cuCMFD_adj
+TYPE(cuCMFD_Type) :: cuCMFD
+LOGICAL :: lGcCMFD
+
+INTEGER, POINTER :: pinMap(:), planeMap(:), fmRange(:, :)
+INTEGER :: ng, nxy, myzb, myze, myzbf, myzef
+INTEGER :: iz, izf, ipin, ipin_map, ig
+
+ng = cuCMFD%ng
+
+nxy = cuGeometry%nxyc
+myzb = cuDevice%myzb
+myze = cuDevice%myze
+myzbf = cuDevice%myzbf
+myzef = cuDevice%myzef
+pinMap => cuGeometry%pinMap
+planeMap => cuCMFD%planeMap
+fmRange => cuGeometry%fmRange
+
+DO izf = myzbf, myzef
+  IF(lGcCMFD) THEN 
+    iz = izf 
+  ELSE
+    iz = planeMap(izf)
+  END IF
+
+  !$OMP PARALLEL PRIVATE(ipin_map)
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ipin = 1, nxy
+    ipin_map = pinMap(ipin)
+    DO ig = 1, ng
+      cuCMFD_adj%h_phis8(ig, ipin, izf) = cuCMFD%PinXS(ipin_map, iz)%XSnf(ig)
+    ENDDO
+  ENDDO
+  !$OMP END DO
+  !$OMP END PARALLEL
+ENDDO
+
+END SUBROUTINE
+
+SUBROUTINE cuCMFDAdjSrcUpdt(cuCMFD, eigv)
+IMPLICIT NONE
+TYPE(cuCMFD_Type) :: cuCMFD
+REAL :: eigv
+
+REAL(8), POINTER, DEVICE :: csrVal(:)
+INTEGER, POINTER, DEVICE :: csrRowPtr(:), csrColIdx(:)
+REAL(8) :: reigv
+INTEGER :: nr, nc, nnz, n
+INTEGER :: ierr
+
+IF (cuDevice%lFuel) THEN
+
+csrVal => cuCMFD%Chi%d_csrVal
+csrRowPtr => cuCMFD%Chi%d_csrRowPtr
+csrColIdx => cuCMFD%Chi%d_csrColIdx
+nr = cuCMFD%Chi%nr
+nc = cuCMFD%Chi%nc
+nnz = cuCMFD%Chi%nnz
+
+ierr = cusparseDcsrmv(cuDevice%mySparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, 1.0_8,                &
+                      cuCMFD%Chi%descr, csrVal, csrRowPtr, csrColIdx, cuCMFD%phis8, 0.0_8, cuCMFD%psi8)
+END IF
+
+n = cuCMFD%ng * cuGeometry%nxyc * cuDevice%nzCMFD
+ierr = cublasDcopy_v2(cuDevice%myblasHandle, n, cuCMFD%src8, 1, cuCMFD%srcd8, 1)
+CALL cuInitArray(n, cuCMFD%src8, cuDevice%myStream)
+
+csrVal => cuCMFD%F%d_csrVal
+csrRowPtr => cuCMFD%F%d_csrRowPtr
+csrColIdx => cuCMFD%F%d_csrColIdx
+nr = cuCMFD%F%nr
+nc = cuCMFD%F%nc
+nnz = cuCMFD%F%nnz
+reigv = 1.0 / eigv
+
+IF (cuDevice%lFuel) THEN
+  ierr = cusparseDcsrmv(cuDevice%mySparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nr, nc, nnz, reigv,                &
+    cuCMFD%F%descr, csrVal, csrRowPtr, csrColIdx, cuCMFD%psi8, 1.0_8, cuCMFD%src8)
+END IF
+CALL cuCMFDDcplSrcUpdt(cuCMFD, cuDevice)
+
+END SUBROUTINE
+
+SUBROUTINE cuCMFDAdjEigUpdt(cuCMFD, eigv)
+IMPLICIT NONE
+TYPE(cuCMFD_Type) :: cuCMFD
+REAL :: eigv
+
+REAL(8) :: psipsi, psipsid
+INTEGER :: n, nxy, nzCMFD, ng
+
+ng = cuCMFD%ng
+nxy = cuGeometry%nxyc
+nzCMFD = cuDevice%nzCMFD
+n = ng * nxy * nzCMFD
+
+psipsi = dotMulti(cuCMFD%src8, cuCMFD%src8, n, MPI_CUDA_COMM, cuDevice%myblasHandle, .TRUE.)
+psipsid = dotMulti(cuCMFD%src8, cuCMFD%srcd8, n, MPI_CUDA_COMM, cuDevice%myblasHandle, .TRUE.)
+
+#ifndef MPI_SHARED
+!$OMP MASTER
+eigv = eigv * psipsi / psipsid
+!$OMP END MASTER
+!$OMP BARRIER
+#else
+eigv = eigv * psipsi / psipsid
+#endif
+END SUBROUTINE
+
+SUBROUTINE cuSetMOCPhiIn(Core, CmInfo, myzb, myze, ng)
+USE PARAM
+USE TYPEDEF,          ONLY : CoreInfo_Type,   Pin_Type,   CmInfo_Type,   RayInfo4CMFD_Type
+USE CNTL,             ONLY : nTracerCntl
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(CmInfo_Type) :: CmInfo
+INTEGER :: myzb, myze, ng
+
+TYPE(RayInfo4CMFD_Type), POINTER :: RayInfo4CMFD
+REAL, POINTER :: PhiAngIn(:,:,:,:)
+INTEGER, POINTER :: RotRayInOutCell(:,:)
+INTEGER, POINTER :: PhiAngInSvIdx(:,:)
+REAL :: fmult
+INTEGER :: nPolar, nRotRay
+INTEGER :: ipin, isv, ispin, ipin_map, iz, ig
+INTEGER :: i, j, k
+
+RayInfo4CMFD => CmInfo%RayInfo4CMFD
+RotRayInOutCell => RayInfo4CMFD%RotRayInOutCell
+PhiAngInSvIdx => RayInfo4CMFD%PhiAngInSvIdx
+PhiAngIn => RayInfo4CMFD%PhiAngIn
+
+nRotRay = RayInfo4CMFD%nRotRay
+nPolar = RayInfo4CMFD%nPolAngle
+
+DO i = 1, 2
+  DO j = 1, nRotRay
+    ipin = RotRayInOutCell(j, i)
+    IF(ipin .EQ. 0) CYCLE
+    ipin_map = Core%Pin(ipin)%isuperPin
+    ispin = cuGeometry%PinMap(ipin_map)
+    isv = PhiAngInSvIdx(j, i)
+    DO iz = myzb, myze
+      DO k = 1, nPolar
+        DO ig = 1, ng
+          fmult = cuCMFD%h_phic8(ig, ispin, iz) / cuCMFD%PinXS(ipin_map, iz)%Phi(ig)
+          PhiAngIn(k, isv, iz, ig) = PhiAngIn(k, isv, iz, ig) * fmult
+        END DO 
+      END DO 
+    END DO 
+  END DO 
+END DO
+
+NULLIFY(PhiAngIn, PhiAngInSvIdx, RotRayInOutCell)
+NULLIFY(RayInfo4CMFD)
+
+END SUBROUTINE
+
 END MODULE
 
 SUBROUTINE CUDAReorderPinXS(CoreInfo, CmInfo)
@@ -1046,5 +1303,6 @@ DO iz = myzb, myze
 ENDDO
 
 END SUBROUTINE
+
     
 #endif

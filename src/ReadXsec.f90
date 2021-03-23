@@ -13,24 +13,28 @@ Module ReadXsec
 implicit none
 contains
 
-subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
+subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso,ngg)
     USE ioutil,         only : terminate, toupper, openfile
     USE XSLIB_MOD,      only : libdata, ldiso,  uhel,    enbhel,  igresb,  igrese, &
-                               noghel, nofghel, norghel, nelthel, nelrhel, nchihel
+                               noghel, nofghel, norghel, nelthel, nelrhel, nchihel, &
+                               enbgam, nogghel, nmlver
     USE nuclidmap_mod,  only : nuclidmap
+    USE CNTL,           ONLY : nTracerCntl
     USE ALLOCS
     implicit none
     integer,intent(in) :: indev
     character*256,intent(in) :: mlbfile
-    integer,intent(out) :: ng,nofg,norg,ntiso
-    integer :: iiso,ig,jg,it,igx,itx,notg,dumi,i
-    integer :: nid,ityp,ifis,ibur,inmn,ntemp,np1temp,nx1,nx2
+    integer,intent(out) :: ng,nofg,norg,ntiso,ngg 
+    integer :: iiso,ig,jg,it,igx,itx,notg,dumi,i,igg,imt, iprec
+    integer :: nid,ityp,ifis,ibur,inmn,ntemp,np1temp, ipp,nx1,nx2
     real,parameter :: neutronmass = 1.008664916d0
     real :: aw,xtemp(1000)
     character*3 :: ext
     character*20 :: aid
     logical :: lbin
     TYPE(libdata),POINTER :: lib
+    
+    INTEGER :: nver   ! VERSION INDEX FOR multigroup library
 
     i = len(TRIM(mlbfile))
     ext = mlbfile(i-2:i)
@@ -46,6 +50,236 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
     close(indev)
     if (lbin) then
         call openfile(indev,.TRUE.,.TRUE.,.FALSE.,mlbfile)
+        read(indev) dumi
+        IF (dumi .GE. 100) THEN  ! Libraries controled with a integer version index (start with nver=100)
+          ! ver 100 : Libaray with photon production and Neutron induced KERMA
+          nver = dumi
+          read(indev) ng,nofg,norg,notg,ntiso,ngg
+
+          !!!!!!!!!
+          noghel = ng
+          nofghel = nofg
+          norghel = norg
+          nelthel = ntiso
+          nelrhel = ntiso !! for future usage
+          nchihel = ng    !! for future usage
+          igresb = nofghel + 1
+          igrese = nofghel + norghel
+          nmlver = nver
+          nTRACERCNTL%lExplicitKappa = nTracerCntl%lGamma
+          nogghel = ngg
+          !!!!!!!!!
+
+          allocate(ldiso(ntiso))
+          ! Group Boundary
+          call dmalloc(enbhel,ng+1)
+          call dmalloc(uhel,ng+1)
+          read(indev) xtemp(1:ng+1)
+          enbhel(1:ng+1) = xtemp(1:ng+1)
+          ! Gamma Group boundary
+          CALL dmalloc(enbgam,ngg+1)
+          read(indev) xtemp(1:ngg+1)
+          enbgam(1:ngg+1) = xtemp(1:ngg+1)
+        
+          do ig = 1, ng+1
+              uhel(ig) = dlog(1.0e7_8/xtemp(ig))
+          enddo
+
+          do iiso = 1, ntiso
+              lib=>ldiso(iiso)
+              read(indev) dumi,nid,aw,ityp,ifis,ibur,inmn,ntemp,np1temp,ipp
+              lib%nid = nid
+              lib%aw = aw
+              lib%mu = neutronmass * 2. / 3./ aw
+              lib%ityp = ityp
+              lib%ifis = ifis
+              lib%ichi = ifis
+              lib%ibur = ibur
+              lib%inmn = inmn
+              lib%ipp = ipp
+              lib%ntemp = ntemp
+              lib%np1temp = np1temp
+              !! Memory Allocation
+              call dmalloc(lib%temp,ntemp)
+              call dmalloc(lib%siga,ng,ntemp)
+              call dmalloc(lib%sigs,ng,ntemp)
+              call dmalloc(lib%sigtr,ng,ntemp)
+              call dmalloc(lib%sigstr,ng,ntemp)
+              call dmalloc(lib%sigss,ng,ntemp)
+              CALL dmalloc(lib%kerma_t,ng,ntemp)
+              CALL dmalloc(lib%kerma_s,ng,ntemp)
+              CALL dmalloc(lib%kerma_d,ng,ntemp)
+              CALL dmalloc(lib%kerma_p,ng,ntemp)
+              allocate(lib%sm(ng,ntemp))
+              if (ifis.eq.1) then
+                  call dmalloc(lib%sigf,ng,ntemp)
+                  call dmalloc(lib%signf,ng,ntemp)
+                  call dmalloc(lib%chi,ng)
+                  call dmalloc0(lib%beta,0,6)
+                  IF (nver .GE. 101) THEN
+                    call dmalloc(lib%chip,ng)
+                    call dmalloc(lib%chid,ng)
+                    call dmalloc(lib%chidk,ng,6)
+                    call dmalloc0(lib%dcy_del,1,6)
+                  END IF
+                  CALL dmalloc(lib%exkappa,6)     ! for explicit kappa...
+                  CALL dmalloc(lib%exkappa0,6)    ! for explicit kappa...
+                  CALL dmalloc(lib%kerma_f,ng,ntemp)
+              endif
+              if (np1temp.gt.0) then
+                  call dmalloc(lib%p1temp,np1temp)
+                  call dmalloc(lib%sigsp1,ng,np1temp)
+                  call dmalloc(lib%sigsp2,ng,np1temp)
+                  call dmalloc(lib%sigsp3,ng,np1temp)
+                  allocate(lib%smp1(ng,np1temp))
+                  allocate(lib%smp2(ng,np1temp))
+                  allocate(lib%smp3(ng,np1temp))
+              else
+                  call dmalloc(lib%sigsp1,ng,ntemp)
+                  lib%sigsp1 = 0._8
+              endif
+              call dmalloc0(lib%lamsigp,igresb,igrese)
+              if (inmn.ge.2) call dmalloc(lib%sign2n,ng)
+              if (inmn.eq.3) call dmalloc(lib%sign3n,ng)
+
+              read(indev) lib%temp(1:ntemp)
+              do ig = 1, ng
+                  do it = 1, ntemp
+                      read(indev) nx1, nx2
+                      lib%sm(ig,it)%ib = nx1
+                      lib%sm(ig,it)%ie = nx2
+                      allocate(lib%sm(ig,it)%from(nx1:nx2))
+                      if (ifis.eq.0) then
+                          read(indev) lib%siga(ig,it),lib%sigtr(ig,it), lib%sigs(ig,it),&
+                              lib%sm(ig,it)%from(nx1:nx2)
+                      else
+                          read(indev) lib%siga(ig,it),lib%sigf(ig,it), lib%signf(ig,it),&
+                              lib%sigtr(ig,it),lib%sigs(ig,it),lib%sm(ig,it)%from(nx1:nx2)
+                      endif
+                  end do
+              end do
+              do it = 1, ntemp
+                  lib%sigstr(:,it) = 0._8
+                  do ig = 1, ng
+                      do igx = 1, ng
+                          if(ig.ge.lib%sm(igx,it)%ib .and. ig.le.lib%sm(igx,it)%ie) then
+                              lib%sm(ig,it)%ioutsb = igx
+                              exit
+                          endif
+                      enddo
+                      do igx = ng, 1, -1
+                          if(ig.ge.lib%sm(igx,it)%ib .and. ig.le.lib%sm(igx,it)%ie) then
+                              lib%sm(ig,it)%ioutse = igx
+                              exit
+                          endif
+                      enddo
+                      do igx = lib%sm(ig,it)%ib, lib%sm(ig,it)%ie
+                          lib%sigstr(igx,it) = lib%sigstr(igx,it) + lib%sm(ig,it)%from(igx)
+                      enddo
+                  enddo
+              enddo
+              do it = 1, ntemp
+                  do ig = 1, ng
+                      lib%sigss(ig,it) = lib%sm(ig,it)%from(ig) + (lib%sigs(ig,it) - lib%sigstr(ig,it))
+                  enddo
+              enddo
+              if (np1temp.gt.0) then
+                  read(indev) lib%p1temp(1:np1temp)
+                  do ig = 1, ng
+                      do it = 1, np1temp
+                          read(indev) nx1, nx2
+                          lib%smp1(ig,it)%ib = nx1
+                          lib%smp1(ig,it)%ie = nx2
+                          allocate(lib%smp1(ig,it)%from(nx1:nx2))
+                          read(indev) lib%sigsp1(ig,it), lib%smp1(ig,it)%from(nx1:nx2)
+                      end do
+                  end do
+                  do ig = 1, ng
+                      do it = 1, np1temp
+                          read(indev) nx1, nx2
+                          lib%smp2(ig,it)%ib = nx1
+                          lib%smp2(ig,it)%ie = nx2
+                          allocate(lib%smp2(ig,it)%from(nx1:nx2))
+                          read(indev) lib%sigsp2(ig,it), lib%smp2(ig,it)%from(nx1:nx2)
+                      end do
+                  end do
+                  do ig = 1, ng
+                      do it = 1, np1temp
+                          read(indev) nx1, nx2
+                          lib%smp3(ig,it)%ib = nx1
+                          lib%smp3(ig,it)%ie = nx2
+                          allocate(lib%smp3(ig,it)%from(nx1:nx2))
+                          read(indev) lib%sigsp3(ig,it), lib%smp3(ig,it)%from(nx1:nx2)
+                      end do
+                  end do
+              else
+                  call dmalloc(lib%sigsp1,ng,ntemp)
+                  lib%sigsp1 = 1._8
+              endif
+              read(indev) lib%sigp, lib%lamsigp1G
+              read(indev) lib%lamsigp(igresb:igrese)
+              if (ifis.eq.1) THEN
+                  read(indev) lib%chi(1:ng)
+                  IF (nver.GE.101) THEN
+                    read(indev) lib%chip(1:ng)
+                    read(indev) lib%chid(1:ng)
+                    DO iprec = 1, 6
+                      read(indev) lib%chidk(1:ng, iprec)
+                    END DO 
+                  END IF
+                  read(indev) lib%kappa,lib%kappa0
+                  read(indev) lib%exkappa(1:6)
+                  read(indev) lib%exkappa0(1:6)
+                  IF (nver.GE.101) read(indev) lib%dcy_del(1:6)
+                  read(indev) lib%beta(0:6)
+              endif
+              IF (nver.GE.101) THEN
+                ALLOCATE(lib%InvV(ig,it))
+                DO ig = 1, ng
+                  DO it = 1, ntemp
+                    READ(indev) lib%InvV(ig,it)
+                  END DO
+                END DO
+              END IF
+              READ(indev) lib%capkappa, lib%capQ, lib%n2nQ, lib%n3nQ
+              if (ibur.eq.1) read(indev) lib%dcy
+              if (inmn.ge.2) read(indev) lib%sign2n(1:ng)
+              if (inmn.eq.3) read(indev) lib%sign3n(1:ng)
+              IF (ifis.eq.0) THEN
+                DO ig = 1,ng
+                  DO it = 1, ntemp
+                    READ(indev) lib%kerma_t(ig,it), lib%kerma_s(ig,it), lib%kerma_d(ig,it), lib%kerma_p(ig,it)
+                  END DO
+                END DO
+              ELSE
+                DO ig = 1,ng
+                  DO it = 1, ntemp
+                    READ(indev) lib%kerma_t(ig,it), lib%kerma_s(ig,it), lib%kerma_d(ig,it), lib%kerma_p(ig,it), lib%kerma_f(ig,it)
+                  END DO
+                END DO
+              END IF
+              IF (ipp .eq.1) THEN
+                ALLOCATE(lib%ppm(0:4))
+                READ(indev) lib%lphoton(1:4)
+                DO imt = 1, 4
+                  IF (.NOT.lib%lphoton(imt)) CYCLE
+                  READ(indev) lib%ppm(imt)%iglow, lib%ppm(imt)%igup
+                  ALLOCATE(lib%ppm(imt)%mat(lib%ppm(imt)%iglow:lib%ppm(imt)%igup,ntemp))
+                  DO igg = lib%ppm(imt)%iglow, lib%ppm(imt)%igup
+                    DO it = 1, ntemp
+                      READ(indev) nx1, nx2
+                      lib%ppm(imt)%mat(igg,it)%ib = nx1
+                      lib%ppm(imt)%mat(igg,it)%ie = nx2
+                      ALLOCATE(lib%ppm(imt)%mat(igg,it)%from(nx1:nx2))
+                      READ(indev) lib%ppm(imt)%mat(igg,it)%from(nx1:nx2)
+                    END DO
+                  END DO
+                END DO
+              END IF
+          enddo
+        ELSE !IF (dumi.EQ.47) THEN ! library without photon generation and KERMA
+          nTracerCntl%lGamma = .FALSE.
+          REWIND(indev)
         read(indev) ng,nofg,norg,notg,ntiso
 
         !!!!!!!!!
@@ -198,12 +432,15 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
             if (inmn.ge.2) read(indev) lib%sign2n(1:ng)
             if (inmn.eq.3) read(indev) lib%sign3n(1:ng)
         enddo
+        !ELSE
+        !  STOP 'Currently unassigned MLB -- ReadXsec.f90'
+        END IF
         close(indev)
-    else
+    else ! for ASCII mla
         call openfile(indev,.TRUE.,.FALSE.,.FALSE.,mlbfile)
         read(indev,*)
-        read(indev,'(i15,4i5)') ng,nofg,norg,notg,ntiso
-        read(indev,*)
+        !read(indev,'(i15,6i5)') ng,nofg,norg,notg,ntiso,ngg,nver
+        read(indev,'(i15,6i5)') nver,ng,nofg,norg,notg,ntiso,ngg
 
         !!!!!!!!!
         noghel=ng
@@ -214,14 +451,21 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
         nchihel=ng    !! for future usage
         igresb=nofghel+1
         igrese=nofghel+norghel
+        nogghel = ngg
         !!!!!!!!!
 
         allocate(ldiso(ntiso))
         ! Group Boundary
         call dmalloc(enbhel,ng+1)
         call dmalloc(uhel,ng+1)
+        read(indev,*)
         read(indev,'(10ES14.7)') (xtemp(ig),ig=1,ng+1)
         enbhel(1:ng+1) = xtemp(1:ng+1)
+        ! Gamma Group boundary
+        CALL dmalloc(enbgam,ngg+1)
+        read(indev,*)
+        read(indev,'(10ES14.7)') xtemp(1:ngg+1)
+        enbgam(1:ngg+1) = xtemp(1:ngg+1)
         do ig = 1, ng+1
             uhel(ig) = dlog(1.0e7_8/xtemp(ig))
         enddo
@@ -231,7 +475,7 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
         enddo
         do iiso = 1, ntiso
             lib=>ldiso(iiso)
-            read(indev,*) aid,i,nid,aw,ityp,ifis,ibur,inmn,ntemp,np1temp,aid
+            read(indev,*) aid,i,nid,aw,ityp,ifis,ibur,inmn,ntemp,np1temp,ipp,aid
             lib%nid = nid
             lib%aw = aw
             lib%mu = neutronmass * 2. / 3./ aw
@@ -241,6 +485,7 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
             lib%inmn = inmn
             lib%ntemp = ntemp
             lib%np1temp = np1temp
+            lib%ipp = ipp
             lib%aid=aid
 
             !! Memory Allocation
@@ -255,7 +500,16 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
                 call dmalloc(lib%sigf,ng,ntemp)
                 call dmalloc(lib%signf,ng,ntemp)
                 call dmalloc(lib%chi,ng)
+                call dmalloc0(lib%dcy_del,1,6)
                 call dmalloc0(lib%beta,0,6)
+                IF (nver.GE.101) THEN
+                  call dmalloc(lib%chip,ng)
+                  call dmalloc(lib%chid,ng)
+                  call dmalloc(lib%chidk,ng,6)
+                  call dmalloc0(lib%dcy_del,1,6)
+                END IF
+                CALL dmalloc(lib%exkappa,6)     ! for explicit kappa...
+                CALL dmalloc(lib%exkappa0,6)    ! for explicit kappa...
             endif
             if (np1temp.gt.0) then
                 call dmalloc(lib%p1temp,np1temp)
@@ -270,9 +524,9 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
             if (inmn.ge.2) call dmalloc(lib%sign2n,ng)
             if (inmn.eq.3) call dmalloc(lib%sign3n,ng)
 
-            read(indev,*)
+            read(indev,*) ! 'TP0+'
             read(indev,*) lib%temp(1:lib%ntemp)
-            read(indev,*)
+            read(indev,*) ! 'XSD+'
             do ig=1,ng
                 do it=1,ntemp
                     if (ifis.eq.0) then
@@ -365,11 +619,35 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
             if (ifis.eq.1) then
                 read(indev,*)
                 read(indev,'(10ES14.6)') lib%chi(1:ng)
+                IF (nver .GE. 101) THEN
+                  read(indev,'(10ES14.6)') lib%chip(1:ng)
+                  read(indev,'(10ES14.6)') lib%chid(1:ng)
+                  DO iprec = 1,6
+                    read(indev,'(10ES14.6)') lib%chidk(1:ng,iprec)
+                  END DO 
+                END IF
                 read(indev,*)
                 read(indev,'(2ES14.6)') lib%kappa,lib%kappa0
                 read(indev,*)
+                read(indev,'(6ES14.6)') lib%exkappa(1:6)
+                read(indev,*)
+                read(indev,'(6ES14.6)') lib%exkappa0(1:6)
+                read(indev,*)
+                IF (nver .GE. 101) read(indev,'(6ES14.6)') lib%dcy_del(0:6)
                 read(indev,'(7ES14.6)') lib%beta(0:6)
             endif
+            IF (nver .GE. 101) THEN
+              read(indev,*)
+              ALLOCATE(lib%InvV(ng,ntemp))
+              DO ig = 1, ng
+                READ(indev,*) (lib%InvV(ig,it),it=1,ntemp)
+              END DO
+            END IF
+            
+            read(indev,*)
+            READ(indev,'(1ES14.6)') lib%capkappa
+            read(indev,*)
+            READ(indev,'(3ES14.6)') lib%capQ, lib%n2nQ, lib%n3nQ
             if (ibur.eq.1) then
                 read(indev,*)
                 read(indev,*) lib%dcy
@@ -382,11 +660,61 @@ subroutine ReadMLX(indev,mlbfile,ng,nofg,norg,ntiso)
                 read(indev,*)
                 read(indev,*) lib%sign3n(1:ng)
             endif
+            IF (ipp .eq.1) THEN  ! Photon Production Data
+              READ(indev, *)
+              ALLOCATE(lib%ppm(0:4))
+              READ(indev, '(4L2)') (lib%lphoton(imt), imt = 1,4)
+              DO imt = 1, 4
+                IF (.NOT.lib%lphoton(imt)) CYCLE
+                READ(indev, '(3I6)') igx, lib%ppm(imt)%iglow, lib%ppm(imt)%igup
+                ALLOCATE(lib%ppm(imt)%mat(lib%ppm(imt)%iglow:lib%ppm(imt)%igup,ntemp))
+                DO igg = lib%ppm(imt)%iglow, lib%ppm(imt)%igup
+                  DO it = 1, ntemp
+                    read(indev,*) igx,itx,nx1,nx2,(xtemp(jg),jg=nx1,nx2)
+                    lib%ppm(imt)%mat(igg,it)%ib = nx1
+                    lib%ppm(imt)%mat(igg,it)%ie = nx2
+                    ALLOCATE(lib%ppm(imt)%mat(igg,it)%from(nx1:nx2))
+                    do jg=nx1,nx2
+                       lib%ppm(imt)%mat(igg,it)%from(jg)=xtemp(jg)
+                    enddo
+                  END DO
+                END DO
+              END DO
+            END IF
         enddo
         close(indev)
 
     endif
 
+    !- Photon PRODUCTION RANGE
+    !      RANGE OF PHORON GROUP CORRESPONDING NEUTRON GROUP
+    DO iiso = 1, ntiso
+      lib => ldiso(iiso)
+      IF (lib%ipp .EQ. 0) CYCLE
+      DO imt = 1, 4
+        IF (.NOT. lib%lphoton(imt)) CYCLE
+        CALL dmalloc(lib%ppm(imt)%ioutpb,ng,lib%ntemp)
+        CALL dmalloc(lib%ppm(imt)%ioutpe,ng,lib%ntemp)
+        lib%ppm(imt)%ioutpb = lib%ppm(imt)%igup
+        lib%ppm(imt)%ioutpe = lib%ppm(imt)%iglow
+        DO it = 1, lib%ntemp
+          DO ig = 1, ng
+            DO igg = lib%ppm(imt)%iglow, lib%ppm(imt)%igup         ! ig -> igg, beginning
+              IF(ig .GE. lib%ppm(imt)%mat(igg,it)%ib .AND. ig .LE. lib%ppm(imt)%mat(igg,it)%ie) THEN
+                lib%ppm(imt)%ioutpb(ig,it) = igg  ! upper(energy) group boundary from igg
+                EXIT
+              END IF
+            END DO
+            DO igg=lib%ppm(imt)%igup,lib%ppm(imt)%iglow,-1         ! ig -> igg, ending
+              IF(ig .GE. lib%ppm(imt)%mat(igg,it)%ib .AND. ig .LE. lib%ppm(imt)%mat(igg,it)%ie) THEN
+                lib%ppm(imt)%ioutpe(ig,it) = igg  ! upper(energy) group boundary from igg
+                EXIT
+              END IF
+            END DO
+          END DO ! NEUTRON GROUP LOOP (ig)
+        END DO ! TEMPERATURE LOOP (it)
+      END DO ! REACTION TYPE LOOP (imt)
+    END DO
     !!! mapping !!!
     call nuclidmap
 
@@ -417,6 +745,7 @@ subroutine ReadRLB(indev,rlbfile)
             CONTINUE
         ENDIF
         read(indev) nid,ireg,ifis
+        ! mapping with mlb
         ns=0
         list=0
         do i=1,nelthel
@@ -428,18 +757,15 @@ subroutine ReadRLB(indev,rlbfile)
                 list(ns)=i
             endif
         enddo
-        if (ns.eq.0) then
+        !
+        if (ns.eq.0) then  ! IF "nid" in rlb doesn't exist in mlb
             read(indev) ntemp,nlv,nlvflx
             allocate(dum1_(ntemp))
             read(indev) dum1_(1:ntemp)
             deallocate(dum1_)
             allocate(dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese))
             read(indev) dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese)
-            read(indev) dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese)
-            read(indev) dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese)
             if (ifis.ne.0) then
-                read(indev) dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese)
-                read(indev) dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese)
                 read(indev) dum2_(1:nlv,igresb:igrese),dum3_(1:nlv,1:ntemp,igresb:igrese)
             endif
             deallocate(dum2_,dum3_)
@@ -512,45 +838,25 @@ subroutine ReadRLB(indev,rlbfile)
             lib%nlvflx=nlvflx
             call dmalloc(lib%rtemp,ntemp)
             call dmalloc(lib%rtempsq,ntemp)
-!            call dmalloc0(lib%lvabs_mlg,1,nlv,igresb,igrese)
-!            call dmalloc0(lib%lvabs_mlg1G,1,nlv,igresb,igrese)
             call dmalloc0(lib%lvabs,1,nlv,igresb,igrese)
-!            call dmalloc0(lib%wgtabs_mlg,1,nlv,1,ntemp,igresb,igrese)
-!            call dmalloc0(lib%wgtabs_mlg1G,1,nlv,1,ntemp,igresb,igrese)
             call dmalloc0(lib%wgtabs,1,nlv,1,ntemp,igresb,igrese)
             if (is.eq.1) then
                 read(indev) lib%rtemp(1:ntemp)
                 lib%rtempsq(1:ntemp)=dsqrt(lib%rtemp(1:ntemp))
-!                read(indev) lib%lvabs_mlg(1:nlv,igresb:igrese),lib%wgtabs_mlg(1:nlv,1:ntemp,igresb:igrese)
-!                read(indev) lib%lvabs_mlg1G(1:nlv,igresb:igrese),lib%wgtabs_mlg1G(1:nlv,1:ntemp,igresb:igrese)
                 read(indev) lib%lvabs(1:nlv,igresb:igrese),lib%wgtabs(1:nlv,1:ntemp,igresb:igrese)
             else
                 lib%rtemp(1:ntemp)=ldiso(i1)%rtemp(1:ntemp)
-!                lib%lvabs_mlg(1:nlv,igresb:igrese)=ldiso(i1)%lvabs_mlg(1:nlv,igresb:igrese)
-!                lib%lvabs_mlg1G(1:nlv,igresb:igrese)=ldiso(i1)%lvabs_mlg1G(1:nlv,igresb:igrese)
                 lib%lvabs(1:nlv,igresb:igrese)=ldiso(i1)%lvabs(1:nlv,igresb:igrese)
-!                lib%wgtabs_mlg(1:nlv,1:ntemp,igresb:igrese)=ldiso(i1)%wgtabs_mlg(1:nlv,1:ntemp,igresb:igrese)
-!                lib%wgtabs_mlg1G(1:nlv,1:ntemp,igresb:igrese)=ldiso(i1)%wgtabs_mlg1G(1:nlv,1:ntemp,igresb:igrese)
                 lib%wgtabs(1:nlv,1:ntemp,igresb:igrese)=ldiso(i1)%wgtabs(1:nlv,1:ntemp,igresb:igrese)
                 lib%rtempsq(1:ntemp)=ldiso(i1)%rtempsq(1:ntemp)
             endif
             if (ifis.ne.0) then
-!                call dmalloc0(lib%lvfis_mlg,1,nlv,igresb,igrese)
-!                call dmalloc0(lib%lvfis_mlg1G,1,nlv,igresb,igrese)
                 call dmalloc0(lib%lvfis,1,nlv,igresb,igrese)
-!                call dmalloc0(lib%wgtfis_mlg,1,nlv,1,ntemp,igresb,igrese)
-!                call dmalloc0(lib%wgtfis_mlg1G,1,nlv,1,ntemp,igresb,igrese)
                 call dmalloc0(lib%wgtfis,1,nlv,1,ntemp,igresb,igrese)
                 if (is.eq.1) then
-!                    read(indev) lib%lvfis_mlg(1:nlv,igresb:igrese),lib%wgtfis_mlg(1:nlv,1:ntemp,igresb:igrese)
-!                    read(indev) lib%lvfis_mlg1G(1:nlv,igresb:igrese),lib%wgtfis_mlg1G(1:nlv,1:ntemp,igresb:igrese)
                     read(indev) lib%lvfis(1:nlv,igresb:igrese),lib%wgtfis(1:nlv,1:ntemp,igresb:igrese)
                 else
-!                    lib%lvfis_mlg(1:nlv,igresb:igrese)=ldiso(i1)%lvfis_mlg(1:nlv,igresb:igrese)
-!                    lib%lvfis_mlg1G(1:nlv,igresb:igrese)=ldiso(i1)%lvfis_mlg1G(1:nlv,igresb:igrese)
                     lib%lvfis(1:nlv,igresb:igrese)=ldiso(i1)%lvfis(1:nlv,igresb:igrese)
-!                    lib%wgtfis_mlg(1:nlv,1:ntemp,igresb:igrese)=ldiso(i1)%wgtfis_mlg(1:nlv,1:ntemp,igresb:igrese)
-!                    lib%wgtfis_mlg1G(1:nlv,1:ntemp,igresb:igrese)=ldiso(i1)%wgtfis_mlg1G(1:nlv,1:ntemp,igresb:igrese)
                     lib%wgtfis(1:nlv,1:ntemp,igresb:igrese)=ldiso(i1)%wgtfis(1:nlv,1:ntemp,igresb:igrese)
                 endif
             endif
@@ -579,6 +885,7 @@ subroutine ReadRLB(indev,rlbfile)
             call dmalloc0(lib%xsalog,1,nsig0,igresb,igrese,1,ntemp)
             call dmalloc0(lib%xss,1,nsig0,igresb,igrese,1,ntemp)
             call dmalloc0(lib%ssf,igresb,igrese)
+!            print*, lib%nid
             if (is.eq.1) then
                 allocate(dum1(ntemp))
                 read(indev) dum1(1:ntemp)
@@ -593,10 +900,18 @@ subroutine ReadRLB(indev,rlbfile)
                 lib%xsalog(1:nsig0,igresb:igrese,1:ntemp)=dum3(1:nsig0,igresb:igrese,1:ntemp)
                 do it=1,ntemp
                   do ig=igresb,igrese
+!                    print*, it, ig
                     do isig=1,nsig0
                       lib%ri_a(isig,ig,it)=lib%xsalog(isig,ig,it)*(lib%sig0sq(isig)+lib%lamsigp(ig))/(lib%xsalog(isig,ig,it)+lib%sig0sq(isig)+lib%lamsigp(ig))
                       lib%xsalog(isig,ig,it)=log(lib%xsalog(isig,ig,it))
                     enddo
+                    do isig=1,nsig0-1
+                      if (lib%xsalog(isig,ig,it).GT.lib%xsalog(isig+1,ig,it)) exit
+                    end do
+                    if (isig.LT.nsig0) then
+                      lib%xsalog(:,ig,it) = -10.
+                    end if
+!                    print*, lib%xsalog(:,ig,it)
                   enddo
                 enddo
                 lib%sig0sq(1:nsig0)=dsqrt(lib%sig0sq(1:nsig0))
@@ -740,11 +1055,11 @@ subroutine ReadSLB(indev,slbfile,scatord)
     nrestfxr=nSPHreg-nSubring0
     if (nrestfxr.gt.2) call terminate('Something is wrong in the SPH library.(nrestfxr)')
     if (nSPHreg_srd.gt.0) then
-        read(indev) SPHreg_srd(1:nSPHreg_srd)
+        read(indev) SPHreg_srd(1:nSPHreg_srd) ! fuel subdevision...
     else
         read(indev)
     endif
-    SPHreg_srd(0)=nSPHreg
+    SPHreg_srd(0)=nSPHreg ! number of entire region (fuel + rest)
     SPHreg_srd(1:nSPHreg_srd)=SPHreg_srd(1:nSPHreg_srd)+nrestfxr
     svr%nrestfxr=nrestfxr
     svr%nTEMP=nt
@@ -1010,7 +1325,7 @@ subroutine ReadSLB(indev,slbfile,scatord)
 
 end subroutine
 
-SUBROUTINE ReadXSL(indev,xslfile,ng,nofg,norg,ntiso)
+SUBROUTINE ReadXSL(indev,xslfile,ng,nofg,norg,ntiso)   !Binary File, HELIOS format
   USE ioutil,         ONLY : terminate, toupper, openfile
   USE XSLIB_MOD,      ONLY : libdata, ldiso, uhel, enbhel, igresb, igrese, &
                              noghel, nofghel, norghel, notghel, nelthel, nelrhel, nchihel, &
@@ -1521,7 +1836,7 @@ SUBROUTINE ReadXSL(indev,xslfile,ng,nofg,norg,ntiso)
 
   CALL nuclidmap
   RETURN
-END SUBROUTINE ReadXSL
+END SUBROUTINE ReadXSL  !Binary File, HELIOS format
 
 SUBROUTINE ReadPLC(indev,xslfile,ng,nofg,norg,ntiso)
   USE ioutil,         ONLY : terminate, toupper, openfile
@@ -1872,4 +2187,226 @@ SUBROUTINE ReadPLC(indev,xslfile,ng,nofg,norg,ntiso)
   CALL nuclidmap
   RETURN
 END SUBROUTINE ReadPLC
+
+SUBROUTINE ReadPHL(indev,phlbfile,nele,ntiso,ngg)
+!--- JSU EDIT 20170721
+
+USE PARAM
+USE ALLOCS
+USE IOUTIL,            ONLY : OpenFile, ToUpper, Terminate
+USE XSLIB_MOD,         ONLY : enbgam, phatom, GAMLIBDATA, nelmGAM, noggphl, nogghel
+USE GamXSUtil,         ONLY : mappingphatom
+IMPLICIT NONE
+
+INTEGER :: indev ! input device
+CHARACTER*256 :: phlbfile
+INTEGER :: ngg, nele,nver, ntiso
+
+CHARACTER*4 :: ext
+
+CHARACTER*20 :: blockname
+
+INTEGER :: nid,ntemp
+INTEGER :: ityp,ifis,iradcap,iinel
+CHARACTER*20  :: aid
+REAL :: aw
+LOGICAL :: lbin
+
+INTEGER :: i,ig,ix,it,id,ic,iel
+INTEGER :: igx,itx,nx1,nx2,jg,ip,ib,iy
+
+REAL :: xtemp(1000)
+REAL, POINTER :: PhoEnergybdry(:)
+
+TYPE(GAMLIBDATA), POINTER :: elem
+
+! VARIABLES TO HANDLE GAMMA TRANSPORT VARIABLES
+INTEGER :: igg, imt, nmt = 4
+
+CHARACTER*1 :: probe, probel
+CHARACTER(1000) :: onelinel
+CHARACTER(256) :: oneline
+
+EQUIVALENCE(probe, oneline)
+EQUIVALENCE(probel, onelinel)
+
+PRINT*, 'PHL READ'
+!!    1. open file
+i = len(TRIM(phlbfile))
+ext = phlbfile(i-3:i)
+CALL toupper(ext)
+IF (ext.eq.'PHLB') THEN
+    lbin = .true.
+ELSEIF (ext.eq.'PHLA') THEN
+    lbin = .false.
+ELSE
+    CALL terminate('Extension of the multigroup library should be PHLA or PHLB.')
+END IF
+
+CLOSE(indev)
+
+IF (lbin) THEN
+  CALL openfile(indev,TRUE,TRUE,FALSE,phlbfile)
+  READ(indev) noggphl, nele, nver
+  nelmGAM = nele
+  IF (ngg.NE.noggphl) CALL terminate('The Photon Group Number is Different in PHLA from MLX')
+  ALLOCATE(PhoEnergybdry(ngg+1))
+  ALLOCATE(phatom(nele))
+  READ(indev) (PhoEnergybdry(ig), ig=1,ngg+1)
+  DO ig = 1, ngg+1
+    IF ((PhoEnergybdry(ig)-enbgam(ig))/enbgam(ig).GT.1E-5) CALL terminate('The Photon Group Boundary is Different in PHLA from MLX')
+  END DO
+  DO iel = 1,nele
+    elem => phatom(iel)
+    READ(indev) i, nid, aw
+    elem%nid = nid
+    elem%aw = aw
+    ! Memory Allocation
+    CALL dmalloc(elem%siga, ngg)
+    CALL dmalloc(elem%sigtr, ngg)
+    CALL dmalloc(elem%sigs, ngg)
+    CALL dmalloc(elem%sigss, ngg)
+    CALL dmalloc(elem%sigstr, ngg)
+    CALL dmalloc(elem%kerma, ngg)
+    ALLOCATE(elem%sm(ngg),elem%smp1(ngg),elem%smp2(ngg),elem%smp3(ngg))
+    CALL dmalloc(elem%sigsp1,ngg)
+    CALL dmalloc(elem%sigsp2,ngg)
+    CALL dmalloc(elem%sigsp3,ngg)
+    ! XSP+
+    DO ig = 1, ngg
+      READ(indev) nx1, nx2
+      CALL dmalloc0(elem%sm(ig)%from,nx1,nx2)
+      READ(indev) elem%kerma(ig), elem%siga(ig), elem%sigtr(ig), elem%sigs(ig), elem%sm(ig)%from(nx1:nx2)
+      elem%sm(ig)%ib = nx1
+      elem%sm(ig)%ie = nx2
+    END DO
+    ! PS1+
+    DO ig=1,ngg
+      READ(indev) nx1,nx2
+      CALL dmalloc0(elem%smp1(ig)%from,nx1,nx2)
+      READ(indev) elem%sigsp1(ig), elem%smp1(ig)%from(nx1:nx2)
+      elem%smp1(ig)%ib=nx1;      elem%smp1(ig)%ie=nx2
+    END DO
+    ! PS2+
+    DO ig=1,ngg
+      READ(indev) nx1,nx2
+      CALL dmalloc0(elem%smp2(ig)%from,nx1,nx2)
+      READ(indev) elem%sigsp2(ig), elem%smp2(ig)%from(nx1:nx2)
+      elem%smp2(ig)%ib=nx1;      elem%smp2(ig)%ie=nx2
+    END DO
+    ! PS3+
+    DO ig=1,ngg
+      READ(indev) nx1,nx2
+      CALL dmalloc0(elem%smp3(ig)%from,nx1,nx2)
+      READ(indev) elem%sigsp3(ig),elem%smp3(ig)%from(nx1:nx2)
+      elem%smp3(ig)%ib=nx1;      elem%smp3(ig)%ie=nx2
+    END DO
+  END DO
+ELSE
+  CALL openfile(indev,TRUE,FALSE,FALSE,phlbfile)
+  READ(indev, *) ! !Dimension [ngg, nele, nver]
+  READ(indev, '(I15, 2I6)') noggphl, nele, nver
+  IF (ngg.NE.noggphl) CALL terminate('The Photon Group Number is Different in PHLA from MLX')
+  nelmGAM = nele
+  ALLOCATE(PhoEnergybdry(ngg+1))
+  ALLOCATE(phatom(nele))
+  READ(indev, *) ! Photon Group Boundary
+  READ(indev, '(10ES14.7)') (PhoEnergybdry(ig), ig=1,ngg+1)
+  DO ig = 1, ngg+1
+    IF ((PhoEnergybdry(ig)-enbgam(ig))/enbgam(ig).GT.1E-5) CALL terminate('The Photon Group Boundary is Different in PHLA from MLX')
+  END DO
+  READ(indev, *) ! DIR  [ i,    nid,        amass,            aid]
+  DO iel = 1, nele
+    READ(indev, *) ! Elements List
+  END DO
+  DO iel = 1,nele
+    elem => phatom(iel)
+    READ(indev, *) aid, i, nid, aw, aid
+    elem%nid = nid
+    elem%aw = aw
+    elem%aid = aid
+    ! Memory Allocation
+    CALL dmalloc(elem%siga, ngg)
+    CALL dmalloc(elem%sigtr, ngg)
+    CALL dmalloc(elem%sigs, ngg)
+    CALL dmalloc(elem%sigss, ngg)
+    CALL dmalloc(elem%sigstr, ngg)
+    CALL dmalloc(elem%kerma, ngg)
+    ALLOCATE(elem%sm(ngg),elem%smp1(ngg),elem%smp2(ngg),elem%smp3(ngg))
+    CALL dmalloc(elem%sigsp1,ngg)
+    CALL dmalloc(elem%sigsp2,ngg)
+    CALL dmalloc(elem%sigsp3,ngg)
+    READ(indev, *) ! XSP+
+    DO ig = 1, ngg
+      READ(indev, *) igx, elem%kerma(ig), elem%siga(ig), elem%sigtr(ig), elem%sigs(ig), nx1, nx2, (xtemp(jg), jg = nx1, nx2)
+      CALL dmalloc0(elem%sm(ig)%from,nx1,nx2)
+      elem%sm(ig)%ib = nx1
+      elem%sm(ig)%ie = nx2
+      elem%sm(ig)%from(nx1:nx2)=xtemp(nx1:nx2)
+    END DO
+    READ(indev, *) ! PS1+
+    DO ig=1,ngg
+      READ(indev,*) igx,elem%sigsp1(ig),nx1,nx2,(xtemp(jg),jg=nx1,nx2)
+      elem%smp1(ig)%ib=nx1;      elem%smp1(ig)%ie=nx2
+      CALL dmalloc0(elem%smp1(ig)%from,nx1,nx2)
+      DO jg=nx1,nx2
+        elem%smp1(ig)%from(jg)=xtemp(jg)
+      END DO
+    END DO
+    READ(indev, *) ! PS2+
+    DO ig=1,ngg
+      READ(indev,*) igx,elem%sigsp2(ig),nx1,nx2,(xtemp(jg),jg=nx1,nx2)
+      elem%smp2(ig)%ib=nx1;      elem%smp2(ig)%ie=nx2
+      CALL dmalloc0(elem%smp2(ig)%from,nx1,nx2)
+      DO jg=nx1,nx2
+        elem%smp2(ig)%from(jg)=xtemp(jg)
+      END DO
+    END DO
+    READ(indev, *) ! PS3+
+    DO ig=1,ngg
+      READ(indev,*) igx,elem%sigsp3(ig),nx1,nx2,(xtemp(jg),jg=nx1,nx2)
+      elem%smp3(ig)%ib=nx1;      elem%smp3(ig)%ie=nx2
+      CALL dmalloc0(elem%smp3(ig)%from,nx1,nx2)
+      DO jg=nx1,nx2
+        elem%smp3(ig)%from(jg)=xtemp(jg)
+      END DO
+    END DO
+  END DO
+END IF
+CLOSE(indev)
+! End of Reading Data... ************
+
+! scattering correction data calculation.
+DO iel = 1, nele
+  elem => phatom(iel)
+  elem%sigstr=0._8
+  DO ig=1,ngg
+    DO igx=1,ngg
+      IF(ig.GE.elem%sm(igx)%ib .AND. ig.LE.elem%sm(igx)%ie) THEN
+        elem%sm(ig)%ioutsb=igx
+        EXIT
+      END IF
+    END DO
+    DO igx=ngg,1,-1
+      IF(ig.GE.elem%sm(igx)%ib .AND. ig.LE.elem%sm(igx)%ie) THEN
+        elem%sm(ig)%ioutse=igx
+        EXIT
+      END IF
+    END DO
+    DO igx=elem%sm(ig)%ib,elem%sm(ig)%ie
+      elem%sigstr(igx)=elem%sigstr(igx)+elem%sm(ig)%from(igx)
+    END DO
+  END DO
+  DO ig = 1, ngg
+      elem%sigss(ig) = elem%sm(ig)%from(ig) + (elem%sigs(ig) - elem%sigstr(ig)) ! Un-corrected Scattering XS
+  END DO
+END DO
+
+!!!    7. mapping
+CALL mappingphatom(nele,ntiso)
+!
+RETURN
+
+END SUBROUTINE ReadPHL
+
 end Module

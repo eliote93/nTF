@@ -20,7 +20,7 @@ INCLUDE 'mpif.h'
 
 INTEGER :: ICHAR1ST
 
-#ifdef __GFORTRAN__
+#if defined __GFORTRAN__ || __PGI
 CALL gfortModuleInit
 #endif
 
@@ -56,7 +56,7 @@ ENDIF
 
 END SUBROUTINE
 
-#ifdef __GFORTRAN__
+#if defined __GFORTRAN__ || __PGI
 SUBROUTINE gfortModuleInit
 USE PARAM
 USE TH_Mod,         ONLY : ThOpt

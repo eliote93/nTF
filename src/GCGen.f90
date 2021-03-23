@@ -107,7 +107,7 @@ DO iasy = 1, nxya
         !--- Diffusion coefficient & Transport XS
         CALL GC2GDiffCoeff(ng) ! << GCCon 안에도 있고 (TA용) 정리해서 GCCon 내부에서 호출하도록 수정해야함
         !--- Microscopic 2G XS
-        CALL GCCon(ng)
+        CALL GCCon(ng, FALSE)
         WRITE(mesg, '(A)') 'Generating Group Constants ... Con'
         CALL message(io8, TRUE, TRUE, mesg)
         
@@ -173,7 +173,7 @@ DO iasy = 1, nxya
                 !--- Diffusion coefficient & Transport XS
                 CALL GC2GDiffCoeff(ng) ! << GCCon 안에도 있고 (TA용) 정리해서 GCCon 내부에서 호출하도록 수정해야함
                 !--- Microscopic 2G XS
-                CALL GCCon(ng)
+                CALL GCCon(ng, TRUE)
                 
                 !--- Assembly Discontinuity Factor
                 CALL GCSurf_Pin(Core, FmInfo, ng)

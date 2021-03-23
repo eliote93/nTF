@@ -5,7 +5,6 @@ USE TYPEDEF,           ONLY : PinXs_Type,      CoreInfo_Type,      PE_TYPE,    &
                               GroupInfo_Type
 IMPLICIT NONE
 TYPE CrCspGenCntl_Type
-  SEQUENCE  
   INTEGER :: npinxsdat = 0                      !
   INTEGER :: BankID                             !
   INTEGER :: CrPln(2)                           !Cr Insertion Range
@@ -14,13 +13,11 @@ TYPE CrCspGenCntl_Type
 END TYPE
 
 TYPE IntSpec_TYPE
-  SEQUENCE
   INTEGER :: nFxr, ng
   REAL, POINTER :: phi(:, :) !(nfxr, ig)
 END TYPE
 
 TYPE CrCspGenDat_Type
-  SEQUENCE
   REAL :: eigv
   INTEGER :: iCrPos(2)
   REAL :: CrPos

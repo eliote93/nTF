@@ -2,7 +2,6 @@ MODULE itrcntl_mod
 USE param
 IMPLICIT NONE
 TYPE MOCItrCntl_Type
-  SEQUENCE
   INTEGER :: nitermax = 1
   INTEGER :: nitermin = 1
   REAL :: ResErr = 1.
@@ -11,7 +10,6 @@ TYPE MOCItrCntl_Type
 END TYPE
 
 TYPE InSolverItrCntl_TYPE
-  SEQUENCE
   INTEGER :: ninmax = 20
   INTEGER :: ninmin = 3
   REAL :: convcrit = epsm5
@@ -19,7 +17,6 @@ TYPE InSolverItrCntl_TYPE
 END TYPE
 
 TYPE CMFDItrCntl_TYPE
-  SEQUENCE
   INTEGER :: nitermax = 40
   INTEGER :: nitermin = 7
   INTEGER :: nCMFDpNodal = 5
@@ -32,7 +29,6 @@ END TYPE
 
 
 TYPE GcCMFDItrCntl_TYPE
-  SEQUENCE
   INTEGER :: GcCmfdIt = 0
   INTEGER :: nitermax = 20
   INTEGER :: nitermin = 6
@@ -42,7 +38,6 @@ TYPE GcCMFDItrCntl_TYPE
   LOGICAL :: lLogOut = .TRUE.
 END TYPE
 TYPE DcplXsGenCntl_Type
-  SEQUENCE
   REAL :: eigconv = epsm5
   REAL :: psiconv = epsm4
   REAL :: ResConv = epsm4
@@ -53,13 +48,11 @@ TYPE DcplXsGenCntl_Type
 END TYPE
 
 TYPE DbgCntl_TYPE
-  SEQUENCE
   LOGICAL :: lPhiCNegChk = .FALSE.
   LOGICAL :: lNegFix = .FALSE.
 END TYPE
 
 TYPE ItrCntl_TYPE
-  SEQUENCE
   TYPE(MOCItrCntl_Type) :: MocItrCntl
   TYPE(InSolverItrCntl_TYPE) :: InSolverItrCntl
   TYPE(CMFDItrCntl_TYPE) :: CMFDItrCntl
@@ -71,6 +64,7 @@ TYPE ItrCntl_TYPE
   INTEGER :: GcCmfdIt = 0
   INTEGER :: mocit = 0
   INTEGER :: AxIt = 0
+  INTEGER :: innerit = 0
 
   INTEGER :: SrcIt0 = 0
   INTEGER :: cmfdit0 = 0
@@ -85,19 +79,21 @@ TYPE ItrCntl_TYPE
   REAL :: psiconv = epsm4
   REAL :: resconv = epsm4
   REAL :: ThConv = epsm4
+  REAL :: decuspconv = epsm3
   LOGICAL :: lconv = .FALSE.
   LOGICAL :: lnodal = .TRUE.
   LOGICAL :: lThConv = .FALSE.
   LOGICAL :: lRadDhatUpdt
   LOGICAL :: lGammaConv = .FALSE.   !--- CNJ Edit : Gamma Transport Convergence Flag
+  LOGICAL :: lDecuspConv = .FALSE.
 END TYPE
 
 TYPE ConvItrCntl_TYPE
-  SEQUENCE
   INTEGER :: OuterMax = 15
   REAL :: eigconv = epsm5
   REAL :: psiconv = epsm4
   REAL :: resconv = epsm4
+  REAL :: decuspconv = epsm3
 END TYPE
 
 save

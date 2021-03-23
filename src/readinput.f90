@@ -140,7 +140,10 @@ CALL MPI_SYNC(PE%MPI_COMM)
 #endif
 !CLOSE(io5)
 
-IF(nTracerCntl%lISOTXS) CALL PostProc_ISOTXS
+IF(nTracerCntl%lISOTXS)  THEN 
+  CALL PostProc_ISOTXS
+  IF(nTracerCntl%lGamma) CALL PostProc_GAMISO
+END IF
 
 IF(lMCP_Restart) CALL MCP_Initialize()
 

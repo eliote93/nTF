@@ -4,7 +4,7 @@ use param
 use files,          only : filename,    InputFileIdx,  XsFileIdx,      SteamTblIdx, &
                            TempFileIdx, io5,           io6,            io8,         &
                            io_quick,    CaseId,        TempInclIdx,    lIncFile,    &
-                           rlbIdx,      slbIdx,        DeplFileIdx  
+                           rlbIdx,      slbIdx,        DeplFileIdx,    phlIdx, PXSIDX, pmatrxIdx
 use ioutil,         only : terminate,   toupper,       openfile,       IFnumeric,   &
                            nfields,     getfn
 use inputcards ,    only : oneline,     probe,         mxcard,         nblock,      &
@@ -18,7 +18,8 @@ use geom,           only : LEDGE,        core,          nCellX0,       nAsyType0
                            nBasecell,   nBasecell0,                                 & ! --- 180625 JSR  
                            !--- CNJ Edit : Flexible Cell & Pin Numbering
                            CellTypeMap,  PinTypeMap,                                &
-                           nGapType,     nGapPinType,   nVssTyp ! KSC Edited - 170807
+                           nGapType,     nGapPinType,   nVssTyp,                    & ! KSC Edited - 170807 
+                           nCrCell
 USE CNTLROD_mod,    ONLY : AddNCrConf
 USE CrCsp_mod,      ONLY : SetnCrCspDat
 USE PE_MOD,         ONLY : PE
@@ -26,18 +27,15 @@ USE Core_Mod,       ONLY : GroupInfo
 USE Material_Mod,   ONLY : Mixture,      nMixType
 USE ReadXsec
 USE BenchXs,        ONLY : scatod
-USE TRAN_MOD,       ONLY : TranCntl
+USE TRAN_MOD,       ONLY : TranCntl,     TranInfo
 USE cntl,           ONLY : nTracerCntl
 USE itrcntl_mod,    ONLY : ConvItrCntl
 USE MCP_Util,       ONLY : nMCP,         MCP_Path,     lMCP_restart,    nMCP_Plane
 USE SubChCoupling_mod,    ONLY: is_coupled
 USE DEPL_MOD,      ONLY : DeplCntl
 USE DeplLib_MOD,   ONLY : DeplLib
+USE PointXSRT_MOD,       ONLY : ReadPWXS
 USE HexData,       ONLY : hLgc
-#ifdef __GAMMA_TRANSPORT
-USE GammaLibdata,   ONLY : GFILE
-USE GammaCore_mod,  ONLY : GamGroupInfo
-#endif
 #ifdef MPI_ENV
 USE MPIComm_Mod,    ONLY : MPIWaitTurn, MPI_SYNC
 #endif
@@ -130,12 +128,13 @@ nAsyType0 = 0; nCellType0 = 0; nPinType0 = 0; nAsyGapType = 0
 nGapType = 0; nGappinType = 0; nVssTyp = 0; nPinType = 0; nCellType = 0 ! KSC EDIT 17/12/11
 nBasecell0 = 0; nBasecell = 0 ! --- 180625 JSR
 maxCellID = 0; maxPinID = 0   !--- CNJ Edit : Flexible Cell & Pin Numbering
+nCrCell = 0
 
 DO while(TRUE)
   read(indev,'(a512)') oneline
   IF(probe.eq.BANG) cycle;     IF(probe.eq.POUND) cycle
   IF(oneline.eq.BLANK) cycle;  IF(IFnumeric(oneline)) cycle
-  IF(probe.eq.DOT) exit;       ! IF(probe.eq.SLASH) exit
+  IF(probe.eq.DOT) exit;       IF(probe.eq.SLASH) cycle
   read(oneline,*) cardname; CALL toupper(cardname)
   nLineField = nfields(oneline)-1
   SELECT CASE(cardname)
@@ -253,6 +252,8 @@ DO while(TRUE)
       hLgc%lvyg = TRUE
     CASE('CR_CELL')
       CALL AddNCrConf(1)
+      nCellType0 = nCellType0 + 1
+      nCrCell = nCrCell + 1
     CASE('CR_ASYCONF')
       CALL AddNCrConf(2)
     CASE('CR_BANK')
@@ -271,9 +272,9 @@ DO while(TRUE)
       ENDIF
 
       IF(nTracerCntl%libtyp .eq. 1) nTracerCntl%lBenchXs = .TRUE.   ! nTRACER benchmark format, FULL Scattering matrix
+      IF(nTracerCntl%libtyp .eq. 11) nTracerCntl%lBenchXs = .TRUE.   ! nTRACER benchmark format, NEACRP-l-335
       IF(nTracerCntl%libtyp .eq. 4) nTracerCntl%lISOTXS = .TRUE.    ! ISOTXS Format from EXUS-F and MCC-3
       nTracerCntl%lXsLib = .not. nTracerCntl%lBenchXs
-      !nTracerCntl%lXsLib = .not. (nTracerCntl%lBenchXs .or. nTracerCntl%lISOTXS)
 
       !IF(nLineField .EQ. 2) THEN
       !  read(oneline,*) astring, i, j
@@ -305,9 +306,11 @@ DO while(TRUE)
     CASE('FILE')
       CALL getfn(oneline,2,filename(XsFileIdx))
 #ifdef __GAMMA_TRANSPORT
-    CASE('GFILE')
-      CALL getfn(oneline,2,GFILE)
+    CASE('PHL')
+      CALL getfn(oneline,2,filename(phlIdx))
       nTracerCntl%lGamma = .TRUE.
+    CASE('PMATRX')
+      CALL getfn(oneline,2,filename(pmatrxIdx)) 
 #endif
     CASE('RLB')
       CALL getfn(oneline,2,filename(rlbIdx))
@@ -339,7 +342,23 @@ DO while(TRUE)
       READ(oneline, *) astring, optfield
       nTracerCntl%lXeDyn = .TRUE.
     CASE('XS_CHANGE')
-      TranCntl%nChange = TranCntl%nChange + 1
+      TranCntl%nChange = TranCntl%nChange + 1    
+    CASE('XS_NOISE')
+      TranCntl%nNoise = TranCntl%nNoise + 1
+    CASE('XS_CNTLROD')
+      nTracerCntl%nCntlRod = nTracerCntl%nCntlRod + 1
+    CASE('KIN_BENCH')
+      READ(oneline, *) astring, TranCntl%lKineticBen
+      nTracerCntl%lKineticBen = TranCntl%lKineticBen
+    CASE('DYN_BENCH')
+      IF(nLineField .Eq. 1) THEN 
+        READ(oneline, *) astring, TranCntl%lDynamicBen, TranInfo%InitTemp
+      ELSE
+        READ(oneline, *) astring, TranCntl%lDynamicBen, TranInfo%InitTemp, TranInfo%Initpow
+      END IF
+      nTracerCntl%lDynamicBen = TranCntl%lDynamicBen
+    CASE('AF_SRC')
+      READ(oneline, *) astring, nTracerCntl%lAfSrc, TranCntl%lMethod
     CASE('COBRA_TF')
       READ(oneline, *) astring, is_coupled
     CASE('ESCOT')
@@ -352,6 +371,8 @@ DO while(TRUE)
       READ(oneline, *) astring, ConvItrCntl%psiconv
     CASE('RES_CONV')
       READ(oneline, *) astring, ConvItrCntl%resconv
+    CASE('DECUSP_CONV')
+      READ(oneline, *) astring, ConvItrCntl%decuspconv
     CASE('NMCP')
       READ(oneline, *) astring, nMCP
       ALLOCATE(MCP_Path(1:nMCP))
@@ -376,6 +397,17 @@ DO while(TRUE)
         DeplCNTL%nBurnUpStep = DeplCNTL%nBurnUpStep + nLineField
       ENDDO
       Backspace(indev);
+    CASE('PSM') ! Point-wise Slowing-down Method
+      nTRACERCntl%lPSM = .TRUE.
+      nTracerCntl%lrestrmt=.TRUE.
+      nTRACERCntl%lpointrt = .TRUE.
+      CALL getfn(oneline,2,filename(pxsIdx))
+    CASE('OTFRIF')
+      nTRACERCntl%lOTFRIF  = .TRUE.
+      nTRACERCntl%lRIF     = .TRUE.
+      nTRACERCntl%lrestrmt = .TRUE.
+      nTRACERCntl%lpointrt = .TRUE.
+      CALL getfn(oneline,2,filename(pxsIdx))
   ENDSELECT
 ENDDO
 
@@ -499,7 +531,7 @@ ELSEIF (nTracerCntl%libtyp .eq. 1) THEN !Benchmark XS
   close(io_quick)
 ELSEIF (nTracerCntl%libtyp .eq. 2) THEN !Default, by PHS
   CALL readMLX(io_quick, filename(XsFileIdx), GroupInfo%ng, GroupInfo%nofg,   &
-                  GroupInfo%norg, GroupInfo%nTiso)
+                  GroupInfo%norg, GroupInfo%nTiso, GroupInfo%ngg)
   CALL setXeDynVar(DeplLib(1))
   CALL setKappa(DeplLib(1))  
   IF (nTracerCntl%lrestrmt) THEN
@@ -510,21 +542,36 @@ ELSEIF (nTracerCntl%libtyp .eq. 2) THEN !Default, by PHS
   IF (nTracerCntl%lsSPH) CALL readSLB(io_quick, filename(slbIdx), nTracerCntl%ScatOd)
   ng = GroupInfo%ng
 #ifdef __GAMMA_TRANSPORT
-  IF (nTracerCntl%lGamma) THEN
-    CALL readlibGamma(io_quick,GFILE,GamGroupInfo%ng,GamGroupInfo%nofg,GamGroupInfo%norg,GamGroupInfo%nTiso)
-  ENDIF
+  IF (nTracerCntl%lGamma) CALL ReadPHL(io_quick,filename(phlIdx),GroupInfo%NELE,GroupInfo%nTiso,GroupInfo%ngg)
 #endif
+  IF (nTRACERCntl%lPSM.OR.nTRACERCntl%lOTFRIF) THEN
+    CALL ReadPWXS(io_quick, filename(pxsIdx))
+  END IF
 ELSEIF (nTracerCntl%libtyp .eq. 3) THEN !PLC, by LCH
   nTracerCntl%lRIF=.FALSE.; nTracerCntl%lrestrmt = .TRUE.
   CALL ReadPLC(io_quick, filename(XsFileIdx), GroupInfo%ng, GroupInfo%nofg, GroupInfo%norg, GroupInfo%nTiso)
   CALL setXeDynVar(DeplLib(1))
   CALL setKappa(DeplLib(1))
   ng = GroupInfo%ng
+ELSEIF (nTracerCntl%libtyp .eq. 11) THEN !NEACRP-l-335 benchmark problem
+  CALL openfile(io_quick, TRUE, FALSE, FALSE, filename(XsFileIdx))
+  xsod=nTracerCntl%XsOrder
+  IF( xsod .EQ. -1 )THEN  ! Xs order not given
+    xsod=nTracerCntl%ScatOd
+  ENDIF
+  CALL ReadBenchXs_NEACRP(io_quick, ng, nPrec, TranCntl%nChange, XsOd)  !--- r544 edit > r563 updated
+  close(io_quick)
 ELSEIF (nTRACERCntl%libtyp .EQ. 4) THEN ! ISOTXS, by JSU
   nTracerCntl%lRIF=.FALSE.; nTracerCntl%lrestrmt = .FALSE.
   CALL readISOTXS(io_quick, filename(XsFileIdx), GroupInfo%ng, GroupInfo%nTiso, XsOd)
   IF(nTracerCntl%ScatOd > XsOd) CALL terminate('SCAT_ORDER is Larger than the order in XS Lib. !')
   nTracerCntl%lGcCMFD = .FALSE.
+#ifdef __GAMMA_TRANSPORT
+  IF (nTracerCntl%lGamma) THEN 
+    CALL ReadGAMISO(io_quick,filename(phlIdx),GroupInfo%ngg,GroupInfo%nele)
+    CALL ReadPMATRX(io_quick,filename(pmatrxIdx))
+  END IF
+#endif
 ELSE
   CALL Terminate('Error : ''Lib_Type'' card should be given between 0 - 4.')
 ENDIF

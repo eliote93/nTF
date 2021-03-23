@@ -5,10 +5,9 @@ LOGICAL :: prtscrn = .true.        !
 LOGICAL :: lWriteRst = .false.     !Write Restart File
 
 TYPE OutpCntl_Type
-  SEQUENCE
 
   INTEGER :: IsoOutList(0:1000) = 0
-  INTEGER :: FluxOutList(4, 0:100) = 0
+  INTEGER :: FluxOutList(4, 0:300) = 0
   INTEGER :: VisMod = 0         !
   !PinXS Out
   LOGICAL :: lPinXsOut = .FALSE.
@@ -24,19 +23,32 @@ TYPE OutpCntl_Type
   INTEGER :: IsoXsOutList(0:200, 1000) !
   LOGICAL :: RegXsOutASM(1000),RegXsOutPIN(1000),RegXsOutFXR(1000)
 
+  !Effective regional Photoatomic Cross Section Out   *** for GFEEXS Card
+  ! Neutron Flux/ Photon Production Matrix /
+  ! Photon Flux/ Photon Source from Neutron Flux / Photoatomic XS
+  INTEGER :: nRegPhXSout = 0
+  INTEGER :: RegPhXsOutList(7, 1000) ! /[iz, ixa, iya, ix, iy, ir1, ir2], ireg /
+  INTEGER :: IsoPhXsOutList(0:200, 1000)
+  LOGICAL :: RegPhXsOutASM(1000),RegPhXsOutPIN(1000),RegPhXsOutFXR(1000)
+
+  ! KERMA for Neutron and Photon
+  INTEGER :: nRegKERMAout = 0
+  INTEGER :: RegKERMAOutList(7, 1000) ! /[iz, ixa, iya, ix, iy, ir1, ir2], ireg /
+  INTEGER :: IsoKERMAOutList(0:200, 1000)
+  LOGICAL :: RegKERMAOutASM(1000),RegKERMAOutPIN(1000),RegKERMAOutFXR(1000)
   !Effective scattering XS Out
   INTEGER :: nRegMAT0Out = 0
   INTEGER :: RegMAT0OutList(7, 1000) ! /[iz, ixa, iya, ix, iy, ir1, ir2], ireg /
-  INTEGER :: IsoMAT0OutList(0:100, 1000) !  
+  INTEGER :: IsoMAT0OutList(0:100, 1000) !
   LOGICAL :: RegMAT0OutASM(1000),RegMAT0OutPIN(1000),RegMAT0OutFXR(1000)
 
   !Effective MG regional Cross Section Out
   INTEGER :: nRegMGXsOut = 0
   INTEGER :: RegMGXsOutList(7, 1000) ! /[iz, ixa, iya, ix, iy, ir1, ir2], ireg /
-  INTEGER :: MGBdry(0:47, 1000) ! 
+  INTEGER :: MGBdry(0:47, 1000) !
   INTEGER :: nMG(1000)
-  
-  !Condensed Flux Moments Out 
+
+  !Condensed Flux Moments Out
   INTEGER :: nRegPhimOut = 0
   INTEGER :: RegPhimOutList(7, 1000),PhimOrdOutList(0:21,1000)
   LOGICAL :: RegPhimOutASM(1000),RegPhimOutPIN(1000),RegPhimOutFXR(1000)
@@ -44,8 +56,8 @@ TYPE OutpCntl_Type
   !Effective regional Cross Section Out WHILE DEPLETION
   INTEGER :: nDeplRegXsOut = 0
   INTEGER :: DeplRegXsOutList(7, 1000) ! /[iz, ixa, iya, ix, iy, ir1, ir2], ireg /
-  INTEGER :: DeplIsoXsOutList(0:100, 1000) ! 
-  
+  INTEGER :: DeplIsoXsOutList(0:100, 1000) !
+
   !spectral SPH factor out
   LOGICAL :: lSSPHout = .FALSE.
 
@@ -60,14 +72,12 @@ TYPE OutpCntl_Type
 END TYPE
 
 type MCXS_type
-  sequence
   integer :: iz,iasyx,iasyy,ix,iy,ifxr1,ifxr2,niso
   integer,pointer :: idiso(:)
-  real,pointer :: isoxsa(:,:,:),isoxsnf(:,:,:)    
+  real,pointer :: isoxsa(:,:,:),isoxsnf(:,:,:)
 end type
 
 TYPE nTracerCntl_Type
-  SEQUENCE
   LOGICAL :: lXsLib = .TRUE.
   LOGICAL :: lBenchXs = .FALSE.
   LOGICAL :: lFXRLib = .FALSE.
@@ -75,19 +85,33 @@ TYPE nTracerCntl_Type
   LOGICAL :: lTrCorrection = .TRUE.
   LOGICAL :: lSSPH = .FALSE., lSSPHreg=.FALSE.
   LOGICAL :: lMLG=.TRUE., lRIF=.TRUE., lRST=.FALSE., lCAT=.TRUE., l4Lv=.TRUE.
+  LOGICAL :: lRIFFXR = .FALSE.
   LOGICAL :: lED=.FALSE. ! Effective Dancoff
   LOGICAL :: lOldBon = .FALSE. ! Changhyun
   INTEGER :: nMLG=8, nMLGc=5
+  LOGICAL :: lXsAlign = .FALSE.
 
   INTEGER :: libTyp = 2
+  LOGICAL :: lrestrmt = .FALSE.
+
+  ! Point-wise Resonance treatment  | EDIT -- JSU 2020.08.
+  LOGICAL :: lpointrt = .FALSE. ! Point-wise resonance treatment (PSM or OTFRIF)
+  LOGICAL :: lPSM     = .FALSE. ! PSM informaiton (Point-wise Slowingdown Method developed in UNIST)
+  LOGICAL :: lOTFRIF  = .FALSE. ! On-the-fly RIF generation (0D RIF Generation based on Meer
   LOGICAL :: lWriteRst = .FALSE.
   LOGICAL :: lWriteDeplRst = .FALSE.
   LOGICAL :: LpShf = .FALSE.
   LOGICAL :: lRstCal = .FALSE.
   LOGICAL :: l3Dim = .TRUE.
   INTEGER :: nDim = 3
-
-  LOGICAL :: lrestrmt = .FALSE.
+  LOGICAL :: lfixvel = .FALSE.
+  LOGICAL :: lfitBeta = .TRUE.
+  LOGICAL :: llibdcy_del = .TRUE.
+  INTEGER :: refdcy_del = 92235
+  LOGICAL :: lchidgen = .TRUE.
+  LOGICAL :: lchidkgen = .TRUE.
+  LOGICAL :: lchip = .FALSE.
+  LOGICAL :: lTranOn
 
   INTEGER :: lProblem = lsseigv
 
@@ -119,17 +143,18 @@ TYPE nTracerCntl_Type
   INTEGER :: MultigridLV = 4
   INTEGER :: gridNum, gridStr(1000)
   INTEGER :: AxSolver = lP3SENM   !Axial Sorver : P3 Default > r560d / 17/01/17
-  LOGICAL :: lnonFuelpinFDM = .FALSE. !--- BYS Edit : non fuel pin FDM (skip Nodal) 
+  LOGICAL :: lnonFuelpinFDM = .FALSE. !--- BYS Edit : non fuel pin FDM (skip Nodal)
   LOGICAL :: lResetResErr = .FALSE.   !--- BYS Edit : Reset Residual Error check in CMFD
   LOGICAL :: lDhom = .FALSE.          !--- BYS Edit : true if hom. by D in axial
-  
+
   INTEGER :: LkgSplitLv = 0
-  
+
   LOGICAL :: lMOCUR = .FALSE.
   LOGICAL :: lOptUR = .TRUE.
-  REAL :: UserUR = 0.75 
-  
+  REAL :: UserUR = 0.75
+
   LOGICAL :: lAxRefFDM = .FALSE.
+
 
   LOGICAL :: lFastMOC = .FALSE.
   INTEGER :: FastMOCLv = 0
@@ -142,10 +167,12 @@ TYPE nTracerCntl_Type
   LOGICAL :: lSubGrpSweep = .FALSE.
   LOGICAL :: lSimpleTh = .FALSE.
   INTEGER :: ThCh_mod = 0                   ! T-H channel Mode 0 : Pin By Pin, 1 : Assembly Calculation, 2: 4 box,
+  LOGICAL :: lthch_tf = .FALSE.
   LOGICAL :: lFuelCondFDM = .FALSE.         ! Fuel Conduction FDM Solver
   LOGICAL :: LIHP = .FALSE.                 ! Internal Heat Profile
   LOGICAL :: lEffTemp = .FALSE.
   LOGICAL :: lUserDefTemp = .FALSE.
+  LOGICAL :: lThChConf = .FALSE.
 
   LOGICAL :: lInitBoron  = .FALSE.          ! Boron Insertion
   LOGICAL :: lSearch = .FALSE.
@@ -197,7 +224,7 @@ TYPE nTracerCntl_Type
 
   LOGICAL :: lRayGen =.TRUE.
   INTEGER :: RayGenOpt = 0
-  
+
   LOGICAL :: lAutoBaffle = .FALSE.
   LOGICAL :: lAutoBarrel = .FALSE.
   LOGICAL :: lAutoRingStruct = .FALSE.
@@ -217,8 +244,17 @@ TYPE nTracerCntl_Type
   LOGICAL :: morecase = .TRUE.
   INTEGER :: TRSolver = 1 ! 1 = MOC, 2 = MC
   LOGICAL :: lAfSrc = .FALSE.
+  LOGICAL :: lKineticBen = .FALSE.
+  LOGICAL :: lDynamicBen = .FALSE.
   ! RM EDIT
   LOGICAL :: lScatBd = .FALSE.  ! Scat boundary >> need to rename
+  !ADJOINT
+  LOGICAL :: lAdjoint = .FALSE.
+  LOGICAL :: lCMFDAdj = .TRUE.
+
+  !MPI_CUSPING
+  LOGICAL :: lCusping_MPI = .FALSE.
+  LOGICAL :: lDecusp = .FALSE.
 
 !Control Rod Control Part
   LOGICAL :: lCrInfo = .FALSE.
@@ -241,25 +277,32 @@ TYPE nTracerCntl_Type
   LOGICAL :: lFSRXS, lFSRPhi
   LOGICAL :: lBCRopt = .TRUE.
   LOGICAL :: lDetailOutput=.FALSE.
-  
+
 ! PHOTON CALCULATION     !--- JSU EDIT 20170721
   LOGICAL :: lGamma = .false.
+  LOGICAL :: lExplicitKappa = .FALSE.!
+! Explicit Power Control...  JSU EDIT 20190819
+  INTEGER :: pmode = 0      ! 0:fission power, 1:explicit total power
+  INTEGER :: pout_mode = 0  ! 0:only print target, 1:print neutron/gamma if (power_mode=1), 2:print all(whatever power_mode)
   ! Hexagonal calculation !--- KSC EDIT 20180521
   LOGICAL :: lHex = .FALSE.
   INTEGER :: nCP_er=0
   INTEGER :: nCP=0
-  
+
   CHARACTER*512 :: MCXSfile
   LOGICAL :: lMCXS=.false.
   integer :: nmcxs
   type(MCXS_type),pointer :: mcxs(:)
-  
+
   !--- JSR Edit : nTIG Restart
   LOGICAL :: lnTIGRst = .FALSE.
   LOGICAL :: lCooling = .FALSE. ! --- 180809
 ! Fast reactor...
   LOGICAL :: lisotxs = .FALSE.
 
+  !--- KJS Edit : CNTL ROD Cusping at sseig
+  INTEGER :: nCntlRod = 0
+  LOGICAL :: lDcyHeat = .FALSE.
 END TYPE
 
 
@@ -289,7 +332,7 @@ TYPE(nTracerCntl_Type) RefCntl, TargetCntl
 TargetCntl%lXsLib = RefCntl%lXsLib; TargetCntl%lBenchXs = RefCntl%lBenchXs
 TargetCntl%lScat1 = RefCntl%lScat1; TargetCntl%libTyp = RefCntl%libTyp
 TargetCntl%lWriteRst = RefCntl%lWriteRst; TargetCntl%l3Dim = RefCntl%l3Dim
-TargetCntl%nDim = RefCntl%nDim
+TargetCntl%lHex = RefCntl%lHex; TargetCntl%nDim = RefCntl%nDim
 TargetCntl%lProblem = RefCntl%lProblem; TargetCntl%PowerFA = RefCntl%PowerFA
 TargetCntl%TempInlet = RefCntl%TempInlet; TargetCntl%Pexit = RefCntl%Pexit
 TargetCntl%fMdotfa = RefCntl%fMdotfa; TargetCntl%lCMFD = RefCntl%lCMFD

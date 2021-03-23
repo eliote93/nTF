@@ -31,6 +31,7 @@ CALL SetGeometry(CoreInfo, FmInfo, RayInfo, GroupInfo, GcGroupInfo, nTracerCntl%
 
 mklCMFD%ng = mklGeom%ng
 mklGcCMFD%ng = mklGeom%ngc
+mklAxial%ng = mklGeom%ng
 
 CALL AllocHomoXSVar(CoreInfo, mklGeom%ng)
 CALL AllocCMFDVar(mklCMFD, GroupInfo, mklGeom%myzb, mklGeom%myze, mklGeom%l3dim)
@@ -38,10 +39,39 @@ IF (mklCntl%lGcCMFD) THEN
   CALL SetGcInfo(GroupInfo, GcGroupInfo)
   CALL AllocCMFDVar(mklGcCMFD, GcGroupInfo, 1, mklGeom%nzCMFD, mklGeom%l3dim)
 ENDIF
-IF (mklGeom%l3dim) CALL AllocAxialVar(RayInfo%PolarAngle)
+IF (mklGeom%l3dim) CALL AllocAxialVar(mklAxial)
 IF (mklCntl%lChebyshev) CALL ChebyshevInit()
 
+#ifdef __GAMMA_TRANSPORT
+IF (nTracerCntl%lGamma) CALL SetMKLGammaEnv(CoreInfo)
+#endif
+
 END SUBROUTINE
+
+#ifdef __GAMMA_TRANSPORT
+SUBROUTINE SetMKLGammaEnv(CoreInfo)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type
+USE CORE_MOD,       ONLY : GroupInfo
+USE CNTL,           ONLY : nTracerCntl
+USE GAMMA_HOMOXS,   ONLY : AllocHomoXSVar
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: CoreInfo
+
+mklCntl%lGamma = nTracerCntl%lGamma
+
+mklGammaCMFD%ng = mklGeom%ngg
+mklGammaAxial%ng = mklGeom%ngg
+
+CALL AllocHomoXSVar(CoreInfo, mklGeom%ngg)
+CALL AllocCMFDVar(mklGammaCMFD, GroupInfo, mklGeom%myzb, mklGeom%myze, mklGeom%l3dim, .TRUE.)
+IF (mklGeom%l3dim) THEN
+  CALL AllocAxialVar(mklGammaAxial, .TRUE.)
+ENDIF
+
+END SUBROUTINE
+#endif
 
 SUBROUTINE SetGeometry(CoreInfo, FmInfo, RayInfo, GroupInfo, GcGroupInfo, l3dim)
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        RayInfo_Type,       GroupInfo_Type
@@ -58,6 +88,7 @@ TYPE(GroupInfo_Type) :: GroupInfo, GcGroupInfo
 LOGICAL :: l3dim
 
 mklGeom%ng = GroupInfo%ng
+mklGeom%ngg = GroupInfo%ngg
 mklGeom%nFsr = CoreInfo%nCoreFsr
 mklGeom%nxmax = CoreInfo%nx
 mklGeom%ny = CoreInfo%ny
@@ -69,11 +100,8 @@ mklGeom%myze = PE%myze
 mklGeom%nPolar2D = RayInfo%nPolarAngle
 mklGeom%l3dim = l3dim
 
-ALLOCATE(mklGeom%InScatRange(2, mklGeom%ng))
-ALLOCATE(mklGeom%OutScatRange(2, mklGeom%ng))
-
-mklGeom%OutScatRange = GroupInfo%OutScatRange
-mklGeom%InScatRange  = GroupInfo%InScatRange
+ALLOCATE(mklGeom%InScatRange(2, mklGeom%ng)); mklGeom%OutScatRange = GroupInfo%OutScatRange 
+ALLOCATE(mklGeom%OutScatRange(2, mklGeom%ng)); mklGeom%InScatRange = GroupInfo%InScatRange
 
 mklCntl%lSuperpin = mklCntl%lSuperpin .AND. CoreInfo%lGap
 
@@ -170,6 +198,7 @@ ELSE
 ENDIF
 
 mklCMFD%planeMap => mklGeom%planeMap
+mklGammaCMFD%planeMap => mklGeom%planeMap
 
 ALLOCATE(mklGeom%lRefPlane(myzb : myze))
 
@@ -347,7 +376,7 @@ ENDIF
 
 END SUBROUTINE
 
-SUBROUTINE AllocCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim)
+SUBROUTINE AllocCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim, lGamma)
 USE TYPEDEF,        ONLY : GroupInfo_Type
 USE CMFD_COMMON,    ONLY : AllocPinXS
 IMPLICIT NONE
@@ -355,9 +384,17 @@ IMPLICIT NONE
 TYPE(mklCMFD_Type) :: CMFD
 TYPE(GroupInfo_Type) :: GroupInfo
 INTEGER :: myzb, myze
-LOGICAL :: l3dim
+LOGICAL :: l3dim, lGammaAlloc = .FALSE.
+LOGICAL, OPTIONAL :: lGamma
 
 INTEGER :: ig, ng, nxy, nzCMFD
+
+IF (PRESENT(lGamma)) lGammaAlloc = lGamma
+
+IF (lGammaAlloc) THEN
+  CALL AllocGammaCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim)
+  RETURN
+ENDIF
 
 ng = CMFD%ng
 nxy = mklGeom%nxy
@@ -371,7 +408,7 @@ ALLOCATE(CMFD%M(ng))
 ALLOCATE(CMFD%S(nxy * nzCMFD, ng, ng))
 ALLOCATE(CMFD%F(nxy * nzCMFD, ng))
 ALLOCATE(CMFD%Chi(nxy * nzCMFD, ng))
-  
+
 IF (mklCntl%lJacobi) THEN
   ALLOCATE(CMFD%Jacobi(ng))
   DO ig = 1, ng
@@ -401,7 +438,6 @@ ALLOCATE(CMFD%neighphis(nxy, ng, 2))
 ALLOCATE(CMFD%src(nxy * nzCMFD, ng))
 ALLOCATE(CMFD%psi(nxy, nzCMFD))
 ALLOCATE(CMFD%psid(nxy, nzCMFD))
-
 IF (mklCntl%lChebyshev) ALLOCATE(CMFD%phisd(nxy, nzCMFD, ng, 2))
 
 IF (mklCntl%lSPAI) THEN
@@ -427,20 +463,68 @@ CALL AllocPinXS(CMFD%PinXS, GroupInfo, nxy, myzb, myze)
 
 END SUBROUTINE
 
-SUBROUTINE AllocAxialVar(PolarAngle)
-USE TYPEDEF,        ONLY : PolarAngle_Type
+SUBROUTINE AllocGammaCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim)
+USE TYPEDEF,        ONLY : GroupInfo_Type
+USE GAMMA_HOMOXS,   ONLY : AllocPinXS
+IMPLICIT NONE
+
+TYPE(mklCMFD_Type) :: CMFD
+TYPE(GroupInfo_Type) :: GroupInfo
+INTEGER :: myzb, myze
+LOGICAL :: l3dim
+
+INTEGER :: ig, ng, nxy, nzCMFD
+
+ng = CMFD%ng
+nxy = mklGeom%nxy
+nzCMFD = mklGeom%nzCMFD
+
+CMFD%bottomRange = (/ 1, nxy /)
+CMFD%topRange = (/ nxy * (nzCMFD - 1) + 1, nxy * nzCMFD /)
+ALLOCATE(CMFD%InScatRange(2, ng)); CMFD%InScatRange = GroupInfo%InScatRange_ph
+
+ALLOCATE(CMFD%M(ng))
+ALLOCATE(CMFD%ILU(ng))
+
+IF (l3dim) THEN
+  ALLOCATE(CMFD%AxOffDiag(nxy, 2, ng))
+  CMFD%AxOffDiag = 0.0
+ENDIF
+  
+ALLOCATE(CMFD%phis(nxy, nzCMFD, ng))
+ALLOCATE(CMFD%phic(nxy, myzb : myze, ng))
+ALLOCATE(CMFD%neighphis(nxy, ng, 2))
+ALLOCATE(CMFD%src(nxy * nzCMFD, ng))
+
+ALLOCATE(CMFD%AxDtil(2, nxy, nzCMFD, ng))
+ALLOCATE(CMFD%AxDhat(2, nxy, nzCMFD, ng))
+CMFD%AxDhat = 0.0
+
+CALL AllocPinXS(CMFD%GPinXS, GroupInfo, nxy, myzb, myze)
+
+END SUBROUTINE
+
+SUBROUTINE AllocAxialVar(Axial, lGamma)
 USE MKL_LINMOC,     ONLY : AllocLinearMOC
 USE MKL_FLATMOC,    ONLY : AllocFlatMOC
 USE MKL_NODAL,      ONLY : AllocNodal
 USE MKL_FDM,        ONLY : AllocFDM
 IMPLICIT NONE
 
-TYPE(PolarAngle_Type), POINTER :: PolarAngle(:)
-INTEGER :: ng, nFsr, nxy, nzCMFD, nPolar1D, ScatOd
+TYPE(mklAxial_Type) :: Axial
+INTEGER :: ng, nxy, nzCMFD, nPolar1D, ScatOd
 INTEGER :: myzb, myze
+LOGICAL :: lGammaAlloc = .FALSE.
+LOGICAL, OPTIONAL :: lGamma
 
-ng = mklGeom%ng
-nFsr = mklGeom%nFsr
+IF (PRESENT(lGamma)) lGammaAlloc = lGamma
+
+IF (lGammaAlloc) THEN
+  CALL AllocGammaAxialVar(Axial)
+  RETURN
+ENDIF
+
+ng = Axial%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 nPolar1D = mklGeom%nPolar1D
@@ -448,15 +532,15 @@ myzb = mklGeom%myzb
 myze = mklGeom%myze
 ScatOd = mklCntl%scatOrder
 
-ALLOCATE(mklAxial%phic(ng, nxy, nzCMFD)); mklAxial%phic = 0.0
-ALLOCATE(mklAxial%Jout(3, ng, 2, nzCMFD, nxy)); mklAxial%Jout = 0.0
+ALLOCATE(Axial%phic(ng, nxy, nzCMFD)); Axial%phic = 0.0
+ALLOCATE(Axial%Jout(3, ng, 2, nzCMFD, nxy)); Axial%Jout = 0.0
 
 IF (mklCntl%lMOC) THEN
 
-  ALLOCATE(mklAxial%Angle(nPolar1D))
+  ALLOCATE(Axial%Angle(nPolar1D))
 
   IF (nPolar1D .GT. 4) THEN
-    CALL GaussLegendre()
+    CALL GaussLegendre(Axial)
   ELSE
     CALL TabuchiYamamoto()
   ENDIF
@@ -469,25 +553,64 @@ CASE (NODAL)
 CASE (FDM)
   CALL AllocFDM()
 CASE (MOC)
-  ALLOCATE(mklAxial%PhiAngIn(nPolar1D, ng, nxy, 2))
-  ALLOCATE(mklAxial%PhiAngOut(nPolar1D, ng, nxy, 2))
-  ALLOCATE(mklAxial%SmP1(ng, ng, nzCMFD, nxy)); mklAxial%SmP1 = 0.0
-  ALLOCATE(mklAxial%SmP2(ng, ng, nzCMFD, nxy)); mklAxial%SmP2 = 0.0
-  ALLOCATE(mklAxial%SmP3(ng, ng, nzCMFD, nxy)); mklAxial%SmP3 = 0.0
+  ALLOCATE(Axial%PhiAngIn(nPolar1D, ng, nxy, 2))
+  ALLOCATE(Axial%PhiAngOut(nPolar1D, ng, nxy, 2))
+  ALLOCATE(Axial%SmP1(ng, ng, nzCMFD, nxy)); Axial%SmP1 = 0.0
+  ALLOCATE(Axial%SmP2(ng, ng, nzCMFD, nxy)); Axial%SmP2 = 0.0
+  ALLOCATE(Axial%SmP3(ng, ng, nzCMFD, nxy)); Axial%SmP3 = 0.0
   IF (mklCntl%lCASMO) THEN
     CALL AllocLinearMOC()
   ELSE
-    CALL AllocFlatMOC()
+    CALL AllocFlatMOC(Axial)
   ENDIF
 END SELECT
 
-ALLOCATE(mklAxial%atil(2, nxy, nzCMFD, ng))
+ALLOCATE(Axial%atil(2, nxy, nzCMFD, ng))
    
 END SUBROUTINE
 
-SUBROUTINE GaussLegendre()
+#ifdef __GAMMA_TRANSPORT
+SUBROUTINE AllocGammaAxialVar(Axial)
+USE GAMMA_FLATMOC,  ONLY : AllocFlatMOC
+IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
+
+INTEGER :: ng, nxy, nzCMFD, nPolar1D, ScatOd
+INTEGER :: myzb, myze
+
+ng = Axial%ng
+nxy = mklGeom%nxy
+nzCMFD = mklGeom%nzCMFD
+nPolar1D = mklGeom%nPolar1D
+myzb = mklGeom%myzb
+myze = mklGeom%myze
+ScatOd = mklCntl%scatOrder
+
+ALLOCATE(Axial%phic(ng, nxy, nzCMFD)); Axial%phic = 0.0
+ALLOCATE(Axial%Jout(3, ng, 2, nzCMFD, nxy)); Axial%Jout = 0.0
+
+ALLOCATE(Axial%Angle(nPolar1D))
+CALL GaussLegendre(Axial)
+
+ALLOCATE(Axial%PhiAngIn(nPolar1D, ng, nxy, 2))
+ALLOCATE(Axial%PhiAngOut(nPolar1D, ng, nxy, 2))
+ALLOCATE(Axial%SmP1(ng, ng, nzCMFD, nxy)); Axial%SmP1 = 0.0
+ALLOCATE(Axial%SmP2(ng, ng, nzCMFD, nxy)); Axial%SmP2 = 0.0
+ALLOCATE(Axial%SmP3(ng, ng, nzCMFD, nxy)); Axial%SmP3 = 0.0
+
+CALL AllocFlatMOC(Axial)
+
+ALLOCATE(Axial%atil(2, nxy, nzCMFD, ng))
+   
+END SUBROUTINE
+#endif
+
+SUBROUTINE GaussLegendre(Axial)
 
 IMPLICIT NONE
+
+TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: nPolar1D
 INTEGER :: ipol
@@ -502,10 +625,10 @@ CALL gauleg(nPolar1D * 2, abscissa, weight)
 
 DO ipol = 1, nPolar1D
   mu = - abscissa(ipol)
-  mklAxial%Angle(ipol)%cosv = mu
-  mklAxial%Angle(ipol)%rcosv = 1.0 / mu
-  mklAxial%Angle(ipol)%wt = weight(ipol) / 2.0
-  mklAxial%Angle(ipol)%wtsurf = weight(ipol) * mu / 2.0
+  Axial%Angle(ipol)%cosv = mu
+  Axial%Angle(ipol)%rcosv = 1.0 / mu
+  Axial%Angle(ipol)%wt = weight(ipol) / 2.0
+  Axial%Angle(ipol)%wtsurf = weight(ipol) * mu / 2.0
 ENDDO
 
 DEALLOCATE(abscissa, weight)

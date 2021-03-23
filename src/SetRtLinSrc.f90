@@ -201,7 +201,7 @@ DO iz = myzb, myze
         xsmacnf => XsMac%XsMacNf
         IF(myFxr%lres) THEN
           do ig = iResoGrpBeg, iResoGrpEnd
-            XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoF(ig) 
+            XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoNF(ig) 
           enddo
         ENDIF
       ELSE
@@ -465,7 +465,7 @@ DO iz = myzb, myze
         xsmacnf => XsMac%XsMacNf
         IF(myFxr%lres) THEN
           do ig = iResoGrpBeg, iResoGrpEnd
-            XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoF(ig)  
+            XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoNF(ig)  
           enddo
         ENDIF
       ELSE

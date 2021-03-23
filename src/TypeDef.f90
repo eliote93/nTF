@@ -1,9 +1,8 @@
 MODULE TYPEDEF
 
-!Define 
+!Define
 
 TYPE ASYINFO_TYPE                !ASSEMBLY INFORMATION
-  SEQUENCE
   logical :: lempty, lfuel, lUse, lgeom
   logical :: lCentX, lCentY, lCentXY
   INTEGER :: nx, ny, nxy
@@ -11,25 +10,23 @@ TYPE ASYINFO_TYPE                !ASSEMBLY INFORMATION
   INTEGER :: GapType = 0
   INTEGER,pointer :: pin(:), pin2DIdx(:,:)
   INTEGER :: EdgeAsyIdx(0:3) = 0                 !1: X-dir edge, 2:Y-dir edge, 3:both
-  INTEGER :: nThChGrp                            !n of T-H Chennel Group        
+  INTEGER :: nThChGrp                            !n of T-H Chennel Group
   INTEGER, POINTER :: ThChGrp(:)                 !
 END type
 
 TYPE ASYGAP_TYPE
-  SEQUENCE
   LOGICAL :: lEmpty = .TRUE.
   INTEGER :: nx, ny
   INTEGER, POINTER :: GapPin(:), GapPin2D(:, :)
 END TYPE
 
 TYPE Asy_Type
-  SEQUENCE
   logical :: lCentX, lCentY, lCentXY, ldum
   INTEGER :: ixa, iya, color                       !--- CNJ Edit : Red-Black Domain Decomposition
   INTEGER :: AsyType
   INTEGER :: PartialAsyFlag                        ! Partial Assembly Flag
   INTEGER,pointer :: NeighIdx(:)                   ! Neighborhood Assembly Index
-  INTEGER, POINTER :: GlobalPinIdx(:)              ! 
+  INTEGER, POINTER :: GlobalPinIdx(:)              !
   INTEGER, POINTER :: PinIdx_Ext(:, :)             !
   REAL :: CX, CY                                   ! Assemlby Center Location
   REAL :: wt = 1.0
@@ -37,11 +34,10 @@ TYPE Asy_Type
   LOGICAL :: lCrAsy = .FALSE.                       !
   INTEGER :: nCrPin = 0                            !
   INTEGER, POINTER :: CrPinIdx(:)                  ! Global Pin Idx
-  INTEGER, POINTER :: CrPinBankId(:)               ! 
+  INTEGER, POINTER :: CrPinBankId(:)               !
 END TYPE
 
 type coreinfo_type
-  sequence
   INTEGER :: nxya,nxa,nya   !Assembly Number
   INTEGER :: nxy,nx,ny      !Actual Cell numbe
   INTEGER :: nxc0, nyc0, nxyc0
@@ -57,9 +53,9 @@ type coreinfo_type
   LOGICAL :: lCbd = .FALSE.            !Checker Board
   LOGICAL :: RadSym(6)      !Radial Symmetry Flag
   INTEGER :: RadBC(6)       !Radial Boundary Condition
-  INTEGER :: AxBC(2)        !Axial 
-  
-  REAL :: PowerCore = 0._8      !Core Power 
+  INTEGER :: AxBC(2)        !Axial
+
+  REAL :: PowerCore = 0._8      !Core Power
   REAL :: Hm_Mass0 = 0._8
   REAL :: FuelVol, FuelVolFm, TotVol       !Fuel Volume and TotalVolume
   REAL :: DelT = 0.0                         !Time Step Size
@@ -67,8 +63,10 @@ type coreinfo_type
   INTEGER :: nBasePlane
   INTEGER, pointer :: CoreIdx(:,:)
   INTEGER, pointer :: CoreMap(:)
+  INTEGER, POINTER :: THChMap(:)
   INTEGER, POINTER :: SubPlaneMap(:), SubPlaneRange(:, :)
-  INTEGER :: nPinType, nCellType, nAsyType
+  INTEGER, POINTER :: nSubPlanePtr(:)
+  INTEGER :: nPinType, nCellType, nAsyType, nCellType0
   REAL, POINTER :: hz(:), hzfm(:), HzFmInv(:), HzInv(:)
   REAL,POINTER :: AsyCentX(:), AsyCentY(:)
   REAL, POINTER :: PinVol(:, :), PinVolFm(:, :)
@@ -83,7 +81,7 @@ type coreinfo_type
   TYPE(Asy_Type), POINTER :: Asy(:)
   TYPE(AsyInfo_type), POINTER :: AsyInfo(:)
   TYPE(pininfo_type), POINTER :: PinInfo(:)
-  TYPE(cell_type), POINTER :: CellInfo(:), BaseCellInfo(:) ! --- 180724 JSR    
+  TYPE(cell_type), POINTER :: CellInfo(:), BaseCellInfo(:) ! --- 180724 JSR
   TYPE(AsyGap_Type), POINTER :: AsyGap(:)
   LOGICAL :: lDcpl = .FALSE.
   !INTEGER :
@@ -91,7 +89,7 @@ type coreinfo_type
   INTEGER :: nMappingPln, MappingPln(100)
   !
   !LOGICAL :: lCrIn = .FALSE.
-  !INTEGER :: nCrConf, nCrBank 
+  !INTEGER :: nCrConf, nCrBank
   !TYPE(CrConf_Type), POINTER :: CrConf(:)
   !TYPE(CrBank_Type), POINTER :: CrBank(:)
   LOGICAL :: lCrInfo = .FALSE.
@@ -100,22 +98,20 @@ type coreinfo_type
 END type
 
 type pininfo_type
-  sequence
   logical :: lempty, luse, lfuel
   logical :: lCentX, lCentY, lCentXY
   logical :: lgap
-  INTEGER :: ncell                      !number of axial cell 
+  INTEGER :: ncell                      !number of axial cell
   INTEGER :: nFsrMax                    !Maximum number of FSR in a pincell
   INTEGER :: nFxrMax                    !Maxium number of FXR in a Pincell
   INTEGER :: PartialAsyFlag             !Partial Assembly Ray Index 0:None, 1:x, 2: y, 3:x-y
   INTEGER,pointer :: cell(:)            !Cell Type Info
   INTEGER :: EdgePinIdx(0:3)
   INTEGER :: GapType
-  
+
 END type
-  
+
 type basicgeom
-  sequence
   INTEGER :: nbd
   logical :: lcircle,lrect
   logical :: lCCent = .FALSE.
@@ -136,7 +132,6 @@ type basicgeom
 END type
 
 type pin_type
-  sequence
   !logical :: lcad                            !Cad Input type
   LOGICAL :: lfuel = .FALSE.
   LOGICAL :: lGT = .FALSE.
@@ -147,21 +142,22 @@ type pin_type
   INTEGER :: ix, iy                           !Global Cartesian Coordinate
   INTEGER :: PinType                          !Pintype
   INTEGER :: AsyType                          !
-  INTEGER :: ncell                            !number of axial cell 
+  INTEGER :: ncell                            !number of axial cell
   INTEGER :: nFsrMax                          !Maximum number of FSR in a pincell
-  INTEGER :: nFxrMax                          !Maxium number of FXR in a Pincell  
+  INTEGER :: nFxrMax                          !Maxium number of FXR in a Pincell
   INTEGER :: iasy, ipin                       !Assembly Index and Local Pin Index
+  INTEGER :: isuperPin                        !SuperPin Index
   INTEGER, POINTER :: cell(:)
   LOGICAL, POINTER :: lMox(:)
   LOGICAL, POINTER :: lAIC(:)
-  INTEGER :: nBd                              !Number of Boundary   
+  INTEGER :: nBd                              !Number of Boundary
   INTEGER :: FsrIdxSt                         !Flat source Region(FSR) Index Starting Point
   INTEGER :: FxrIdxSt                         !Flat XS region Index(FXR) Starting Point
-  !INTEGER :: nFxr                            
+  !INTEGER :: nFxr
   REAL, POINTER :: BdLength(:)
   REAL, POINTER :: Center2SurfaceL(:)         !Pin Center to surface Length
-  INTEGER, POINTER :: NeighIdx(:)             !Neighborhood Index  
-  INTEGER, POINTER :: NeighSurfIdx(:)         !Neigh Surf 
+  INTEGER, POINTER :: NeighIdx(:)             !Neighborhood Index
+  INTEGER, POINTER :: NeighSurfIdx(:)         !Neigh Surf
   INTEGER, POINTER :: hCelGeo(:)              !Hexagonal Cell Geometry Base - KSC 180904
   !CR Info
   LOGICAL :: lCrPin = .FALSE.
@@ -172,39 +168,57 @@ END type
 
 
 type ResVarPin_type
-  sequence
-  LOGICAL :: lres=.false.,lresA=.false.,lresC=.false.
+  LOGICAL :: lres=.false.,lresA=.false.,lresC=.false.,lfuel = .FALSE.
+  LOGICAL :: lcrres = .FALSE.
   REAL(4), POINTER :: avgxseq(:,:,:),avgxseq_1g(:),avgxseq_mg(:,:)
   REAL(4), POINTER :: rifa(:,:),rifs(:,:),riff(:,:)
   REAL(4), POINTER :: FnAdj(:)
-  INTEGER :: niso,igt
-  INTEGER, POINTER :: idiso(:)
-  REAL,POINTER :: pnum(:)
-  REAL :: Dancoff=0._8, sigpF=0._8, siglpM=0._8, lbar=0._8, EquiRad=0._8, invsurf4
-  REAL,POINTER :: rad_cp(:),delr(:),vol(:),Qsurfvol(:),X(:,:,:)
+  INTEGER :: niso,igt, niso_Res
+  INTEGER, POINTER :: idiso(:), idx_Res(:), idiso_Res(:)
+  REAL,POINTER :: pnum(:), pnum_Res(:)!, pnumrat(:,:) ! # of nuclides, # of nuclides removing duplcated in resonance, ND ratio
+  ! Equivalent Dancoff Cell method
+  ! Dancoff : Dancoff factor
+  ! sigpF   :
+  ! siglpM  :
+  ! lbar    : mean chord length
+  ! EquiRad : Dancoff factor equivalent radius of 1D cell
+  ! invsurf4:
+  REAL :: Dancoff=0._8, sigpF=0._8, siglpM=0._8, lbar=0._8, EquiRad=0._8, invsurf4, XSEsc = 0._8
+  REAL,POINTER :: rad_cp(:),X(:,:,:)
+  ! Exist but not used in code
+  REAL, POINTER :: delr(:), Qsurfvol(:),vol(:)
+  ! Variables for PSM
+  INTEGER :: icelpsm
+  REAL, POINTER :: Pji(:,:,:), eta(:) ! First-flight CP j<-i / Shadowing correction factor
+  REAL :: fuelvol, nonfuelvol
+  INTEGER :: nfueldiv, nfuelring
+  REAL ::  siglpMcat(3), mavgm(3), alpham(3), invsubalpham(3), sigpm_inval(3) ! for grouped scattering nuclides
+  LOGICAL :: lmsrc(3)
+! REAL :: ALPHA1, ALPHA2, BETA1, BETA2
 END type
 
 type cell_type
-  sequence
   logical :: lempty ,luse, lrect, lres, lfuel, lGd   !Empty, Used, Rectangular cell, Resonance , Fuel
   LOGICAL :: lCR= .FALSE.
   LOGICAL :: lMox = .FALSE.
   LOGICAL :: lAIC = .FALSE.
   LOGICAL :: lsSPH = .FALSE.
   logical :: lCCell = .FALSE.                        !Corner Cell
-  logical :: lCentX, lCentY, lCentXY 
+  logical :: lCentX, lCentY, lCentXY
   logical :: lgap
   logical :: lcad = .FALSE.
-  logical :: lhole = .FALSE.
-  INTEGER :: nDivAzi = 0                              !Azimuthal Division
-  INTEGER :: nBd = 0
-  INTEGER :: nFSR = 0
-  INTEGER :: nFXR = 0
-  INTEGER :: nCellRay = 0
+  LOGICAL :: lhole = .FALSE.  ! EDIT JSU 20190626
+  INTEGER :: ibFuel, ieFuel   ! Beginning and End of fuel cell...
+  INTEGER :: nDivAzi                              !Azimuthal Division
+  INTEGER :: nBd
+  INTEGER :: nFSR
+  INTEGER :: nFXR
+  INTEGER :: nCellRay                     !
   INTEGER :: EdgeCellIdx(0:3) = 0
   INTEGER :: GapType
   INTEGER :: icel0
   INTEGER :: iReg0(0:300)
+  INTEGER :: prcell
   REAL :: rr(300) ! --- 180914 JSR
   !Volume & Geometry Index
 
@@ -215,7 +229,7 @@ type cell_type
   INTEGER,POINTER :: iReg(:)                       !Composition or Mixture number of FSR
   INTEGER,POINTER :: FxrIdxSt(:)                   !First region number beloning to this xs regio
   INTEGER,POINTER :: nFsrInFxr(:)                  !Number of flat source region which is include in the FXR
-  INTEGER,POINTER :: MapFxr2FsrIdx(:,:)            !Flat XS region Index Starting Point-> FSR Starting Index  
+  INTEGER,POINTER :: MapFxr2FsrIdx(:,:)            !Flat XS region Index Starting Point-> FSR Starting Index
   TYPE(CellRayInfo_type),POINTER :: CellRay(:)     !Cell Ray Information
   TYPE(THCell_Type), POINTER :: THCell
   TYPE(CadGeom_Type), POINTER :: CadGeom
@@ -228,20 +242,22 @@ type cell_type
   REAL(4),POINTER :: SPHfactor(:,:)
   INTEGER,POINTER :: matidx(:)
   REAL,POINTER :: matrad(:),rad_cp(:),fxrvol(:),q_cp(:)
-  INTEGER :: nreg_cp,nmat,nmodfxr,cldfxridx,nfueldiv,ngapdiv,ncladdiv,srdidx,ibfuel,iefuel
-  REAL :: fuelgapcldvol,invnmodfxr,FuelRefTEMP0,FuelRad0,U238ND0
-  
-  REAL :: MODXSV0 = 0._8
+  INTEGER :: nreg_cp,nmat,nmodfxr,cldfxridx,nfueldiv,ngapdiv,ncladdiv,srdidx
+  REAL :: fuelgapcldvol,invnmodfxr,FuelRefTEMP0,FuelRad0,U238ND0,MODXSV0
+  ! PSM
+  REAL    :: nonfuelvol, fuelvol
+  INTEGER :: nnonfuel
+  INTEGER :: icelPSM = 0 ! EDUT JSU 20200611
+  LOGICAL :: lPSMcel = .FALSE.
 END type
 
 !Rad Decomposition
 TYPE RadDcmp_TYPE
-  SEQUENCE
   LOGICAL :: lRadDcmp = .TRUE.
   INTEGER :: nDom                          ! Number of Domain
   INTEGER :: nxylocal(100)                 ! Number of local pin cell
   !INTEGER :: nxbeg(100), nybeg(100), nxend(100), nyend(100)
-  INTEGER, POINTER :: nxbeg(:,:),nxend(:,:) 
+  INTEGER, POINTER :: nxbeg(:,:),nxend(:,:)
   INTEGER, POINTER :: nybeg(:), nyend(:)
   INTEGER, POINTER :: PinIdx(:, :)         ! Pin Index
   INTEGER, POINTER :: PinDom(:)
@@ -250,20 +266,18 @@ END TYPE
 !Ray Related Type
 
 TYPE CellRayInfo_type
-  SEQUENCE
   LOGICAL :: luse                            !Used or Non-Used Option
   INTEGER :: idxst, idxend
   INTEGER :: nSeg                            !Number of Segments
   INTEGER, POINTER :: LocalFsrIdx(:)         !Local Fsr(within pincell structure) Index
   INTEGER, POINTER :: LenSegInt(:)           !Segment Length Information(micron Unit)
   !INTEGER :: InOutSurf(2)                   !In-Out Surface Input
-  REAL, POINTER :: LenSeg(:)                 !Segment Length 
+  REAL, POINTER :: LenSeg(:)                 !Segment Length
 
   REAL, POINTER :: pts(:,:)
 END TYPE
 
 TYPE Element_Type
-  SEQUENCE
   LOGICAL :: lboundary = .FALSE.
   INTEGER :: itype = 2
   INTEGER :: nnode = 3
@@ -279,7 +293,6 @@ TYPE Element_Type
 END TYPE
 
 TYPE CadGeom_Type
-  SEQUENCE
   INTEGER :: nElement
   INTEGER :: nnode
   REAL, POINTER :: x(:), y(:)
@@ -288,16 +301,14 @@ TYPE CadGeom_Type
 END TYPE
 
 !TYPE CellRayBase_Type
-!  SEQUENCE
 !  INTEGER :: itype
 !  INTEGER :: AziAngleStIdx(100)              !Azimuthal Angle Index
 !  TYPE(CellRayInfo_type), POINTER :: CellRay
 !END TYPE
 
 TYPE AsyRayInfo_type                         !Assembly Ray Information
-  SEQUENCE
   !LOGICAL :: lCentX, lCentY, lCentXY         !Partial Modular Ray Flag(1/2 or 1/4 in case of CENT option card)
-  
+
   INTEGER :: AziAngIdx                       !Azimuthal Angle Index Info
   INTEGER :: ModRayIdx                       !Modular Ray Index
   INTEGER :: NextRayIdx(2)                   !NextAsyRayIdx
@@ -308,11 +319,10 @@ TYPE AsyRayInfo_type                         !Assembly Ray Information
   INTEGER, POINTER :: PinRayIdx(:)           !Pin Ray Index
   INTEGER :: PartialAsyRayFlag =0            !Partial Assembly Ray Index 0:None, 1:x, 2: y, 3:x-y
   INTEGER :: PartialAsyRayIdx(0:3)             !1: x, 2: y, 3: x-y
-  REAL :: InOutPoint(2,2) 
+  REAL :: InOutPoint(2,2)
 END TYPE
 
 TYPE ModRayInfo_type
-  SEQUENCE
   INTEGER :: NextRayIdx(2)                   !In And Out Ray Index
   INTEGER :: InOutSurf(2)                    !
   INTEGER :: iAziAngIdx                      !
@@ -321,7 +331,6 @@ TYPE ModRayInfo_type
 END TYPE
 
 TYPE CoreRayInfo_type                        !Set of Modular Ray(Core Boundary to Boundary)
-  SEQUENCE                                   !
   INTEGER :: nRay                            !Number of Modular Ray
   INTEGER :: iAng
   INTEGER, POINTER :: AsyRayIdx(:)           !Modular Ray Index Numbers info
@@ -331,19 +340,17 @@ TYPE CoreRayInfo_type                        !Set of Modular Ray(Core Boundary t
 END TYPE
 
 TYPE RotRayInfo_Type
-  SEQUENCE
   INTEGER :: nRay                            !number of CORE RAY
   INTEGER :: nSeg                            !Number of total segment belong to
   INTEGER :: Ang1, Ang2
   INTEGER :: OmpAng1, OmpAng2
   INTEGER, POINTER :: RayIdx(:)              !Core Ray Index
   INTEGER, POINTER :: OmpRayIdx(:)
-  INTEGER, POINTER :: Dir(:)                 !Searching 
+  INTEGER, POINTER :: Dir(:)                 !Searching
 END TYPE
 
 !--- CNJ Edit : Domain Decomposition
 TYPE DcmpAsyRayInfo_Type
-  SEQUENCE
   INTEGER :: iRotRay, iRay, iAsy
   INTEGER :: nMaxRaySeg, nMaxCellRay, nAsyRay
   INTEGER, POINTER :: AsyRayList(:)
@@ -354,7 +361,6 @@ END TYPE
 
 !--- CNJ Edit : Angular Multigrid Ray Tracing
 TYPE MultigridInfo_Type
-  SEQUENCE
   INTEGER, POINTER :: AziList(:)
   INTEGER :: nAzi, nPolar
   REAL, POINTER :: wtang(:, :), wtsurf(:, :, :)
@@ -363,7 +369,6 @@ TYPE MultigridInfo_Type
 END TYPE
 
 TYPE FastCoreRayDat_Type
-   SEQUENCE
    INTEGER, POINTER :: PinIdx(:, :)
    INTEGER, POINTER :: CellIdx(:, :)
    INTEGER, POINTER :: CellRayIdxSt(:, :, :)
@@ -371,12 +376,11 @@ TYPE FastCoreRayDat_Type
    INTEGER, POINTER :: Ray1DIdx(:, :, :)
    INTEGER, POINTER :: nTotRaySeg(:)
    INTEGER, POINTER :: nTotCellRay(:)
-   
+
    TYPE(FastRaySegDat_Type), POINTER :: RaySeg(:)
 END TYPE
 
 TYPE FastRaySegDat_Type
-  SEQUENCE
   INTEGER, POINTER :: FsrIdx(:)
   REAL, POINTER :: Lenseg(:)
   REAL, POINTER :: OptLen(:, :)
@@ -385,7 +389,6 @@ END TYPE
 
 
 TYPE AziAngleInfo_Type
-  SEQUENCE
   INTEGER :: nModRay                        !Number of Modular Ray
   INTEGER :: nAsyRay                        !Number of Assembly Ray
   INTEGER :: nCoreRay                       !Number of Core Ray
@@ -398,14 +401,12 @@ TYPE AziAngleInfo_Type
 END TYPE
 
 TYPE PolarAngle_Type
-  SEQUENCE
   REAL :: ang, sinv, cosv, weight
 END TYPE
 
 TYPE RayInfo_Type
-  SEQUENCE
   INTEGER :: nAziAngle = 8                                !Azimuthal Angle
-  INTEGER :: nPolarAngle = 2                              !Polar Angle 
+  INTEGER :: nPolarAngle = 2                              !Polar Angle
   INTEGER :: nPolarAngleHemi
   INTEGER :: nModRay, nAsyRay, nCoreRay, nRotRay
   INTEGER :: nPhiAngSv
@@ -432,12 +433,12 @@ END TYPE
 
 
 TYPE TrackingDat_Type
-  SEQUENCE
+
   LOGICAL :: lAlloc = .FALSE.
   INTEGER, POINTER :: FsrIdx(:, :),  ExpAppIdx(:, :)
   REAL, POINTER ::OptLenList(:, :), ExpApp(:, :), ExpAppPolar(:, :, :)
   REAL, POINTER :: phis(:), src(:), xst(:), jout(:, :, :)
-  REAL, POINTER :: EXPA(:, :), EXPB(:, :)  
+  REAL, POINTER :: EXPA(:, :), EXPB(:, :)
   REAL, POINTER :: PhiAngOut(:), PhiAngOutPolar(:, :)
   REAL, POINTER :: PhiAngIn(:, :)
   LOGICAL :: lAllocP1 = .FALSE.
@@ -470,8 +471,8 @@ TYPE TrackingDat_Type
 END TYPE
 
 TYPE RayInfo4CMFD_TYPE
-  !Data Information for 
-  SEQUENCE
+  !Data Information for
+
   INTEGER :: nRotRay, nCoreRay, nPolAngle
   INTEGER, POINTER :: RotRayInOutCell(:, :)
   INTEGER, POINTER :: PhiangInSvIdx(:, :)
@@ -484,17 +485,17 @@ TYPE RayInfo4CMFD_TYPE
 END TYPE
 
 TYPE CellRayBase_SearchTree
-  SEQUENCE
+
   REAL :: Mult = 100000
   INTEGER :: nline, idum1, ndiv
   INTEGER,POINTER :: nPtsInSruf(:)                     !Number of points which is belong to same surf
-  INTEGER,POINTER :: InSurfIdxSt(:)       !In-Surface 
+  INTEGER,POINTER :: InSurfIdxSt(:)       !In-Surface
   INTEGER,POINTER :: InOutSurf(:,:)
   INTEGER, POINTER :: pts(:,:,:)
 END TYPE
 
 TYPE CellRayBase_Type
-  SEQUENCE
+
   INTEGER :: CellType
   INTEGER :: nline                          !Number of Cell Ray
   INTEGER, POINTER :: AziAngIdx(:)          !Array Starting index of given angle index
@@ -506,7 +507,7 @@ ENDTYPE
 
 !CMFD Related Typeb
 type scatmat
-    sequence
+
     INTEGER ib,ie
     REAL,pointer :: from(:), dummy
     REAL :: WithInGroupScat
@@ -514,7 +515,7 @@ type scatmat
 END type
 
 TYPE PinXs_Type
-  SEQUENCE
+
   TYPE(SCATMAT),POINTER,DIMENSION(:) :: XSS
   REAL,POINTER, DIMENSION(:,:) :: DTIL, DHAT, PDHAT, DTIL2      !Radial Dhat and Dtil
   REAL, POINTER, DIMENSION(:, :, :) :: partialDhat   !--- CNJ Edit : p-CMFD Acceleration
@@ -522,18 +523,18 @@ TYPE PinXs_Type
   REAL,POINTER, DIMENSION(:,:) :: AxDtil, AxDhat
   REAL,POINTER, DIMENSION(:) :: XSD, XSD2, XST, XSTR, XSR, XSNF, XSKF, CHI, XSA, XSDA !,PHI,FAC,XSRD  !--- BYS edit : XSA added
   REAL, POINTER, DIMENSION(:) :: PHI, FAC, XSRD
-  REAL, POINTER, DIMENSION(:,:,:) :: Dcpl_DHAT 
+  REAL, POINTER, DIMENSION(:,:,:) :: Dcpl_DHAT
   REAL :: FuelTemp, ModTemp, PinTemp
-  
+
   !Kinetic Parameter
-  REAL :: BETAT, BETAP, OMEGA 
+  REAL :: BETAT, BETAP, OMEGA
   REAL :: xstr1g, xstr1g0                  !Absoprtion XS 1group
   !REAL :: BETAT,OMEGA,BETAP
   REAL,POINTER,DIMENSION(:) :: BETA, CHIP, VELO,RVDELT
 END TYPE
-  
+
 TYPE MicXsFtn_Type
-  SEQUENCE
+
   TYPE(SCATMAT),POINTER :: XSS(:, :, :)
   REAL, POINTER :: sig_T(:, :, :), sig_Nf(:, :, :), sig_kf(:, :, :)
   REAL :: Tfuel, Tmod, Tclad, Tst
@@ -541,7 +542,7 @@ END TYPE
 !Axial Solver TYPE
 
 TYPE AXFLX_TYPE
-  SEQUENCE
+
   LOGICAL :: lUse = .FALSE.
   REAL,POINTER :: PHI(:,:,:) !FLUX, Modlar Space Flux
   REAL,POINTER :: PSI(:)  !Fission Source
@@ -554,7 +555,7 @@ TYPE AXFLX_TYPE
 END TYPE
 
 TYPE BiLU_TYPE
-  SEQUENCE
+
   REAL, POINTER :: DelInv(:,:), Deliau(:, :), Al(:, :)
   REAL, POINTER :: DelInv2G(:, :,:), Deliau2G(:, :, :), Al2G(:, :, :)
   LOGICAL :: lAlloc = .FALSE.
@@ -563,14 +564,14 @@ TYPE BiLU_TYPE
 END TYPE
 
 !TYPE BiLU2G_TYPE
-!  SEQUENCE
+!
 !  REAL, POINTER :: DelInv(:, :,:), Deliau(:, :, :), Al(:, :, :)
 !  LOGICAL :: lAlloc = .FALSE.
 !  LOGICAL :: lReset = .TRUE.
 !END TYPE
 
 TYPE CMFDLS_TYPE
-  SEQUENCE
+
   REAL, POINTER :: Diag(:, :)
   REAL, POINTER :: RadOffDiag(:, :, :), AxOffDiag(:, :, :)
   REAL, POINTER :: Diag2g(:, :, :)
@@ -587,12 +588,12 @@ END TYPE
 
 
 TYPE DcplCmfdLs_Type
-  SEQUENCE
+
   TYPE(CMFDLS_Type), POINTER :: CMFDLS(:)
 END TYPE
 
 TYPE FMInfo_TYPE
-  SEQUENCE  
+
   REAL, POINTER :: Phis(:, :, :) !nFsr, iz, ng
   REAL, POINTER :: Phi1a(:, :, :, :, :) !Polar, nFsr, Azimuthal, iz, ng
   REAL, POINTER :: Phi2a(:, :, :, :, :) !Polar, nFsr, Azimuthal, iz, ng
@@ -601,47 +602,67 @@ TYPE FMInfo_TYPE
   REAL, POINTER :: Psi(:, :), PsiD(:, :)
   REAL, POINTER :: PsiC(:, :), PsicD(:, :)
   REAL, POINTER :: Power(:, :)
-  REAL, POINTER :: RadJout(:, :, :, :, :) 
+  REAL, POINTER :: RadJout(:, :, :, :, :)
   REAL, POINTER :: AxSrc(:, :, :), AxPXS(:, :, :)
   REAL, POINTER :: phim(:, :, :, :)
   REAL, POINTER :: LinSrcSlope(:, :, :, :)
   REAL, POINTER :: PhiCrit(:), SpecConv(:)
- 
+
   REAL, POINTER :: gPhis(:, :, :) !-- JSU EDIT 2017/08/10
-  
-  REAL,POINTER :: w(:)   !Under Relaxation Factor 
+
+  REAL,POINTER :: w(:)   !Under Relaxation Factor
   TYPE(FXRInfo_TYPE), POINTER :: Fxr(:, :)
-  
-  !Transient Variables
+
+  !Transient Variables----------------------------------------------------------------------------------
   REAL, POINTER :: TranPower(:, :)
   REAL, POINTER :: TranPhi(:, :, :)
-  REAL, POINTER :: TranPhi1a(:, :, :, :, :), TranPhi2a(:, :, :, :, :)
   REAL, POINTER :: Prec(:, :, :)                     !Precursor Number density
+  REAL, POINTER :: PrecSrc(:, :)
+  REAL, POINTER :: PrecSrcK(:, :, :)
   REAL, POINTER :: TranPsi(:, :), TranPsid(:, :)
-  REAL, POINTER :: ResSrc(:, :, :)                   !Connected with CmInfo%ResSrc using Pointer
+  REAL, POINTER :: ResSrc(:, :, :)                   !Connected with CmInfo%ResSrc using Pointers
+  REAL, POINTER :: neighPhis(:, :, :)                !Neighbor phis for AFW decusping
+
+  !BDF
+  REAL, POINTER :: TranPhi2(:, :, :), TranPhi3(:, :, :), TranPhi4(:, :, :), TranPhi5(:, :, :)
+
+  !SCM
+  REAL, POINTER :: TranPrec(:, :, :)
+
+  REAL, POINTER :: PhiSCM(:, :, :)
+  REAL, POINTER :: PsiSCM(:, :)
+  REAL, POINTER :: xsnfSCM(:, :, :)
+
+  !AfSrc
+  REAL, POINTER :: TranPhi1a(:, :, :, :, :), TranPhi2a(:, :, :, :, :)
+
+  !AM3
+  REAL, POINTER :: ResSrcD(:, :, :)
+  !-----------------------------------------------------------------------------------------------------
 ENDTYPE
 
 
 TYPE CMInfo_Type
-  SEQUENCE
+
   REAL, POINTER :: PhiC(:, :, :), PhiFM(:, :, :)
   REAL, POINTER :: PsiC(:, :), PsicD(:, :)
   REAL, POINTER :: PsiFM(:, :), PsiFMD(:, :)
-  REAL, POINTER :: RadJout(:, :, :, :, :) 
+  REAL, POINTER :: RadJout(:, :, :, :, :)
   REAL, POINTER :: AxSrc(:, :, :), AxPXS(:, :, :)
   REAL, POINTER :: AxDtil(:, :, :, :), AxDhat(:, :, :, :), AxPDhat(:, :, :, :)
   TYPE(PinXS_Type), POINTER :: PinXS(:, :)
   TYPE(CMFDLS_TYPE), POINTER :: CoreCMFDLS(:)
   !TYPE(AXFLX_TYPE), POINTER :: AxFlx(:, :)
   TYPE(RayInfo4CMFD_Type), POINTER :: RayInfo4Cmfd
-  
+
   TYPE(CMFDLS_TYPE), POINTER :: GcCMFDLS(:)
   !TYPE(CMFDLS_TYPE), POINTER :: CMFD2GLS(:)
   TYPE(PinXS_Type), POINTER :: GcPinXS(:, :)
   REAL, POINTER :: GcPsiC(:, :), GcPsicD(:, :)
   REAL, POINTER :: GcPhiC(:, :, :)
-  
-  !Transient Variables
+  REAL, POINTER :: phic_adj(:,:,:)
+
+  !Transient Variables----------------------------------------------------------------------------------
   REAL, POINTER :: TranPhiCm(:, :, :), TranPhiFm(:, :, :)
   REAL, POINTER :: PrecCm(:, :, :)
   REAL, POINTER :: TranPsiCm(:, :), TranPsiCmd(:, :)
@@ -649,14 +670,32 @@ TYPE CMInfo_Type
   REAL, POINTER :: TranPsiFm(:, :), TranPsiFmd(:, :)
   REAL, POINTER :: ResSrcCm(:, :, :)
   REAL, POINTER :: ResSrcFm(:, :, :)
-  
+
   REAL, POINTER :: GcTranSrc(:, :, :)
+
+  !Adaptive Theta
+  REAL, POINTER :: ThetaCM(:, :, :)
+
+  !BDF
+  REAL, POINTER :: TranPhiCm2(:, :, :), TranPhiFm2(:, :, :)
+  REAL, POINTER :: TranPhiCm3(:, :, :), TranPhiFm3(:, :, :)
+  REAL, POINTER :: TranPhiCm4(:, :, :), TranPhiFm4(:, :, :)
+  REAL, POINTER :: TranPhiCm5(:, :, :), TranPhiFm5(:, :, :)
+
+  !SCM Variable
+  REAL, POINTER :: PhiCSCM(:, :, :)
+  REAL, POINTER :: PsiCSCM(:, :)
+
+  !AM3
+  REAL, POINTER :: ResSrcCmD(:, :, :)
+  REAL, POINTER :: ResSrcFmD(:, :, :)
+  !-----------------------------------------------------------------------------------------------------
 END TYPE
 !XS related TYPE
 
 TYPE DcplInfo_Type
-  SEQUENCE
-  LOGICAL :: lfeedback = .FALSE. 
+
+  LOGICAL :: lfeedback = .FALSE.
   !LOGICAL :: lReftemp = .FALSE.
   INTEGER :: nRefPln,nPln
   INTEGER :: nRefTemp = 1
@@ -677,19 +716,19 @@ ENDTYPE
 
 
 TYPE DhatData_Type
-  SEQUENCE
+
   INTEGER :: ntemp, idum
   REAL :: dtil(0:30, 500)
   REAL :: dhat(0:30, 500)
 END TYPE
 
 TYPE CellXSData_Type
-  SEQUENCE
+
   LOGICAL :: lAlloc = .FALSE.
   INTEGER :: nFsr, nFxr
   INTEGER :: ntemp
   INTEGER :: nFsrMax, nTempMax
-   
+
   TYPE(FxrInfo_Type), POINTER :: Fxr(:)
   REAL, POINTER :: phis(:, :, :)
   TYPE(CEll_Type), POINTER :: CellInfo
@@ -697,10 +736,10 @@ TYPE CellXSData_Type
 
   LOGICAL :: ldum1
   INTEGER:: idum1
-END TYPE 
+END TYPE
 
 TYPE GroupInfo_Type
-  SEQUENCE 
+
   LOGICAL :: lUpScat, ldum
   INTEGER :: ng, nofg, norg, nchi, ntiso, ntiso_depl, iresoGrp1, iresoGrp2
   INTEGER :: UpscatRange(2)
@@ -708,24 +747,75 @@ TYPE GroupInfo_Type
   INTEGER :: nGC                 !Number of Condensed Group
   INTEGER :: GCStruct(2,300)     !Coarse Group => Fine Group
   INTEGER :: InvGCStruct(300) !FineGroup => Coarse Group
-  
+
   INTEGER :: nprec = 6
+! PHOTON Information...  |-- JSU EDIT 2019.05.08
+  INTEGER :: ngg, nele
+  LOGICAL :: lUpScat_Ph
+  INTEGER :: UpScatRange_Ph(2)
+  INTEGER, POINTER :: InScatRange_Ph(:, :), OutScatRange_Ph(:, :)
+  ! AVERAGE (GEOMATRICAL AVERAGE) OF ENERGY IN THE GROUP                  |-- JSU EDIT 2017.09.13. |
+  REAL, POINTER :: GamAvgE(:), NeuAvgE(:)   ! in Joule (1.602*1.e-19eV)
 END TYPE
 
 
 TYPE BenchXS_type
-  SEQUENCE 
+
   LOGICAL :: lempty, lfuel, lcr
-  REAL, pointer :: xst(:), xstr(:),xskf(:),xsnf(:),chi(:),xsa(:)      !Total, Transport, kaffa-fission nu-fission. CHI, absorptiom
-  REAL, pointer :: xss(:,:),xss0(:,:),xss1(:,:) , xss0t(:,:)
-  REAL, pointer :: xss2(:,:),xss3(:,:)
+  REAL, pointer :: xst(:), xstr(:), xskf(:), xsnf(:), chi(:), xsa(:)      !Total, Transport, kaffa-fission nu-fission. CHI, absorptiom
+  REAL, pointer :: xss(:,:), xss0(:,:), xss1(:,:), xss0t(:,:)
+  REAL, pointer :: xss2(:,:), xss3(:,:)
   REAL, pointer :: xs0sum(:), xs1sum(:)
   TYPE(scatmat), pointer :: PnSM(:,:)
   REAL, POINTER, DIMENSION(:,:) :: rt1, rt2, w1, w2
+
+  !Transient
+  REAL :: wt = 0._8
+  INTEGER :: iso0 = 0
+  INTEGER :: iso1 = 0
+  LOGICAL :: lCusping = .FALSE.
+
+  !NEACRP
+  REAL :: boronppm = 0.
 END type
 
+TYPE DynBenchXS_type
+
+  LOGICAL :: lempty, lfuel, lcr
+  REAL, pointer :: xst(:,:), xstr(:,:), xskf(:,:),xsnf(:,:),chi(:,:),xsa(:,:)      !Total, Transport, kaffa-fission nu-fission. CHI, absorptiom
+  REAL, pointer :: xss(:,:,:), xss0(:,:,:), xss1(:,:,:), xss0t(:,:,:)
+  REAL, pointer :: xss2(:,:,:), xss3(:,:,:)
+  REAL, pointer :: xs0sum(:,:), xs1sum(:,:)
+  TYPE(scatmat), pointer :: PnSM(:,:,:)
+  REAL, POINTER, DIMENSION(:,:,:) :: rt1, rt2, w1, w2
+
+  REAL, POINTER :: Beta(:,:)
+  REAL, POINTER :: ChiD(:,:)
+  REAL, POINTER :: Velo(:,:)
+  REAL, POINTER :: Lambda(:,:)
+
+  !Transient
+  REAL :: wt = 0._8
+  INTEGER :: iso0 = 0
+  INTEGER :: iso1 = 0
+  LOGICAL :: lCusping = .FALSE.
+  INTEGER :: ntemp
+  REAL, POINTER :: temp(:)
+
+END TYPE
+
+TYPE NeaCrpBenchXs_type
+
+  INTEGER :: basexsl
+  LOGICAL :: lCA = .FALSE.
+  REAL :: c0, tm0, rho0, td0
+  ! Follows the xs key in the neacrp benchmark
+  REAL :: xs0(9)
+  REAL :: gradxs_c(9), gradxs_tm(9), gradxs_rho(9), gradxs_td(9)
+END TYPE
+
 TYPE BenchKinParam_type
-  SEQUENCE
+
   REAL, pointer :: BETA(:)
   REAL, pointer :: Velo(:)
   REAL, pointer :: ChiD(:)
@@ -733,7 +823,7 @@ TYPE BenchKinParam_type
 END TYPE
 
 TYPE XsMac_Type
-  SEQUENCE
+
   INTEGER :: id = 0
   logical :: lalloc = .FALSE.
   logical :: lfuel
@@ -751,7 +841,7 @@ TYPE XsMac_Type
   REAL, POINTER :: xsmacp1sm(:,:)          !P1Scattering Matrices
   REAL, POINTER :: xsmacp2sm(:,:)          !P2Scattering Matrices
   REAL, POINTER :: xsmacp3sm(:,:)          !P3Scattering Matrices
-  REAL, POINTER :: CHI(:)     
+  REAL, POINTER :: CHI(:)
   INTEGER :: niso
   Logical :: lIsoAlloc = .FALSE.
   REAL, POINTER :: IsoXsMacA(:, :), IsoXsMacTr(:, :), IsoXsMacT(:, :) !BYS edit 14/06/01
@@ -760,10 +850,21 @@ TYPE XsMac_Type
   REAL, POINTER :: IsoXsRadCap(:, :)                                                   !-- JSU EDIT 20170727
   REAL, POINTER :: phiIso(:,:)                                                         !PHS add  15/10/14
   REAL, POINTER :: isoxsmacsm(:,:,:)            !PHS add  28/12/15 isotope-wise scattering Matrices
+! FOR EXPLICIT KAPPA CALCULATION                                        |-- JSU EDIT 2019/08/14
+  LOGICAL :: lKERMAAlloc = .FALSE. !
+  LOGICAL :: lISOKERMAAlloc = .FALSE.
+  REAL, POINTER, DIMENSION(:)   :: MacKERMA_t, MacKERMA_s, MacKERMA_d, MacKERMA_p, MacKERMA_f
+  REAL, POINTER, DIMENSION(:,:) :: IsoMacKERMA_t, IsoMacKERMA_s, IsoMacKERMA_d, IsoMacKERMA_p, IsoMacKERMA_f
+  REAL, POINTER, DIMENSION(:)   :: MacDelkf
+  REAL, POINTER, DIMENSION(:,:) :: IsoMacDelkf
+! For FXR-wise Point-wise calculation
+  LOGICAL :: lAllocPXS = .FALSE., lAllocPXSS = .FALSE.
+  REAL, POINTER, DIMENSION(:)   :: PXST_MIX, PXSA_MIX, PXSF_MIX, PXSS_MIX, UFGFLX_MIX, PXSLS_MIX
+  REAL, POINTER, DIMENSION(:)   :: PXST_ISO, PXSA_ISO, PXSF_ISO, PXSS_ISO, UFGFLX_ISO, PXSLS_ISO
 END TYPE
 
 TYPE DeplGd_TYPE
-  SEQUENCE
+
   INTEGER :: niso
   INTEGER, POINTER :: idiso(:)
   REAL :: phi1g, n155
@@ -771,14 +872,14 @@ TYPE DeplGd_TYPE
 END TYPE
 
 TYPE DeplPCP_TYPE
-  SEQUENCE
+
   REAL ::pnum(2, -1:1, 64152:64160) = 0
   REAL :: f(64152:64160) = 1
 
 END TYPE
 
 TYPE Fxrinfo_type
-  SEQUENCE
+
   LOGICAL :: lfuel = .FALSE.
   LOGICAL :: lAIC = .FALSE.
   LOGICAL :: lCLD = .FALSE.
@@ -787,28 +888,36 @@ TYPE Fxrinfo_type
   LOGICAL :: lGD = .FALSE.
   LOGICAL :: lh2o = .FALSE.                                   !Fuel, depletion, resonnance
   LOGICAL :: lUse = .FALSE.
-  LOGICAL :: lVoid = .FALSE.                                  ! Void 
-  INTEGER :: imix                                             ! Mixture 
+  LOGICAL :: lVoid = .FALSE.                                  ! Void
+  INTEGER :: imix                                             ! Mixture
   INTEGER :: niso = 0                                         ! No. Isotope for Neutronics calculation
+  INTEGER :: niso_Res = 0                                     ! No. Isotope for Neutronics calculation (Removing duplicated nuclides)
   INTEGER :: niso_depl = 0                                    ! No. Isotope for Depletion Calcualtion
   INTEGER :: niso_past = 0                                    ! No. Isotope of previous step for Depletion Calcualtion
   INTEGER :: FsrIdxSt, nFsrInFxr                              !# Global FSr Index # region
   REAL :: Burnup = 0, Burnup_past = 0, Hmkg0 = 0              !# Local Burnup(Mwd/kgU), Local Burnup past(Mwd/kgU), Initially loaded Heavy Metal(MgU)
   REAL :: temp, area, xstilde                                 !Temperature, Area
   INTEGER :: ndim = 0                                         ! Size of Array for Isotope Data
-  INTEGER, POINTER :: idiso(:), idiso_past(:)                 !Isotope Id List
-  REAL, POINTER :: pnum(:), pnum_past(:), chi(:)              !Number density, Equip. XS, 
+  INTEGER, POINTER :: idiso(:), idiso_past(:), idiso_pastpsm(:), idx_Res(:), idiso_Res(:) !Isotope Id List
+  REAL, POINTER :: pnum(:), pnum_past(:), chi(:)              !Number density, Equip. XS,
   REAL, POINTER :: pnum_all(:), pnum_past_all(:)              !Depletion Bug Fix ! 16/02/11 Depletion timestep bug fixed
+  REAL, POINTER :: pnum_Res(:)!, pnumrat(:,:)
   LOGICAL :: L_PNUM_ALL = .FALSE.                             ! 16/02/11 Depletion timestep bug fixed
-  REAL(4), POINTER :: xseq_f_1g(:), xseq_f_mg(:,:), xseq_c_1g(:), xseq_c_mg(:,:)
-  REAL(4), POINTER :: xseq(:, :, :), NDAF(:, :, :)
-  REAL(4), POINTER :: FnAdj(:), FtAdj(:,:)
-  REAL(4), POINTER :: fresoa(:), fresof(:), fresos(:), fresostr(:) !Effective XS
-  REAL(4), POINTER :: fresoAIso(:,:),fresoFIso(:,:),fresoSIso(:,:),fresoSSIso(:,:),fresoS1Iso(:,:)    
-  REAL, POINTER :: DelInflow(:)                               
+  ! Xenon Under Relaxation Variables
+  REAL :: pnXe = 0, pnI = 0, absXe = 0
+  ! MLG SGFSP Variables
+  REAL(4), POINTER :: xseq_f_1g(:), xseq_f_mg(:,:), xseq_c_1g(:) ! Escape(Equivalent) XS with MLG
+  REAL(4), POINTER :: FnAdj(:), FtAdj(:,:)                       ! NDCF and TCF
+  ! Categorization or Isotope-wise SGFSP
+  REAL(4), POINTER :: xseq(:, :, :), NDAF(:, :, :)               ! Escape(Equivalent) XS and NDAF with categorization or isotope-wise
+  ! Effective XS Ratio
+  REAL(4), POINTER :: fresoa(:), fresof(:), fresos(:), fresostr(:), fresonf(:), fresokf(:) !Effective XS
+  REAL(4), POINTER :: fresoAIso(:,:),fresoFIso(:,:),fresoSIso(:,:),fresoSSIso(:,:),fresoS1Iso(:,:)
+  !
+  REAL, POINTER :: DelInflow(:)
   REAL, POINTER :: Dcpl_Temp(:), Dcpl_pnum(:, :)
   REAL, POINTER :: Dcpl_fresoA(:, :), Dcpl_fresoF(:, :), Dcpl_fresoS(:, :), Dcpl_fresoStr(:, :)
-  REAL, POINTER :: resocapIso(:,:)                            !-- JSU EDIT 20170727  : Resonance Treatment for Isotopewise Radioactive Capture
+  REAL(4), POINTER :: fresocapIso(:,:)                            !-- JSU EDIT 20170727  : Resonance Treatment for Isotopewise Radioactive Capture
   TYPE(DeplGd_TYPE), POINTER :: DeplXs1G(:)                   !Quadratic Interpolation of XS for GD pin
   TYPE(DeplPCP_TYPE), POINTER :: DeplPCP
   !Xenon Dynamics
@@ -819,21 +928,30 @@ TYPE Fxrinfo_type
   REAL ::  h2ofrac = 1.0_8
   REAL :: betat
   REAL :: siga, siga0, siga4g(4), siga4g0(4)
-  REAL, POINTER :: beta(:), velo(:), veloh(:), chid(:), chip(:)
+  REAL, POINTER :: beta(:), velo(:), veloh(:), chid(:), chip(:) !, chidk(:,:)
   !Control Rod Cusping
-  
+
   LOGICAL :: lCrFxr = .FALSE.
   LOGICAL :: lCrCspFtn = .FALSE.
+  LOGICAL :: lCrRes = .FALSE.
   !REAL, POINTER :: fCusping(:)
   TYPE(CspFXR_TYPE), POINTER :: CspFXR
   !Spectral SPH Factor related
   LOGICAL :: lSSPHalloc
   REAL(4),POINTER :: SPHfactor(:)
   INTEGER :: ipin
+
+  !AFW Cusping
+  LOGICAL :: lCusping = .FALSE.
+  INTEGER :: iso0, iso1
+  REAL :: wt = 0._8
+
+  ! NeaCrp
+  REAL :: DopTemp, rho
 END TYPE
 
 TYPE XeDynFxr_Type
-  SEQUENCE
+
   REAL ::  ARate_Xe135(2)
   REAL ::  Prate_Xe135(2)
   REAL ::  Prate_I135(2)
@@ -842,11 +960,11 @@ TYPE XeDynFxr_Type
 END TYPE
 
 TYPE DcplFxrInfo_Type
-  SEQUENCE
+
   TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
   INTEGER :: nTemp
-  REAL :: SubGrpRefTemp 
-  
+  REAL :: SubGrpRefTemp
+
   !INTEGER :: idum1
 END TYPE
 
@@ -854,7 +972,7 @@ END TYPE
 !Parallel Enviorment Variables
 
 TYPE PE_TYPE
-  SEQUENCE
+
   LOGICAL :: master = .TRUE.
   LOGICAL :: slave = .FALSE.
   LOGICAL :: lidle = .FALSE.
@@ -869,7 +987,7 @@ TYPE PE_TYPE
   LOGICAL :: lCmfdGrp = .TRUE.               !Participating a CMFD calculation or not
   LOGICAL :: lRTGrp = .TRUE.                 !Participating a RT calculation or not
   LOGICAL :: lThread = .FALSE.
-  LOGICAL :: NonBlockPinXsComm = .FALSE.   
+  LOGICAL :: NonBlockPinXsComm = .FALSE.
   LOGICAL :: lUsrAxDcp = .FALSE.             !User defined Axial Decomposition
   INTEGER :: nproc, nproc0, myrank, myrank0
   INTEGER :: nThread = 1
@@ -894,7 +1012,7 @@ TYPE PE_TYPE
   INTEGER :: MPI_RTMASTER_COMM, MPI_NULL
   INTEGER :: nRtProc, nCmfdProc, nAxnProc
   INTEGER :: myRTrank, myCMFDrank
-  
+
   INTEGER :: myRefPlnBeg, myRefPlnEnd
   INTEGER :: MPI_DCPLMASTER_COMM
   INTEGER :: RefPlnRange(2, 0:500)
@@ -902,13 +1020,13 @@ TYPE PE_TYPE
 
   INTEGER :: WorldGroup, LocalGroup
   LOGICAL :: lSubCh_proc=.FALSE.
-  
+
   !--- CNJ Edit : Intel Math Kernel Library
   LOGICAL :: lMKL = .FALSE.
-  
+
   !--- CNJ Edit : GPU Acceleration
   LOGICAL :: lCUDA = .FALSE., lCUDACMFD = .FALSE., lCUDATH = .FALSE., lCUDADepl = .FALSE.
-  
+
   !--- CNJ Edit : Domain Decomposition + MPI
   INTEGER :: myAsyBeg, myAsyEnd
   INTEGER :: myPinBeg, myPinEnd
@@ -921,7 +1039,7 @@ END TYPE
 !Power Distribution
 
 TYPE PowerDist_Type
-  SEQUENCE
+
   REAL :: fxyzn, fxyzp, fxyn, fxyp, frn, frp, fz, fxavg, fxmax
   REAL :: Pin3DNormalizer, Pin2DNormalizer, Fm2DNormalizer, Fm3DNormalizer
   REAL :: Asy3DNormalizer, Asy2DNormalizer
@@ -929,16 +1047,17 @@ TYPE PowerDist_Type
   REAL, POINTER :: PinPower2D(:, :), PinPower3D(:, :, :)
   REAL, POINTER :: AsyPower2D(:), AsyPower3D(:, :)
   REAL, POINTER :: Axial1DPower(:)
+  REAL :: pwsum
 END TYPE
 
 TYPE DancoffDist_Type
-  SEQUENCE
+
   REAL, POINTER :: Dancoff3D(:, :, :)
 END TYPE
 !Mixture Information
 
 TYPE Mixture_Type
-  SEQUENCE
+
   LOGICAL :: lempty = .TRUE.
   LOGICAL :: lres = .FALSE.
   LOGICAL :: lfuel = .FALSE.
@@ -955,13 +1074,13 @@ TYPE Mixture_Type
   REAL :: temp, dens, fv0
   REAL :: h2ofrac0 = 1.0
   INTEGER, POINTER :: idiso(:), itriso(:)
-  REAL, POINTER :: fweig(:), pnum(:), ftriso(:)  
+  REAL, POINTER :: fweig(:), pnum(:), ftriso(:)
   INTEGER :: deplopt
 END TYPE
 
 !T/H Condition
 TYPE THInfo_TYPE
-  SEQUENCE
+
   REAL, POINTER :: RefFuelTemp(:)
   REAL, POINTER :: FxrTemp(:, :)
   REAL, POINTER :: RelPower(:, :)
@@ -974,7 +1093,7 @@ TYPE THInfo_TYPE
   REAL, POINTER :: UserDefFuelT(:, :)
   REAL, POINTER :: UserDefModT(:, :)
   REAL, POINTER :: CBMCool(:,:)
-  
+
   REAL :: PowFa                     ! Nomial Asy Power at the Full Power Condi, (watt)
   REAL :: Pexit                     ! Core Exit Coolant Pressure (Pa)
   REAL :: PowLin                    ! Linear Power Density
@@ -988,15 +1107,17 @@ TYPE THInfo_TYPE
   REAL :: tfmax                     ! Maxium Fuel Center Line Temperature
   REAL :: tfcl_max, tfavg_max
   REAL :: TdopChg                   ! Doppler Temperature Change Max.
-  REAL :: TModoutAvg                ! Average Moderator Temperature 
+  REAL :: TModoutAvg                ! Average Moderator Temperature
+  REAL :: pwpeakf                   ! powr peaking factor
   TYPE(FuelTh_Type), POINTER :: FuelTh(:)
   TYPE(CoolantTH_Type), POINTER :: CoolantTh(:)
-  
+
   REAL :: Rhou
+  REAL, POINTER :: TdopBase(:,:)
 END TYPE
 
 TYPE FuelTh_Type
-  SEQUENCE
+
   LOGICAL :: lFuel = .FALSE.
   LOGICAL, POINTER :: lMox(:)
   REAL, POINTER :: hflux(:)
@@ -1007,35 +1128,38 @@ TYPE FuelTh_Type
   REAL, POINTER :: tfvol(:, :)
   REAL, POINTER :: teff(:)
   REAL :: TdopMax !
-  
+
   REAL, POINTER :: tfueld(:, :), qvold(:), qshaped(:)
 END TYPE
 
 TYPE CoolantTH_Type
-  SEQUENCE
+
   LOGICAL :: lFuel = .FALSE.
-  REAL, POINTER :: hcool(:)              ! volume enthalpy in J/Kg     
-  REAL, POINTER :: rhou(:)               ! junction mass flux in Kg/m^2-sec 
-  REAL, POINTER :: rhohu(:)              ! junction enthaply flux in J/m^2-s 
-  REAL, POINTER :: u(:), ud(:)           ! junction velocity in m/s  
-  REAL, POINTER :: qeff(:)               ! effective volumetric HGR in cool. 
+  REAL, POINTER :: hcool(:)              ! volume enthalpy in J/Kg
+  REAL, POINTER :: rhou(:)               ! junction mass flux in Kg/m^2-sec
+  REAL, POINTER :: rhohu(:)              ! junction enthaply flux in J/m^2-s
+  REAL, POINTER :: u(:), ud(:)           ! junction velocity in m/s
+  REAL, POINTER :: qeff(:)               ! effective volumetric HGR in cool.
   REAL, POINTER :: qvol(:)               ! Pointing Varialbe
   REAL, POINTER :: Tcool(:)              ! Pointing Varialbe
   REAL, POINTER :: TcoolInOut(:, :)      !
   REAL, POINTER :: DenCool(:)
-  
+
   !Variable for transient
   REAL, POINTER :: TCoold(:)
   REAL, POINTER :: DenCoold(:)           ! Coolant Density at the previous Time Step
   REAL, POINTER :: hcoold(:)             ! Volume enthalpy at the previous Time Step in J/kg
-  REAL, POINTER :: rhoud(:)              ! Junnction mass flux 
-  REAL, POINTER :: rhohud(:) 
-  REAL, POINTER :: qeffd(:)              ! 
+  REAL, POINTER :: rhoud(:)              ! Junnction mass flux
+  REAL, POINTER :: rhohud(:)
+  REAL, POINTER :: qeffd(:)              !
+
+  !Variable for Assembly Dependent acf
+  REAL :: acf, zetap, Deq
 END TYPE
 
 
 TYPE THOpt_Type
-  SEQUENCE
+
   REAL :: KFuelCorrelation(0:5)     !Fuel Conduction Correlation
   REAL :: KCladCorrelation(0:3)
   REAL :: CpFuelCorrelation(0:3)
@@ -1045,10 +1169,18 @@ TYPE THOpt_Type
   INTEGER :: nrpellet  = 20
   INTEGER :: nCondRing = 9
 
+  INTEGER :: KFuelModel = 1            !  1: NEACRP-l-335  2: FRAPCON
+  INTEGER :: KCladModel = 1            !  1: Zirc          2: SS
+  INTEGER :: CpFuelModel = 1           !  1: NEACRP-l-335  2: FRAPCON
+  INTEGER :: CpCladModel = 1           !  1: Zirc-NEACRP-l-335  2: SS 3: Zirc-FRAPCON
+  INTEGER :: hGapModel = 1             !  1: Fixed Value   2: Interpolation  3: Modified Ross Stoute (Campbell)
+  REAL :: RhoFuel = 10.282
+  REAL :: RhoClad = 6.6
+  LOGICAL :: AA_STH = .FALSE.
 END TYPE
 
 TYPE THVar_Type
-  SEQUENCE
+
   REAL :: rs, rw, tw, rgap, rgto, rgti           !  Pallet R, Clad R, Thickness of Cladding, GT Radius, m unit
   REAL :: ChannelPitch              !  Pitch of Channel, m unit
   REAL :: AsyPitch                  !  Pitch of Asy, m unit
@@ -1061,29 +1193,40 @@ TYPE THVar_Type
   REAL :: deq                       !  Equivalence Diameter
   REAL :: hact                      !  Active Height
   REAL :: FuelDelR, CldDelR         !  Radial mesh size for fuel and clad
-  REAL :: FracDC                    !  fraction of heat deposited directly in coolant
+  REAL :: FracDC = 0.               !  fraction of heat deposited directly in coolant
   REAL :: Fracdf                    !
-  
+
   REAL :: Tin                       ! inlet Temp           : tin
   REAL :: MdotFA                    ! mass flow rate per channel
   REAL :: Pexit
-  
-  REAL :: DelT                      !Current Time Step Size 
-  
+
+  REAL :: DelT                      !Current Time Step Size
+
   REAL, POINTER :: Hz(:), r(:), ChanVol(:)
   REAL :: BoilingTemp
-  
-  
-  INTEGER :: nAsyCh                 !  # channel per asy
-  INTEGER :: nAsyGT                 !  # GT per Asy 
+
+
+  !INTEGER :: nAsyCh                 !  # channel per asy
+  !INTEGER :: nAsyGT                 !  # GT per Asy
+  REAL :: nAsyCh                 !  # channel per asy
+  REAL :: nAsyGT                 !  # GT per Asy
   INTEGER :: nzth                   !
-  INTEGER :: npr, npr1, npr2, npr3, npr4, npr5  
-  
-  
+  INTEGER :: npr, npr1, npr2, npr3, npr4, npr5
+  LOGICAL :: lhact = .FALSE.
+
+  INTEGER :: nChType
+  TYPE(THCh_Type), POINTER :: THCh(:)
+
+END TYPE
+
+TYPE THCh_Type
+  REAL :: nAsyCh, nAsyGT
+  REAL :: ChannelPitch, AsyPitch, hact
+  REAL :: acf, xi, zetap, Deq
 END TYPE
 
 TYPE THCell_Type
-  SEQUENCE
+
   INTEGER :: CldReg(2), FuelReg(2), CoolReg(2)
   INTEGER, POINTER :: FuelMapping(:, :)
   REAL, POINTER :: Frac(:, :)
@@ -1092,10 +1235,11 @@ TYPE THCell_Type
 END TYPE
 
 TYPE CrCell_TYPE
-  SEQUENCE
+
   LOGICAL :: LCrIn = .FALSE.
   LOGICAL :: LCrOut = .FALSE.
   INTEGER :: CellCrIdx
+  INTEGER :: inIdx, outIdx
   INTEGER :: nCrFxr, nCrFsr                 ! # of Control Rod Fxr, Fsr
   INTEGER, POINTER :: CrFxrIdx(:)           ! Control Rod Fxr Index
   INTEGER, POINTER :: CrFsrIdx(:)           ! Control ROd Fsr Index
@@ -1104,14 +1248,15 @@ TYPE CrCell_TYPE
 END TYPE
 
 TYPE CrAsyConf_TYPE
-  SEQUENCE  
+
   INTEGER :: nCrPin
   INTEGER, POINTER :: CrLoc(:, :)
   INTEGER, POINTER :: CrPinIdx(:)
 ENDTYPE
 
 TYPE CrBank_TYPE
-  SEQUENCE
+  LOGICAL :: lCrDecusp = .FALSE.
+  LOGICAL :: lCrDir = .TRUE.
   LOGICAL :: lCrIn = .FALSE.
   LOGICAL :: lCrFullIn = .FALSE.
   LOGICAL :: lPosInp = .FALSE.      !Position is specified or not
@@ -1119,26 +1264,27 @@ TYPE CrBank_TYPE
   INTEGER :: PosType = 2            !1 : specify step input, 2: specify control rod location directly
   CHARACTER(10) :: BankName
   REAL :: RodInPos = 0              !Fully Inserted Position
-  REAL :: RodStepSize = 0          
+  REAL :: RodStepSize = 0
   REAL :: RodPos = 0                !Rod Position
   INTEGER :: RodStep = 0
   INTEGER :: nCrAsy = 0
   INTEGER, POINTER :: CrAsyLoc(:)
   REAL, POINTER :: FracCrIn(:)       !Ratio of the Inserted region for each plane(1: fully inserted, 0 No insertion)
+  INTEGER :: isonew = 0              !Mixture index for Benchmark XS
 END TYPE
 
 TYPE CrPosDat_Type
-  SEQUENCE
+
   INTEGER :: nDat = 0
   LOGICAL :: LExist(100) = .FALSE.
   REAL :: PosInpDat(100, 100)
   REAL :: RodPos(100, 100)
   INTEGER :: RodStep(100, 100)
-  
+
 END TYPE
 
 TYPE CrSearch_Type
-  SEQUENCE
+
   LOGICAL :: lInit = .FALSE.
   LOGICAL :: lFullIn = .FALSE.
   LOGICAL :: lFullOut = .FALSE.
@@ -1148,38 +1294,38 @@ TYPE CrSearch_Type
   INTEGER :: eigv_iter = 0
   REAL :: CrMv = 0       !Control Rod Movement
   REAL :: CrMvd = 0      !Control Rod Movement of previous iteration
-  REAL :: CrWorth = 10.     !Cr Worth 
-  REAL :: CrWorthd = 10.    !Cr Worth of previous movement   
+  REAL :: CrWorth = 10.     !Cr Worth
+  REAL :: CrWorthd = 10.    !Cr Worth of previous movement
   REAL :: eigvd             !Eigenvalue of Previous
 END TYPE
 
 TYPE CrInfo_Type
-  SEQUENCE
+
   LOGICAL :: lCrInfo = .TRUE.
-  LOGICAL :: lCrChg = .FALSE. 
+  LOGICAL :: lCrChg = .FALSE.
   INTEGER :: nCrCell = 0
   INTEGER :: nCrAsyConf = 0
   INTEGER :: nCrBank = 0
-  
-  INTEGER :: nCrPin = 0 
+
+  INTEGER :: nCrPin = 0
   INTEGER :: nCrAsy = 0
-     
+
   INTEGER, POINTER :: CRCellMAP(:, :)
   TYPE(CrAsyConf_Type), POINTER :: CrAsyConf(:)
   TYPE(CrBank_Type), POINTER :: CrBank(:)
-  
+
   TYPE(CrSearch_Type) :: CrSearch
   TYPE(CrPosDat_Type), POINTER :: CrPosDat
 END TYPE
 
 !LP_Suffling Information
 TYPE LpShf_Type
-  SEQUENCE
+
   INTEGER :: nrstfile = 0
   LOGICAL :: lDataExist(200) = .FALSE.
-  CHARACTER(256) :: RstFiles(200)     
+  CHARACTER(256) :: RstFiles(200)
   REAL :: PUL(200) = 0                   ! Cooling Time
-  LOGICAL :: lPUL = .FALSE.                      
+  LOGICAL :: lPUL = .FALSE.
   REAL :: HM_Mass0(200) = 0
   INTEGER :: cycleid                  ! Current Cycle No
   INTEGER :: RstCycleId
@@ -1187,25 +1333,25 @@ TYPE LpShf_Type
   LOGICAL :: lPLN_MAP = .FALSE.
   INTEGER :: PlN_MAP(200)
   TYPE(Shf_Type), POINTER :: Shf(:)   ! Shuffling Information
-  
+
 END TYPE
 
 TYPE Shf_Type
-  SEQUENCE
+
   CHARACTER(80) :: fields
   LOGICAL :: LFreshFuel = .TRUE.
   LOGICAL :: LNoneFuel = .FALSE.
   LOGICAL :: lRead =.FALSE.
-  INTEGER :: cycleid           !For fresh fuel 
-  INTEGER :: ix, iy, irot      !Assembly Location at the 
+  INTEGER :: cycleid           !For fresh fuel
+  INTEGER :: ix, iy, irot      !Assembly Location at the
 END TYPE
 
 TYPE XsChange_TYPE
-  SEQUENCE
+
   LOGICAL :: lUse = .FALSE.
   INTEGER :: Iso0, iso1
   INTEGER :: isonew = 0
-  INTEGER :: iStepBeg, iStepend 
+  INTEGER :: iStepBeg, iStepend
   REAL :: tbeg, tend
   LOGICAL :: lStart = .FALSE.
   LOGICAL :: lComplete = .FALSE.
@@ -1214,81 +1360,236 @@ TYPE XsChange_TYPE
   INTEGER :: izbeg, izend, nasy
   INTEGER, POINTER :: AsyList(:)
   REAL :: wt = 0
+  LOGICAL :: lCusping = .FALSE.
+  LOGICAL :: lCuspingDirection = .TRUE. !TRUE for Insertion, False for Withdrawal
+  LOGICAL :: lStepFunc = .FALSE.
+END TYPE
+
+TYPE XsCntlRod_type
+
+  INTEGER :: iso0, iso1
+  INTEGER :: isonew = 0
+  INTEGER :: izbeg, izend, nasy
+  INTEGER, POINTER :: AsyList(:)
+  CHARACTER(256) :: field1, field2
+  REAL :: wt = 0
+  LOGICAL :: lCusping = .FALSE.
+  LOGICAL :: lCuspingDirection = .TRUE. !TRUE for Insertion, False for Withdrawal
+  LOGICAL :: lStepFunc = .FALSE.
+END TYPE
+
+TYPE XSNoise_TYPE
+
+  INTEGER :: itype
+  REAL :: amp, freq, phase
+  INTEGER :: ixa, iya, ixya
+  INTEGER :: ix, iy, ixy
+  INTEGER :: izbeg, izend
+  LOGICAL :: lfirst = .TRUE.
+  INTEGER :: iso0
+  INTEGER :: isonew = 0
 END TYPE
 
 TYPE TranCntl_TYPE
-  SEQUENCE
+
   INTEGER :: nchange = 0
   TYPE(XsChange_TYPE), POINTER :: XsChange(:)
+  TYPE(XsNoise_TYPE), POINTER :: XsNoise(:)
+  TYPE(XsCntlRod_TYPE), POINTER :: XsCntlRod(:)
   REAL :: Tend, DelT0
-  REAL :: Tstep_inp(0:100), Tdiv_inp(0:100) 
-  
+  REAL :: Tstep_inp(0:100), Tdiv_inp(0:100)
+  REAL :: Tdiv_corrector
+  REAL :: dtth
+  INTEGER :: nthstep
+
+  REAL :: freq_inp(1:100)
+  REAL :: freq_now
+  INTEGER :: nfreq
+  INTEGER :: nNoise = 0
+
+  LOGICAL :: lfixtmprw = .FALSE.               ! rod worth calculation with fixed temperature condition
+
+  LOGICAL :: lchidk = .FALSE.
   LOGICAL :: lExpTrsf = .FALSE.      !Exponential Transform
-  
+  LOGICAL :: lExpMOC = .FALSE.       !Exponential Source Term Control
+  LOGICAL :: lStepFunc = .FALSE.
+  LOGICAL :: lStepApprox = .FALSE.
+  LOGICAL :: lCusping = .FALSE.
+  LOGICAL :: lStepImplicit = .FALSE.
+  LOGICAL :: ImplicitSwitch = .FALSE.
+  LOGICAL :: lCorrector = .FALSE.
+  LOGICAL :: lGuess = .FALSE.
+  LOGICAL :: lPCQSIter = .FALSE.
+  LOGICAL :: lIQS = .FALSE.
+  LOGICAL :: lAdptT = .FALSE.
+  INTEGER :: PCRtype = 1
+  REAL :: cmfdres
+  REAL :: delpsifm
+
   LOGICAL :: lTheta
   REAL :: Theta = 0.5
-  
+  REAL :: Theta0
+
   LOGICAL :: lMocUpdt = .TRUE.
   LOGICAL :: lAxNUpdt = .TRUE.
   LOGICAL :: lSGFSPUpdt = .FALSE.
   LOGICAL :: lCondiMOC = .FALSE.
   LOGICAL :: lXsPerturb = .FALSE.
+  LOGICAL :: lKineticBen = .FALSE.
+  LOGICAL :: lDynamicBen = .FALSE.
+  LOGICAL :: lMethod = .FALSE.
   INTEGER :: it_woSG = 0
   INTEGER :: it_woMOC = 0
 
   INTEGER :: nowstep = 0
   INTEGER :: nstep
-  REAL :: T(4000), DelT(4000)
-  
+  REAL :: T(50000), DelT(50000)
+
   INTEGER :: nTWriteOut = 0
   REAL :: TWriteOut(4000)
   INTEGER :: StepWriteOut(4000)
-  INTEGER :: NowWriteStep = 0  
+  INTEGER :: NowWriteStep = 0
+  INTEGER :: nMaxOuter = 15
+  INTEGER :: nMaxCMFD = 50
+  REAL :: res_conv = 1.e-5
+  REAL :: res_conv2 = 1.e-6
+  REAL :: psi_conv = 1.e-6
+  REAL :: cmfd_res_conv = 1.e-7
+
+  !BDF
+  LOGICAL :: Cmfd_Bdf = .FALSE.
+  LOGICAL :: MOC_Bdf = .FALSE.
+  INTEGER :: BDF_ORDER = 5
+  LOGICAL :: lCN_Step = .FALSE.
+  INTEGER :: CN_Step
+  REAL :: Coeff(0:5)
+
+  !AT
+  LOGICAL :: lAdpTheta
+  LOGICAL :: lAdpThetaSt = .FALSE.
+  LOGICAL :: AdpThetaMethod = .FALSE.
+  INTEGER :: AdpThetaStep
+  REAL, POINTER :: ThetaCM(:, :, :)
+
+  !SCM
+  LOGICAL :: lSCM
+  LOGICAL :: lSCM_Prec = .FALSE.
+  LOGICAL :: lAmpFrqFirst = .TRUE.
+  REAL :: AmpFrq = 0._8, AmpFrqd = 0._8, AMpFrqdd = 0._8
+  REAL :: AmpFrq1 = 0._8, AmpFrq2 = 0._8
+  REAL :: AvgAmpFrq = 0._8
+  REAL :: EigD = 1._8, EigD1 = 1._8, EigD2 = 1._8
+  REAL, POINTER :: ShpFrqCM(:, :, :), ShpFrqCMd(:, :, :)
+  REAL, POINTER :: ShpFrqFM(:, :, :), ShpFrqFMd(:, :, :)
+  REAL, POINTER :: AvgShpFrqCM(:, :, :), AvgShpFrqFM(:, :, :)
+  REAL, POINTER :: PrecFrqCM(:, :, :), PrecFrqFM(:, :, :)
+  REAL, POINTER :: ShpFrqCM_2nd(:, :, :), ShpFrqFm_2nd(:, :, :)
+  REAL, POINTER :: ShpFrqCMd_2nd(:, :, :), ShpFrqFmd_2nd(:, :, :)
+  REAL, POINTER :: AvgShpFrqCM_2nd(:, :, :), AvgShpFrqFM_2nd(:, :, :)
+
+  !AM3
+  LOGICAL :: lAM = .FALSE.
+  REAL :: Beta0, Gam1, Gam2
+
+  !Method
+  INTEGER :: TD !Temporal Discretization
+  LOGICAL :: lblockGS =.TRUE.
+
+  LOGICAL :: lIQSAA = .FALSE.
+  REAL, POINTER :: IQSAA_x(:,:), IQSAA_g(:,:)
+  INTEGER :: IQSAA_m
+
+  !Noise Sampling
+  REAL :: Speriod, Sbeg, Send !Sampling Period, Sampling Begin, Sampling End
+  LOGICAL :: lNNSampling
+  REAL, POINTER :: Ssteps(:)
+  INTEGER :: nSstep
+  INTEGER :: iSstep = 1
+  INTEGER :: Sio = 81
 END TYPE
 
 TYPE TranInfo_TYPE
-  SEQUENCE
-  
+
+
   LOGICAL :: lBenchXS = .TRUE.
   LOGICAL :: lLibXs = .FALSE.
-  
+
   INTEGER :: nPrec =6
-  REAL, POINTER :: Chid(:)           ! Delayed Neutron 
+  REAL, POINTER :: Chid(:)           ! Delayed Neutron
+  REAL, POINTER :: chidk(:,:)
   !REAL, POINTER :: Chia(:)           ! Average Fission Spectrum
   !REAL, POINTER :: Chip(:)           ! Prompt Fission Spectrum
   REAL, POINTER :: lambda(:)         ! Decay constant of Precursor
-  REAL, POINTER :: Invlambda(:) 
+  REAL, POINTER :: Invlambda(:)
   !REAL, POINTER :: beta(:)           ! Delayed Neutron Fraction
-  !REAL, POINTER :: neut_velo(:)         ! Neutron Velocity  
-  
-  !REAL, POINTER :: Fsrbetat(:, :) !Total Delayed Neutron 
+  !REAL, POINTER :: neut_velo(:)         ! Neutron Velocity
+
+  !REAL, POINTER :: Fsrbetat(:, :) !Total Delayed Neutron
   REAL, POINTER :: CellOmegam(:, :, :), Cellomega0(:, :, :), Cellomegap(:, :, :)
   REAL, POINTER :: FxrOmegam(:, :, :), FxrOmega0(:, :, :), Fxromegap(:, :, :)
-  
+
   REAL, POINTER :: Expo(:, :, :), Expo_alpha(:, :, :)
-  REAL, POINTER :: FmExpo(:, :, :), FmExpo_alpha(:, :, :)  
+  REAL, POINTER :: FmExpo(:, :, :), FmExpo_alpha(:, :, :)
   REAL, POINTER :: CorePower_History(:)
-  
+
   REAL, POINTER :: PhiShape0(:, :), PhiShape(:, :)
-  
+
   !REAL, POINTER :: Kappa(:)   !Exp(-lambda * DelT)
-  
+
   REAL :: eigv0 = 1.0_8               !Initial Eigenvalue
   REAL :: PowerLevel0 = 1.0_8
-  REAL :: PowerLevel = 1.0 
+  REAL :: PowerLevel = 1.0
   REAL :: fnorm =1.0_8                ! normalize flux such that average group flux be unity
   REAL :: UnitPowerLevel0 = 1.0       ! Power Level for normalized flux level at the initial condition of transeint
-  REAL :: reactivity = 0.             !Current Time step Reacitivy
-  
+  REAL :: reactivity = 0.             ! Current Time step Reacitivy
+  REAL :: reactivity_dynamic = 0.
+  REAL :: corebeta = 0.               ! Current Time step coreavgBeta
+  REAL :: corebeta_dynamic = 0.
+  REAL :: corebeta_dynamic_MOC = 0._8
+  REAL :: TranEig = 0.                ! Current Time step Estimated Eig
+  REAL :: TranEig_dynamic = 0.
+  REAL :: delrho = 0.                 ! Current Time step Estimated delrho
+  REAL :: delrho_dynamic = 0.
+  REAL :: lifetime = 0.               ! Current Time step neutron LifeTime
+  REAL :: lifetime_Dynamic = 0.
+  REAL :: lifetime_Dynamic_MOC = 0.
+  REAL :: factor_F = 0.
+
+  REAL :: Inv_Factor_F0
+  REAL :: Inv_Factor_K0
+  REAL :: Inv_lifetime0
+  REAL :: Prev_delrho
+  REAL :: Prev_corebetat = 0.
+  REAL :: Prev_lifetime = 0.
+  REAL :: Prev_Factor_F = 0.
+  REAL, POINTER :: Prev_corePrec(:)
+  REAL, POINTER :: Prev_coreBeta(:), coreBetak(:)
+  REAL :: PwSum0
+  INTEGER :: nfuelcell
+
+  REAL :: AmpPredictor = 1.
+  REAL :: Amp = 1.
+  REAL :: TranAmp = 1.
+  REAL :: TranAmpd = 1.
+  REAL :: AmpRatio = 1.
+  REAL :: AmpTilt = 0.
+  REAL :: AmpTiltd = 0.
+  REAL :: PrecRatio(6) = 1.
+
   REAL :: PowerLeveld = 1.0_8
   REAL :: rtdblr = 0                  !Inverse of Doubling Time
-  
+
   REAL, POINTER :: RefTemp0(:), RefTemp(:)           !Reference Temperature
   REAL :: Tfcl_ref_SG, Tfcl_ref_MOC
+
+  !-- Dynamic Benchmark (C5G7-TD Phase II)
+  REAL :: InitTemp
+  REAL :: InitPow = 1.e-6
+  REAL, POINTER :: fuelTemp(:,:)
 END TYPE
 !
 TYPE CspFXR_TYPE
-  SEQUENCE
+
   INTEGER :: niso(2)
   REAL, POINTER :: pnum(:, :)
   INTEGER, POINTER :: isolist(:, :)
@@ -1300,14 +1601,14 @@ TYPE CspFXR_TYPE
 END TYPE
 
 TYPE MiscStruct_Type
-  SEQUENCE
+
   !Core Ring Structure
   LOGICAL :: lRing = .FALSE.
   LOGICAL :: lBarrel = .FALSE.
   INTEGER :: nring = 0
   INTEGER :: max_nring = 100
   REAL :: rad_ring(2, 0:100) = 0
-  REAL :: ring_cent(2) 
+  REAL :: ring_cent(2)
   REAL :: ring_plnbeg(0:100) = 0
   REAL :: ring_plnend(0:100) = 0
   INTEGER :: mix_ring(0:100) = 0
@@ -1316,11 +1617,11 @@ TYPE MiscStruct_Type
   !Baffle
   LOGICAL :: lBaffle = .FALSE.
   INTEGER :: Mix_Baffle               !
-  REAL :: Thick_Baffle                !Baffle 
+  REAL :: Thick_Baffle                !Baffle
 END TYPE
 
 TYPE XeDynState_Type
-  SEQUENCE
+
   INTEGER :: istep = 0
   REAL :: T, delT
   REAL :: PowLv = 1._8
@@ -1337,7 +1638,7 @@ TYPE XeDynState_Type
 END TYPE
 
 TYPE XeDynInfo_Type
-  SEQUENCE
+
   LOGICAL :: lCalculation = .FALSE.
   INTEGER :: nTimeStep = 0
   INTEGER :: nState = 0

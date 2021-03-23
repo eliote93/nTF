@@ -61,6 +61,7 @@ ENDSUBROUTINE
 
 SUBROUTINE GC2GFlux(ng)
     USE GC_mod,     ONLY : PhiG, PhiVol, GrpIdx
+    USE GCpin_mod,  ONLY : u238phiMG, u238phiFG
     IMPLICIT NONE
     INTEGER :: ng
     
@@ -71,6 +72,7 @@ SUBROUTINE GC2GFlux(ng)
     DO ig = 1, ng
         gidx=GrpIdx(ig)
         PhiG(gidx)=PhiG(gidx)+PhiVol(ig)  !instead of fphi, tphi
+        u238phiFG(gidx) = u238phiFG(gidx) + u238phiMG(ig)
     ENDDO    
     
     
@@ -95,14 +97,20 @@ SUBROUTINE GC2GDiffCoeff(ng)
 ENDSUBROUTINE
 
 
-SUBROUTINE GCCon(ng)
+SUBROUTINE GCCon(ng, lPinGC)
     USE GC_mod
+    USE GCpin_mod    
+    USE CNTL, ONLY : nTracerCntl
+    USE Core_mod,   ONLY: CmInfo
     IMPLICIT NONE
     INTEGER :: ng
     
-    INTEGER :: ig, ig2
+    INTEGER :: ig, ig2, iprec
     INTEGER ::  gidx, gidx2
     INTEGER :: iso
+    INTEGER :: ixyl, ixy
+    REAL(8) :: PhiC_AdjG(ngrp)
+    LOGICAL :: lPinGC
     !D, a, r, f, nf, kf
     !ALLOCATE(isoMacXs(nisotot,6,ng), isoMacSm(nisotot,ng,ng),isoMacXs2g(nisotot,6,2)) 
     !tr, a, r, f, nu, k
@@ -112,7 +120,8 @@ SUBROUTINE GCCon(ng)
         DO ig = 1, ng    
             gidx=GrpIdx(ig)
             isoMacXs2g(iso,0,gidx)=isoMacXs2g(iso,0,gidx)+ isoMacXs(iso,0,ig)*PhiVol(ig) ! total
-            isoMacXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)+ 1/isoMacXs(iso,1,ig)*PhiVol(ig) ! 1/tr
+            !isoMacXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)+ 1/isoMacXs(iso,1,ig)*PhiVol(ig) ! 1/tr
+            isoMacXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)+ isoMacXs(iso,1,ig)*PhiVol(ig) ! tr -- Edit by LHG, 080420
             isoMacXs2g(iso,2,gidx)=isoMacXs2g(iso,2,gidx)+ isoMacXs(iso,2,ig)*PhiVol(ig) ! a
             isoMacXs2g(iso,3,gidx)=isoMacXs2g(iso,3,gidx)+ isoMacXs(iso,2,ig)*PhiVol(ig) ! r= !a! + s_out
             isoMacXs2g(iso,4,gidx)=isoMacXs2g(iso,4,gidx)+ isoMacXs(iso,4,ig)*PhiVol(ig) ! f
@@ -128,6 +137,12 @@ SUBROUTINE GCCon(ng)
             ENDDO    
         ENDDO
     ENDDO
+    IF ( lPin ) THEN ! HHS 19/02/14
+      DO ig = 1, ng
+        gidx = GrpIdx(ig)
+        u238n2nFG(gidx) = u238n2nFG(gidx) + u238n2nMG(ig)! * u238phiMG(ig)
+      END DO
+    END IF
     DO iso = 1, nisotot
         DO gidx = 1, ngrp
             rphi=1.0/PhiG(gidx)
@@ -136,8 +151,13 @@ SUBROUTINE GCCon(ng)
             isoMicXs2g(iso,0,gidx)=isoMacXs2g(iso,0,gidx)/isoNumden(iso)
             isoMacXs2g(0,0,gidx) = isoMacXs2g(0,0,gidx) + isoMacXs2g(iso,0,gidx)
             
-            isoMacXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)*rphi ! 1/tr_iso_G = 3DG
-            isoMacXs2g(iso,1,gidx)=1/(isoMacXs2g(iso,1,gidx)) ! 1/tr = DG -> tr_iso_G 
+            !isoMacXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)*rphi ! 1/tr_iso_G = 3DG
+            !isoMacXs2g(iso,1,gidx)=1/(isoMacXs2g(iso,1,gidx)) ! 1/tr = DG -> tr_iso_G 
+            !isoMicXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)/isoNumden(iso)  ! sig_tr
+            
+            ! ----- Edit by LHG : 080420
+            ! -- From avg. D collapsing, to avg. tr collapsing
+            isoMacXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)*rphi 
             isoMicXs2g(iso,1,gidx)=isoMacXs2g(iso,1,gidx)/isoNumden(iso)  ! sig_tr
             
             isoMacXs2g(iso,2,gidx)=isoMacXs2g(iso,2,gidx)*rphi  ! a
@@ -184,4 +204,42 @@ SUBROUTINE GCCon(ng)
         gidx=GrpIdx(ig)
         ChiG(gidx)=ChiG(gidx)+isoMacXs(0,6,ig)
     ENDDO
+
+    IF (lPinGC .EQ. .TRUE.) THEN
+      IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+        KinParMac_velo2g = 0._8; KinParMac_velo2gAdj = 0._8
+        ixyl= AsyInfo(iasytype)%Pin2DIdx(xbg, yst)
+        ixy = Asy(iasy)%GlobalPinIdx(ixyl)
+        PhiC_AdjG = 0._8
+        KinParMac_ChiDg2g = 0.
+        DO iprec  = 1, 6
+          DO ig = 1, ng
+            gidx = GrpIdx(ig)
+            KinParMac_ChiDg2g(0,gidx,iprec) = KinParMac_ChiDg2g(0,gidx,iprec) + KinParMac_ChiDg(0,ig,iprec)
+          END DO 
+        END DO
+        KinParMac_phiadj = 0.
+        KinParMac_phiadj2g = 0.
+        DO ig=1, ng
+          gidx = GrpIdx(ig)
+          !PhiC_AdjG(gidx) = PhiC_AdjG(gidx) + CMInfo%PhiC_Adj(ixy,iz,ig)*PhiVol(ig)
+          KinParMac_phiadj(0,ig) = KinParMac_phiadj(0,ig) + CMInfo%PhiC_Adj(ixy,iz,ig)!*PhiVol(ig)
+          KinParMac_phiadj2g(0,gidx) = KinParMac_phiadj2g(0,gidx) + CMInfo%PhiC_Adj(ixy,iz,ig)*PhiVol(ig)
+        END DO
+        DO ig=1, ng
+          gidx = GrpIdx(ig)
+          KinParMac_velo2g(0,gidx)=KinParMac_velo2g(0,gidx) + 1._8/KinParMac_velo(0,ig)*PhiVol(ig)
+          !KinParMac_velo2gAdj(0,gidx) = KinParMac_velo2gAdj(0,gidx) + 1._8/KinParMac_velo(0,ig)*PhiVol(ig)*CMInfo%Phic_Adj(ixy,iz,ig)
+        END DO
+        DO gidx=1, ngrp
+          rphi=1.0/PhiG(gidx)
+          KinParMac_velo2g(0,gidx) = KinParMac_velo2g(0,gidx)*rphi
+          KinParMac_phiadj2g(0,gidx) = KinParMac_phiadj2g(0,gidx)*rphi
+          KinParMac_velo2g(0,gidx) = 1._8/KinParMac_velo2g(0,gidx)
+          !KinParMac_velo2gAdj(0,gidx) = KinParMac_velo2gAdj(0,gidx)/PhiC_AdjG(gidx)
+          !KinParMac_Velo2gAdj(0,gidx) = 1._8/KinParMac_velo2gAdj(0,gidx)
+        END DO
+      END IF
+    END IF
+
 ENDSUBROUTINE

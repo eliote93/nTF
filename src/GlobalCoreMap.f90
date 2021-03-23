@@ -31,7 +31,7 @@ REAL :: lx, ly
 nxy=0; nx=0; ny=0
 nxa = Core%nxa; nya = Core%nya; nxya = Core%nxya
 Core%nz = nz; Core%nzfm =nzfm
-Core%nPinType = nPinType; Core%nCellType = nCellType
+Core%nPinType = nPinType; Core%nCellType = nCellType; Core%nCellType0 = nCellType0
 Core%nAsyType = nAsyType
 
 Core%nxc0 = nCellX0; Core%nyc0 = nCellX0; 
@@ -325,7 +325,7 @@ USE GEOM, ONLY : nAsyType,   nPinType,    nCellType,    nPinType0,     nCellType
                  Asy,        hz,          nz,           nzfm,          BaseCellInfo,       &
                  hzInv,      HzFmInv,                                                      &
 !                 myzb,       myze,        myzbf,        myzef,                            &
-                 hzfm,       SubPlaneMap, SubPlaneRange, nSubPlane          
+                 hzfm,       SubPlaneMap, SubPlaneRange, nSubPlane,   nSubPlanePtr          
 USE PE_MOD,         ONLY : PE            
 IMPLICIT NONE 
 INTEGER :: ixy, iz, icel, ipin                  
@@ -342,6 +342,7 @@ Core%hzInv => hzInv
 Core%hzfm => hzfm
 Core%hzfmInv => hzfmInv
 Core%nSubPlane = nSubPlane
+Core%nSubPlanePtr => nSubPlanePtr
 Core%SubPlaneMap => SubPlaneMap
 Core%SubPlaneRange => SubPlaneRange
 ALLOCATE(Core%lFuelPlane(nz)); Core%lFuelPlane = FALSE

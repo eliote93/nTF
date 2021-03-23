@@ -20,7 +20,6 @@ USE MPIComm_Mod,     ONLY : BCAST,                REDUCE,             MPI_SYNC
 IMPLICIT NONE
 
 TYPE AsyOutp_Type
-  SEQUENCE
   INTEGER :: ixa, iya, nx, ny, nfuel
   INTEGER :: itype
   INTEGER, POINTER :: PinIdx(:, :)

@@ -26,7 +26,6 @@ IF(nTracerCntl%lCMFD .AND. PE%lCmfdGrp) THEN
 #endif
 ENDIF
 
-
 IF(nTracerCntl%lCritSpec) CALL Alloc_CritSpec()
 
 IF(.NOT. nTracerCntl%lBenchXs) THEN
@@ -79,10 +78,11 @@ myzb = PE%myzb; myze = PE%myze
 nPolar = RayInfo%nPolarAngle
 nModRay = RayInfo%nModRay
 nPhiAngSv = RayInfo%nPhiAngSv
-nCoreFsr = Core%nCoreFsr 
+nCoreFsr = Core%nCoreFsr
 nCoreFxr = Core%nCoreFxr
 
 CALL Dmalloc0(PHIS, 1, nFsr, myzb, myze, 1, ng)
+
 CALL Dmalloc0(ssphf, 1, nFsr, myzb, myze, igresb,igrese)
 ssphf=1._8
 
@@ -100,7 +100,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
   AsyPhiAngIn(:, :, :, :, :, :) = 1._8
 ENDIF
 
-!Current 
+!Current
 !CALL Dmalloc0(RadJout, 1, 2, 1, nbd, 1, nxy, myzb, myze, 1, ng)
 CALL Dmalloc0(RadJout, 1, 3, 1, nbd, 1, nxy, myzb, myze, 1, ng) !---BYS edit / 150612 Surface flux
 CALL Dmalloc0(PSI, 1, nFsr, myzb, myze)
@@ -146,6 +146,10 @@ IF(nTracerCntl%lScat1) THEN
   ENDIF
 ENDIF
 
+IF(nTracerCntl%lDecusp) THEN
+  ALLOCATE(FmInfo%neighphis(nFsr, ng, 2))
+END IF
+
 FmInfo%phis => Phis; FmInfo%PhiAngIn => PhiAngin
 FMInfo%Psi => Psi;   FmInfo%PsiD => PsiD
 FMInfo%PsiC => PsiC;   FmInfo%PsiCD => PsiCD
@@ -160,13 +164,13 @@ RayInfo%RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
 
 IF(nTracerCntl%lLinSrc) FmInfo%LinSrcSlope => LinSrcSlope
 
-IF(nTracerCntl%lScat1) FmInfo%phim => phim 
+IF(nTracerCntl%lScat1) FmInfo%phim => phim
 END SUBROUTINE
 
 SUBROUTINE AllocLinSrcVariables()
 USE PARAM
 USE TYPEDEF,      ONLY : coreinfo_type
-USE GEOM,         ONLY : Core,          ng 
+USE GEOM,         ONLY : Core,          ng
 USE Core_mod,     ONLY : FmInfo,        LinSrcSlope
 USE PE_MOD,       ONLY : PE
 USE ALLOCS
@@ -196,9 +200,9 @@ myzb = PE%myzb; myze = PE%myze
 !ALLOCATE(Fxr(nFxr, myzb:myze))
 
 IF(lXsLib) THEN
-  
+
 ELSE
-  
+
 ENDIF
 END SUBROUTINE
 
@@ -217,8 +221,8 @@ USE Moc_mod,      ONLY : phis1g,     MocJout1g,   Xst1g,       tSrc,       &
                          srcnm,      srcmnm,      phimnm,                  &
                          !--- CNJ Edit : Domain Decomposition
                          DcmpPhiAngIn,    DcmpPhiAngOut
-USE rays,         ONLY : RayInfo                         
-USE Setray,       ONLY : RayInfoMaxSize              
+USE rays,         ONLY : RayInfo
+USE Setray,       ONLY : RayInfoMaxSize
 USE CNTL,         ONLY : nTracerCntl
 USE ALLOCS
 IMPLICIT NONE
@@ -242,10 +246,10 @@ CALL Dmalloc0(xst1g, 1, nFsr)
 CALL Dmalloc0(tsrc, 1, nFsr)
 CALL Dmalloc0(AxSrc1g, 1, nxy)
 CALL Dmalloc0(AxPxs1g, 1, nxy)
-!Allocate Linear Source 
+!Allocate Linear Source
 IF(nTracerCntl%lLinSrc) Then
   CALL Dmalloc(LinSrc1g, nFsr, RayInfo%nAziAngle)
-  CALL Dmalloc0(LinPsi, 1, 2, 1, nFsr, myzb, myze) 
+  CALL Dmalloc0(LinPsi, 1, 2, 1, nFsr, myzb, myze)
 ENDIF
 
 !--- CNJ Edit : Node Majors
@@ -290,7 +294,7 @@ END SUBROUTINE
 SUBROUTINE Alloc_CritSpec()
 USE PARAM
 USE TYPEDEF,      ONLY : CoreInfo_Type,   FmInfo_Type
-USE GEOM,         ONLY : Core,            ng 
+USE GEOM,         ONLY : Core,            ng
 USE Core_mod,     ONLY : FmInfo,          PhiCrit,  SpecConv
 USE BasicOperation, ONLY : CP_CA
 USE Allocs

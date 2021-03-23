@@ -1,5 +1,5 @@
 #include <defines.h>
-  
+
 SUBROUTINE SetLocalBurnup(Core, FXR, Power, normalizer, Tsec, lCorrectStep, PE)
 USE PARAM
 USE TYPEDEF,       ONLY : CoreInfo_Type,   FxrInfo_Type, PE_Type,      &
@@ -48,15 +48,15 @@ DO iz = PE%myzb, PE%myze
         Fxr(ifxr, iz)%burnup = Fxr(ifxr, iz)%burnup_past + burnup
       ELSE
         burnup = 0.5_8*(burnup + Fxr(ifxr, iz)%burnup - Fxr(ifxr, iz)%burnup_past)
-        Fxr(ifxr, iz)%burnup = Fxr(ifxr, iz)%burnup_past + burnup 
-        Fxr(ifxr, iz)%burnup_past = Fxr(ifxr, iz)%burnup 
+        Fxr(ifxr, iz)%burnup = Fxr(ifxr, iz)%burnup_past + burnup
+        Fxr(ifxr, iz)%burnup_past = Fxr(ifxr, iz)%burnup
       ENDIF
     ENDDO
   ENDDO
 ENDDO
 NULLIFY(CellInfo, Pin)
 END SUBROUTINE
-  
+
 FUNCTION GetCoreHmMass(Core, FXR, PE)
 USE PARAM
 USE TYPEDEF,       ONLY : CoreInfo_Type,   FxrInfo_TYPE,   PE_TYPE,    &
@@ -68,7 +68,7 @@ USE MPIComm_mod,   ONLY : REDUCE
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type), POINTER :: Fxr(:, :) 
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 TYPE(PE_TYPE) :: PE
 
 REAL :: GetCoreHmMass
@@ -94,7 +94,7 @@ HmCore = 0
 DO iz = myzb, myze
   HmPln = 0
   DO ixy = 1, nxy
-    icell = Pin(ixy)%cell(iz)  
+    icell = Pin(ixy)%cell(iz)
     FxrIdxSt = Pin(ixy)%FxrIdxSt; nLocalFxr = Cell(icell)%nFxr
     HmCell = 0
     DO i = 1, nLocalFxr
@@ -122,20 +122,19 @@ HmCore = buf
 
 GetCoreHmMass = HmCore
 GetCoreHmMass = GetCoreHmMass * epsm6    !Ton Unit Conversion
- 
+
 END FUNCTION
 
-SUBROUTINE SetBurnUpStepInfo(PowerCore, DeplVars, DeplCntl)
+SUBROUTINE SetBurnUpStepInfo(PowerCore,DeplCntl)
 USE PARAM
-USE DeplType,   ONLY : DeplVars_Type,     DeplCntl_Type
+USE DeplType,   ONLY : DeplCntl_Type
 IMPLICIT NONE
-TYPE(DeplVars_Type) :: DeplVars
 TYPE(DeplCntl_Type) :: DeplCntl
 REAL :: PowerCore
 
 
 REAL :: HmMass_kg0
-REAL, POINTER :: T_efpd(:), T_mwdkghm(:) 
+REAL, POINTER :: T_efpd(:), T_mwdkghm(:)
 
 INTEGER :: nBurnUpStep, BurnUpType
 INTEGER :: i
@@ -216,6 +215,7 @@ phi1g = SUM(Phis(1:ng))
 xsa => DeplXS%xsa; xsf => DeplXs%xsf
 xsn2n => DeplXs%xsn2n; xsn3n => DeplXs%xsn3n
 
+xsa = 0; xsf = 0;
 DO i = 1, niso
   CALL MacXS1gBase(xsa(i:i), xsf(i:i), xsn2n(i:i), xsn3n(i:i), Temp, 1, idiso(i:i), pnum(i:i), phis(1:ng), ng)
 ENDDO
@@ -224,7 +224,7 @@ CALL MacXsBase(XsMac(DeplXs%tid), temp, niso, idiso, pnum, 1, ng, ng, 1._8, FALS
 IsoXsMacf => XsMac(DeplXs%tid)%IsoXsMacf
 IsoXsMacA => XsMac(DeplXs%tid)%IsoXsMacA
 IF(myFxr%lRes) THEN
-  
+
   DO ig = iResoGrp1, iResoGrp2
 
         DO i = 1, niso
@@ -278,12 +278,13 @@ USE TYPEDEF,    ONLY : CoreInfo_Type,        FmInfo_Type,         GroupInfo_TYPE
                        PE_TYPE,                                                   &
                        FxrInfo_Type,         Cell_Type,           Pin_Type,       &
                        XsMac_Type
-USE BenchXs,       ONLY : xskfBen
+USE BenchXs,       ONLY : xskfBen,           xskfDynBen
 USE MacXsLib_Mod, ONLY : MacXsKf
 USE BasicOperation, ONLY : CP_CA, MULTI_VA
 #ifdef MPI_ENV
 USE MPIComm_mod, ONLY : REDUCE
 #endif
+USE TRAN_MOD,     ONLY : TranInfo,            TranCntl
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
@@ -337,26 +338,30 @@ pwsum = 0
 DO iz = myzb, myze
   DO ipin = 1, nxy
     FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
     DO j = 1, nLocalFxr
       ifxr = FxrIdxSt + j -1
-      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
+      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
       myFxr => Fxr(ifxr, iz)
       IF(lXsLib) Then
         CALL MacXsKf(XsMac, myFxr, 1, ng, ng, 1._8, FALSE)
         xsmackf => XsMac%XsMackf
         IF(myFxr%lres) THEN
           do ig = iResoGrpBeg,iResoGrpEnd
-            XsMackf(ig) = XsMackf(ig) * myFxr%fresoF(ig)   
+            XsMackf(ig) = XsMackf(ig) * myFxr%fresokf(ig)
           enddo
         ENDIF
       ELSE
         ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-        !itype = CellInfo(icel)%iReg(ifsrlocal)      
+        !itype = CellInfo(icel)%iReg(ifsrlocal)
         itype = myFxr%imix
-        CALL xskfben(itype, 1, ng, xsmackf)
+        IF(TranCntl%lDynamicBen) THEN
+          CALL xskfDynben(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, xsmackf)
+        ELSE
+          CALL xskfben(itype, 1, ng, xsmackf)
+        END IF
       ENDIF
-      
+
       !Get Fxr Flux
       FxrPhis(1:ng) = 0
       DO i = 1, nFsrInFxr
@@ -370,7 +375,7 @@ DO iz = myzb, myze
       IF(lCritSpec) CALL MULTI_VA(SpecConv(1:ng), FxrPhis(1:ng), ng)
       localpwsum = 0
       DO ig = 1, ng
-        localpwsum = localpwsum + FxrPhis(ig) * xsmackf(ig) 
+        localpwsum = localpwsum + FxrPhis(ig) * xsmackf(ig)
       ENDDO
       pwsum = pwsum + localPwSum * hz(iz)
     ENDDO
@@ -475,7 +480,7 @@ W_QI = (/-t*t/(6*tp*(t+tp)), 0.5 + t / (6 * tp),  0.5-t/(6*(t+tp))/)
 
 IF(DeplCntl%NowStep == 1) THEN
   IF(.NOT. lCorrectStep) THEN
-    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl  
+    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl
     DO i= 1, nIso
       j = IdIso(i); id_lib = iPosIso(j)
       id_depl = MapXs2Dep(id_lib)
@@ -484,7 +489,7 @@ IF(DeplCntl%NowStep == 1) THEN
       BurnUpXs(3, id_depl) = DeplXs%xsn2n(i)
       BurnUpXs(4, id_depl) = DeplXs%xsn3n(i)
     ENDDO
-    DeplVars%phi1g = DeplXs%phi1g  
+    DeplVars%phi1g = DeplXs%phi1g
   ELSE
     IdIso => Fxr%DeplXs1g(0)%IdIso; nIso = Fxr%DeplXs1g(0)%niso
     DO i = 1, niso
@@ -493,10 +498,10 @@ IF(DeplCntl%NowStep == 1) THEN
       BurnUpXs(1, id_depl) = 0.5_8 * Fxr%DeplXs1g(0)%xsa(i)
       BurnUpXs(2, id_depl) = 0.5_8 * Fxr%DeplXs1g(0)%xsf(i)
       BurnUpXs(3, id_depl) = 0.5_8 * Fxr%DeplXs1g(0)%xsn2n(i)
-      BurnUpXs(4, id_depl) = 0.5_8 * Fxr%DeplXs1g(0)%xsn3n(i)     
+      BurnUpXs(4, id_depl) = 0.5_8 * Fxr%DeplXs1g(0)%xsn3n(i)
     ENDDO
     DeplVars%Phi1g = 0.5 * Fxr%DeplXs1g(0)%phi1g
-    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl  
+    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl
     DO i = 1, niso
       j = IdIso(i); id_lib = iPosIso(j)
       id_depl = MapXs2Dep(id_lib)
@@ -505,7 +510,7 @@ IF(DeplCntl%NowStep == 1) THEN
       BurnUpXs(3, id_depl) = BurnUpXs(3, id_depl) + 0.5_8 * DeplXs%xsn2n(i)
       BurnUpXs(4, id_depl) = BurnUpXs(4, id_depl) + 0.5_8 * DeplXs%xsn3n(i)
     ENDDO
-    DeplVars%phi1g = DeplVars%phi1g + 0.5*DeplXs%phi1g 
+    DeplVars%phi1g = DeplVars%phi1g + 0.5*DeplXs%phi1g
   ENDIF
 ELSE
   IF(.NOT. lCorrectStep) THEN
@@ -517,10 +522,10 @@ ELSE
       BurnUpXs(1, id_depl) = w * Fxr%DeplXs1g(-1)%xsa(i)
       BurnUpXs(2, id_depl) = w * Fxr%DeplXs1g(-1)%xsf(i)
       BurnUpXs(3, id_depl) = W * Fxr%DeplXs1g(-1)%xsn2n(i)
-      BurnUpXs(4, id_depl) = w * Fxr%DeplXs1g(-1)%xsn3n(i)     
+      BurnUpXs(4, id_depl) = w * Fxr%DeplXs1g(-1)%xsn3n(i)
     ENDDO
     DeplVars%Phi1g = w * Fxr%DeplXs1g(-1)%phi1g
-    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl  
+    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl
     w =  DeplCntl%tsec/DeplCntl%ptsec/2._8 + 1
     DO i = 1, niso
       j = IdIso(i); id_lib = iPosIso(j)
@@ -530,7 +535,7 @@ ELSE
       BurnUpXs(3, id_depl) = BurnUpXs(3, id_depl) + w * DeplXs%xsn2n(i)
       BurnUpXs(4, id_depl) = BurnUpXs(4, id_depl) + w * DeplXs%xsn3n(i)
     ENDDO
-    DeplVars%phi1g = DeplVars%phi1g + w * DeplXs%phi1g      
+    DeplVars%phi1g = DeplVars%phi1g + w * DeplXs%phi1g
   ELSE
     IdIso => Fxr%DeplXs1g(-1)%IdIso; nIso = Fxr%DeplXs1g(-1)%niso
 #define QuadInt
@@ -546,10 +551,10 @@ ELSE
       BurnUpXs(1, id_depl) = w * Fxr%DeplXs1g(-1)%xsa(i)
       BurnUpXs(2, id_depl) = w * Fxr%DeplXs1g(-1)%xsf(i)
       BurnUpXs(3, id_depl) = w * Fxr%DeplXs1g(-1)%xsn2n(i)
-      BurnUpXs(4, id_depl) = w * Fxr%DeplXs1g(-1)%xsn3n(i)     
+      BurnUpXs(4, id_depl) = w * Fxr%DeplXs1g(-1)%xsn3n(i)
     ENDDO
     DeplVars%Phi1g = w * Fxr%DeplXs1g(-1)%phi1g
-  
+
     w  = w0(2)
     IdIso => Fxr%DeplXs1g(0)%IdIso; nIso = Fxr%DeplXs1g(0)%niso
     DO i = 1, niso
@@ -558,12 +563,12 @@ ELSE
       BurnUpXs(1, id_depl) = BurnUpXs(1, id_depl) + w * Fxr%DeplXs1g(0)%xsa(i)
       BurnUpXs(2, id_depl) = BurnUpXs(2, id_depl) + w * Fxr%DeplXs1g(0)%xsf(i)
       BurnUpXs(3, id_depl) = BurnUpXs(3, id_depl) + w * Fxr%DeplXs1g(0)%xsn2n(i)
-      BurnUpXs(4, id_depl) = BurnUpXs(4, id_depl) + w * Fxr%DeplXs1g(0)%xsn3n(i)     
+      BurnUpXs(4, id_depl) = BurnUpXs(4, id_depl) + w * Fxr%DeplXs1g(0)%xsn3n(i)
     ENDDO
     DeplVars%Phi1g = DeplVars%Phi1g + w * Fxr%DeplXs1g(0)%phi1g
-    
+
     w  = w0(3)
-    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl  
+    IdIso => Fxr%IdIso; nIso = Fxr%nIso_depl
     DO i = 1, niso
       j = IdIso(i); id_lib = iPosIso(j)
       id_depl = MapXs2Dep(id_lib)
@@ -572,7 +577,7 @@ ELSE
       BurnUpXs(3, id_depl) = BurnUpXs(3, id_depl) + w * DeplXs%xsn2n(i)
       BurnUpXs(4, id_depl) = BurnUpXs(4, id_depl) + w * DeplXs%xsn3n(i)
     ENDDO
-    DeplVars%phi1g = DeplVars%phi1g + w * DeplXs%phi1g       
+    DeplVars%phi1g = DeplVars%phi1g + w * DeplXs%phi1g
   ENDIF
 ENDIF
 
@@ -614,7 +619,7 @@ ELSE
   Fxr%DeplXs1g(-1)%idiso=0
   Fxr%DeplXs1g(-1)%xsa=0; Fxr%DeplXs1g(-1)%xsf=0
   Fxr%DeplXs1g(-1)%xsn2n=0; Fxr%DeplXs1g(-1)%xsn3n=0
-  
+
   Fxr%DeplXs1g(-1)%phi1g = Fxr%DeplXs1g(0)%phi1g
   Fxr%DeplXs1g(-1)%niso = Fxr%DeplXs1g(0)%niso
   Fxr%DeplXs1g(-1)%n155 = Fxr%DeplXs1g(0)%n155
@@ -723,7 +728,7 @@ IF(DeplCntl%NowStep ==1 .AND. DeplCntl%lPredict) THEN
   ENDDO
 ENDIF
 
-IF(DeplCntl%lPredict) THEN 
+IF(DeplCntl%lPredict) THEN
   niso = Fxr%niso_depl
   Fxr%DeplPCP%pnum(1, 1, :) = 1.e-40_8
   DO iso = 1, niso
@@ -751,23 +756,23 @@ IF(DeplCntl%NowStep .GT. 1 .AND. DeplCntl%lPredict) THEN
     IF(abs(f) .LT. epsm20) THEN
       Fxr%DeplPCP%f(id) = 1
       CYCLE
-    ENDIF 
+    ENDIF
     f = Fxr%DeplPCP%pnum(1, 0, id) / Fxr%DeplPCP%pnum(2, -1, id)
     IF(abs(f-1._8) .LT. epsm20) THEN
       Fxr%DeplPCP%f(id) = 1
-      CYCLE    
+      CYCLE
     ENDIF
     f1 = log(f)
-    
+
     f = Fxr%DeplPCP%pnum(2, 0, id) / Fxr%DeplPCP%pnum(2, -1, id)
     IF(abs(f-1._8) .LT. epsm20) THEN
       Fxr%DeplPCP%f(id) = 1
-      CYCLE    
+      CYCLE
     ENDIF
     f2 = log(f)
     Fxr%DeplPCP%f(id) = f2 / f1
   ENDDO
-   
+
   DO id = 64152, 64160
     IF(id .EQ. 64153) CYCLE
     IF(id .EQ. 64159) CYCLE
@@ -784,7 +789,7 @@ IF(DeplCntl%NowStep .GT. 1 .AND. DeplCntl%lPredict) THEN
   DO iso = 1, niso
     id = Fxr%idiso(iso)
     IF(id .LT. 64152 .OR. id .GT. 64160) CYCLE
-  
+
     IF(id .EQ. 64153) CYCLE
     IF(id .EQ. 64159) CYCLE
     IF(CorrectPnum(id) .LT. 1.e-30) CYCLE
@@ -794,8 +799,8 @@ IF(DeplCntl%NowStep .GT. 1 .AND. DeplCntl%lPredict) THEN
     ELSEif(f<0.5) THEN
       CorrectPnum(id) =  0.5 * Fxr%pnum(iso)
     ENDIF
-    Fxr%pnum(iso) = CorrectPnum(id)    
-    !Fxr%DeplPCP%pnum(1, 1, id) = CorrectPnum(id)    
+    Fxr%pnum(iso) = CorrectPnum(id)
+    !Fxr%DeplPCP%pnum(1, 1, id) = CorrectPnum(id)
   ENDDO
 ENDIF
 IF(.NOT. DeplCntl%lPredict) THEN
@@ -836,9 +841,9 @@ nTracerCntl%PowerLevel = CoreState%RelPow(ibu)
 ThInfo%PowLv = CoreState%RelPow(ibu)
 
 IF(nTracerCntl%lBoronSearch) THEN
-  WRITE(boronppm, '(x, A)')  'SEARCH'  
+  WRITE(boronppm, '(x, A)')  'SEARCH'
 ELSE
-  WRITE(boronppm, '(F8.2 x, A)') nTracerCntl%BoronPpm, 'ppm'  
+  WRITE(boronppm, '(F8.2 x, A)') nTracerCntl%BoronPpm, 'ppm'
 ENDIF
 
 PowLv = CoreState%RelPow(ibu) * 100
@@ -849,8 +854,8 @@ IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 WRITE(mesg, '(5x, A, F7.2, A2, x, A, F7.2, A2, x, A, A12)') 'Power Level :', nTracerCntl%PowerLevel*100,' %',        &
       'Flow Rate Level :', flowlv , '%', 'Boron:', boronppm
 IF(PE%Master) CALL message(io8, FALSE, TRUE, mesg)
-  
-END SUBROUTINE 
+
+END SUBROUTINE
 
 SUBROUTINE UpdtFluxSolution(ibu, DeplCntl, nTracerCntl, PE)
 USE PARAM
@@ -858,7 +863,7 @@ USE TYPEDEF,         ONLY : PE_Type
 USE DeplType,        ONLY : DeplCntl_Type
 USE CNTL,            ONLY : nTracerCntl_Type
 USE geom,            ONLY : Core
-USE Core_mod,        ONLY : FmInfo,             GroupInfo,            THInfo,           &                
+USE Core_mod,        ONLY : FmInfo,             GroupInfo,            THInfo,           &
                             xkconv,             xkcrit
 USE XeDyn_Mod,       ONLY : UpdtXeDyn,                                                  &
                             InitXe,             UpdtXe,               FinalXe
@@ -943,7 +948,7 @@ IF(imode .EQ. 1) THEN
 
   WRITE(mesg, '(A)') '=== Initial Isotope Summary ==='
   IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
-  DeplCntl%Hm_Mass0_kg = Core%Hm_Mass0   
+  DeplCntl%Hm_Mass0_kg = Core%Hm_Mass0
   IF (.NOT. nTracerCntl%lnTIGRst) THEN                                             ! --- 180827 JSR
     IF(Core%Hm_Mass0 .GT. 0._8) THEN                                               ! --- 180827 JSR
       DeplCntl%Hm_Mass0_ton = Core%Hm_Mass0                                        ! --- 180827 JSR
@@ -951,7 +956,7 @@ IF(imode .EQ. 1) THEN
       DeplCntl%Hm_Mass0_ton = GetCoreHmMass(Core, FmInfo%Fxr, PE)                  ! --- 180827 JSR
     ENDIF                                                                          ! --- 180827 JSR
     DeplCntl%Hm_Mass0_kg = DeplCntl%Hm_Mass0_ton * 1000._8
-  END IF      
+  END IF
   write(mesg,'(a,1pe12.4)') 'Initial HM Loading (kg) = ',DeplCntl%Hm_Mass0_kg
   IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 ELSEIF(imode .EQ. 2)THEN
@@ -1004,5 +1009,5 @@ Core%DelT = DeplCntl%TSec
 
 if(itype .EQ. 1) WRITE(mesg,'(a,f12.2,a, 5x, a, i5, a, i5, a)') 'Burnup = ',DeplCntl%NowBurnUp(1),' EPFD', '(',iBu, ' /',DeplCntl%nBurnUpStep,' )'
 if(itype .EQ. 2) WRITE(mesg,'(a,f12.4,a, 5x, a, i5, a, i5, a)') 'Burnup = ',DeplCntl%NowBurnUp(2),' MWD/kgHM', '(',iBu, ' /',DeplCntl%nBurnUpStep,' )'
-IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)   
+IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 END SUBROUTINE

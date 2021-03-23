@@ -58,6 +58,8 @@ DO WHILE(nTracerCntl%morecase)
         CALL Branch_Driver()
       CASE(lEFTsearch)  ! Effective Fuel Temperature search
         CALL EFT_Driver()
+      ! CASE(lNNFSP)
+      !   CALL NNFSP_Driver()
     END SELECT
     IF (nTracerCntl%lWriteRst) CALL WriteRestartFile(Core, FmInfo, .FALSE., 0, nTracerCntl, PE)
     lfirst = FALSE

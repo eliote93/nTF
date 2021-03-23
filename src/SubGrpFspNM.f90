@@ -1,5 +1,5 @@
 #include <defines.h>
-    
+
 !--- CNJ Edit : Node Majors
 
 MODULE SubGrpFspNM
@@ -23,11 +23,11 @@ USE MPICOMM_MOD,    ONLY : REDUCE,          MPI_SYNC
 #endif
 USE FILES,          ONLY : io8
 USE IOUTIL,         ONLY : message
-USE TIMER,          ONLY : nTracer_dclock,  TimeChk 
+USE TIMER,          ONLY : nTracer_dclock,  TimeChk
 USE OMP_LIB
 USE xslib_mod,      ONLY : mlgdata,         mlgdata0
 IMPLICIT NONE
- 
+
 TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 TYPE(THInfo_Type) :: THInfo
@@ -54,26 +54,26 @@ IF (any(Core%RadBC(1 : 4) .EQ. VoidCell)) itermax = 1
 
 CALL omp_set_num_threads(PE%nThread)
 
-WRITE(mesg,'(11x, a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "กษ"
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)  
+WRITE(mesg,'(11x, a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
+IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 WRITE(mesg,'(a)') 'Solving Subgroup FSP...'
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg) 
+IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
 itersum = 0; errmax = 0.0
 
 DO iz = myzb, myze
 
-  IF (.NOT. Core%lFuelPlane(iz)) CYCLE  
-  
+  IF (.NOT. Core%lFuelPlane(iz)) CYCLE
+
   gb = GroupInfo%nofg + 1; ge = GroupInfo%nofg + GroupInfo%norg
   ng = mlgdata(iz)%f_nmaclv * GroupInfo%norg
-  
+
   ALLOCATE(phis(ng, nFsr)); ALLOCATE(phisd(ng, nFsr)); ALLOCATE(PhiAngIn(nPolarAngle, ng, nPhiAngSv))
   ALLOCATE(Siglp(ng, nFxr)); ALLOCATE(xst(ng, nFsr)); ALLOCATE(src(ng, nFsr))
   phis = 1.0; PhiAngIn = 1.0; PhiAngIn(:, :, 1) = 0.0
-  
-  CALL UpdtFnAdj_NM(Core, Fxr, iz, gb, ge)         
-  CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge) 
+
+  CALL UpdtFnAdj_NM(Core, Fxr, iz, gb, ge)
+  CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
   CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, ng)
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, ng)
@@ -86,11 +86,11 @@ DO iz = myzb, myze
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, ng)
     IF (errmax .LT. epsm3) EXIT
     IF (iter .EQ. itermax) EXIT
-    CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge) 
-    CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, ng)        
+    CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
+    CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, ng)
   ENDDO
   itersum = itersum + iter
-  
+
   DEALLOCATE(phis, phisd, PhiAngIn)
   DEALLOCATE(Siglp, xst, src)
 
@@ -102,7 +102,7 @@ CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 #endif
 
 WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Fuel) ', iter, errmax
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg) 
+IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
 itersum = 0; errmax = 0.0
 
@@ -110,15 +110,15 @@ DO iz = myzb, myze
 
   IF (.NOT. Core%lFuelPlane(iz)) CYCLE
   IF (.NOT. Core%lCladPlane(iz)) CYCLE
-  
+
   lCLD = .TRUE.; lAIC = .FALSE.
   ng = mlgdata0%c_nmaclv1G
-  
+
   ALLOCATE(phis(ng, nFsr)); ALLOCATE(phisd(ng, nFsr)); ALLOCATE(PhiAngIn(nPolarAngle, ng, nPhiAngSv))
   ALLOCATE(Siglp(ng, nFxr)); ALLOCATE(xst(ng, nFsr)); ALLOCATE(src(ng, nFsr))
   phis = 1.0; PhiAngIn = 1.0; PhiAngIn(:, :, 1) = 0.0
-  
-  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC) 
+
+  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
   CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, ng)
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, ng)
@@ -132,7 +132,7 @@ DO iz = myzb, myze
   ENDDO
   itersum = itersum + iter
   CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, ng, lCLD, lAIC)
-  
+
   DEALLOCATE(phis, phisd, PhiAngIn)
   DEALLOCATE(Siglp, xst, src)
 
@@ -142,25 +142,25 @@ ENDDO
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 #endif
-  
+
 WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Clad) ', iter, errmax
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg) 
-  
+IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+
 itersum = 0; errmax = 0.0
 
 DO iz = myzb, myze
 
-  IF (.NOT. Core%lFuelPlane(iz)) CYCLE  
+  IF (.NOT. Core%lFuelPlane(iz)) CYCLE
   IF (.NOT. Core%lAICPlane(iz)) CYCLE
-  
+
   lCLD = .FALSE.; lAIC = .TRUE.
   ng = mlgdata(iz)%f_nmaclv1G
-  
+
   ALLOCATE(phis(ng, nFsr)); ALLOCATE(phisd(ng, nFsr)); ALLOCATE(PhiAngIn(nPolarAngle, ng, nPhiAngSv))
   ALLOCATE(Siglp(ng, nFxr)); ALLOCATE(xst(ng, nFsr)); ALLOCATE(src(ng, nFsr))
   phis = 1.0; PhiAngIn = 1.0; PhiAngIn(:, :, 1) = 0.0
-  
-  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC) 
+
+  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
   CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, ng)
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, ng)
@@ -177,17 +177,17 @@ DO iz = myzb, myze
 
   DEALLOCATE(phis, phisd, PhiAngIn)
   DEALLOCATE(Siglp, xst, src)
-    
+
 ENDDO
-  
+
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 #endif
-    
+
 WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (AIC)  ', iter, errmax
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg) 
-    
+IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+
 nTracerCntl%lSubGrpSweep = TRUE
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
@@ -297,8 +297,8 @@ DEALLOCATE(TrackingDat(tid)%phisnm)
 !$OMP END PARALLEL
 
 END SUBROUTINE
-                          
-SUBROUTINE SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge) 
+
+SUBROUTINE SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
 USE TYPEDEF,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Pin_Type,           Cell_Type
 USE xslib_mod,      ONLY : libdata,         ldiso,              mapnucl,            mlgdata
 IMPLICIT NONE
@@ -354,12 +354,12 @@ DO j = 1, nLocalFxr
       LocalSigtr = 0.0
       DO iso = 1, niso
         id = mapnucl(idiso(iso)); isodata => ldiso(id)
-        IF (isodata%sigp .EQ. 0.0) THEN 
+        IF (isodata%sigp .EQ. 0.0) THEN
           LocalSigtr = LocalSigtr + pnum(iso) * isodata%lamsigp(ig)
         ELSE
           LocalSigtr = LocalSigtr + pnum(iso) * isodata%sigp
         ENDIF
-      ENDDO  
+      ENDDO
       Siglp(idx, ifxr) = LocalSigtr
       IF (Fxr(ifxr, iz)%lres) THEN
         IF ((.NOT. Fxr(ifxr, iz)%lCLD) .AND. (.NOT. Fxr(ifxr, iz)%lAIC)) THEN
@@ -374,16 +374,16 @@ DO j = 1, nLocalFxr
     ENDDO
   ENDDO
 ENDDO
-  
-END SUBROUTINE
 
 END SUBROUTINE
 
-SUBROUTINE SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC) 
+END SUBROUTINE
+
+SUBROUTINE SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
 USE TYPEDEF,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Pin_Type,           Cell_Type
 USE xslib_mod,      ONLY : libdata,         ldiso,              mapnucl,            mlgdata,                        &
                            mlgdata0
-IMPLICIT NONE      
+IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
@@ -405,7 +405,7 @@ IF (lAIC) nlv = mlgdata(iz)%f_nmaclv1G
 !$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   CALL SetPlnLsigP_1gMLG_NM_Pin(ixy)
-ENDDO  
+ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -436,7 +436,7 @@ DO j = 1, nLocalFxr
     DO iso = 1, niso
       id = mapnucl(idiso(iso)); isodata => ldiso(id)
       LocalSiglp = LocalSiglp + pnum(iso) * isodata%sigp
-    ENDDO  
+    ENDDO
     LocalSigtr = LocalSiglp
     IF (lCLD) THEN
       IF (Fxr(ifxr, iz)%lres .AND. Fxr(ifxr, iz)%lCLD) LocalSigtr = LocalSigtr + mlgdata0%c_maclv1G(ilv)
@@ -451,7 +451,7 @@ DO j = 1, nLocalFxr
     ENDDO
   ENDDO
 ENDDO
-  
+
 END SUBROUTINE
 
 END SUBROUTINE
@@ -505,7 +505,7 @@ DO j = 1, nLocalFxr
     ENDDO
   ENDDO
 ENDDO
-  
+
 END SUBROUTINE
 
 END SUBROUTINE
@@ -536,7 +536,7 @@ nlv = mlgdata(iz)%f_nmaclv
 !$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   CALL EquipXSGen_MLG_NM_Pin(ixy)
-ENDDO 
+ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -580,11 +580,11 @@ DO ig = gb, ge
       avgvolsum = avgvolsum + volsum
       phisum = phisum / volsum
       IF (abs(phisum - 1.0) .LT. 1.0E-10) THEN
-        xseq = 1.0E+10    
+        xseq = 1.0E+10
       ELSE
         xseq = - maclp + maclv * phisum / (1.0 - phisum)
-      ENDIF 
-      xseq = - maclp + maclv * phisum / (1.0 - phisum)
+      ENDIF
+!      xseq = - maclp + maclv * phisum / (1.0 - phisum)
       myFxr%xseq_f_mg(ilv, ig) = xseq
     ENDDO
     IF (maclpavg .EQ. 0.0) CYCLE
@@ -596,11 +596,11 @@ DO ig = gb, ge
     ELSE
       xseq = - maclpavg + maclvavg * avgphisum / (1.0 - avgphisum)
     ENDIF
-    xseq = - maclpavg + maclvavg * avgphisum / (1.0 - avgphisum)
-    ResVarPin(ixy, iz)%avgxseq_mg(ilv, ig) = xseq  
+!    xseq = - maclpavg + maclvavg * avgphisum / (1.0 - avgphisum)
+    ResVarPin(ixy, iz)%avgxseq_mg(ilv, ig) = xseq
   ENDDO
 ENDDO
-  
+
 END SUBROUTINE
 
 END SUBROUTINE
@@ -657,7 +657,7 @@ REAL :: vol, volsum, phisum, xseq, maclp, maclv
 
 icel = Pin(ixy)%Cell(iz)
 IF (.NOT. CellInfo(icel)%lres) RETURN
-    
+
 FsrIdxSt = Pin(ixy)%FsrIdxSt
 FxrIdxSt = Pin(ixy)%FxrIdxSt
 nLocalFxr = CellInfo(icel)%nFxr
@@ -669,7 +669,7 @@ DO j = 1, nLocalFxr
     ifsr = myFxr%FsrIdxSt
     maclp = Siglp(ilv, ifxr)
     maclv = xst(ilv, ifsr) - maclp
-    IF (maclv .EQ. 0.0) CYCLE    
+    IF (maclv .EQ. 0.0) CYCLE
     phisum = 0.0; volsum = 0.0
     DO i = 1, nFsrInFxr
       l = Cellinfo(icel)%MapFxr2FsrIdx(i, j); vol = CellInfo(icel)%vol(l)
@@ -678,14 +678,14 @@ DO j = 1, nLocalFxr
     ENDDO
     phisum = phisum / volsum
     IF (abs(phisum - 1.0) .LT. 1.0E-10) THEN
-      xseq = 1.0E+10    
+      xseq = 1.0E+10
     ELSE
       xseq = - maclp + maclv * phisum / (1.0 - phisum)
     ENDIF
-    myFxr%xseq_c_1g(ilv) = xseq    
+    myFxr%xseq_c_1g(ilv) = xseq
   ENDDO
 ENDDO
-    
+
 END SUBROUTINE
 
 SUBROUTINE EquipXSGen_1gMLG_NM_Pin_AIC(ixy)
@@ -698,7 +698,7 @@ REAL :: vol, volsum, phisum, xseq, maclp, maclv, avgphisum, avgvolsum, maclpavg,
 icel = Pin(ixy)%Cell(iz)
 IF (.NOT. CellInfo(icel)%lres) RETURN
 IF (.NOT. CellInfo(icel)%lAIC) RETURN
-    
+
 FsrIdxSt = Pin(ixy)%FsrIdxSt
 FxrIdxSt = Pin(ixy)%FxrIdxSt
 nLocalFxr = CellInfo(icel)%nFxr
@@ -711,7 +711,7 @@ DO ilv = 1, nlv
     ifsr = myFxr%FsrIdxSt
     maclp = Siglp(ilv, ifxr)
     maclv = xst(ilv, ifsr) - maclp
-    IF (maclv .EQ. 0.0) CYCLE    
+    IF (maclv .EQ. 0.0) CYCLE
     phisum = 0.0; volsum = 0.0
     DO i = 1, nFsrInFxr
       l = Cellinfo(icel)%MapFxr2FsrIdx(i, j); vol = CellInfo(icel)%vol(l)
@@ -724,7 +724,7 @@ DO ilv = 1, nlv
     avgvolsum = avgvolsum + volsum
     phisum = phisum / volsum
     IF (abs(phisum - 1.0) .LT. 1.0E-10) THEN
-      xseq = 1.0E+10    
+      xseq = 1.0E+10
     ELSE
       xseq = - maclp + maclv * phisum / (1.0 - phisum)
     ENDIF
@@ -741,12 +741,12 @@ DO ilv = 1, nlv
   ENDIF
   ResVarPin(ixy, iz)%avgxseq_1g(ilv) = xseq
 ENDDO
-    
-END SUBROUTINE 
 
 END SUBROUTINE
 
-SUBROUTINE UpdtFnAdj_NM(Core, Fxr, iz, gb, ge) 
+END SUBROUTINE
+
+SUBROUTINE UpdtFnAdj_NM(Core, Fxr, iz, gb, ge)
 USE TYPEDEF,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Cell_Type,          ResVarPin_Type,                 &
                            Pin_Type
 USE xslib_mod,      ONLY : libdata,         ldiso,              mapnucl
@@ -785,7 +785,7 @@ CONTAINS
 
 SUBROUTINE UpdtFnAdj_NM_Group(ig)
 
-TYPE(FxrInfo_Type), POINTER :: myFxr  
+TYPE(FxrInfo_Type), POINTER :: myFxr
 TYPE(libdata), POINTER :: isodata
 INTEGER :: FxrIdxSt, nLocalFxr
 INTEGER :: i, j, jd, ig, ipin, icel, ifxr, iso
@@ -798,7 +798,7 @@ Nsum = 0.0; areasum = 0.0
 
 DO ipin = 1, nxy
   FxrIdxSt = Pin(ipin)%FxrIdxSt
-  icel = Pin(ipin)%Cell(iz); nLocalFxr = CellInfo(icel)%nFxr    
+  icel = Pin(ipin)%Cell(iz); nLocalFxr = CellInfo(icel)%nFxr
   IF (.NOT. ResVarPin(ipin, iz)%lres) CYCLE
   IF (.NOT. CellInfo(icel)%lres) CYCLE
   IF (CellInfo(icel)%lAIC) CYCLE
@@ -806,7 +806,7 @@ DO ipin = 1, nxy
   Npin = 0.0; pinareasum = 0.0
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j - 1
-    myFxr => Fxr(ifxr, iz)  
+    myFxr => Fxr(ifxr, iz)
     IF (.NOT. myFxr%lres) CYCLE
     IF (myFxr%lCLD) CYCLE
     niso = myFxr%niso; idiso => myFxr%idiso; pnum => myFxr%pnum
@@ -816,10 +816,10 @@ DO ipin = 1, nxy
       IF (.NOT. isodata%lreso) CYCLE
       npot = isodata%nsig0; nRiTemp = isodata%nrtemp
       ria = LineIntpol(TempAvgsq, nRiTemp, isodata%rtempsq(1 : nRiTemp), isodata%ri_a(npot, ig, 1 : nRiTemp))
-      N = N + pnum(iso) * ria       
+      N = N + pnum(iso) * ria
     ENDDO
     myFxr%FnAdj(ig) = N
-    Npin = Npin + N * myFxr%area   
+    Npin = Npin + N * myFxr%area
     pinareasum = pinareasum + myFxr%area
   ENDDO
   IF (pinareasum .GT. 0.0) NresPinAvg(ipin, ig) = Npin / pinareasum
@@ -838,9 +838,9 @@ DO ipin = 1, nxy
   ResVarPin(ipin, iz)%FnAdj(ig) = NresPinAvg(ipin, ig) / Nsum
   DO j = 1, nLocalFxr
     ifxr = FxrIdxSt + j - 1
-    myFxr => Fxr(ifxr, iz)  
+    myFxr => Fxr(ifxr, iz)
     IF (.NOT. myFxr%lres) CYCLE
-    IF (myFxr%lCLD) CYCLE     
+    IF (myFxr%lCLD) CYCLE
     myFxr%FnAdj(ig) = myFxr%FnAdj(ig) / Nsum
   ENDDO
 ENDDO
@@ -849,7 +849,7 @@ END SUBROUTINE
 
 END SUBROUTINE
 
-SUBROUTINE UpdtFtAdj_NM(Core, Fxr, iz, gb, ge) 
+SUBROUTINE UpdtFtAdj_NM(Core, Fxr, iz, gb, ge)
 USE Typedef,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Cell_Type,          Pin_Type
 USE xslib_mod,      ONLY : libdata,         ldiso,              mapnucl,            mapnuclres,                     &
                            mlgdata
@@ -879,15 +879,15 @@ ENDDO
 !$OMP END PARALLEL
 
 CONTAINS
-    
+
 SUBROUTINE UpdtFtAdj_NM_Pin(ixy)
 
-TYPE(FxrInfo_Type), POINTER :: myFxr  
+TYPE(FxrInfo_Type), POINTER :: myFxr
 TYPE(libdata), POINTER :: isodata, jsodata
 
 INTEGER :: FxrIdxSt, nLocalFxr
 INTEGER :: i, j, ig, ilv, ifxr, icel, ixy, idres, jdres, id, jd, iso, jso
-INTEGER :: niso, npot, nRiTemp
+INTEGER :: niso, npot, nRiTemp, n1, n2, n3, n4, lb, ub
 INTEGER, POINTER :: idiso(:)
 REAL :: ind, siglp, TempAvgsq, Tempsq, micsigb, micsig0, sigbsq, xdat(20), ydat(20), Nreg, Navg, I_avg, I_reg
 REAL, POINTER :: pnum(:)
@@ -895,15 +895,15 @@ REAL, POINTER :: pnum(:)
 icel = Pin(ixy)%Cell(iz)
 IF (.NOT. CellInfo(icel)%lres) RETURN
 IF (CellInfo(icel)%lAIC) RETURN
-  
+
 FxrIdxSt = Pin(ixy)%FxrIdxSt
-nLocalFxr = CellInfo(icel)%nFxr    
+nLocalFxr = CellInfo(icel)%nFxr
 TempAvgsq = dsqrt(GetPinFuelTemp(Core, Fxr, iz, ixy))
 DO j = 1, nLocalFxr
   ifxr = FxrIdxSt + j - 1
-  myFxr => Fxr(ifxr, iz)  
+  myFxr => Fxr(ifxr, iz)
   niso = myFxr%niso; idiso => myFxr%idiso; pnum => myFxr%pnum
-  Tempsq = dsqrt(myFxr%temp)  
+  Tempsq = dsqrt(myFxr%temp)
   IF (.NOT. myFxr%lres) CYCLE
   IF (myFxr%lCLD) CYCLE
   DO ig = gb, ge
@@ -931,20 +931,40 @@ DO j = 1, nLocalFxr
         sigbsq = dsqrt(micsig0)
         npot = isodata%nsig0
         nRiTemp = isodata%nrtemp
+        n1 = 1; n3 = 1;
         DO i = 1, nRiTemp
-          xdat(i) = isodata%rtempsq(i)
-          ydat(i) = LineIntPol2(sigbsq, npot, isodata%sig0sq(1 : npot), isodata%ri_a(1 : npot, ig, i))
+          n2 = i;
+          IF (isodata%rtempsq(i)>tempsq) EXIT
+          n1 = i
+          !xdat(i) = isodata%rtempsq(i)
+          !ydat(i) = LineIntPol2(sigbsq, npot, isodata%sig0sq(1 : npot), isodata%ri_a(1 : npot, ig, i))
         ENDDO
-        I_reg = LineIntpol(tempsq, nRiTemp, xdat(1 : nRiTemp), ydat(1 : nRiTemp))
+        DO i = 1, nRiTemp
+          n4 = i;
+          IF (isodata%rtempsq(i)>TempAvgsq) EXIT
+          n3 = i
+        ENDDO
+        lb = min(n1,n3); ub = max(n2,n4)
+        DO i = n1,n2
+          xdat(i) = isodata%rtempsq(i)
+          ydat(i) = LineIntPol2(sigbsq, npot, isodata%sig0sq(1:npot),isodata%ri_a(1:npot,ig,i))
+        END DO
+        IF (n1.EQ.n3) lb = n4
+        IF (n2.EQ.n4) ub = n3
+        DO i = lb, ub
+          xdat(i) = isodata%rtempsq(i)
+          ydat(i) = LineIntPol2(sigbsq, npot, isodata%sig0sq(1:npot),isodata%ri_a(1:npot,ig,i))
+        END DO
+        I_reg = LineIntpol(tempsq, (n2-n1)+1, xdat(n1:n2), ydat(n1:n2))
         Nreg = Nreg + pnum(iso) * I_reg
-        I_avg = LineIntpol(TempAvgsq, nRiTemp, xdat(1 : nRiTemp), ydat(1 : nRiTemp))
+        I_avg = LineIntpol(TempAvgsq, (n4-n3)+1, xdat(n3:n4), ydat(n3:n4))
         Navg = Navg + pnum(iso) * I_avg
       ENDDO
       myFxr%FtAdj(ilv, ig) = Nreg / Navg
     ENDDO
   ENDDO
 ENDDO
-  
+
 END SUBROUTINE
 
 END SUBROUTINE
@@ -994,5 +1014,5 @@ ENDDO
 !$OMP END PARALLEL DO
 
 END FUNCTION
-    
+
 END MODULE

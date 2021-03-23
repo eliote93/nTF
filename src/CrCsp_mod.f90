@@ -5,7 +5,6 @@ USE TYPEDEF,           ONLY : CoreInfo_Type,           FxrInfo_Type,           P
 USE CNTL,              ONLY : nTracerCntl_Type
 IMPLICIT NONE
 TYPE CrCspDat_Type
-  SEQUENCE
   LOGICAL :: lUse = .FALSE.
   CHARACTER(256) :: fn
   INTEGER :: nzdat, ncrdat, icrbeg, icrend, ng
@@ -17,7 +16,6 @@ TYPE CrCspDat_Type
 ENDTYPE
 
 TYPE IntSpec_Type
-  SEQUENCE
   INTEGER :: nFxr
   REAL, POINTER :: PhiDist(:, :, :)
 END TYPE
@@ -600,32 +598,42 @@ DO j = 1, 2
   DO i = 1, niso
     !id = myFxr%idiso(i)/1000
     id = idiso(i)
-    IF(id .EQ. 5000) THEN
-      pnum(i) = rho * boronppm * epsm6 * avogadro / awboron
+    SELECT CASE(id)
+    CASE(5010)
+      aw = AtomicWeight(5010)
+      pnum(i) = rho * boronppm * epsm6 * avogadro / aw * b10frac
+      lBoronIstope = TRUE    
+    CASE(5011)
+      aw = AtomicWeight(5011)
+      pnum(i) = rho * boronppm * epsm6 * avogadro / aw * (1._8-b10frac)
       lBoronIstope = TRUE
-#define natb
-#ifndef natb        
-    ELSEIF(id .EQ. 5010) THEN
-      pnum(i) = rho * boronppm * epsm6 * avogadro / awboron * b10frac
-      lBoronIstope = TRUE      
-    ELSEIF(id .EQ. 5011) THEN
-      pnum(i) = rho * boronppm * epsm6 * avogadro / awboron * (1._8-b10frac)
-       lBoronIstope = TRUE      
-#endif
-    ENDIF
+    END SELECT
+!    IF(id .EQ. 5000) THEN
+!      pnum(i) = rho * boronppm * epsm6 * avogadro / awboron
+!      lBoronIstope = TRUE
+!#define natb
+!#ifndef natb        
+!    ELSEIF(id .EQ. 5010) THEN
+!      pnum(i) = rho * boronppm * epsm6 * avogadro / awboron * b10frac
+!      lBoronIstope = TRUE      
+!    ELSEIF(id .EQ. 5011) THEN
+!      pnum(i) = rho * boronppm * epsm6 * avogadro / awboron * (1._8-b10frac)
+!       lBoronIstope = TRUE      
+!#endif
+!    ENDIF
   ENDDO
   lBoronAdd(j) = .NOT. lBoronIstope
   IF(.NOT. lBoronIstope) THEN
-#ifdef natb
-    niso = niso + 1; i = niso
-    idiso(i) = 5000
-    pnum(i) = rho * boronppm * epsm6 * avogadro / awboron
-    DO k = 1, myFxr%niso
-      IF(myFxr%idiso(k) .NE. 5000) CYCLE
-      myFxr%CspFxr%isomap(i, j) = k
-      EXIT
-    ENDDO
-#else
+!#ifdef natb
+!    niso = niso + 1; i = niso
+!    idiso(i) = 5000
+!    pnum(i) = rho * boronppm * epsm6 * avogadro / awboron
+!    DO k = 1, myFxr%niso
+!      IF(myFxr%idiso(k) .NE. 5000) CYCLE
+!      myFxr%CspFxr%isomap(i, j) = k
+!      EXIT
+!    ENDDO
+!#else
     niso = niso + 2; i = niso-1
     idiso(i) = 5010;  aw = AtomicWeight(idiso(i))
     pnum(i) = rho * boronppm * epsm6 * avogadro / awboron * b10frac
@@ -642,7 +650,7 @@ DO j = 1, 2
       myFxr%CspFxr%isomap(i, j) = k
       EXIT
     ENDDO
-#endif
+!#endif
     myFxr%CspFxr%niso(j) = niso
   ENDIF
 ENDDO

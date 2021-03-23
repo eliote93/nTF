@@ -2,7 +2,7 @@
 SUBROUTINE OutputEdit
 USE PARAM
 USE TYPEDEF,           ONLY : CoreInfo_Type,    PowerDist_Type,       DancoffDist_Type
-USE GEOM,              ONLY : Core,             ng
+USE GEOM,              ONLY : Core,             ng,                   ngg
 USE Core_mod,          ONLY : FmInfo,           CmInfo,                     eigv,        &
                               ThInfo,           GroupInfo
 USE TH_mod,            ONLY : THVar
@@ -12,11 +12,13 @@ USE PE_mod,            ONLY : PE
 USE ioutil,            ONLY : message,          PrintReal1DarrayTo2Darray
 USE VTK_Mod,           ONLY : ProcessVTK
 USE BinOutp_Mod,       ONLY : BinaryOutput
+USE GamCMFD_MOD,       ONLY : GammaCMFD
 #ifdef MPI_ENV
 USE MpiComm_mod, ONLY : BCAST, MPI_SYNC
 #endif
 IMPLICIT NONE
-TYPE(PowerDist_Type) :: PowerDist
+TYPE(PowerDist_Type) :: PowerDist ! Neutron Fission Energy Release (not actual Power)
+TYPE(PowerDist_Type) :: PhotonPower, NeutronPower, TotalExpPower ! Power form photoatomic and neutron KERMA
 TYPE(DancoffDist_Type) :: DancoffDist
 INTEGER :: io
 LOGICAL :: Master
@@ -48,26 +50,133 @@ IF(Master) THEN
   WRITE(io, *)
 ENDIF
 !
+
+
 CALL CorePowerCal(Core, CmInfo, PowerDIst, ng, nTracerCntl, PE)
 IF (nTracerCntl%lED .AND. nTracerCntl%lrestrmt) CALL TreatDancoffData(Core,DancoffDist, PE)
 #ifdef MPI_ENV
 CALL BCAST(PowerDist%Fm3DNormalizer, PE%MPI_CMFD_COMM)
 CALL BCAST(PowerDist%Pin3DNormalizer, PE%MPI_CMFD_COMM)
 #endif
+IF (nTracerCntl%lExplicitKappa) CALL CalExplicitPower(Core, GammaCMFD, FMinfo, PhotonPower, NeutronPower, TotalExpPower, ng, ngg, nTRACERCntl, PE)
 !
-IF(Master) THEN
-  CALL PrintRadialPower(io, Core, PowerDist)
-!
-  CALL PrintLocalPinPower(io, Core, PowerDist)
-!
-  CALL Asy3DPower(io, Core, PowerDist)
-!
-  CALL AxialAvgAsy2DPower(io, Core, PowerDist)
+IF(Master) THEN ! Power
+  WRITE(io, '(a)') '-------------------------Power Distribution------------------------------'
+  SELECT CASE  (nTRACERCntl%pout_mode)
+    CASE(0)
+    IF (nTRACERCntl%pmode .EQ. 0) THEN
+      WRITE(io, '(a)') '--- Fission Power'
+      CALL PrintRadialPower(io, Core, PowerDist)
+    !
+      CALL PrintLocalPinPower(io, Core, PowerDist)
+    !
+      CALL Asy3DPower(io, Core, PowerDist)
+    !
+      CALL AxialAvgAsy2DPower(io, Core, PowerDist)
 
-  CALL Axial1DPower(io, Core, PowerDist)
+      CALL Axial1DPower(io, Core, PowerDist)
+    ELSE
+      WRITE(io, '(a)') '--- Explicit Power'
+      CALL PrintRadialPower(io, Core, TotalExpPower)
+    !
+      CALL PrintLocalPinPower(io, Core, TotalExpPower)
+    !
+      CALL Asy3DPower(io, Core, TotalExpPower)
+    !
+      CALL AxialAvgAsy2DPower(io, Core, TotalExpPower)
+
+      CALL Axial1DPower(io, Core, TotalExpPower)
+    END IF
+  CASE(1)
+    IF (nTRACERCntl%pmode .EQ. 0) THEN
+      WRITE(io, '(a)') '--- Fission Power'
+      CALL PrintRadialPower(io, Core, PowerDist)
+    !
+      CALL PrintLocalPinPower(io, Core, PowerDist)
+    !
+      CALL Asy3DPower(io, Core, PowerDist)
+    !
+      CALL AxialAvgAsy2DPower(io, Core, PowerDist)
+
+      CALL Axial1DPower(io, Core, PowerDist)
+    ELSE
+      WRITE(io, '(a, ES14.6)') '--- Neutron Power', NeutronPower%pwsum
+      CALL PrintRadialPower(io, Core, NeutronPower)
+    !
+      CALL PrintLocalPinPower(io, Core, NeutronPower)
+    !
+      CALL Asy3DPower(io, Core, NeutronPower)
+    !
+      CALL AxialAvgAsy2DPower(io, Core, NeutronPower)
+
+      CALL Axial1DPower(io, Core, NeutronPower)
+      WRITE(io, '(a, ES14.6)') '--- Photon Power' , PhotonPower%pwsum
+      CALL PrintRadialPower(io, Core, PhotonPower)
+    !
+      CALL PrintLocalPinPower(io, Core, PhotonPower)
+    !
+      CALL Asy3DPower(io, Core, PhotonPower)
+    !
+      CALL AxialAvgAsy2DPower(io, Core, PhotonPower)
+
+      CALL Axial1DPower(io, Core, PhotonPower)
+      WRITE(io, '(a, ES14.6)') '--- Explicit Power', TotalExpPower%pwsum
+      CALL PrintRadialPower(io, Core, TotalExpPower)
+    !
+      CALL PrintLocalPinPower(io, Core, TotalExpPower)
+    !
+      CALL Asy3DPower(io, Core, TotalExpPower)
+    !
+      CALL AxialAvgAsy2DPower(io, Core, TotalExpPower)
+
+      CALL Axial1DPower(io, Core, TotalExpPower)
+    END IF
+  CASE(2)
+    WRITE(io, '(a, ES14.6)') '--- Fission Power', PowerDist%pwsum
+    CALL PrintRadialPower(io, Core, PowerDist)
+  !
+    CALL PrintLocalPinPower(io, Core, PowerDist)
+  !
+    CALL Asy3DPower(io, Core, PowerDist)
+  !
+    CALL AxialAvgAsy2DPower(io, Core, PowerDist)
+
+    CALL Axial1DPower(io, Core, PowerDist)
+
+    WRITE(io, '(a, ES14.6)') '--- Neutron Power', NeutronPower%pwsum
+    CALL PrintRadialPower(io, Core, NeutronPower)
+  !
+    CALL PrintLocalPinPower(io, Core, NeutronPower)
+  !
+    CALL Asy3DPower(io, Core, NeutronPower)
+  !
+    CALL AxialAvgAsy2DPower(io, Core, NeutronPower)
+
+    CALL Axial1DPower(io, Core, NeutronPower)
+    WRITE(io, '(a, ES14.6)') '--- Photon Power' , PhotonPower%pwsum
+    CALL PrintRadialPower(io, Core, PhotonPower)
+  !
+    CALL PrintLocalPinPower(io, Core, PhotonPower)
+  !
+    CALL Asy3DPower(io, Core, PhotonPower)
+  !
+    CALL AxialAvgAsy2DPower(io, Core, PhotonPower)
+
+    CALL Axial1DPower(io, Core, PhotonPower)
+    WRITE(io, '(a, ES14.6)') '--- Explicit Power', TotalExpPower%pwsum
+    CALL PrintRadialPower(io, Core, TotalExpPower)
+  !
+    CALL PrintLocalPinPower(io, Core, TotalExpPower)
+  !
+    CALL Asy3DPower(io, Core, TotalExpPower)
+  !
+    CALL AxialAvgAsy2DPower(io, Core, TotalExpPower)
+
+    CALL Axial1DPower(io, Core, TotalExpPower)
+  END SELECT
   IF (nTracerCntl%lED) CALL PrintDancoffFactor(io, Core, DancoffDist)
 ENDIF
-
+! Neutron Flux...
 CALL AxAvg2DFlux(io, core, CmInfo, PowerDist, ng, PE)
 
 CALL Asy3DFlux(io, core, CmInfo, PowerDist, ng, PE)
@@ -77,6 +186,14 @@ CALL RadAvg1DFlux(io, core, CmInfo, PowerDist, ng, PE)
 CALL CoreSpectrum(io, core, CmInfo, PowerDist, ng, PE)
 
 CALL Pin3DFlux(io, core, CmInfo, PowerDist, ng, nTracerCntl, PE)
+IF(nTRACERCNTL%lGamma) THEN
+  CALL AxAvg2DGammaFlux(io, core, GammaCMFD, ngg, PE)
+  CALL Asy3DGammaFlux(io, core, GammaCMFD, ngg, PE)
+  CALL RadAvg1DGammaFlux(io, core, GammaCMFD, ngg, PE)
+  CALL CoreGammaSpectrum(io, core, GammaCMFD, ngg, PE)
+  CALL Pin3DGammaFlux(io, core, GammaCMFD, ngg, nTracerCntl, PE)
+END IF
+!IF(nTRACERCNTL%lGamma) CALL PrintGammaFlux(io, Core, GammaCMFD, PowerDist, ngg, nTracerCntl, PE)
 
 CALL PrintDepletion(io, Core, FmInfo, CmInfo, nTracerCntl, PE)
 
@@ -108,8 +225,17 @@ IF(nTracerCntl%OutpCntl%nRegMGXsOut .GT. 0) CALL ProcessEffMGXs(Core, FmInfo, Cm
 IF(nTracerCntl%OutpCntl%nRegMAT0Out .GT. 0) CALL ProcessEffMAT0(Core, FmInfo, GroupInfo, nTracerCntl, PE)
 IF(nTracerCntl%OutpCntl%nRegPhimOut .GT. 0) CALL ProcessPhims(Core, FmInfo, GroupInfo, nTracerCntl, PE)
 IF(nTracerCntl%OutpCntl%lSSPHout) CALL ProcessSSPHfactor(Core,nTracerCntl)
+IF(nTRACERCntl%OutpCntl%nRegPhXsOut .GT. 0) CALL ProcessGEffXs(Core, FMINFO, THINFO, GROUPINFO, nTRACERCNTL, PE)
+IF(nTRACERCntl%OutpCntl%nRegKERMAout .GT. 0) CALL ProcessKERMA(Core, FMINFO, THINFO, GROUPINFO, nTRACERCNTL, PE)
 
 CALL FreePowerDist(PowerDist, PE)
+
+IF (nTracerCntl%lExplicitKappa) THEN
+  CALL FreePowerDist(PhotonPower, PE)
+  CALL FreePowerDist(NeutronPower, PE)
+  CALL FreePowerDist(TotalExpPower, PE)
+END IF
+
 END SUBROUTINE
 
 SUBROUTINE PrintRadialPower(io, Core, PowerDist)
@@ -762,12 +888,12 @@ DO j = 1, nstep
 #endif
   IF(.NOT. PE%MASTER) CYCLE
   WRITE(io, '(7x, A)') 'Pin Index ->'
-  WRITE(io, '(4x, A5, 2x, A5, 2x, 100(I10,2x))') 'GROUP', 'PLANE', (i, i = ibeg, iend)
+  WRITE(io, '(4x, A5, 2x, A5, 2x, 300(I10,2x))') 'GROUP', 'PLANE', (i, i = ibeg, iend)
   DO ig = 1, ng
     WRITE(GrpIdx, '(I5)') ig
     DO iz = 1, nz
       IF(iz .NE. 1) GrpIdx=''
-      WRITE(io, '(4x, A5, 2x, I5, 2x, 100(e10.3,2x))') GrpIdx, iz, (OutDat(ig, iz, k), k = 1, nout)
+      WRITE(io, '(4x, A5, 2x, I5, 2x, 300(es10.3,2x))') GrpIdx, iz, (OutDat(ig, iz, k), k = 1, nout)
     ENDDO
   ENDDO
   WRITE(io, *)
@@ -942,12 +1068,6 @@ IF(lCent) THEN
   CALL FillCentDat(Dat1(1:nxy), nxy0, nx0, ny0 , nxy, nx, ny)
 ENDIF
 END SUBROUTINE
-
-
-
-
-
-
 
 SUBROUTINE PrintFXRXs_CEA(Core, THInfo, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 USE param,   only : CKELVIN, PI
@@ -1320,9 +1440,7 @@ ENDDO !Z-axial plane
 
 END SUBROUTINE
 
-
-
-    subroutine StripSpaces(string)
+subroutine StripSpaces(string)
     character(len=*) :: string
 
     integer :: stringLen
@@ -1345,10 +1463,6 @@ END SUBROUTINE
     end do
 
     end subroutine
-
-
-
-
 
 SUBROUTINE PrintFXRXs(Core, THInfo, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 USE param,   only : CKELVIN
@@ -1767,8 +1881,6 @@ CLOSE(io)
 
 ENDSUBROUTINE
 
-
-
 SUBROUTINE ReadRayFile()
 USE RAYS,   ONLY : RayInfo,            AziAngle,         PolarAngle,     &
                    ModRay,             AsyRay,           CoreRay,        &
@@ -1941,8 +2053,6 @@ CLOSE(io)
 
 ENDSUBROUTINE
 
-
-
 SUBROUTINE PrintMOCUnderRelaxation(io, FmInfo, GroupInfo, PE)
 USE PARAM
 USE TYPEDEF,   ONLY : FmInfo_Type, GroupInfo_Type, PE_TYPE
@@ -1965,9 +2075,6 @@ DO
 ENDDO
 WRITE(io,*)
 END SUBROUTINE
-
-
-
 
 SUBROUTINE PrintFSRPhi(Core, THInfo, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 USE param,   only : CKELVIN
@@ -2131,8 +2238,6 @@ DO iz = PE%myzb, PE%myze
     ENDDO ! Global Asy
 ENDDO !Z-axial plane
 END SUBROUTINE
-
-
 
 SUBROUTINE PrintPinFisPhi(Core, THInfo, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 USE param,   only : CKELVIN
@@ -2357,7 +2462,7 @@ DO iasy = 1, nxya
   ENDDO
 ENDDO !
 
-#ifdef MPI_ENV 
+#ifdef MPI_ENV
 IF(Master) THEN
   DO i = 1, PE%nCmfdProc - 1
     iz1 = PE%AxDomRange(1, i); iz2 = PE%AxDomRange(2, i)
@@ -2375,5 +2480,98 @@ IF(slave) THEN
   RETURN
 ENDIF
 #endif
+
+END SUBROUTINE
+
+SUBROUTINE PowerHistoryOutputEdit(lfirstItr)
+USE PARAM
+USE TYPEDEF,           ONLY : CoreInfo_Type,    PowerDist_Type
+USE GEOM,              ONLY : Core,             ng
+USE Core_mod,          ONLY : FmInfo,           CmInfo,                     eigv,        &
+                              ThInfo,           GroupInfo
+USE TH_mod,            ONLY : THVar
+USE CNTL,              ONLY : nTracerCntl
+USE itrcntl_mod,       ONLY : ItrCntl
+USE FILES,             ONLY : io8,              io19,                       caseid
+USE PE_mod,            ONLY : PE
+USE ioutil,            ONLY : message,          PrintReal1DarrayTo2Darray,  openfile
+#ifdef MPI_ENV
+USE MpiComm_mod, ONLY : BCAST, MPI_SYNC
+#endif
+IMPLICIT NONE
+LOGICAL :: lfirstItr
+
+TYPE(PowerDist_Type) :: PowerDist ! Neutron Fission Energy Release (not actual Power)
+INTEGER :: io
+LOGICAL :: Master
+LOGICAL, SAVE :: lfirst = TRUE
+CHARACTER(256) :: filename
+
+Master = TRUE
+#ifdef MPI_ENV
+Master = PE%Cmfdmaster
+#endif
+
+IF(Master .AND. lfirst) THEN
+  filename = trim(caseid)//'.history'
+  lfirst = FALSE
+  CALL openfile(io19,FALSE,FALSE,FALSE,filename)
+END IF
+
+IF(Master .AND. lfirstItr) THEN
+  io = io19
+  WRITE(mesg, *) 'Writing Calculation Results in Output File...'
+  CALL message(io8, TRUE, TRUE, mesg)
+  WRITE(io, *)
+  WRITE(io, '(a)') '========================================================================'
+  WRITE(io, '(5x, a)') 'Results'
+  WRITE(io, '(5x, a, I5)') 'Case No        :', nTracerCntl%CaseNo
+  WRITE(io, '(5x, a, I5)') 'Calculation No :', nTracerCntl%CalNoId
+  WRITE(io, '(a)') '========================================================================'
+ENDIF
+!
+IF(Master) THEN
+  io = io19
+  WRITE(io, *)
+  WRITE(io, '(a)') '========================================================================'
+  WRITE(mesg, '(14x, a, I5)') 'Itr. No :', ItrCntl%SrcIt
+  WRITE(io, '(a)') '========================================================================'
+  CALL message(io19, FALSE, FALSE, mesg)
+ENDIF
+
+CALL CorePowerCal(Core, CmInfo, PowerDIst, ng, nTracerCntl, PE)
+#ifdef MPI_ENV
+CALL BCAST(PowerDist%Fm3DNormalizer, PE%MPI_CMFD_COMM)
+CALL BCAST(PowerDist%Pin3DNormalizer, PE%MPI_CMFD_COMM)
+#endif
+
+IF(Master) THEN ! Power
+  io = io19
+  WRITE(io, '(a)') '-------------------------Power Distribution------------------------------'
+  CALL PrintRadialPower(io, Core, PowerDist)
+
+  CALL PrintLocalPinPower(io, Core, PowerDist)
+
+  CALL Asy3DPower(io, Core, PowerDist)
+
+  CALL AxialAvgAsy2DPower(io, Core, PowerDist)
+
+  CALL Axial1DPower(io, Core, PowerDist)
+ENDIF
+
+!IF(nTracerCntl%lfeedback .AND. MASTER) THEN
+!  CALL PrintFuelAvgTemp(io, Core, THInfo, THVar)
+!
+!  CALL PrintFuelCentTemp(io, Core, THInfo, THVar)
+!
+!  CALL PrintFuelSurfTemp(io, Core, THInfo, THVar)
+!
+!  CALL PrintCoolantTemp(io, Core, THInfo, THVar)
+!ENDIF
+
+!CALL PrintPinXS(io, Core, CmInfo, ng, PE)
+IF(Master) WRITE(io, '(a)') '========================================================================'
+
+CALL FreePowerDist(PowerDist, PE)
 
 END SUBROUTINE

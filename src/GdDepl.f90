@@ -36,7 +36,7 @@ IF(.NOT. MatExp(Tid)%lAllocVec) THEN
 ENDIF
 
 ALLOCATE(IsoNum_RK(nIsoDep, 0:4))
-    
+
 Gd155Idx = IsoLoc(3)
 nsubstep = DeplCntl%nSubStep
 BurnUpTime = DeplCntl%Tsec / nsubstep
@@ -109,7 +109,7 @@ LOGICAL :: lCorrectStep
 
 REAL :: XsFtn(0:2, 64152:64160)
 REAL :: RR(-1:1, 64152:64160), N155(-1:1)
-REAL :: A(16), B(4), X(4) 
+REAL :: A(16), B(4), X(4)
 INTEGER :: i, j, id
 
 !Init. RR
@@ -152,10 +152,10 @@ DO id = 64152, 64160
   A(1) = 1; A(2) = N155(0)
   A(5) = 1; A(6) = N155(1)
   B(1) = RR(0, id); B(2) = RR(1, id)
-    
+
   x(1) = (A(6)*B(1) - A(2)*B(2))/(A(1)*A(6)-A(2)*A(5))
   x(2) = (-A(5)*B(1) + A(1)*B(2))/(A(1)*A(6)-A(2)*A(5))
-    
+
   x(1:2) = x(1:2) / (DeplXs%phi1g * 1.0E-24_8)
   XsFtn(0:1, id) = x(1:2)
   XsFtn(2, id) = 0.
@@ -179,14 +179,14 @@ ENDDO
 !  IF(id .EQ. 64153) CYCLE
 !  IF(id .EQ. 64159) CYCLE
 !  A = 0; A(16) = 1; A(11) = 1
-!  IF(lCorrectStep) THEN 
+!  IF(lCorrectStep) THEN
 !    A(1) = 1; A(2) = N155(0)
 !    A(5) = 1; A(6) = N155(1)
 !    B(1) = RR(0, id); B(2) = RR(1, id); B(3) = 1; B(4) = 1
 !  ELSE
 !    A(1) = 1; A(2) = N155(0)
 !    A(5) = 1; A(6) = N155(1)
-!    B(1) = RR(0, id); B(2) = RR(1, id); B(3) = 1; B(4) = 1  
+!    B(1) = RR(0, id); B(2) = RR(1, id); B(3) = 1; B(4) = 1
 !  ENDIF
 !  CALL Dir4x4(A, b, x)
 !  X(3:4) = 0
@@ -212,7 +212,7 @@ REAL :: xs1g, N1550, f
 INTEGER :: i, id
 
 !  DO i = 1, 7
-!    id = IsoList(i); id_lib = iposiso(id) 
+!    id = IsoList(i); id_lib = iposiso(id)
 !    IsoLoc(i) = DeplVars%MapXs2Dep(id_lib)
 !  ENDDO
 XsFtn = DeplVars%GdXsFtn
@@ -246,6 +246,7 @@ USE BasicOperation,     ONLY : MULTI_CA,  CP_CA
 USE nuclidmap_mod,      ONLY : iposiso,   PndCrit, nuclide
 USE GdDepl_mod,         ONLY : IsoList,           IsoLoc
 USE XsUtil_mod,         ONLY : SetXeDynEnv
+USE ieee_arithmetic
 IMPLICIT NONE
 TYPE(FxrInfo_Type) :: Fxr
 TYPE(DeplVars_Type) :: DeplVars
@@ -273,7 +274,7 @@ IF(lCorrectStep) THEN
     j = IsoLoc(i)
     IsoNum_Gd(i) = IsoNum(j)
   ENDDO
-  
+
   CALL MULTI_CA(0.5_8, IsoNum(1:nIsoDepl), nIsoDepl)
   IF(Fxr%l_pnum_all) THEN ! Depletion TimeStep Bug Fixed
     niso = Fxr%nIso_depl
@@ -289,7 +290,7 @@ IF(lCorrectStep) THEN
       IsoNum(IdDep) = IsoNum(IdDep) + 0.5_8 * pnum(i)
     ENDDO
   END IF
-  
+
   DO i = 1, 7
     j = IsoLoc(i)
     IsoNum(j) = IsoNum_Gd(i)
@@ -316,6 +317,7 @@ DO i = 1, nIsoDepl
   IF(j .EQ. 0) CYCLE
   IF(abs(IsoNum(i)) .LT. epsm20) CYCLE
   IF(IsoNum(i) .LT. pndcrit(j)) CYCLE
+  IF(ieee_is_nan(IsoNum(i))) STOP 'DEPL NaN Wow!'
   niso = niso + 1
   IdXs = nuclide(j)
   pnum(niso) = IsoNum(i)
@@ -346,7 +348,7 @@ SUBROUTINE UpdateGdDeplMat(DMat, DeplLib, PHI, BurnUpTime)
 USE PARAM
 USE DEPLTYPE,      ONLY : Mat_TYPE,         DeplLib_Type,                    &
                           AtomKind,         STATEKIND,        ISOTOPEKIND,   &
-                          FisYield_Type      
+                          FisYield_Type
 USE BasicOperation, ONLY : CP_CA,           MULTI_CA
 IMPLICIT NONE
 TYPE(Mat_Type) :: DMat
@@ -361,7 +363,7 @@ TYPE(FisYield_Type), POINTER :: FisYield(:)
 
 REAL, POINTER :: DIAG(:), OffDiag(:,:)              !Diag and Off Diag Elements for Sparse Matrix
 INTEGER, POINTER :: nlmnt(:), lmntIdx(:,:)          !#of element for row, non-zero element index
-INTEGER :: nmaxoffdiag 
+INTEGER :: nmaxoffdiag
 
 REAL :: Y
 
@@ -398,7 +400,7 @@ DO J = Lib1(I)%IB, Lib1(I)%IE
       IFR = MyStat%ITO2(1, M); ITO = MyStat%ITO2(2, M); IP = MyStat%ITO2(3, M)
       OffDiag(IP, ITO) = OffDiag(IP, ITO) + PHI * MyStat%XS(IFR)
     ENDDO
-    
+
     IF(MySTAT%IGRP .EQ. 3) THEN
       DO M = 1, MyStat%NFR3  !   SOURCE FROM FISSION
         IFR = MyStat%IFR3(1, M); IP = MyStat%IFR3(2, M); Y = MyStat%Y(IFR)
@@ -410,7 +412,7 @@ DO J = Lib1(I)%IB, Lib1(I)%IE
     ENDIF
     Diag(IM) = Diag(IM) * BurnUpTime
     M = nLmnt(I)
-    OffDiag(1:M, IM) = OffDiag(1:M, IM) * BurnUpTime 
+    OffDiag(1:M, IM) = OffDiag(1:M, IM) * BurnUpTime
   ENDDO
 ENDDO
 

@@ -7,7 +7,6 @@ USE Core_mod,   ONLY : FmInfo
 USE PE_Mod,     ONLY : PE
 IMPLICIT NONE
 
-return
 IF(nTracerCntl%lAutoBarrel) CALL SetCoreAnnularRingStruct()
 !IF(nTracerCntl%lInitBoron) CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%BoronPPM , PE%myzb, PE%myze)
 

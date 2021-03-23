@@ -5,8 +5,9 @@ MODULE GamXSUtil
 !       : ALLOCATION, INTERPOLATION, TEMPORARY DATA
 USE PARAM
 USE GammaTYPEDEF,    ONLY : GamMacXS_TYPE
-USE GammaLibdata,    ONLY : GAMLIBDATA,   itempmapGAM
+USE XSLIB_MOD,       ONLY : GAMLIBDATA
 USE allocs
+USE TYPEDEF,         ONLY : XsMac_Type
 
 IMPLICIT NONE
 
@@ -20,7 +21,7 @@ CONTAINS
 ! TEMPORARY DATA TREATMENT
 !
 SUBROUTINE GetGamXsMacDat(XsMac, ngg, lIsoXsOut)
-USE GammaLibdata,      ONLY : neltGAM
+USE XSLib_MOD,      ONLY : nelthel
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE), POINTER :: XsMac
 LOGICAL :: lIsoXsOut
@@ -43,13 +44,14 @@ DO i = 1, nDatMax
   IF(XsMac%lalloc .AND. XsMac%ngg .NE. ngg) THEN
     CALL FreeGamXsMac(XsMac)
     IF(XsMac%lisoalloc) CALL FreeGamXsIsoMac(xsMac)
+    IF(XsMac%lIsoSMAlloc) CALL FreeGamSMISO(XsMac)
   ENDIF
   IF(.NOT. XsMac%lAlloc) THEN
     XsMac%ngg = ngg; CALL AllocGamMacXs(XsMac)
   ENDIF
   IF(lIsoXsOut .AND. .NOT. XsMac%lIsoAlloc) THEN
     XsMac%ngg = ngg
-    XsMac%niso = neltGAM
+    XsMac%niso = nelthel
     CALL AllocGamMacIsoXs(XsMac)
   END IF
   EXIT
@@ -80,6 +82,13 @@ IF(XsMac%lAllocSm)THEN
 ENDIF
 XsMac%lAlloc = .FALSE.
 XsMac%ngg = 0
+END SUBROUTINE
+
+SUBROUTINE FreeGamSMISO(XsMac)
+TYPE(GamMacXS_TYPE) :: XsMac
+IF(.NOT. XsMac%lIsoSMAlloc) RETURN
+DEALLOCATE(XsMac%IsoSM)
+XsMac%lIsoSMAlloc = .FALSE.
 END SUBROUTINE
 
 SUBROUTINE FreeGamXsIsoMac(XsIsoMac)
@@ -119,6 +128,16 @@ ALLOCATE(XsMac%IsoXsMacA(niso, ngg), XsMac%IsoXsMacS(niso, ngg), XsMac%IsoXsMacS
 XsMac%lIsoAlloc = .TRUE.
 END SUBROUTINE
 
+SUBROUTINE AllocGamIsoSM(XsMac)
+IMPLICIT NONE
+TYPE(GamMacXS_TYPE) :: XsMac
+INTEGER :: ngg, niso
+ngg = XsMac%ngg
+niso = XsMac%niso
+ALLOCATE(XsMac%IsoSM(ngg, ngg, niso))
+XsMac%lIsoSMAlloc = .TRUE.
+END SUBROUTINE
+
 SUBROUTINE AllocGamProdMat(XSMAT)
 IMPLICIT NONE
 TYPE(GamMacXS_TYPE) :: XSMAT
@@ -126,56 +145,109 @@ INTEGER :: igg, ngg, ng, ig, niso
 ngg = XSMAT%ngg
 ng = XSMAT%ng
 niso = XSMAT%niso
-ALLOCATE(XSMAT%lfis(niso), XSMAT%lrad(niso), XSMAT%linel(niso))
-ALLOCATE(XSMAT%ifisb(niso), XSMAT%ifise(niso))
-ALLOCATE(XSMAT%iradb(niso), XSMAT%irade(niso))
-ALLOCATE(XSMAT%iinelb(niso), XSMAT%iinele(niso))
+ALLOCATE(XSMAT%lexist(niso, 4))
+ALLOCATE(XSMAT%GProdTot(ng,ngg))
+XSMAT%lProdAlloc = .TRUE.
+END SUBROUTINE
+
+SUBROUTINE FreeGamProdMat(XSMAT)
+IMPLICIT NONE
+TYPE(GamMacXS_TYPE) :: XSMAT
+DEALLOCATE(XSMAT%lexist)
+DEALLOCATE(XSMAT%GProdTot)
+XSMAT%lProdAlloc = .FALSE.
+END SUBROUTINE
+
+SUBROUTINE AllocIsoGamProdMat(XSMAT)
+IMPLICIT NONE
+TYPE(GamMacXS_TYPE) :: XSMAT
+INTEGER :: igg, ngg, ng, ig, niso
+ngg = XSMAT%ngg
+ng = XSMAT%ng
+niso = XSMAT%niso
 ALLOCATE(XSMAT%IsoGProdFis(niso,ng,ngg))
 ALLOCATE(XSMAT%IsoGProdRad(niso,ng,ngg))
 ALLOCATE(XSMAT%IsoGProdInel(niso,ng,ngg))
-ALLOCATE(XSMAT%GProdTot(ng,ngg))
-XSMAT%lProdAlloc = .TRUE.
-! REACTION WISE PRODUCTION MATRIX FOR ENERGY CALCULATION   <-- JSU EDIT 2017.09.13.
-!ALLOCATE(XSMAT%GProdInel(ng,ngg))
-!ALLOCATE(XSMAT%GProdRad(ng,ngg))
-!ALLOCATE(XSMAT%GProdFis(ng,ngg))
+ALLOCATE(XSMAT%IsoGProdNnel(niso,ng,ngg))
+XSMAT%lIsoProdAlloc = .TRUE.
+END SUBROUTINE
+
+SUBROUTINE FreeIsoGamProdMat(XSMAT)
+IMPLICIT NONE
+TYPE(GamMacXS_TYPE) :: XSMAT
+DEALLOCATE(XSMAT%IsoGProdFis)
+DEALLOCATE(XSMAT%IsoGProdRad)
+DEALLOCATE(XSMAT%IsoGProdInel)
+DEALLOCATE(XSMAT%IsoGProdNnel)
+XSMAT%lIsoProdAlloc = .FALSE.
 END SUBROUTINE
 
 ! ALLOCATIONE SUBROUTINE TO CALCULATE LOCAL KAPPA                         |-- JSU EDIT 2017.09.14. |
-SUBROUTINE AllocLocalKappa(XsMac) 
-IMPLICIT NONE
-TYPE(GamMacXs_TYPE) :: XsMac
-INTEGER :: igg, ngg, ig, ng, niso, iso
-ng = XsMac%ng
-ngg = XsMac%ngg
-niso = XsMac%niso
-ALLOCATE(XsMac%FisLocal(ng))     
-ALLOCATE(XsMac%QN2N(ng), XsMac%QN3N(ng))
-ALLOCATE(XsMac%InelLocal(ng))    
+!SUBROUTINE AllocLocalKappa(XsMac) 
+!IMPLICIT NONE
+!TYPE(GamMacXs_TYPE) :: XsMac
+!INTEGER :: igg, ngg, ig, ng, niso, iso
+!ng = XsMac%ng
+!ngg = XsMac%ngg
+!niso = XsMac%niso
+!ALLOCATE(XsMac%FisLocal(ng))     
+!ALLOCATE(XsMac%QN2N(ng), XsMac%QN3N(ng))
+!ALLOCATE(XsMac%InelLocal(ng))    
 ! ALLOCATE(XsMac%InelLosS(ng, ng))  
 ! ALLOCATE(XsMac%GProdInel(ng, ngg)) 
-ALLOCATE(XsMac%LocalQ(ng))
-XsMac%lKappaAlloc = .TRUE.
+!ALLOCATE(XsMac%LocalQ(ng))
+!XsMac%lKappaAlloc = .TRUE.
+!END SUBROUTINE
+
+! ALLOCATIONE SUBROUTINE TO CALCULATE LOCAL KERMA |-- JSU EDIT 2019.08.12. |
+SUBROUTINE AllocMacKERMA(XsMac) 
+IMPLICIT NONE
+TYPE(XsMac_Type) :: XsMac
+INTEGER :: igg, ngg, ig, ng, niso, iso
+ng = XsMac%ng
+niso = XsMac%niso
+ALLOCATE(XsMac%MacKERMA_t(ng));ALLOCATE(XsMac%MacKERMA_s(ng))
+ALLOCATE(XsMac%MacKERMA_d(ng));ALLOCATE(XsMac%MacKERMA_p(ng))
+ALLOCATE(XsMac%MacKERMA_f(ng))
+ALLOCATE(XsMac%MacDelkf(ng))
+XsMac%lKERMAAlloc = .TRUE.
 END SUBROUTINE
 
-!***************************************************************************************************
-!   Temperature Interpolation (Weight Generation)
-!
-SUBROUTINE GamXsTempInterpolation(id, Gisodata, temp, wt1, wt2, it1, it2)
-IMPLICIT NONE
-TYPE(GAMLIBDATA) :: Gisodata
-INTEGER :: id
-REAL :: TEMP
-REAL :: wt1, wt2
-INTEGER :: it1, it2
+SUBROUTINE FreeMacKERMA(XsMac)
+TYPE(XsMac_Type) :: XsMac
+IF(.NOT. XsMac%lKERMAAlloc) RETURN
+DEALLOCATE(XsMac%MacKERMA_t);DEALLOCATE(XsMac%MacKERMA_s)
+DEALLOCATE(XsMac%MacKERMA_d);DEALLOCATE(XsMac%MacKERMA_p)
+DEALLOCATE(XsMac%MacKERMA_f)
+DEALLOCATE(XsMac%MacDelkf)
+XsMac%lKERMAAlloc = .FALSE.
+END SUBROUTINE
 
-it1 = temp; it1 = itempmapGAM(it1, id)
-it2 = it1;   wt2 = 1
-IF(Gisodata%ntemp .ne. 1 .and. it1 .lt. Gisodata%ntemp) THEN
-  it2 = it1 + 1
-  wt2 = (temp - Gisodata%temp(it1))/(Gisodata%temp(it2)-Gisodata%temp(it1))
-ENDIF
-wt1 = 1._8 - wt2
+SUBROUTINE AllocIsoMacKERMA(XsMac) 
+IMPLICIT NONE
+TYPE(XsMac_Type) :: XsMac
+INTEGER :: igg, ngg, ig, ng, niso, iso
+ng = XsMac%ng
+niso = XsMac%niso
+ALLOCATE(XsMac%IsoMacKERMA_t(niso,ng))
+ALLOCATE(XsMac%IsoMacKERMA_s(niso,ng))
+ALLOCATE(XsMac%IsoMacKERMA_d(niso,ng))
+ALLOCATE(XsMac%IsoMacKERMA_p(niso,ng))
+ALLOCATE(XsMac%IsoMacKERMA_f(niso,ng))
+ALLOCATE(XsMac%IsoMacDelkf(niso,ng))
+XsMac%lISOKERMAAlloc = .TRUE.
+END SUBROUTINE
+
+SUBROUTINE FreeIsoMacKERMA(XsMac)
+TYPE(XsMac_Type) :: XsMac
+IF(.NOT. XsMac%lISOKERMAAlloc) RETURN
+DEALLOCATE(XsMac%IsoMacKERMA_t)
+DEALLOCATE(XsMac%IsoMacKERMA_s)
+DEALLOCATE(XsMac%IsoMacKERMA_d)
+DEALLOCATE(XsMac%IsoMacKERMA_p)
+DEALLOCATE(XsMac%IsoMacKERMA_f)
+DEALLOCATE(XsMac%IsoMacDelkf)
+XsMac%lISOKERMAAlloc = .FALSE.
 END SUBROUTINE
 !***************************************************************************************************
 !   Cusping Pin Interpolation
@@ -234,7 +306,6 @@ ENDDO
 
 END SUBROUTINE
 
-
 SUBROUTINE IntScatMatCsp(XsMac, XsMac1, XsMac2, CspFxr, niso0, igb, ige, ngg)
 USE TYPEDEF,           ONLY : CspFxr_Type
 USE BasicOperation,    ONLY : CP_CA
@@ -280,5 +351,45 @@ END DO
 
 END SUBROUTINE
 
+SUBROUTINE mappingphatom(nele,ntiso)
+!  -------------------------------------------------------------------------------------------------
+!  Mapping for Photoatomic reaction data...
+!  -------------------------------------------------------------------------------------------------
+USE PARAM
+USE XSlib_MOD,  ONLY : nuclidhel,   elementGAM,   mapEleGAM, ldiso, phatom, iso2elm
+USE ALLOCS,     ONLY : dmalloc
+
+IMPLICIT NONE
+
+INTEGER :: nele, ntiso
+INTEGER :: i,j
+INTEGER :: idelem
+
+! Nuclide List
+CALL dmalloc(elementGAM,nele)
+CALL dmalloc(iso2elm,ntiso)
+
+DO i = 1, nele
+  elementGAM(i) = phatom(i)%nid
+END DO
+
+! isotope -> element index matching
+Do j = 1, ntiso
+  idelem = (nuclidhel(j)/1000)*1000
+  Do i = 1, nele
+    IF (elementGAM(i).EQ.idelem) EXIT
+  END DO
+  iso2elm(j) = elementGAM(i)
+  ldiso(j)%Phatom => phatom(i)
+End Do
+
+mapEleGAM = 0
+DO i=1,nele
+  mapEleGAM(elementGAM(i)) = i
+END DO
+
+RETURN
+END SUBROUTINE
+      
 END MODULE
 #endif

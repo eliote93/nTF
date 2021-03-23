@@ -5,13 +5,31 @@
 #define		GPU_MAX_POLAR 			4
 #define		GPU_MAX_POLAR_1D		10
 
-#define		GPU_PRECISION			4
+#define		GPU_PRECISION			    4
+#define   GPU_XS_PRECISION      8
+#define   GPU_SM_PRECISION      8
+#define   GPU_PNUM_PRECISION    8
+#define   GPU_RES_PRECISION     4
 #define		GPU_FLUX_PRECISION		4
 #define		GPU_SOURCE_PRECISION	4
 #define		GPU_CMFD_PRECISION		4
+!#define		GPU_CMFD_PRECISION		8
 #define     GPU_NODAL_PRECISION     4
 #define		P0_BLOCK_SIZE			16
 #define		PN_BLOCK_SIZE			8
+#define   SG_BLOCK_SIZE     4
+#define   XS_NUM_BLOCK     4
+#define   XS_BLOCK_SIZE     8
+
+#define   XS_BLOCK_GDIM     16
+#define   XS_BLOCK_RDIM     4
+
+#define   FSP_BLOCK_GDIM    4
+#define   FSP_BLOCK_RDIM    16
+
+#define   EFF_BLOCK_RDIM    8
+#define   EFF_BLOCK_IDIM    4
+#define   EFF_BLOCK_GDIM    4
 
 #if (GPU_CMFD_PRECISION == 4)
 
@@ -65,10 +83,16 @@
 
 #define		CSR_NODAL_PRECISION			CSR_FLOAT
 #define		cusparseCsrmv				cusparseScsrmv
+#define		cublasScal				  cublasSscal_v2
+#define		cublasAxpy				  cublasSaxpy_v2
+#define		cublasCopy				  cublasScopy_v2
 
 #elif (GPU_NODAL_PRECISION == 8)
 
 #define		CSR_NODAL_PRECISION			CSR_DOUBLE
 #define		cusparseCsrmv				cusparseDcsrmv
+#define		cublasScal				  cublasDscal_v2
+#define		cublasAxpy				  cublasDaxpy_v2
+#define		cublasCopy				  cublasDcopy_v2
 
 #endif

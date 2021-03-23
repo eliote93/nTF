@@ -18,6 +18,7 @@ INTEGER :: I,  K,  K2,  KIR,  M,  INUCL,  IPOS,  IPOSISO,  IDISO, IG
 INTEGER :: IT1,  IT2,  ITEMP1,  ITEMP2,  IDDIF,  IP1
 INTEGER :: NID
 REAL :: TEMPMAX,  YDI,  YDXE,  YDPM,  VAL
+INTEGER :: imt
 
 ! All Nuclide List
 call dmalloc(nuclidhel,nelthel)
@@ -69,7 +70,7 @@ ENDDO
 DO k = 1, nfishel
   mapfis(nuclidhel(idfishel(k))) = k
 ENDDO
-!
+! temperature mapping
 tempmax = 0
 call dmalloc(itempmap,nxtempmap,nelthel)
 DO nid = 1, nelthel
@@ -169,7 +170,32 @@ call dmalloc(mapn3n,nelthel)
 DO i = 1, n3nhel
   mapn3n(idn3nhel(i)) = i
 ENDDO
-!
+! Photon Production Mapping...
+! photon production Fission(imt=1)/Radioactive(imt=2)/Inelastic Scattering(imt=3)/non-elastic(imt=4)/
+imt = 1
+nphprod=0
+DO imt = 1, 4
+  DO i=1,nelthel
+    if(ldiso(i)%lphoton(imt)) nphprod(imt)=nphprod(imt)+1
+  END DO
+END DO
+call dmalloc(idphprod,MAXVAL(nphprod),4)
+DO imt = 1, 4
+  k=0
+  DO i=1,nelthel
+    IF(ldiso(i)%lphoton(imt)) THEN
+        k=k+1
+        idphprod(k,imt)=i
+    endif
+  END DO
+END DO
+mapnuclpp = 0
+DO imt = 1, 4
+  DO k = 1, nphprod(imt)
+    mapnuclpp(nuclidhel(idphprod(k,imt)),imt) = k
+  END DO
+END DO
+! burnable
 nburhel=0
 do i=1,nelthel
     if(ldiso(i)%ibur.gt.0) nburhel=nburhel+1
@@ -429,7 +455,7 @@ ResoCat(5)%repid=94239
 sum=0
 niso=1; ResoCat(1)%niso=niso; sum=sum+niso
 allocate(ResoCat(1)%idiso(niso))
-niso=15; ResoCat(2)%niso=niso; sum=sum+niso
+niso=27; ResoCat(2)%niso=niso; sum=sum+niso
 allocate(ResoCat(2)%idiso(niso))
 niso=13; ResoCat(3)%niso=niso; sum=sum+niso
 allocate(ResoCat(3)%idiso(niso))
@@ -447,7 +473,19 @@ ResoCat(2)%idiso(iiso)=90232; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=92233; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=92236; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=93237; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=40100; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=40190; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=40191; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=40192; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=40194; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=40196; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=42092; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=42094; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=42095; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=42096; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=42097; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=42098; iiso=iiso+1
+ResoCat(2)%idiso(iiso)=42100; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=43099; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=45103; iiso=iiso+1
 ResoCat(2)%idiso(iiso)=46108; iiso=iiso+1

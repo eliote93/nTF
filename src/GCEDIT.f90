@@ -1,9 +1,11 @@
+#define H2H
 SUBROUTINE GCEDIT_SA(ng)
     USE GC_mod
     USE GCpin_mod
     USE Depl_Mod,  ONLY : DeplCntl  !15/03/10 r534 : added for GC gen while depl_calc
     USE FXRVAR_MOD
     USE EFT_MOD
+    USE CNTL, ONLY : nTracerCntl
     IMPLICIT NONE
     INTEGER :: ng
     
@@ -13,6 +15,12 @@ SUBROUTINE GCEDIT_SA(ng)
     INTEGER :: iso
     INTEGER :: io2, io3
     CHARACTER(256) :: fn, fn2
+    
+    INTEGER :: ih2h
+    REAL :: h2hf
+    
+    INTEGER :: GdIsoIdx(7) = (/64152, 64154, 64155, 64156, 64157, 64158, 64160/)
+    INTEGER :: isogd
     
     io2=41
     io3=42
@@ -265,7 +273,33 @@ SUBROUTINE GCEDIT_SA(ng)
             WRITE(io2,'(t2,100f15.7)') kinf
             WRITE(io2,'(t2,i15)') npinlist
         ENDIF
-        WRITE(io2,'(t2,i15)') ipin
+#ifdef H2H        
+        WRITE(io2,'(t2,i15,1p,1e15.7,1p,i15)') ipin, bupin, hetNreg
+#else
+        WRITE(io2,'(t2,i15,1p,1e15.7)') ipin, bupin
+#endif
+IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+  WRITE(io2,'(t2,1p,100e15.7)') KinParMac_fisrate(0)
+  WRITE(io2,'(t2,1p,100e15.7)') KinParMac_beta(0,1:6)
+  !WRITE(io2,'(t2,1p,100e15.7)') KinParMac_betaeff(0,:) 
+  !DO gidx = 1, ngrp
+  !  WRITE(io2,'(t2,1p,100e15.7)') KinParMac_ChiDg(0,gidx,:)
+  !END DO
+  WRITE(io2,'(t2,1p,100e15.7)') KinParMac_velo2g(0,:)
+  !WRITE(io2,'(t2,1p,100e15.7)') KinParMac_velo(0,:)
+  DO gidx = 1, ngrp
+   WRITE(io2,'(t2,1p,100e15.7)') KinParMac_ChiDg2g(0,gidx,:)
+  END DO
+  DO gidx = 1, ng
+   WRITE(io2,'(t2,1p,100e15.7)') KinParMac_ChiDg(0,gidx,:)
+  END DO
+  WRITE(io2,'(t2,1p,100e15.7)') KinParMac_phiadj2g(0,:)
+  WRITE(io2,'(t2,1p,100e15.7)') KinParMac_phiadj(0,:)
+  WRITE(io2,'(t2,1p,100e15.7)') chig(:)
+  WRITE(io2,'(t2,1p,100e15.7)') isoMacxs(0,6,:)
+  IF( ipin .EQ. npinlist ) CLOSE(io2)
+  RETURN
+END IF
         
         WRITE(io2,'(t2,1p,100e15.7)') PhiG(:)
         DO gidx = 1, ngrp
@@ -275,6 +309,7 @@ SUBROUTINE GCEDIT_SA(ng)
         DO gidx = 1, ngrp
             WRITE(io2,'(t2,1p,100e15.7)') isoMacSm2g(0,gidx,:)
         ENDDO
+
         !--- 16/03/14 few-group Scat MAtrix end
         DO ig = 1, ng
             WRITE(io2,'(t2,1p,100e15.7)') Phi(ig)
@@ -307,10 +342,47 @@ SUBROUTINE GCEDIT_SA(ng)
             !---     Micro-Scopic XS ---
             WRITE(io2,'(i16)') nisotot
             DO iso = 1, nisotot
-                WRITE(io2,'(i16,1p,e15.7)') isoname(iso),isonumden(iso)
-                DO gidx = 1, ngrp
+                !IF (ASSOCIATED(MapXs2Dep)) THEN
+#ifdef H2H              
+                  ih2h = DeplVarPin%MapXs2Dep(MapNucl(isoname(iso)))
+                  IF (ih2h .NE. 0) h2hf = h2hfactorpin(ih2h)
+#endif                  
+                !ELSE
+                !  h2hf = 0.
+                !END IF
+                IF ( isoname(iso) .EQ. 92238 ) THEN
+#ifdef H2H                  
+                  WRITE(io2,'(i16,1p,2e15.7)') isoname(iso),isonumden(iso),h2hf
+#else
+                  WRITE(io2,'(i16,1p,2e15.7)') isoname(iso),isonumden(iso)
+#endif                  
+                  DO gidx = 1, ngrp
+                    WRITE(io2,'(t2,1p,100e15.7)') isoMicXs2g(iso,1:6,gidx),isoMicXs2g(iso,0,gidx),u238n2nFG(gidx)/u238phiFG(gidx)/isonumden(iso)
+                  ENDDO
+                ELSE
+#ifdef H2H                  
+                  WRITE(io2,'(i16,1p,2e15.7)') isoname(iso),isonumden(iso),h2hf
+#else
+                  WRITE(io2,'(i16,1p,2e15.7)') isoname(iso),isonumden(iso)
+#endif                  
+                  DO gidx = 1, ngrp
                     WRITE(io2,'(t2,1p,100e15.7)') isoMicXs2g(iso,1:6,gidx),isoMicXs2g(iso,0,gidx)
-                ENDDO
+                  ENDDO
+                END IF
+#ifdef H2H                
+                isogd = 0;
+                DO j = 1, 7
+                  IF (GdIsoIdx(j).eq.isoname(iso)) isogd = j;
+                END DO
+                IF (isogd.GT.0) THEN
+                  WRITE(io2,'(t2,1p,100e15.7)') hetRxFrac(1:hetNreg,isogd)
+                  WRITE(io2,'(t2,1p,100e15.7)') hetNumFrac(1:hetNreg,isogd)
+                END IF
+#endif                
+                
+                DO gidx = 1, ngrp
+                  WRITE(io2,'(t2,1p,100e15.7)') isoMicSm2g(iso,gidx,:)
+                END DO
             ENDDO
 #ifdef mic47Gxs    
             WRITE(io2,'(i4)') nisotot
@@ -331,6 +403,7 @@ ENDSUBROUTINE
   
 SUBROUTINE GCCLR()
     USE GC_mod
+    USE GCpin_mod
     IMPLICIT NONE
     checkiso=.FALSE. ! 0=not Used. 1=used
     nisotot=0; isoNumden=0; 
@@ -340,6 +413,20 @@ SUBROUTINE GCCLR()
     PhiVol=0; PinPhiVol=0; Phi=0;
     Dng=0;    Bsq=0;  Msq=0
     u238n2n=0.;u238phi=0.0
+    u238n2nMG = 0.; u238n2nFG = 0.; u238phiMG = 0.; u238phiFG = 0. ! HHS 19/02/14
+    bupin = 0.; ! Edit by LHG 19/03/14
+#ifdef H2H
+    h2hfactor = 0.;
+    !DeplXSPin%xsa = 0.; DeplXSPin%xsf = 0.; DeplXSPin%xsn2n = 0.;
+    !DeplXSPin%xsn3n = 0.; DeplXSPin%AvgPhi = 0.;
+    !DeplXSPin%Phi1g = 0.;
+    !DeplVarPin%BurnUpXs = 0.; DeplVarPin%IsoNum = 0.;
+    IF (ASSOCIATED(hetRxFrac)) DEALLOCATE(hetRxFrac)
+    !print*, 'OK hetRxFrac'
+    IF (ASSOCIATED(hetNumFrac)) DEALLOCATE(hetNumFrac)
+    !print*, 'OK hetNumFrac'
+    hetNreg = 0;
+#endif
     DEALLOCATE(isoMicXs, isoMicSm, isoMicXs2g, isoMicSm2g) !tr, a, r, f, nu, k
     DEALLOCATE(isoMacXs, isoMacSm, isoMacXs2g, isoMacSm2g) !D, a, r, f, nf, kf
     DEALLOCATE(isoMacSmP1, isoMacSm2gP1, isoMicSmP1, isoMicSm2gP1)

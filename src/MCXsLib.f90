@@ -86,7 +86,7 @@ SUBROUTINE SetMCXsLib(Core, Fxr, PE, CtrlMC)
         ifxr=xs2fxrmap(ixs,1)
         iz=xs2fxrmap(ixs,2)
         myfxr=>FXR(ifxr,iz)
-        ipin=myFxr%ipin; icel = Pin(ipin)%Cell(iz); FxrIdxSt = Pin(ipin)%FxrIdxSt; j = ifxr - FxrIdxSt + 1        
+        ipin=myFxr%ipin; icel = Pin(ipin)%Cell(iz); FxrIdxSt = Pin(ipin)%FxrIdxSt; j = ifxr - FxrIdxSt + 1
         lres=myFxr%lres
         lfuel=myFxr%lfuel; lfuelcel=CellInfo(icel)%lfuel
         xs=>micxs(ixs)
@@ -127,11 +127,11 @@ SUBROUTINE SetMCXsLib(Core, Fxr, PE, CtrlMC)
         xs%xss=XsMac%XsMacs
         IF( lres .AND. CtrlMc%lsgfsp )THEN
             do g = iresoGrp1,iresoGrp2
-              xs%xsa(g) = xs%xsa(g) * myFxr%fresoa(g) 
+              xs%xsa(g) = xs%xsa(g) * myFxr%fresoa(g)
             enddo
-            IF (nTracerCntl%lRST) THEN 
+            IF (nTracerCntl%lRST) THEN
               do g = iresoGrp1,iresoGrp2
-                xs%xss(g) = xs%xss(g) * myFxr%fresos(g) 
+                xs%xss(g) = xs%xss(g) * myFxr%fresos(g)
               enddo
             ENDIF
             DO g= 1, ng
@@ -148,8 +148,8 @@ SUBROUTINE SetMCXsLib(Core, Fxr, PE, CtrlMC)
         IF( lfuel )THEN
             IF( lres .AND. CtrlMc%lsgfsp )THEN
               do g = iresoGrp1,iresoGrp2
-                xs%xsnf(g) = xs%xsnf(g) * myFxr%fresoF(g)  
-                xs%xskf(g) = xs%xskf(g) * myFxr%fresoF(g)  
+                xs%xsnf(g) = xs%xsnf(g) * myFxr%fresoNF(g)  
+                xs%xskf(g) = xs%xskf(g) * myFxr%fresokF(g)  
               enddo
             ENDIF
             !call AdrFisCDF(xs, txs)-------------------------------------
@@ -176,7 +176,7 @@ SUBROUTINE SetMCXsLib(Core, Fxr, PE, CtrlMC)
                 DO g=1, ng
                     iso=1
                     xsnf=XsMac%IsoXsMacnf(iso, g)
-                    FisCDF(g, iso)=xsnf 
+                    FisCDF(g, iso)=xsnf
                     DO iso = 2, niso
                         xsnf=XsMac%IsoXsMacnf(iso, g)
                         FisCDF(g, iso)=FisCDF(g, iso-1)+xsnf
@@ -239,7 +239,7 @@ SUBROUTINE SetMCXsLib(Core, Fxr, PE, CtrlMC)
         xs%xssm2g=xssm2g1
 
         CALL SetAnIsoGaussian(xs, scatod)
-          
+
         !call AdrAbsrA(xs, txs)--------------------------------------
         allocate(xsaa1(ng))
         do g=1, ng
@@ -361,19 +361,19 @@ SUBROUTINE SetMCXsLib_old(Core, Fxr, PE, CtrlMC) ! save all macroscopic for all 
         xs%xskf=XsMac%XsMackf
         IF( lfuel )THEN
           do g = iresoGrp1,iresoGrp2  
-            xs%xsnf(g) = xs%xsnf(g) * myFxr%fresoF(g)  
-            xs%xskf(g) = xs%xskf(g) * myFxr%fresoF(g)  
+            xs%xsnf(g) = xs%xsnf(g) * myFxr%fresoNF(g)
+            xs%xskf(g) = xs%xskf(g) * myFxr%fresoKF(g)
           enddo
         ENDIF
         !CALL UpdtEffChi()
         xs%xsa=XsMac%XsMaca
         IF( lres )THEN
-            do g = iresoGrp1,iresoGrp2  
-              xs%xsa(g) = xs%xsa(g) * myFxr%fresoa(g)  
+            do g = iresoGrp1,iresoGrp2
+              xs%xsa(g) = xs%xsa(g) * myFxr%fresoa(g)
             enddo
             IF (nTracerCntl%lRST) THEN
-              do g = iresoGrp1,iresoGrp2  
-                xs%xss(g) = xs%xss(g) * myFxr%fresos(g)  
+              do g = iresoGrp1,iresoGrp2
+                xs%xss(g) = xs%xss(g) * myFxr%fresos(g)
               enddo
             ENDIF
         ENDIF
@@ -488,7 +488,7 @@ SUBROUTINE UpdtEffChi()
                 DO ig = 1, ng
                     Spectrum(ig)=Fxrphi(ifxr,iz,ig)
                 ENDDO
-                CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng)
+                CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng, .FALSE.)
                 xs%chi=>myFxr%chi
             ENDIF
         ENDDO
@@ -517,7 +517,7 @@ SUBROUTINE InitEffChi()
                     Spectrum(ig)=1._8
                 ENDDO
                 ALLOCATE(myFxr%chi(nchi))
-                CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng)
+                CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng, .FALSE.)
                 xs%chi=>myFxr%chi
             ENDIF
         ENDDO
@@ -540,7 +540,7 @@ SUBROUTINE InitialEffChi(xs, myfxr)
         Spectrum(ig)=1._8
     ENDDO
     ALLOCATE(myFxr%chi(nchi))
-    CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng)
+    CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng, .FALSE.)
     xs%chi=myFxr%chi
     DEALLOCATE(spectrum)
 ENDSUBROUTINE

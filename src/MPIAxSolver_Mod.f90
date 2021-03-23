@@ -12,7 +12,6 @@ USE CMFDComm_Mod,   ONLY : InitAxNodalComm
 IMPLICIT NONE
 
 TYPE AxNCntl_TYPE
-  SEQUENCE
   INTEGER :: ng0
   INTEGER :: AxSolverMod = 1
   REAL :: eigv
@@ -398,6 +397,7 @@ USE CMFDComm_mod,     ONLY : CommPinXS_Type,                                    
 USE TIMER,            ONLY : nTracer_dclock, TimeChk
 USE BasicOperation,   ONLY : CP_VA
 USE CNTL,             ONLY : nTracerCntl
+USE HexTLkg,          ONLY : HexRadTlkgUpdt, HexStabGapPinLkg
 USE OMP_LIB
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
@@ -732,14 +732,14 @@ DO ixy = 1, nPin
       ! leakage source term from lower plane
       i = Core%SubPlaneRange(1, iz); j = i - 1
       myPhi = PhiFm(ixy, i, ig); neighPhi = PhiFm(ixy, j, ig) 
-      Dtil = AxDtil(1, ixy, iz, ig); Dhat =AxDhat(1, ixy, iz, ig)
+      Dtil = AxDtil(1, ixy, i, ig); Dhat =AxDhat(1, ixy, i, ig)
       Jnet = (Dtil - Dhat) * MyPhi - (Dtil + Dhat) * NeighPhi
       LkgAvg(ig) = Jnet
       
       ! leakage source term from upper plane
       i = Core%SubPlaneRange(2, iz); j = i + 1
       myPhi = PhiFm(ixy, i, ig); neighPhi = PhiFm(ixy, j, ig)
-      Dtil = AxDtil(2, ixy, iz, ig); Dhat =AxDhat(2, ixy, iz, ig)
+      Dtil = AxDtil(2, ixy, i, ig); Dhat =AxDhat(2, ixy, i, ig)
       Jnet = (Dtil - Dhat) * MyPhi - (Dtil + Dhat) * NeighPhi
       LkgAvg(ig) = LkgAvg(ig) + Jnet
 
@@ -1197,12 +1197,14 @@ ENDDO
 END SUBROUTINE
 
 
-SUBROUTINE SetTransientChi(PinXS, TranInfo, lreset)
+SUBROUTINE SetTransientChi(PinXS, TranInfo, TranCntl, lreset, PE)
 USE PARAM
-USE TYPEDEF,                ONLY : PinXS_TYPE,      TranInfo_TYPE
+USE TYPEDEF,                ONLY : PinXS_TYPE,      TranInfo_TYPE,          TranCntl_TYPE
 IMPLICIT NONE
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(PE_Type) :: PE
 REAL :: eigv
 LOGICAL :: lreset
 
@@ -1212,23 +1214,45 @@ INTEGER :: iz, ixy, ig
 
 Chid => TranInfo%ChiD
 IF(.NOT. lreset) THEN
-  DO iz = 1, nz
-    DO ixy = mynxybeg, mynxyend
-      DO ig = 1, ng
-        ChiEff = Chid(ig) * (PinXs(ixy, iz)%omega - PinXs(ixy, iz)%betat) + PinXS(ixy, iz)%Chi(ig)
-        PinXS(ixy, iz)%Chi(ig) = ChiEff
+  IF(PE%nCmfdProc .GT. 1) THEN
+    DO iz = 1, nz
+      DO ixy = mynxybeg, mynxyend
+        DO ig = 1, ng
+          ChiEff = Chid(ig) * (AxOmegap(0,ixy,iz) - PinXs(ixy, iz)%betat) + PinXS(ixy, iz)%Chi(ig)
+          PinXS(ixy, iz)%Chi(ig) = ChiEff
+        ENDDO
       ENDDO
     ENDDO
-  ENDDO
+  ELSE
+    DO iz = 1, nz
+      DO ixy = mynxybeg, mynxyend
+        DO ig = 1, ng
+          ChiEff = Chid(ig) * (PinXs(ixy, iz)%omega - PinXs(ixy, iz)%betat) + PinXS(ixy, iz)%Chi(ig)
+          PinXS(ixy, iz)%Chi(ig) = ChiEff
+        ENDDO
+      ENDDO
+    ENDDO
+  ENDIF
 ELSE
-  DO iz = 1, nz
-    DO ixy = mynxybeg, mynxyend
-      DO ig = 1, ng
-        ChiEff = PinXS(ixy, iz)%Chi(ig) - Chid(ig) * (PinXs(ixy, iz)%omega - PinXs(ixy, iz)%betat)
-        PinXS(ixy, iz)%Chi(ig) = ChiEff
+  IF(PE%nCmfdProc .GT. 1) THEN
+    DO iz = 1, nz
+      DO ixy = mynxybeg, mynxyend
+        DO ig = 1, ng
+          ChiEff = PinXS(ixy, iz)%Chi(ig) - Chid(ig) * (AxOmegap(0,ixy,iz) - PinXs(ixy, iz)%betat)
+          PinXS(ixy, iz)%Chi(ig) = ChiEff
+        ENDDO
       ENDDO
     ENDDO
-  ENDDO
+  ELSE
+    DO iz = 1, nz
+      DO ixy = mynxybeg, mynxyend
+        DO ig = 1, ng
+          ChiEff = PinXS(ixy, iz)%Chi(ig) - Chid(ig) * (PinXs(ixy, iz)%omega - PinXs(ixy, iz)%betat)
+          PinXS(ixy, iz)%Chi(ig) = ChiEff
+        ENDDO
+      ENDDO
+    ENDDO
+  ENDIF
 ENDIF
 
 NULLIFY(ChiD)
@@ -1453,7 +1477,7 @@ CALL TlkgAvgUpdate(Mpilkg, AxFlx)
 
 CALL SetPrecSrc(AxPinXS, TranInfo, TranCntl, PE)
 CALL UpdtAxNTranSrc2d(Core, CmInfo, TranInfo, TranCntl, PE)
-CALL SetTransientChi(AxPinXS, TranInfo, .FALSE.)
+CALL SetTransientChi(AxPinXS, TranInfo, TranCntl, .FALSE., PE)
 lkgmod = 0
 tid = 1
 
@@ -1469,7 +1493,7 @@ DO ixy = myNxyBeg, myNxyEnd
 ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
-CALL SetTransientChi(AxPinXS, TranInfo, .TRUE.)
+CALL SetTransientChi(AxPinXS, TranInfo, TranCntl, .TRUE., PE)
 CALL MPI_SYNC(PE%MPI_nTRACER_COMM)
 
 !Axial Nodal Calculation Output Distributions

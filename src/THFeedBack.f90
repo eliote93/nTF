@@ -1,3 +1,4 @@
+#include <defines.h>
 SUBROUTINE THFeedBack(Core, CmInfo, FmInfo, ThInfo, nTRACERCntl, PE)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,        CMInfo_Type,      FmInfo_Type,     &
@@ -15,10 +16,11 @@ USE Boron_mod,      ONLY : SetBoronCoolant, SetBoronCoolantCTF
 USE CrCsp_Mod,      ONLY : CrCspH2OUpdate
 USE CNTL,           ONLY : nTracerCntl_Type
 USE FILES,          ONLY : IO8
-USE IOUTIL,         ONLY : message
+USE IOUTIL,         ONLY : message,              terminate
 use timer,          ONLY : nTracer_dclock,       TimeChk
 IMPLICIT NONE
 
+INCLUDE 'mpif.h'
 TYPE(CoreInfo_Type) :: Core
 TYPE(CMInfo_Type) :: CmInfo
 TYPE(FMInfo_Type) :: FmInfo
@@ -53,6 +55,16 @@ REAL :: nh_modi, nh2o_modi
 REAL :: DenIn, Tin
 LOGICAL :: ChkList(nMaxFsr)
 
+REAL :: buf0(6), buf(6)
+REAL :: ncvolsum, tdsum, tdvolsum, densum, denvolsum, tmsum, tmvolsum
+REAL :: tfxrsum, volfxr, volfxrsum
+INTEGER :: ncell, ierr, nfsrinfxr
+INTEGER :: ireg
+
+IF(nTRACERCntl%libtyp .EQ. 11) THEN
+  CALL Neacrp_thfeedback(Core, CmInfo, FmInfo, THInfo, nTracerCntl, PE) 
+  RETURN
+END IF
 IF(nTRACERCntl%lBenchXS) RETURN
 IF(.NOT. nTRACERCntl%lFeedBack) RETURN
 
@@ -97,8 +109,18 @@ DO iz = myzb, myze
 ENDDO
 
 !Fuel Pin for Fuel Region
+tmvolsum = 0
+denvolsum = 0
+tdvolsum = 0
+ncvolsum = 0
+tfxrsum = 0
+volfxrsum = 0
 DO iz = myzb, myze
   IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  tmsum = 0
+  densum = 0
+  tdsum = 0
+  ncell = 0
   DO ixy = xyb, xye
     IF(.NOT. Pin(ixy)%lfuel) CYCLE
     !Water Density Information for Moderator Region
@@ -109,6 +131,12 @@ DO iz = myzb, myze
     ThCell => myCell%ThCell
     FxrIdxSt = Pin(ixy)%FxrIdxSt; nlocalFxr = myCell%nFxr
     
+    ! Average Information Monitoring
+    ncell = ncell + 1
+    tdsum = tdsum + FuelTH(ixy)%tfuel(ThVar%npr5, iz)
+    densum = densum + rho
+    tmsum = tmsum + Tcool(iz, ixy)
+
     !Initialize the checklist
     ChkList(1:nLocalFxr) = .FALSE.
     
@@ -144,6 +172,16 @@ DO iz = myzb, myze
         TempK = TempK + ThCell%Frac(ir, j) * tfvol(ir, iz, ixy)
       ENDDO
       myFxr%Temp = MIN(3000._8+CKELVIN, TempK)
+
+      nfsrinfxr = myCell%nFsrInFxr(j)
+      volfxr = 0
+      DO k = 1, nfsrinfxr
+        ireg = myCell%MapFxr2FsrIdx(k, j)
+        volfxr = volfxr + myCell%vol(ireg)
+      END DO
+      volfxr = volfxr * hz(iz)
+      tfxrsum = tfxrsum + volfxr * myFxr%Temp
+      volfxrsum = volfxrsum + volfxr
     ENDDO
     !Grid Region or regions except for fuel, grid , air gap
     DO j = 1, nLocalFxr
@@ -153,6 +191,10 @@ DO iz = myzb, myze
       CALL ModFxrDensityFeedback(myFxr, nh, nh2o, BulkTempK) 
     ENDDO
   ENDDO
+  tdvolsum = tdvolsum + tdsum * hz(iz)
+  tmvolsum = tmvolsum + tmsum * hz(iz)
+  denvolsum = denvolsum + densum * hz(iz)
+  ncvolsum = ncvolsum + real(ncell) * hz(iz)
 ENDDO
 !GUIDE Tube Information
 DO iz =  myzb, myze
@@ -169,11 +211,12 @@ DO iz =  myzb, myze
     Tempk = 0; rho = 0
     DO j = 1, nbd
       i = Pin(ixy)%NeighIdx(j)
-      IF(i .lt. 1) CYCLE
+      IF(i .lt. 1 .AND. .NOT. Pin(i)%lfuel) CYCLE
       l = l + 1
       TempK = TempK + Tcool(iz, i);
       rho = rho + DenCool(iz, i);
     ENDDO
+    IF(l .lt. 1) CALL terminate('wrong GT feedback') 
     
     rho = rho / REAL(l, 8); TempK = Tempk / REAL(l, 8)
     Tcool(iz, ixy) = TempK
@@ -215,14 +258,29 @@ DO iz = myzb, myze
 ENDDO
 
 IF (nTracerCntl%lborontrack) THEN
-  mesg = 'The non-uniform boron concentration is considered by boron tracking model'
-  IF(PE%master) CALL message(io8,TRUE, TRUE, mesg)  
+  mesg = '    The non-uniform boron concentration is considered by boron tracking model'
+  IF(PE%master) CALL message(io8,FALSE, TRUE, mesg)  
 	CALL SetBoronCoolantCTF(Core, Fxr,ThInfo, myzb, myze)
 ELSEIF(nTracerCntl%lInitBoron) THEN
-  mesg = 'The boron distrubution is uniform'
-  IF(PE%master) CALL message(io8,TRUE, TRUE, mesg)
+  mesg = '    The boron distrubution is uniform'
+  IF(PE%master) CALL message(io8,FALSE, TRUE, mesg)
   CALL SetBoronCoolant(Core, Fxr, nTracerCntl%BoronPPM , myzb, myze)
 ENDIF
+
+#ifdef MPI_ENV
+Buf0 =(/tdvolsum, denvolsum, tmvolsum, ncvolsum, tfxrsum, volfxrsum/)
+CALL MPI_ALLREDUCE(Buf0, Buf, 6, MPI_DOUBLE, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+tdvolsum = Buf(1)
+denvolsum = Buf(2)
+tmvolsum = Buf(3)
+ncvolsum = Buf(4)
+tfxrsum = Buf(5)
+volfxrsum = Buf(6)
+#endif
+WRITE(mesg, '(2x,3(A12,es12.4))') 'Avg T.Dop:', tdvolsum/ncvolsum, 'Avg Rho:', denvolsum/ncvolsum, 'Avg T.mod:', Tmvolsum/ncvolsum
+IF (PE%MASTER) CALL message(io8, .FALSE., .TRUE., mesg)
+WRITE(mesg, '(2x,A16,es14.6)') 'Applied T.Dop:', tfxrsum/volfxrsum - CKELVIN
+IF (PE%MASTER) CALL message(io8, .FALSE., .TRUE., mesg)
 
 NULLIFY(Pin); NULLIFY(Fxr)
 NULLIFY(FuelTH); NULLIFY(CoolantTH)
@@ -300,4 +358,214 @@ DO i = 1, niso
   IF(iprobe .eq. 1) pnum(i) = nh
   IF(iprobe .eq. 8) pnum(i) = nh2o
 ENDDO
+END SUBROUTINE
+  
+SUBROUTINE Neacrp_thfeedback(Core, CmInfo, FmInfo, ThInfo, nTRACERCntl, PE)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type,     CmInfo_Type,          FmInfo_Type,      &
+                           ThInfo_Type,       ThVar_Type,           ThOpt_Type,       &
+                           PE_Type,           Pin_Type,             Cell_Type,        &
+                           FxrInfo_Type
+USE TH_Mod,         ONLY : ThVar,             ThOpt
+USE CNTL,           ONLY : nTracerCntl_Type
+USE files,          ONLY : io8
+USE ioutil,         ONLY : message
+USE timer,          ONLY : nTracer_dclock,    TimeChk
+IMPLICIT NONE
+
+Include 'mpif.h'
+TYPE(CoreInfo_Type) :: Core
+TYPE(CmInfo_Type) :: CmInfo
+TYPE(FmInfo_TYpe) :: FmInfo
+TYPE(ThInfo_Type) :: ThInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: Cell(:)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+REAL, POINTER :: DenCool(:, :), Tcool(:, :), Tfvol(:, :, :)
+
+REAL :: alpha = 0.7
+REAL :: rho, BulkTempC, DopTempC
+REAL :: hz
+INTEGER :: FxrIdxSt, nlocalFxr
+INTEGER :: myzb, myze, xyb, xye
+INTEGER :: nxy, nsurf
+INTEGER :: iz, ixy, icel, ifxr
+INTEGER :: i
+
+REAL :: buf0(4), buf(4)
+REAL :: ncvolsum, tdsum, tdvolsum, densum, denvolsum, tmsum, tmvolsum
+INTEGER :: ncell, ierr
+
+myzb = PE%myzb
+myze = PE%myze
+nxy = Core%nxy
+nsurf = ThVar%npr1
+
+Pin => Core%Pin
+Cell => Core%CellInfo
+Fxr => FmInfo%Fxr
+DenCool => THInfo%DenCool
+Tcool => ThInfo%Tcool
+Tfvol => ThInfo%Tfvol
+
+xyb = PE%myPinBeg
+xye = PE%myPinEnd
+IF(PE%RTMASTER) THEN
+  xyb = 1
+  xye = nxy
+END IF
+
+! Bottom and Top Reflector of Fuel Pin
+!DO iz = myzb, myze
+!  IF(Core%lFuelPlane(iz)) CYCLE
+!  DO ixy = xyb, xye
+!    IF(.NOT. Pin(ixy)%lfuel) CYCLE
+!    rho = DenCool(iz, ixy) * epsm3
+!    BulkTempC = Tcool(iz, ixy)
+!    icel = Pin(ixy)%cell(iz)
+!    FxrIdxSt = Pin(ixy)%FxrIdxSt
+!    nLocalFxr = Cell(icel)%nFxr
+!    DO i = 1, nLocalFxr
+!      ifxr = FxrIdxSt + i - 1
+!      Fxr(ifxr, iz)%temp = BulkTempC + CKELVIN
+!      Fxr(ifxr, iz)%rho = rho
+!    END DO
+!  END DO 
+!END DO
+
+! Fuel Cell
+tmvolsum = 0
+denvolsum = 0
+tdvolsum = 0
+ncvolsum = 0
+!PRINT'(20f8.2)', ThInfo%FuelTH(1)%tfuel(1:ThVar%npr4, 2)
+DO iz = myzb, myze
+  IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  hz = Core%hz(iz)
+  tmsum = 0
+  densum = 0
+  tdsum = 0
+  ncell = 0
+  DO ixy = xyb, xye
+    IF(.NOT. Pin(ixy)%lfuel) CYCLE
+    rho = DenCool(iz, ixy) * epsm3
+    BulkTempC = Tcool(iz, ixy)
+
+    DopTempC = (1-alpha) * ThInfo%FuelTH(ixy)%tfuel(1,iz) + alpha * ThInfo%FuelTH(ixy)%tfuel(nsurf,iz)
+!    DopTempC = 287
+    
+    icel = Pin(ixy)%cell(iz)
+    FxrIdxSt = Pin(ixy)%FxrIdxSt
+    nLocalFxr = Cell(icel)%nFxr
+    
+    ncell = ncell + 1
+    tdsum = tdsum + DopTempC
+    densum = densum + rho
+    tmsum = tmsum + BulkTempC
+
+    DO i = 1, nLocalFxr
+      ifxr = FxrIdxSt + i - 1
+      Fxr(ifxr, iz)%temp = BulkTempC + CKELVIN
+      Fxr(ifxr, iz)%Doptemp = DopTempC + CKELVIN
+      Fxr(ifxr, iz)%rho = rho
+    END DO 
+  END DO 
+  tdvolsum = tdvolsum + tdsum * hz
+  tmvolsum = tmvolsum + tmsum * hz
+  denvolsum = denvolsum + densum * hz
+  ncvolsum = ncvolsum + real(ncell) * hz
+END DO 
+
+#ifdef MPI_ENV
+Buf0 =(/tdvolsum, denvolsum, tmvolsum, ncvolsum/)
+CALL MPI_ALLREDUCE(Buf0, Buf, 4, MPI_DOUBLE, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+tdvolsum = Buf(1)
+denvolsum = Buf(2)
+tmvolsum = Buf(3)
+ncvolsum = Buf(4)
+#endif
+WRITE(mesg, '(2x,3(A12,es12.4))') 'Avg T.Dop:', tdvolsum/ncvolsum, 'Avg Rho:', denvolsum/ncvolsum, 'Avg T.mod:', Tmvolsum/ncvolsum
+IF (PE%MASTER) CALL message(io8, .TRUE., .TRUE., mesg)
+
+!DO iz = myzb, myze
+!  IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+!  DO ixy = xyb, xye
+!    IF(.NOT. Pin(ixy)%lfuel) CYCLE
+!    
+!    icel = Pin(ixy)%cell(iz)
+!    FxrIdxSt = Pin(ixy)%FxrIdxSt
+!    nLocalFxr = Cell(icel)%nFxr
+!
+!    DO i = 1, nLocalFxr
+!      ifxr = FxrIdxSt + i - 1
+!      !Fxr(ifxr, iz)%temp = tmvolsum/ncvolsum + CKELVIN
+!      Fxr(ifxr, iz)%Doptemp = tdvolsum/ncvolsum + CKELVIN
+!      !Fxr(ifxr, iz)%rho = denvolsum/ncvolsum
+!    END DO 
+!  END DO 
+!END DO 
+
+! Radial Reflector
+!DO iz = myzb, myze
+!  DO ixy = xyb, xye
+!    IF(Pin(ixy)%lFuel) CYCLE
+!    rho = DenCool(iz, ixy) * epsm3
+!    BulkTempC = Tcool(iz, ixy)
+!    icel = Pin(ixy)%cell(iz)
+!    FxrIdxSt = Pin(ixy)%FxrIdxSt
+!    nLocalFxr = Cell(icel)%nFxr
+!    DO i = 1, nLocalFxr
+!      ifxr = FxrIdxSt + i - 1
+!      Fxr(ifxr, iz)%temp = BulkTempC + CKELVIN
+!      Fxr(ifxr, iz)%rho = rho
+!    END DO
+!  END DO 
+!END DO 
+
+END SUBROUTINE
+
+SUBROUTINE SaveFxrTemp(Fxr, ithstep, nFxr, myzb, myze)
+USE TYPEDEF,    ONLY : FxrInfo_Type
+USE TH_Mod,     ONLY : FxrTempSave
+IMPLICIT NONE
+TYPE(FxrInfo_Type), POINTER :: Fxr(:,:)
+INTEGER :: ithstep, nFxr, myzb, myze
+
+INTEGER ::  ifxr, iz
+
+!$OMP PARALLEL 
+DO iz = myzb, myze
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ifxr = 1, nfxr
+    IF(Fxr(ifxr, iz)%niso .EQ. 0) CYCLE
+    FxrTempSave(ifxr, iz, ithstep) = Fxr(ifxr, iz)%temp
+  END DO
+  !$OMP END DO
+END DO
+!$OMP END PARALLEL
+
+END SUBROUTINE
+SUBROUTINE RecoverFxrTemp(Fxr, ithstep, nFxr, myzb, myze)
+USE TYPEDEF,    ONLY : FxrInfo_Type
+USE TH_Mod,     ONLY : FxrTempSave
+IMPLICIT NONE
+TYPE(FxrInfo_Type), POINTER :: Fxr(:,:)
+INTEGER :: ithstep, nFxr, myzb, myze
+
+INTEGER ::  ifxr, iz
+
+!$OMP PARALLEL 
+DO iz = myzb, myze
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ifxr = 1, nfxr
+    IF(Fxr(ifxr, iz)%niso .EQ. 0) CYCLE
+    Fxr(ifxr, iz)%temp = FxrTempSave(ifxr, iz, ithstep)
+  END DO
+  !$OMP END DO
+END DO
+!$OMP END PARALLEL
+
 END SUBROUTINE

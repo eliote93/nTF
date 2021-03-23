@@ -299,6 +299,7 @@ cuGeometry%nxy = nxy
 cuGeometry%nxyc = nxy
 cuGeometry%nxya = Core%nxya
 cuGeometry%ng = GroupInfo%ng
+cuGeometry%nprec = GroupInfo%nprec
 cuGeometry%nx = Core%nx
 cuGeometry%ny = Core%ny
 cuGeometry%nRotRay = nRotRay
@@ -311,6 +312,7 @@ cuGeometry%myze = myze
 cuGeometry%AxBC = Core%AxBC
 cuGeometry%RadBC = Core%RadBC(1 : 4)
 cuGeometry%l3dim = nTracerCntl%l3dim
+cuGeometry%lRot = Core%lRot
 
 cuCntl%lSuperpin = cuCntl%lSuperpin .AND. Core%lGap
 
@@ -586,11 +588,20 @@ cuDevice%bottomRangeRB = cuDevice%rbRange(:, cuDevice%myzbf, :)
 cuDevice%topRangeRB = cuDevice%rbRange(:, cuDevice%myzef, :)
 
 ALLOCATE(cuGeometry%PinVolFm(nxy, nzCMFD))
+IF(cuCntl%lPwDist) ALLOCATE(cuGeometry%PinVolFmF(nxy, nzCMFD))
 
 DO izf = 1, nzCMFD
   iz = cuGeometry%planeMap(izf)
   DO ipin = 1, nxy
     cuGeometry%PinVolFm(ipin, izf) = superPin(ipin)%Area * cuGeometry%hzfm(izf)
+    IF(cuCntl%lPwDist) THEN 
+      IF(superPin(ipin)%lFuel(iz)) THEN 
+        ixy = superPin(ipin)%iFuelPin
+        cuGeometry%PinVolFmF(ipin, izf) = Core%PinVol(ixy, iz) * cuGeometry%hzfm(izf) / cuGeometry%hz(iz) 
+      ELSE 
+        cuGeometry%PinVolFmF(ipin, izf) = superPin(ipin)%Area
+      END IF
+    END IF
   ENDDO
 ENDDO
 
@@ -675,6 +686,10 @@ CALL MPI_COMM_SPLIT_TYPE(MPI_CUDA_COMM, MPI_COMM_TYPE_SHARED, MPI_CUDA_RANK, MPI
 CALL MPI_COMM_RANK(MPI_CUDA_SHARED_COMM, MPI_CUDA_SHARED_RANK, status)
 CALL MPI_COMM_SIZE(MPI_CUDA_SHARED_COMM, NUM_CUDA_SHARED_PROC, status)
 
+!MPI_CUDA_SHARED_RANK = MPI_CUDA_SHARED_RANK + 1
+!print*, PE%myzb, PE%mycmfdrank, MPI_CUDA_SHARED_RANK
+
+
 END SUBROUTINE
 
 !--- Data Allocation Routines ---------------------------------------------------------------------
@@ -746,7 +761,7 @@ TYPE(GroupInfo_Type) :: GroupInfo
 
 TYPE(AziAngleInfo_Type), POINTER :: AziAngle(:)
 TYPE(PolarAngle_Type), POINTER :: PolarAngle(:)
-INTEGER :: ig, iazi, ipol
+INTEGER :: ig, iazi, ipol, igs
 REAL :: wttemp, wtsin2, wtcos, wtpolar
 REAL :: wt_host(GPU_MAX_POLAR, GPU_MAX_AZI), Comp_host(GPU_MAX_ORDER, GPU_MAX_POLAR, GPU_MAX_AZI)
 
@@ -763,9 +778,15 @@ nAziAngle = RayInfo%nAziAngle
 nPolarAngle = RayInfo%nPolarAngle
 nPhiAngSv = RayInfo%nPhiAngSv
 nFsr = Core%nCoreFsr
+nFxr = Core%nCoreFXR
 nxy = cuGeometry%nxy
 nxyc = cuGeometry%nxyc
 ng = GroupInfo%ng
+IF(nTracerCntl%lScat1 .AND. Core%lRot) THEN 
+  nAziMap = 8
+ELSE
+  nAziMap = 4
+END IF
 dir = reshape((/ 1, 2, 2, 1 /), shape(dir))
 inc = (/ 1, -1 /)
 
@@ -774,9 +795,13 @@ IF (nTracerCntl%ScatOd .EQ. 1) nMoment = 2
 IF (nTracerCntl%ScatOd .EQ. 2) nMoment = 5
 IF (nTracerCntl%ScatOd .EQ. 3) nMoment = 9
 
+igs = 1;
 DO ig = 1, GroupInfo%ng
   InScatRange(:, ig) = GroupInfo%InScatRange(:, ig)
+  BegGrpScat(ig) = igs
+  igs = igs+GroupInfo%InScatRange(2,ig)-GroupInfo%InScatRange(1,ig)+1
 ENDDO
+BegGrpScat(GroupInfo%ng+1) = igs
 
 DO iazi = 1, RayInfo%nAziAngle / 2
   AziMap(iazi, 1) = 1
@@ -963,7 +988,13 @@ ELSE
   ALLOCATE(cuMOC%xstMg(PN_BLOCK_SIZE, nfsr))
   ALLOCATE(cuMOC%srcMg(PN_BLOCK_SIZE, nfsr))
   ALLOCATE(cuMOC%srcmMg(Moment(ScatOd), PN_BLOCK_SIZE, nfsr))
-  ALLOCATE(cuMOC%SrcAngMg(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr))
+  IF(cuGeometry%lRot) THEN 
+    ALLOCATE(cuMOC%phiaMg(nPolarAngle, PN_BLOCK_SIZE, 8, nfsr))
+    ALLOCATE(cuMOC%SrcAngMg(nPolarAngle, PN_BLOCK_SIZE, 8, nfsr))
+  ELSE
+    ALLOCATE(cuMOC%phiaMg(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr))
+    ALLOCATE(cuMOC%SrcAngMg(nPolarAngle, PN_BLOCK_SIZE, 4, nfsr))
+  END IF
 ENDIF
 
 END SUBROUTINE
@@ -1043,11 +1074,6 @@ ALLOCATE(cuCMFD%psid8(nxy * nzCMFD)); cuCMFD%psid8 = 0.0
 ALLOCATE(cuCMFD%h_phis8(ng, nxy, myzbf : myzef))
 ALLOCATE(cuCMFD%h_phic8(ng, nxy, myzb : myze))
 
-IF (cuCntl%lNatural) THEN
-  IF (cuCntl%CMFDSolver .EQ. 2) THEN
-    ALLOCATE(cuCMFD%invDiag(ng, nxy * nzCMFD)); cuCMFD%invDiag = 0.0
-  ENDIF
-ENDIF
 
 IF (cuGeometry%l3dim) THEN
   ALLOCATE(cuCMFD%h_neighphis8(ng, nxy, 2))
@@ -1088,11 +1114,8 @@ IMPLICIT NONE
 TYPE(cuCMFD_Type) :: cuCMFD
 
 CALL destroyCsr(cuCMFD%M)
-CALL destroyCsr(cuCMFD%jM)
 CALL destroyCsr(cuCMFD%rbM(red))
 CALL destroyCsr(cuCMFD%rbM(black))
-CALL destroyCsr(cuCMFD%rbDiag(red))
-CALL destroyCsr(cuCMFD%rbDiag(black))
 CALL destroyCsr(cuCMFD%D)
 CALL destroyCsr(cuCMFD%S)
 CALL destroyCsr(cuCMFD%F)
@@ -1229,6 +1252,119 @@ END SUBROUTINE
 
 END SUBROUTINE
 
+SUBROUTINE AllocTransientVar(cuDevice, lCMFD, l3dim, lchidk)
+USE cntl,   ONLY: nTracerCntl
+IMPLICIT NONE
+TYPE(cuDevice_Type) :: cuDevice
+LOGICAL :: lCMFD, l3dim, lchidk
+
+INTEGER :: ng, ngc, nprec, nxy, myzb, myze, myzbf, myzef, nzCMFD, nzSub
+INTEGER :: iz, ixy
+
+ng = cuGeometry%ng
+ngc = cuGeometry%ngc
+nprec = cuGeometry%nprec
+nxy = cuGeometry%nxyc
+myzb = cuDevice%myzb
+myze = cuDevice%myze
+myzbf = cuDevice%myzbf
+myzef = cuDevice%myzef
+nzCMFD = cuDevice%nzCMFD
+nzSub = cuDevice%nzSub
+
+IF(lCMFD) THEN
+  ALLOCATE(cuTranCMInfo%CellOmegam(0:nprec, nxy, myzb:myze))
+  ALLOCATE(cuTranCMInfo%CellOmega0(0:nprec, nxy, myzb:myze))
+  ALLOCATE(cuTranCMInfo%CellOmegap(0:nprec, nxy, myzb:myze))
+
+  ALLOCATE(cuTranCMInfo%Prec(nprec, nxy, myzbf:myzef))
+
+  ALLOCATE(cuTranCMInfo%PhiC(ng, nxy, myzb:myze))
+  ALLOCATE(cuTranCMInfo%TranPhiC(ng, nxy, myzb:myze))
+
+  ALLOCATE(cuTranCMInfo%dPrec(nxy * nzCMFD, nprec))
+  ALLOCATE(cuTranCMInfo%dOmegam(nxy * nzCMFD, nprec))
+  ALLOCATE(cuTranCMInfo%dOmega0(nxy * nzCMFD, nprec))
+  ALLOCATE(cuTranCMInfo%dOmegap(nxy * nzCMFD, nprec))
+
+  ALLOCATE(cuTranCMInfo%TranPhi(ng, nxy * nzCMFD))
+  ALLOCATE(cuTranCMInfo%TranPsi(nxy * nzCMFD))
+  ALLOCATE(cuTranCMInfo%TranPsid(nxy * nzCMFD))
+
+  ALLOCATE(cuTranCMInfo%Expo(ng, nxy * nzCMFD))
+  ALLOCATE(cuTranCMInfo%Expo_Alpha(ng, nxy * nzCMFD))
+  ALLOCATE(cuTranCMInfo%VolInvVel(ng, nxy * nzCMFD))
+
+  ALLOCATE(cuTranCMInfo%ResSrc(ng, nxy * nzCMFD))
+  IF(lchidk) THEN
+    ALLOCATE(cuTranCMInfo%PrecSrcK(nxy * nzCMFD, nprec))
+  ELSE
+    ALLOCATE(cuTranCMInfo%PrecSrc(nxy * nzCMFD))
+  END IF
+  ALLOCATE(cuTranCMInfo%Omegalm(nxy * nzCMFD))
+  ALLOCATE(cuTranCMInfo%Omegal0(nxy * nzCMFD))
+
+
+  DO iz = myzb, myze
+    DO ixy = 1, nxy
+      ALLOCATE(cuCMFD%PinXS(ixy, iz)%beta(nprec))
+      ALLOCATE(cuCMFD%PinXS(ixy, iz)%chip(ng))
+      ALLOCATE(cuCMFD%PinXS(ixy, iz)%velo(ng))
+      ALLOCATE(cuCMFD%PinXS(ixy, iz)%rvdelt(ng))
+    END DO
+  END DO
+  IF(cuCntl%lGCCMFD) THEN
+    DO iz = myzbf, myzef
+      DO ixy = 1, nxy
+        ALLOCATE(cuGcCMFD%PinXS(ixy, iz)%velo(ngc))
+      END DO
+    END DO
+  END IF
+  IF(cuCntl%lAxial) THEN
+    IF(l3dim) THEN
+      ALLOCATE(cuAxial%InvVel(nxy, ng, myzb:myze))
+      ALLOCATE(cuAxial%Expo(nxy, ng, myzb:myze))
+      ALLOCATE(cuAxial%Expo_Alpha(nxy, ng, myzb:myze))
+
+      ALLOCATE(cuAxial%TranPhi(nxy, ng, nzSub))
+      ALLOCATE(cuAxial%TranPsi(nxy, nzSub))
+      ALLOCATE(cuAxial%TranPsid(nxy, nzSub))
+
+      ALLOCATE(cuAxial%Omegam(nxy, nzSub, nprec))
+      ALLOCATE(cuAxial%Omega0(nxy, nzSub, nprec))
+      ALLOCATE(cuAxial%Omegap(nxy, nzSub, nprec))
+
+
+      ALLOCATE(cuAxial%Prec(nxy, nzSub, nprec))
+      IF(lchidk) THEN
+        ALLOCATE(cuAxial%PrecSrcK(nxy, nzSub, nprec))
+        ALLOCATE(cuAxial%OmegalmK(nxy, myzb:myze, nprec))
+        ALLOCATE(cuAxial%Omegal0K(nxy, myzb:myze, nprec))
+      ELSE
+        ALLOCATE(cuAxial%PrecSrc(nxy, nzSub))
+        ALLOCATE(cuAxial%Omegalm(nxy, myzb:myze))
+        ALLOCATE(cuAxial%Omegal0(nxy, myzb:myze))
+      END IF
+
+      ALLOCATE(cuAxial%ResSrc(nxy, ng, nzSub))
+
+      ALLOCATE(cuAxial%FixedSrc(nxy, ng, nzSub))
+    END IF
+  END IF
+END IF
+
+END SUBROUTINE
+
+SUBROUTINE DeallocTranCMFD(cuCMFD, cuTranCMInfo)
+IMPLICIT NONE
+TYPE(cuCMFD_Type) :: cuCMFD
+TYPE(cuTranCMInfo_Type) :: cuTranCMInfo
+
+CALL destroyCsr(cuCMFD%M)
+
+END SUBROUTINE
+
+
 SUBROUTINE CopyCoreVar(Core, cuDevice)
 USE TYPEDEF,		ONLY : CoreInfo_Type
 USE PE_MOD,			ONLY : PE
@@ -1310,6 +1446,126 @@ INTEGER :: iAx
 !$ACC EXIT DATA DELETE(cuFastRay1D(iAx)%LenSeg) ASYNC(0)
 
 END SUBROUTINE
+
+SUBROUTINE AllocPwDist(PwDist)
+USE CNTL,           ONLY : nTracerCntl
+USE CUDA_PWDIST,    ONLY : cuInitPWDist
+IMPLICIT NONE
+TYPE(cuPwDist_Type) :: PwDist
+
+REAL, POINTER :: invPinVolFmHost(:,:)
+REAL, POINTER :: pinVolFm(:,:)
+INTEGER, POINTER :: pinMap(:)
+INTEGER :: nxy, nzCMFD, myzbf, myzef
+INTEGER :: izf, ixy, ixy_map
+INTEGER :: ierr, n
+
+nxy = cuGeometry%nxyc
+nzCMFD = cuDevice%nzCMFD
+myzbf = cuDevice%myzbf
+myzef = cuDevice%myzef
+n = nxy*nzCMFD
+ALLOCATE(PwDist%pinPw(n)) 
+ALLOCATE(PwDist%invPinVolFm(n))
+IF(nTracerCntl%lDcyHeat) THEN
+  ALLOCATE(PwDist%pinPwf(n))
+  ALLOCATE(PwDist%hPrec(nxy*nzCMFD, 6))
+END IF
+
+PwDist%pinPw = 0.
+
+pinVolFm => cuGeometry%PinVolFmF
+pinMap => cuGeometry%pinMap
+
+ALLOCATE(invPinVolFmHost(nxy, myzbf:myzef))
+!$OMP PARALLEL PRIVATE(ixy_map)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+DO izf = myzbf, myzef
+  DO ixy = 1, nxy
+    ixy_map = pinMap(ixy)
+    invPinVolFmHost(ixy, izf) = 1._8/pinVolFm(ixy_map, izf)
+  END DO 
+END DO 
+!$OMP END DO 
+!$OMP END PARALLEL
+
+ierr = cudaMemcpy(PwDist%invPinVolFm, invPinVolFmHost, n, cudaMemcpyHostToDevice)
+DEALLOCATE(invPinVolFmHost)
+NULLIFY(pinVolFm, pinMap)
+
+CALL cuInitPWDist()
+
+END SUBROUTINE
+
+SUBROUTINE AllocCMFDAdjVar(cuCMFD, cuDevice, GroupInfo, lGcCMFD)
+USE TYPEDEF,        ONLY : GroupInfo_Type
+USE CMFD_COMMON,    ONLY : AllocHomoXsVar,      AllocPinXS
+IMPLICIT NONE
+
+TYPE(cuCMFD_Type) :: cuCMFD
+TYPE(cuDevice_Type) :: cuDevice
+TYPE(GroupInfo_Type) :: GroupInfo
+LOGICAL :: lGcCMFD
+
+INTEGER :: ng, nxy, nxyRB(100, 2), nzCMFD
+INTEGER :: iz, myzb, myze, myzbf, myzef
+INTEGER :: ierr
+
+ng = cuCMFD%ng
+nxy = cuGeometry%nxyc
+nxyRB = cuDevice%nxyRB
+nzCMFD = cuDevice%nzCMFD
+myzb = cuDevice%myzb
+myze = cuDevice%myze
+myzbf = cuDevice%myzbf
+myzef = cuDevice%myzef
+
+ALLOCATE(cuCMFD%phis8(ng, nxy * nzCMFD))
+ALLOCATE(cuCMFD%src8(ng, nxy * nzCMFD))
+ALLOCATE(cuCMFD%psi8(nxy * nzCMFD)); cuCMFD%psi8 = 0.0
+ALLOCATE(cuCMFD%srcd8(ng, nxy * nzCMFD)); cuCMFD%srcd8 = 0.0
+
+ALLOCATE(cuCMFD%h_phis8(ng, nxy, myzbf : myzef))
+ALLOCATE(cuCMFD%h_phic8(ng, nxy, myzb : myze))
+
+!IF (cuCntl%lNatural) THEN
+!  IF (cuCntl%CMFDSolver .EQ. 2) THEN
+!    ALLOCATE(cuCMFD%invDiag(ng, nxy * nzCMFD)); cuCMFD%invDiag = 0.0
+!  ENDIF
+!ENDIF
+
+IF (cuGeometry%l3dim) THEN
+  ALLOCATE(cuCMFD%h_neighphis8(ng, nxy, 2))
+  ALLOCATE(cuCMFD%AxDtil(2, ng, nxy, myzbf : myzef))
+  ALLOCATE(cuCMFD%AxDhat(2, ng, nxy, myzbf : myzef)); cuCMFD%AxDhat = 0.0
+  ALLOCATE(cuCMFD%offDiag(ng, nxy, 2)); cuCMFD%offDiag = 0.0
+  ALLOCATE(cuCMFD%offDiag8(ng, nxy, 2)); cuCMFD%offDiag8 = 0.0
+  IF (.NOT. cuCntl%lNatural) THEN
+    ALLOCATE(cuCMFD%rOffDiag(ng, nxyRB(myzbf, red) + nxyRB(myzef, red))); cuCMFD%rOffDiag = 0.0
+    ALLOCATE(cuCMFD%bOffDiag(ng, nxyRB(myzbf, black) + nxyRB(myzef, black))); cuCMFD%bOffDiag = 0.0
+  ENDIF
+ENDIF
+
+cuCMFD%bottomRange = (/ (cuDevice%bottomRange(1) - 1) * ng + 1, cuDevice%bottomRange(2) * ng /)
+cuCMFD%bottomRangeRB(:, 1) = (/ (cuDevice%bottomRangeRB(1, 1) - 1) * ng + 1, cuDevice%bottomRangeRB(2, 1) * ng /)
+cuCMFD%bottomRangeRB(:, 2) = (/ (cuDevice%bottomRangeRB(1, 2) - 1) * ng + 1, cuDevice%bottomRangeRB(2, 2) * ng /)
+cuCMFD%topRange = (/ (cuDevice%topRange(1) - 1) * ng + 1, cuDevice%topRange(2) * ng /)
+cuCMFD%topRangeRB(:, 1) = (/ (cuDevice%topRangeRB(1, 1) - 1) * ng + 1, cuDevice%topRangeRB(2, 1) * ng /)
+cuCMFD%topRangeRB(:, 2) = (/ (cuDevice%topRangeRB(1, 2) - 1) * ng + 1, cuDevice%topRangeRB(2, 2) * ng /)
+
+IF (.NOT. lGcCMFD) THEN
+  cuCMFD%planeMap => cuGeometry%planeMap
+  CALL AllocPinXS(cuCMFD%PinXS, GroupInfo, nxy, myzb, myze)
+ELSE
+  ALLOCATE(cuCMFD%planeMap(myzbf : myzef))
+  DO iz = myzbf, myzef
+    cuCMFD%planeMap(iz) = iz
+  ENDDO
+  CALL AllocPinXS(cuCMFD%PinXS, GroupInfo, nxy, myzbf, myzef)
+ENDIF
+
+END SUBROUTINE
+
 
 END MODULE
 

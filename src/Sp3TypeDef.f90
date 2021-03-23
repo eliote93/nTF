@@ -1,7 +1,6 @@
 MODULE SP3DEF
 USE TYPEDEF, ONLY : PinXS_Type, AxFLX_TYPE
 !TYPE PinXS_Type
-!  SEQUENCE
 !!  REAL,POINTER :: TRSPT(:),AB(:),RMV(:),NUFS(:),CHI(:),SC(:,:)
 !!  REAL,POINTER :: D0(:),D2(:)
 !  TYPE(SCATMAT),POINTER,DIMENSION(:) :: XSS
@@ -14,14 +13,12 @@ USE TYPEDEF, ONLY : PinXS_Type, AxFLX_TYPE
 !END TYPE
 
 TYPE SCATMAT
-  SEQUENCE
   INTEGER IB,IE
   REAL,POINTER :: FROM(:), DUMMY
   REAL :: WITHINGROUPSCAT
 END TYPE
 
 !TYPE AXFLX_TYPE
-!  SEQUENCE
 !  REAL,POINTER :: PHI(:,:,:) !FLUX, Modlar Space Flux
 !  REAL,POINTER :: PSI(:)  !Fission Source
 !  REAL,POINTER :: TLKG(:,:,:) !Source
@@ -30,7 +27,6 @@ END TYPE
 !END TYPE
 
 TYPE MODALFLX_TYPE
-  SEQUENCE
   REAL,POINTER :: PHI(:,:,:) !FLUX, Modlar Space Flux
   REAL,POINTER :: QH(:,:) !Source, MODAL SPACE SOURCE
   REAL,POINTER :: A(:,:),B(:,:),PSOL(:,:,:)
@@ -55,7 +51,6 @@ TYPE AxGEOM_TYPE
 END TYPE     
 
 TYPE AxSolItrCntl_TYPE
-  SEQUENCE
   INTEGER :: GroupItr = 10
   INTEGER :: NodalItr = 5
   INTEGER :: SourceItr = 1
@@ -68,7 +63,6 @@ END TYPE
 REAL, PARAMETER :: MaxK = 400
 
 TYPE SENMMAT_TYPE
-  SEQUENCE
   !REAL,POINTER ::DIAG(:, :), OFFDIAG(:, :, :)
   !INTEGER, POINTER :: nOffDiag(:), OffDiagLoc(:, :)
   !INTEGER, POINTER :: L(:, :, :), U(:, :, :)

@@ -1,5 +1,5 @@
 MODULE CMFD_COMMON
-    
+
 USE PARAM
 USE TYPEDEF,        ONLY : XsMac_Type
 USE TYPEDEF_COMMON
@@ -36,16 +36,16 @@ nFxrMax = 0
 IF(nTracerCntl%lHex) THEN
   DO icel = 1, nInf
     IF (.NOT. Cell(icel)%luse) CYCLE
-    
+
     nFxrMax = max(nFxrMax, Cell(icel)%nFxr)
   END DO
-  
+
   nFxrMax = nFxrMax * 3
 ELSE
   DO icel = 1, nCellType
     nFxrMax = max(nFxrMax, Cell(icel)%nFxr)
   END DO
-  
+
   nFxrMax = nFxrMax + 3
 ENDIF
 
@@ -126,7 +126,7 @@ Output%XSkf = Input%XSkf
 Output%Chi = Input%Chi
 
 DO ig = 1, ng
-  Output%XSs(ig)%from = Input%XSs(ig)%from    
+  Output%XSs(ig)%from = Input%XSs(ig)%from
 ENDDO
 
 END SUBROUTINE
@@ -137,8 +137,9 @@ USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type, 
                            Pin_Type,            Cell_Type
 USE CORE_MOD,       ONLY : GroupInfo
 USE CNTL,           ONLY : nTracerCntl
-USE BenchXs,        ONLY : xsbaseBen
+USE BenchXs,        ONLY : xsbaseBen,           xsbaseDynBen
 USE MacXsLib_Mod,   ONLY : MacXsBase,           MacXsScatMatrix
+USE TRAN_MOD,       ONLY : TranInfo
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -194,8 +195,8 @@ DO iz = myzb, myze
           IF (myFxr%lres) THEN
             XsMac(ifxr, tid)%XsMacA(irgb : irge) = myFxr%FresoA(irgb : irge) * XsMac(ifxr, tid)%XsMacA(irgb : irge)
             IF (CoreInfo%lFuelPlane(iz)) THEN
-              XsMac(ifxr, tid)%XsMacNf(irgb : irge) = myFxr%FresoF(irgb : irge) * XsMac(ifxr, tid)%XsMacNf(irgb : irge)
-              XsMac(ifxr, tid)%XsMacKf(irgb : irge) = myFxr%FresoF(irgb : irge) * XsMac(ifxr, tid)%XsMacKf(irgb : irge)
+              XsMac(ifxr, tid)%XsMacNf(irgb : irge) = myFxr%fresonf(irgb : irge) * XsMac(ifxr, tid)%XsMacNf(irgb : irge)
+              XsMac(ifxr, tid)%XsMacKf(irgb : irge) = myFxr%fresokf(irgb : irge) * XsMac(ifxr, tid)%XsMacKf(irgb : irge)
             ENDIF
           ENDIF
           XsMac(ifxr, tid)%XsMacTr = XsMac(ifxr, tid)%XsMacA + XsMac(ifxr, tid)%XsMacStr
@@ -207,7 +208,11 @@ DO iz = myzb, myze
           ENDIF
         ELSE
           itype = myFxr%imix
-          CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+          IF(nTracerCntl%lDynamicBen) THEN
+            CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+          ELSE
+            CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+          END IF
         ENDIF
       ENDDO
       nLocalFxr = nLocalFxr + Cell(icel)%nFxr
@@ -225,8 +230,10 @@ SUBROUTINE HomogenizeMacroXS(CoreInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
                            Pin_Type,            Cell_Type
+USE CNTL,           ONLY : nTracerCntl
 USE CORE_MOD,       ONLY : GroupInfo
-USE BenchXs,        ONLY : xsbaseBen
+USE BenchXs,        ONLY : xsbaseBen,           xsbaseDynBen,       xsbaseben_neacrp
+USE TRAN_MOD,       ONLY : TranInfo,            TranCntl
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -279,7 +286,299 @@ DO iz = myzb, myze
           ENDIF
         ELSE
           itype = Fxr(ifxr_global, iz)%imix
-          CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+          IF(nTracerCntl%libtyp .EQ. 11) THEN
+            CALL xsbaseben_NEACRP(itype, Fxr(ifxr_global,iz)%rho, Fxr(ifxr_global,iz)%temp, Fxr(ifxr_global,iz)%DopTemp, XsMac(ifxr, tid))
+          ELSE
+            IF(nTracerCntl%lDynamicBen) THEN
+              CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+            ELSE
+              CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+            END IF
+          ENDIF
+        END IF
+      ENDDO
+      nLocalFxr = nLocalFxr + Cell(icel)%nFxr
+    ENDDO
+    CALL HomogenizeCellXS(CoreInfo, superPin(ixy), PinXS(ixy, iz), XsMac(1 : nLocalFxr, tid), phis, iz, ng, lxslib, lsigt)
+  ENDDO
+  !$OMP END DO
+ENDDO
+
+!$OMP END PARALLEL
+
+END SUBROUTINE
+
+SUBROUTINE HomogenizeXS_Cusping(CoreInfo, FmInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, nthread, lxslib, lscat1, lsigt)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
+                           Pin_Type,            Cell_Type,          FmInfo_Type
+USE CORE_MOD,       ONLY : GroupInfo
+USE CNTL,           ONLY : nTracerCntl
+USE BenchXs,        ONLY : xsbaseBen,           MacXsBen,           xsbaseBen_Cusping,    &
+                           xsbaseDynBen,        xsbaseDynBen_Cusping, DynMacXsBen,        &
+                           xsbaseBen_NEACRP
+USE MacXsLib_Mod,   ONLY : MacXsBase,           MacXsScatMatrix
+USE TRAN_MOD,       ONLY : TranInfo
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: CoreInfo
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(superPin_Type), POINTER :: superPin(:)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+REAL, POINTER :: phis(:, :, :)
+INTEGER :: ng, nxy, myzb, myze, nthread
+LOGICAL :: lxslib, lscat1, lsigt
+
+TYPE(FxrInfo_Type), POINTER :: myFxr
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: Cell(:)
+
+REAL :: phiz(ng, nthread), philz(ng, nthread), phiuz(ng, nthread)
+REAL :: vol(nthread), volsum(nthread)
+INTEGER :: ig, ifsrlocal, ifsr
+INTEGER :: i, j, k, ixy, icel, ipin, iz, ifxr, ifxr_global, itype, tid
+INTEGER :: FsrIdxSt, FxrIdxSt
+INTEGER :: nChi, norg, nLocalFsr, nLocalFxr, nFsrInFxr
+INTEGER :: irgb, irge
+LOGICAL :: lCusping
+
+IF (nTracerCntl%lMacro) THEN
+  CALL HomogenizeMacroXS_Cusping(CoreInfo, FmInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, nthread, lxslib, lscat1, lsigt)
+  RETURN
+ENDIF
+
+Pin => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
+nChi = GroupInfo%nChi
+
+IF (lxslib) THEN
+  norg = GroupInfo%norg
+  irgb = GroupInfo%nofg + 1
+  irge = GroupInfo%nofg + GroupInfo%norg
+ENDIF
+
+!$OMP PARALLEL PRIVATE(tid, ipin, icel, ifxr, ifxr_global, itype, FsrIdxSt, nFsrInFxr, FxrIdxSt, nLocalFxr, myFxr, ifsrlocal, ifsr)
+tid = omp_get_thread_num() + 1
+
+DO iz = myzb, myze
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ixy = 1, nxy
+    nLocalFxr = 0
+    DO j = 1, superPin(ixy)%nxy
+      ipin = superPin(ixy)%pin(j)
+      icel = Pin(ipin)%Cell(iz)
+      FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+      DO i = 1, Cell(icel)%nFxr
+        ifxr = nLocalFxr + i; ifxr_global = FxrIdxSt + i - 1; nFsrInFxr = Cell(icel)%nFsrInFxr(i)
+        myFxr => Fxr(ifxr_global, iz)
+        XsMac(ifxr, tid)%lFuel = FALSE
+        IF (lxslib) THEN
+          CALL MacXsBase(XsMac(ifxr, tid), myFxr, 1, ng, ng, 1.0D0, FALSE, FALSE, TRUE)
+          CALL MacXsScatMatrix(XsMac(ifxr, tid), myFxr, 1, ng, ng, GroupInfo, FALSE, TRUE)
+          IF (myFxr%lres) THEN
+            XsMac(ifxr, tid)%XsMacA(irgb : irge) = myFxr%FresoA(irgb : irge) * XsMac(ifxr, tid)%XsMacA(irgb : irge)
+            IF (CoreInfo%lFuelPlane(iz)) THEN
+              XsMac(ifxr, tid)%XsMacNf(irgb : irge) = myFxr%fresonf(irgb : irge) * XsMac(ifxr, tid)%XsMacNf(irgb : irge)
+              XsMac(ifxr, tid)%XsMacKf(irgb : irge) = myFxr%fresokf(irgb : irge) * XsMac(ifxr, tid)%XsMacKf(irgb : irge)
+            ENDIF
+          ENDIF
+          XsMac(ifxr, tid)%XsMacTr = XsMac(ifxr, tid)%XsMacA + XsMac(ifxr, tid)%XsMacStr
+          XsMac(ifxr, tid)%XsMacT = XsMac(ifxr, tid)%XsMacA + XsMac(ifxr, tid)%XsMacS
+          XsMac(ifxr, tid)%Chi = 0.0
+          IF (myFxr%lDepl) THEN
+            XsMac(ifxr, tid)%Chi(1 : nChi) = myFxr%Chi
+            XsMac(ifxr, tid)%lFuel = TRUE
+          ENDIF
+        ELSE
+          itype = myFxr%imix
+          IF(nTracerCntl%lDynamicBen) THEN
+            lCusping = DynMacXsBen(itype)%lCusping
+          ELSE
+            lCusping = MacXsBen(itype)%lCusping
+          END IF
+          IF(lCusping) THEN
+            phiz(:,tid) = 0.
+            philz(:, tid) = 0.
+            phiuz(:, tid) = 0.
+            volsum(tid) = 0.
+            DO ig = 1, ng
+              DO k = 1, nfsrinfxr
+                ifsrlocal = Cell(icel)%MapFxr2FsrIdx(k, i)
+                ifsr = FsrIdxSt + ifsrlocal - 1
+                vol(tid) = Cell(icel)%Vol(ifsrlocal)
+                IF(ig .EQ. 1) volsum(tid) = volsum(tid) + vol(tid)
+                phiz(ig, tid) = Phiz(ig, tid) + Phis(ifsr, iz, ig) * vol(tid)
+                IF(iz .EQ. myzb) THEN
+                  philz(ig, tid) = philz(ig, tid) + FmInfo%neighphis(ifsr, ig, BOTTOM) * vol(tid)
+                ELSE
+                  philz(ig, tid) = philz(ig, tid) + phis(ifsr, iz-1, ig) * vol(tid)
+                END IF
+                IF(iz .EQ. myze) THEN
+                  phiuz(ig, tid) = phiuz(ig, tid) + FmInfo%neighphis(ifsr, ig, TOP) * vol(tid)
+                ELSE
+                  phiuz(ig, tid) = phiuz(ig, tid) + phis(ifsr, iz+1, ig) * vol(tid)
+                END IF
+              END DO
+              phiz(ig, tid) = phiz(ig, tid) / volsum(tid)
+              philz(ig, tid) = philz(ig, tid) / volsum(tid)
+              phiuz(ig, tid) = phiuz(ig, tid) / volsum(tid)
+            END DO
+            IF(nTracerCntl%libtyp .EQ. 11) THEN
+              CALL xsbaseben_NEACRP(itype, myFxr%rho, myFxr%temp, myFxr%DopTemp, XsMac(ifxr, tid))
+            ELSE
+              IF(nTracerCntl%lDynamicBen) THEN
+                CALL xsbaseDynBen_Cusping(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid),&
+                  phiz(:,tid), philz(:,tid), phiuz(:,tid), CoreInfo%hzfm(iz), CoreInfo%hzfm(iz-1), CoreInfo%hzfm(iz+1))
+              ELSE
+                CALL xsbaseBen_Cusping(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid),&
+                  phiz(:,tid), philz(:,tid), phiuz(:,tid), CoreInfo%hzfm(iz), CoreInfo%hzfm(iz-1), CoreInfo%hzfm(iz+1))
+              END IF
+            END IF
+          ELSE
+            IF(nTracerCntl%libtyp .EQ. 11) THEN
+              CALL xsbaseben_NEACRP(itype, myFxr%rho, myFxr%temp, myFxr%DopTemp, XsMac(ifxr, tid))
+            ELSE
+              IF(nTracerCntl%lDynamicBen) THEN
+                CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+              ELSE
+                CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+              END IF
+            ENDIF
+          END IF
+        ENDIF
+      ENDDO
+      nLocalFxr = nLocalFxr + Cell(icel)%nFxr
+    ENDDO
+    CALL HomogenizeCellXS(CoreInfo, superPin(ixy), PinXS(ixy, iz), XsMac(1 : nLocalFxr, tid), phis, iz, ng, lxslib, lsigt)
+  ENDDO
+  !$OMP END DO
+ENDDO
+
+!$OMP END PARALLEL
+
+END SUBROUTINE
+
+SUBROUTINE HomogenizeMacroXS_Cusping(CoreInfo, FmInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, nthread, lxslib, lscat1, lsigt)
+USE PARAM
+USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
+                           Pin_Type,            Cell_Type,          FmInfo_Type
+USE CNTL,           ONLY : nTracerCntl
+USE CORE_MOD,       ONLY : GroupInfo
+USE BenchXs,        ONLY : xsbaseBen,           MacXsBen,           xsbaseBen_Cusping,  &
+                           xsbaseDynBen,        xsbaseDynBen_Cusping, DynMacXsBen, xsbaseBen_NEACRP
+USE TRAN_MOD,       ONLY : TranInfo,            TranCntl
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: CoreInfo
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(superPin_Type), POINTER :: superPin(:)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+REAL, POINTER :: phis(:, :, :)
+INTEGER :: ng, nxy, myzb, myze, nthread
+LOGICAL :: lxslib, lscat1, lsigt
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: Cell(:)
+REAL :: phiz(ng, nthread), philz(ng, nthread), phiuz(ng, nthread)
+REAL :: vol(nthread), volsum(nthread)
+INTEGER :: nfsrinfxr, FsrIdxSt
+INTEGER :: ifsrlocal, ifsr
+INTEGER :: i, j, k, ig, igf, igs, ixy, iz, ipin, icel, itype, ifxr, ifxr_global, tid
+INTEGER :: FxrIdxSt, nLocalFxr, nChi
+LOGICAL :: lCusping
+
+Pin => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
+nChi = GroupInfo%nChi
+
+!$OMP PARALLEL PRIVATE(tid, ipin, icel, igs, itype, ifxr, ifxr_global, FxrIdxSt, FsrIdxSt, nLocalFxr, nfsrinfxr, ifsrlocal, ifsr)
+tid = omp_get_thread_num() + 1
+
+DO iz = myzb, myze
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ixy = 1, nxy
+    nLocalFxr = 0
+    DO j = 1, superPin(ixy)%nxy
+      ipin = superPin(ixy)%pin(j)
+      icel = Pin(ipin)%Cell(iz)
+      FxrIdxSt = Pin(ipin)%FxrIdxSt
+      FsrIdxSt = Pin(ipin)%FsrIdxSt
+      DO i = 1, Cell(icel)%nFxr
+        ifxr = nLocalFxr + i; ifxr_global = FxrIdxSt + i - 1
+        nFsrInFxr = Cell(icel)%nFsrInFxr(i)
+        IF (lxslib) THEN
+          XsMac(ifxr, tid)%XsMacT = CoreXsMac(iz)%XSt(:, ifxr_global)
+          XsMac(ifxr, tid)%XsMacTr = CoreXsMac(iz)%XStr(:, ifxr_global)
+          XsMac(ifxr, tid)%XsMacA = CoreXsMac(iz)%XSa(:, ifxr_global)
+          XsMac(ifxr, tid)%XsMacNf = CoreXsMac(iz)%XSnf(:, ifxr_global)
+          XsMac(ifxr, tid)%XsMacKf = CoreXsMac(iz)%XSkf(:, ifxr_global)
+          DO ig = 1, ng
+            DO igf = InScatRange(1, ig), InScatRange(2, ig)
+              igs = InScatIdx(igf, ig)
+              XsMac(ifxr, tid)%XsMacSm(igf, ig) = CoreXsMac(iz)%XSsm(igs, ifxr_global)
+            ENDDO
+          ENDDO
+          XsMac(ifxr, tid)%Chi = 0.0
+          XsMac(ifxr, tid)%lFuel = FALSE
+          IF (Fxr(ifxr_global, iz)%lDepl) THEN
+            XsMac(ifxr, tid)%Chi(1 : nChi) = Fxr(ifxr_global, iz)%Chi
+            XsMac(ifxr, tid)%lFuel = TRUE
+          ENDIF
+        ELSE
+          itype = Fxr(ifxr_global, iz)%imix
+          IF(TranCntl%lDynamicBen) THEN
+            lCusping = DynMacXsBen(itype)%lCusping
+          ELSE
+            lCusping = MacXsBen(itype)%lCusping
+          END IF
+          IF(lCusping) THEN
+            phiz(:,tid) = 0.
+            philz(:, tid) = 0.
+            phiuz(:, tid) = 0.
+            volsum(tid) = 0.
+            DO ig = 1, ng
+              DO k = 1, nfsrinfxr
+                ifsrlocal = Cell(icel)%MapFxr2FsrIdx(k, i)
+                ifsr = FsrIdxSt + ifsrlocal - 1
+                vol(tid) = Cell(icel)%Vol(ifsrlocal)
+                IF(ig .EQ. 1) volsum(tid) = volsum(tid) + vol(tid)
+                phiz(ig, tid) = Phiz(ig, tid) + Phis(ifsr, iz, ig) * vol(tid)
+                IF(iz .EQ. myzb) THEN
+                  philz(ig, tid) = philz(ig, tid) + FmInfo%neighphis(ifsr, ig, BOTTOM) * vol(tid)
+                ELSE
+                  philz(ig, tid) = philz(ig, tid) + phis(ifsr, iz-1, ig) * vol(tid)
+                END IF
+                IF(iz .EQ. myze) THEN
+                  phiuz(ig, tid) = phiuz(ig, tid) + FmInfo%neighphis(ifsr, ig, TOP) * vol(tid)
+                ELSE
+                  phiuz(ig, tid) = phiuz(ig, tid) + phis(ifsr, iz+1, ig) * vol(tid)
+                END IF
+              END DO
+              phiz(ig, tid) = phiz(ig, tid) / volsum(tid)
+              philz(ig, tid) = philz(ig, tid) / volsum(tid)
+              phiuz(ig, tid) = phiuz(ig, tid) / volsum(tid)
+            END DO
+            IF(TranCntl%lDynamicBen) THEN
+              CALL xsbaseDynBen_Cusping(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid),&
+                phiz(:,tid), philz(:,tid), phiuz(:,tid), CoreInfo%hzfm(iz), CoreInfo%hzfm(iz-1), CoreInfo%hzfm(iz+1))
+            ELSE
+              CALL xsbaseBen_Cusping(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid),&
+                phiz(:,tid), philz(:,tid), phiuz(:,tid), CoreInfo%hzfm(iz), CoreInfo%hzfm(iz-1), CoreInfo%hzfm(iz+1))
+            END IF
+          ELSE
+            IF(nTracerCntl%libtyp .EQ. 11) THEN
+              !IF(ixy .EQ. 1) PRINT*, 'NEACRP base xs'
+              CALL xsbaseben_NEACRP(itype, Fxr(ifxr_global,iz)%rho, Fxr(ifxr_global,iz)%temp, Fxr(ifxr_global,iz)%DopTemp, XsMac(ifxr, tid))
+            ELSE
+              IF(nTracerCntl%lDynamicBen) THEN
+                CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+              ELSE
+                CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
+              END IF
+            ENDIF
+          END IF
         ENDIF
       ENDDO
       nLocalFxr = nLocalFxr + Cell(icel)%nFxr
@@ -343,7 +642,6 @@ DO ig = 1, ng
         ireg = Cell(icel)%MapFxr2FsrIdx(j, i)
         ifsr = FsrIdxSt + ireg - 1
         vol = Cell(icel)%vol(ireg)
-        
         localphi = localphi + phis(ifsr, iz, ig) * vol
         volsum = volsum + vol
       ENDDO
@@ -435,7 +733,6 @@ IF (lFuel) THEN
         ireg = Cell(icel)%MapFxr2FsrIdx(j, i)
         ifsr = FsrIdxSt + ireg - 1
         vol = Cell(icel)%vol(ireg)
-        
         DO ig = 1, ng
           psi = phis(ifsr, iz, ig) * vol * XsMac(ifxr)%XsMacNf(ig)
           psisum = psisum + psi
@@ -504,13 +801,12 @@ INTEGER :: ig, ipin, ineighpin, iz, ibd, inbd
 REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy
 REAL, POINTER :: superJout(:, :, :, :, :)
 
-ALLOCATE(superJout(3, ncbd, nxy, myzb : myze, ng))
-
 IF (nTracerCntl%lHex) THEN
   CALL HexSetRadialCoupling(Pin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
-  
+
   RETURN
 END IF
+ALLOCATE(superJout(3, ncbd, nxy, myzb : myze, ng))
 
 CALL superPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 
@@ -519,7 +815,7 @@ CALL superPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 DO ig = 1, ng
   DO iz = myzb, myze
     DO ipin = 1, nxy
-      DO ibd = 1, Pin(ipin)%nNgh
+      DO ibd = 1, 4
         ineighpin = Pin(ipin)%NeighIdx(ibd)
         inbd = Pin(ipin)%NeighSurfIdx(ibd)
         smy = Pin(ipin)%BdLength(ibd)
@@ -713,6 +1009,7 @@ IF (.NOT. lSuperpin) THEN
     superPin(ixy)%Area = Pin(ixy)%BdLength(WEST) * Pin(ixy)%BdLength(SOUTH)
     superPin(ixy)%pin = ixy
     superPin(ixy)%pin2D = ixy
+    Pin(ixy)%isuperPin = ixy
   ENDDO
   DO ixy = 1, nxy
     ALLOCATE(superPin(ixy)%lFuel(myzb : myze))
@@ -1016,7 +1313,7 @@ IF (CoreInfo%lRot) THEN
   node(0, 1 : nx) = node(1 : nx, 1)
   node(1 : ny, 0) = node(1, 1 : ny)
 ELSEIF (CoreInfo%lCbd) THEN
-  
+
 ENDIF
 
 DO iy = 1, ny
@@ -1073,6 +1370,221 @@ DO ixy = 1, nxy
     ENDIF
   ENDDO
 ENDDO
+
+DO ixy = 1, nxy
+  DO i = 1, superPin(ixy)%nxy
+    ipin = superPin(ixy)%pin(i)
+    Pin(ipin)%isuperPin = ixy
+  END DO
+END DO
+
+END SUBROUTINE
+
+SUBROUTINE HomogenizeKinParam(Core, FmInfo, TranInfo, TranCntl, GroupInfo, superPin, PinXS, nxy, myzb, myze, ng, nprec, lxslib)
+USE PARAM
+USE TYPEDEF,          ONLY : CoreInfo_Type,     FmInfo_Type,      TranInfo_Type,      TranCntl_Type,    GroupInfo_Type,   &
+                             PinXS_Type,        FxrInfo_Type,     Pin_Type,           Cell_Type
+USE BenchXs,          ONLY : DnpBetaBen,        NeutVeloBen,      DnpBetaDynBen,      NeutVeloDynBen
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(superPin_Type), POINTER :: superPin(:)
+TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+INTEGER :: nxy, myzb, myze, ng, nprec
+LOGICAL :: lxslib
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: Cell(:)
+TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
+TYPE(FxrInfo_Type), POINTER :: myFxr
+REAL, POINTER :: Psi(:, :), phis(:, :, :)
+REAL :: beta0(nprec), beta(nprec), chid(ng)
+REAL :: velo0(ng), velo(ng), phisum(ng)
+REAL :: vol, psisum, locpsi, locphi, betat
+INTEGER :: norg, nChi, irgb, irge
+INTEGER :: FsrIdxSt, FxrIdxSt, nFsrInFxr
+INTEGER :: iz, ixy, ipin, icel, ifxr, ifsrlocal, ifsr, ig
+INTEGER :: i, j, k
+
+Pin => Core%Pin
+Cell => Core%CellInfo
+Fxr => FmInfo%Fxr
+Psi => FmInfo%Psi
+phis => FmInfo%Phis
+
+nChi = GroupInfo%nChi
+IF(lxslib) THEN
+  norg = GroupInfo%norg
+  irgb = GroupInfo%nofg + 1
+  irge = GroupInfo%nofg + GroupInfo%norg
+END IF
+
+chid(1:ng) = TranInfo%chid(1:ng)
+
+!$OMP PARALLEL PRIVATE(beta, velo, psisum, phisum, ipin, icel, FsrIdxSt, FxrIdxSt, ifxr, nFsrInFxr, &
+!$OMP                  myFxr, beta0, velo0, ifsrlocal, ifsr, vol, locpsi, locphi, betat)
+DO iz = myzb, myze
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ixy = 1, nxy
+    beta = 0.
+    velo = 0.
+    psisum = 0.
+    phisum = 0.
+    DO k = 1, superPin(ixy)%nxy
+      ipin = superPin(ixy)%pin(k)
+      icel = Pin(ipin)%Cell(iz)
+      FsrIdxSt = Pin(ipin)%FsrIdxSt
+      FxrIdxSt = Pin(ipin)%FxrIdxSt
+
+      DO j = 1, Cell(icel)%nFxr
+        ifxr = FxrIdxSt + j - 1
+        nFsrInFxr = Cell(icel)%nFsrInFxr(j)
+
+        myFxr => Fxr(ifxr, iz)
+        IF(lxslib) THEN
+          beta0(1:nprec) = myFxr%Beta(1:nprec)
+          velo0(1:ng) = myFxr%veloh(1:ng)
+        ELSE
+          IF(TranCntl%lDynamicBen) THEN
+            CALL DnpBetaDynBen(myFxr%imix, TranInfo%fuelTemp(ipin, iz), beta0(1:nprec))
+            CALL NeutVeloDynBen(myFxr%imix, TranInfo%fuelTemp(ipin, iz), velo0(1:ng))
+          ELSE
+            CALL DnpBetaBen(myFxr%imix, beta0(1:nprec))
+            CALL NeutVeloBen(myFxr%imix, velo0(1:ng))
+          END IF
+        END IF
+
+        DO i = 1, nFsrInFxr
+          ifsrlocal = Cell(icel)%MapFxr2FsrIdx(i, j)
+          ifsr = FsrIdxSt + ifsrlocal - 1
+
+
+          vol = Cell(icel)%vol(ifsrlocal)
+          locpsi = Psi(ifsr, iz) * vol
+          beta(1:nprec) = beta(1:nprec) + beta0(1:nprec) * locpsi
+          psisum = psisum + locpsi
+          DO ig = 1, ng
+            locphi = phis(ifsr, iz, ig) * vol
+            velo(ig) = velo(ig) + 1._8 / velo0(ig) * locphi
+            phisum(ig) = phisum(ig) + locphi
+          END DO
+        END DO
+      END DO
+    END DO
+    IF(psisum .GT. 0) THEN
+      beta(1:nprec) = beta(1:nprec) / psisum
+    ELSE
+      beta(1:nprec) = 0.
+    END IF
+    PinXS(ixy, iz)%Beta(1:nprec) = beta(1:nprec)
+    DO ig = 1, ng
+      velo(ig) = phisum(ig) / velo(ig)
+      PinXS(ixy, iz)%velo(ig) = velo(ig)
+    END DO
+
+    betat = sum(beta(1:nprec))
+    PinXS(ixy, iz)%betat = betat
+    PinXS(ixy, iz)%chip(1:ng) = (PinXS(ixy, iz)%Chi(1:ng) - betat * chid(1:ng)) / (1._8 - betat)
+  END DO
+  !$OMP END DO
+END DO
+!$OMP END PARALLEL
+
+NULLIFY(Pin, Cell, Fxr, Psi, phis)
+
+END SUBROUTINE
+
+SUBROUTINE SetCMFDPrecCoeff(TranInfo, TranCntl, PinXS, CellOmegam, CellOmega0, CellOmegap, nxy, myzb, myze, nprec)
+USE PARAM
+USE TYPEDEF,          ONLY : TranInfo_Type,      TranCntl_Type,      PinXS_Type
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+REAL, POINTER :: CellOmegam(:, :, :), CellOmega0(:, :, :), CellOmegap(:, :, :)
+INTEGER :: nxy, myzb, myze, nprec
+
+REAL :: lambda(nprec), invlambda(nprec)
+REAL :: invldt(nprec), invldtgp1(nprec), kapbinvldt(nprec), kapbinvldt2(nprec), kappa(nprec), kappap1(nprec)
+REAL :: omegam(nprec), omega0(nprec), omegap(nprec)
+REAL :: delt, deltp, gamma, invgamma, invgammap1
+REAL :: omegalm, omegal0, omegalp
+INTEGER :: norder, nowstep
+INTEGER :: i, ixy, iz
+
+nowstep = TranCntl%nowstep
+delt = TranCntl%delt(nowstep)
+IF(nowstep .EQ. 1) THEN ! .OR. abs(TranCntl%theta - 0.5) .GT. epsm6) THEN
+  norder = 1
+  deltp = TranCntl%Delt(nowstep)
+ELSE
+  norder = 2
+  deltp = TranCntl%Delt(nowstep-1)
+END IF
+
+IF(norder .EQ. 2) THEN
+  gamma = delt / deltp
+  invgamma = 1._8 / gamma
+  invgammap1 = 1._8 / (gamma + 1._8)
+END IF
+DO i = 1, nprec
+  lambda(i) = TranInfo%lambda(i)
+  invlambda(i) = 1._8 / TranInfo%lambda(i)
+  kappa(i) = exp(-lambda(i) * delt)
+  kappap1(i) = kappa(i) + 1._8
+  invldt(i) = 1._8 / (deltp * lambda(i))
+  kapbinvldt(i) = (1._8 - kappa(i)) * invldt(i)
+  IF(norder .EQ. 2) THEN
+    invldtgp1(i) = invldt(i) * invgammap1
+    kapbinvldt2(i) = (1._8 - kappa(i)) * (1._8 - 2._8 * invldt(i))
+  END IF
+END DO
+IF(norder .EQ. 1) THEN
+  DO i = 1, nprec
+    omegam(i) = 0
+    omega0(i) = invlambda(i) * (kapbinvldt(i) - kappa(i))
+    omegap(i) = invlambda(i) * (1 - kapbinvldt(i))
+  END DO
+ELSE
+  DO i = 1, nprec
+    omegam(i) = invlambda(i) * invldtgp1(i) * (2._8 * kapbinvldt(i) - gamma * kappap1(i))
+    omega0(i) = invlambda(i) * (invldt(i) *(kappap1(i) + kapbinvldt2(i) * invgamma) - kappa(i))
+    omegap(i) = invlambda(i) * (1 - invldtgp1(i) * (2._8 + kapbinvldt2(i) * invgamma))
+  END DO
+END IF
+
+CellOmegam = 0._8
+CellOmega0 = 0._8
+CellOmegap = 0._8
+
+!$OMP PARALLEL PRIVATE(omegalm, omegal0, omegalp)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+DO iz = myzb, myze
+  DO ixy = 1, nxy
+    omegalm = 0.
+    omegal0 = 0.
+    omegalp = 0.
+    DO i = 1, nprec
+      CellOmegam(i, ixy, iz) = PinXS(ixy, iz)%beta(i) * omegam(i)
+      CellOmega0(i, ixy, iz) = PinXS(ixy, iz)%beta(i) * omega0(i)
+      CellOmegap(i, ixy, iz) = PinXS(ixy, iz)%beta(i) * omegap(i)
+
+      omegalm = omegalm + CellOmegam(i, ixy, iz) * lambda(i)
+      omegal0 = omegal0 + CellOmega0(i, ixy, iz) * lambda(i)
+      omegalp = omegalp + CellOmegap(i, ixy, iz) * lambda(i)
+    END DO
+    CellOmegam(0, ixy, iz) = omegalm
+    CellOmega0(0, ixy, iz) = omegal0
+    CellOmegap(0, ixy, iz) = omegalp
+
+    PinXS(ixy, iz)%omega = omegalp
+  END DO
+END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
 END SUBROUTINE
 

@@ -13,6 +13,7 @@ USE FILES,          ONLY : io8
 USE TH_Mod,         ONLY : GetPinFuelTemp
 USE SUBGRP_MOD,     ONLY : UpdtCoreIsoInfo
 USE MPIComm_Mod,    ONLY : MPI_SYNC
+USE TIMER,          ONLY : nTracer_dclock,       TimeChk
 USE OMP_LIB
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
@@ -30,9 +31,10 @@ TYPE(XsMac_Type), SAVE :: XsMac(nThreadMax)
 REAL,INTENT(IN) :: eigv
 INTEGER :: nxy, myzb, myze, iz, ipin, xyb, xye, FxrIdxSt, nlocalFxr, j, ifxr, icel  !--- (xyb, xye)CNJ Edit : Domain Decomposition + MPI
 INTEGER :: ng, ig, iresoGrp1, iresoGrp2, niso, iso, tid
-REAL :: PinFuelTempAvgsq, XsMacAold, XsMacFold, XsMacNFold, XsMacSold, XsMacStrold
-REAL :: isoXsMacAold(500),isoXsMacFold(500),isoXsMacNFold(500),isoXsMacSold(500),isoXsMacS1old(500),isoXsMacSSold(500),isoxsmaccapold(500)
+REAL :: PinFuelTempAvgsq, XsMacAold, XsMacFold, XsMacNFold, XsMackFold, XsMacSold, XsMacStrold
+REAL :: isoXsMacAold(700),isoXsMacFold(700),isoXsMacNFold(700),isoXsMackFold(700),isoXsMacSold(700),isoXsMacS1old(700),isoXsMacSSold(700),isoxsmaccapold(700)
 LOGICAL :: lxslib, lSubGrpSweep, lAIC, lmcxs
+REAL :: Tbeg, Tend
 
 INTEGER :: iso_mc,niso_mc,imc,iz_mc,ixa_mc,iya_mc,ixya_mc,iasytype_mc,ixc_mc,iyc_mc,ixyc_mc,ixy_mc,ifxr1_mc,ifxr2_mc
 
@@ -43,6 +45,7 @@ IF(.NOT. lxslib) RETURN
 
 WRITE(mesg, '(A)') 'Update Subgroup Effective XSs...'
 IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+Tbeg = nTracer_Dclock(FALSE, FALSE)
 
 Pin => Core%Pin; CellInfo => Core%CellInfo
 ResVarPin => Core%ResVarPin;
@@ -70,7 +73,7 @@ DO iz = myzb, myze
   !! Instead, pin-wise parallelization is adopted. (2018-03-24 by PHS)
   !$OMP PARALLEL DEFAULT(SHARED)      &
   !$OMP PRIVATE(ipin, mypin, FxrIdxSt, icel, myCell, lAIC, nlocalFxr, PinFuelTempAvgsq, j, ifxr, myFxr, niso, &
-  !$OMP         tid, ig, XsMacAold, XsMacSold, XsMacFold, XsMacStrold, isoXsMacFold, isoXsMacAold, isoXsMacSold, &
+  !$OMP         tid, ig, XsMacAold, XsMacSold, XsMacFold, XsMacNFold, XsMackFold, XsMacStrold, isoXsMacFold, isoXsMacAold, isoXsMacSold, isoXsMacNFold, isoXsMackFold, &
   !$OMP         isoXsMacS1old, isoXsMacSSold, IsoXsMacCapOld, iso)
   !$  tid = omp_get_thread_num()+1
   !$OMP DO
@@ -103,7 +106,7 @@ DO iz = myzb, myze
 
     PinFuelTempAvgsq = dsqrt(GetPinFuelTemp(Core, Fxr, iz, ipin))
 
-    IF (mypin%lres.and.nTracerCntl%lRIF) CALL EffRIFPin(mypin, PinFuelTempAvgsq, iz, lAIC, PE)
+    IF (mypin%lres.AND.nTracerCntl%lRIF.AND..NOT.nTRACERCntl%lRIFFXR) CALL EffRIFPin(mypin, PinFuelTempAvgsq, iz, lAIC, PE)
 
     DO j = 1, nLocalFxr
       ifxr = FxrIdxSt + j -1
@@ -115,6 +118,8 @@ DO iz = myzb, myze
       do ig = iResoGrp1, iResoGrp2
         myFxr%fresoa(ig) = 1._8
         myFxr%fresof(ig) = 1._8
+        myFxr%fresoNf(ig) = 1._8
+        myFxr%fresokf(ig) = 1._8
         do iso = 1, niso
           myFXR%fresoAIso(iso,ig) = 1._8
           myFXR%fresoFIso(iso,ig) = 1._8
@@ -136,10 +141,12 @@ DO iz = myzb, myze
       CALL MacXsBase(XsMac(tid), myFxr, iResoGrp1, iResoGrp2, ng, eigv, FALSE, TRUE)
 
       DO ig = iResoGrp1, iResoGrp2
-        XsMacAold = XsMac(tid)%XsMacA(ig); XsMacFold = XsMac(tid)%XsMacF(ig); XsMacNFold = XsMac(tid)%XsMacNF(ig)
-        XsMacSold = XsMac(tid)%XsMacS(ig); XsMacStrold = XsMac(tid)%XsMacStr(ig)
+        XsMacAold = XsMac(tid)%XsMacA(ig); XsMacFold = XsMac(tid)%XsMacF(ig);
+        XsMacNFold = XsMac(tid)%XsMacNF(ig); XsMackFold = XsMac(tid)%XsMackF(ig)
+        XsMacSold = XsMac(tid)%XsMacS(ig); XsMacStrold = XsMac(tid)%XsMacStr(ig);
         CALL CP_VA(isoXsMacFold(1:niso),XsMac(tid)%IsoXsMacF(1:niso,ig),niso)
         CALL CP_VA(isoXsMacNFold(1:niso),XsMac(tid)%IsoXsMacNF(1:niso,ig),niso)
+        CALL CP_VA(isoXsMackFold(1:niso),XsMac(tid)%IsoXsMackF(1:niso,ig),niso)
         CALL CP_VA(isoXsMacAold(1:niso),XsMac(tid)%IsoXsMacA(1:niso,ig),niso)
         IF (nTracerCntl%lRST) THEN
           CALL CP_VA(isoXsMacSold(1:niso),XsMac(tid)%IsoXsMacS0(1:niso,ig),niso)
@@ -147,7 +154,8 @@ DO iz = myzb, myze
           CALL CP_VA(isoXsMacSSold(1:niso),XsMac(tid)%IsoXsMacSS(1:niso,ig),niso)
         ENDIF
         CALL CP_VA(IsoXsMacCapOld(1:niso),XsMac(tid)%IsoXsRadCap(1:niso,ig),niso)     !-- JSU EDIT 20170727
-        CALL EffMacXs(XsMac(tid), mypin, myFxr, PinFuelTempAvgsq, niso, ig, ng, .TRUE., iz, PE)
+        CALL EffMacXs(XsMac(tid), mypin, myFxr, PinFuelTempAvgsq, niso, ig, ng, .TRUE., iz, PE, ifxr)
+
         if (lmcxs.and.((j.ge.ifxr1_mc).and.(j.le.ifxr2_mc))) then
           do iso=1,niso
             do iso_mc=1,niso_mc
@@ -160,20 +168,52 @@ DO iz = myzb, myze
             XsMac(tid)%IsoXsMacNF(iso,ig)= nTracerCntl%mcxs(imc)%isoxsnf(ig,j,iso_mc)
           enddo
           myFxr%fresoa(ig) = XsMac(tid)%XsMacA(ig) / XsMacAold
-          IF(XsMacNFold .gt. epsm8) myFxr%fresof(ig) = XsMac(tid)%XsMacNf(ig) / XsMacNFold
+          IF(XsMacNFold .gt. epsm8) THEN
+            myFxr%fresof(ig) = XsMac(tid)%XsMacf(ig) / XsMacFold
+            myFxr%fresoNf(ig) = XsMac(tid)%XsMacNf(ig) / XsMacNFold
+            myFxr%fresokf(ig) = XsMac(tid)%XsMackf(ig) / XsMackFold
+          END IF
           DO iso = 1, niso
             myFXR%fresoAIso(iso,ig) = XsMac(tid)%IsoXsMacA(iso,ig) / isoXsMacAold(iso)
             IF (isoXsMacNFold(iso) .GT. epsm8) myFXR%fresoFIso(iso,ig) = XsMac(tid)%IsoXsMacNF(iso,ig) / isoXsMacNFold(iso)
           ENDDO
+          IF (nTRACERCntl%lGamma) THEN
+            IF(XsMacNFold .gt. epsm8) THEN ! Radioactive Capture resonance fraction...
+              DO iso = 1, niso
+                myFxr%fresocapIso(iso, ig) = (XsMac(tid)%IsoXsMacA(iso,ig) - XsMac(tid)%IsoXsMacF(iso,ig)) / (isoXsMacAold(iso) - isoXsMacFold(iso))
+              END DO
+            ELSE
+              DO iso = 1, niso
+                myFxr%fresocapIso(iso, ig) = XsMac(tid)%IsoXsMacA(iso,ig) / isoXsMacAold(iso)
+              END DO
+            END IF
+          END IF
         else
           myFxr%fresoa(ig) = XsMac(tid)%XsMacA(ig) / XsMacAold
-          IF(XsMacFold .gt. epsm8) myFxr%fresof(ig) = XsMac(tid)%XsMacf(ig) / XsMacFold
+          IF(XsMacFold .gt. epsm8) THEN
+            myFxr%fresof(ig) = XsMac(tid)%XsMacf(ig) / XsMacFold
+            myFxr%fresoNf(ig) = XsMac(tid)%XsMacNf(ig) / XsMacNFold
+            myFxr%fresokf(ig) = XsMac(tid)%XsMackf(ig) / XsMackFold
+!            myFxr%fresokf(ig) = myFxr%fresof(ig)
+          END IF
 
           DO iso = 1, niso
             myFXR%fresoAIso(iso,ig) = XsMac(tid)%IsoXsMacA(iso,ig) / isoXsMacAold(iso)
             IF (isoXsMacFold(iso) .GT. epsm8) myFXR%fresoFIso(iso,ig) = XsMac(tid)%IsoXsMacF(iso,ig) / isoXsMacFold(iso)
           ENDDO
+          IF (nTRACERCntl%lGamma) THEN
+          IF(isoXsMacFold(iso) .gt. epsm8) THEN ! Radioactive Capture resonance fraction...
+            DO iso = 1, niso
+              myFxr%fresocapIso(iso, ig) = (XsMac(tid)%IsoXsMacA(iso,ig) - XsMac(tid)%IsoXsMacF(iso,ig)) / (isoXsMacAold(iso) - isoXsMacFold(iso))
+            END DO
+          ELSE
+            DO iso = 1, niso
+              myFxr%fresocapIso(iso, ig) = XsMac(tid)%IsoXsMacA(iso,ig) / isoXsMacAold(iso)
+            END DO
+          END IF
+          END IF
         endif
+
 
         IF (nTracerCntl%lRST) THEN
           myFxr%fresos(ig) = XsMac(tid)%XsMacS(ig) / XsMacSold
@@ -196,6 +236,8 @@ ENDDO
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 
 NULLIFY(PIN, ResVarPin, CellINfo, myFxr, myPin, myCell)
+Tend = nTracer_Dclock(FALSE, FALSE)
+TimeChk%SubGrpGenEFFXSTime = TimeChk%SubGrpGenEFFXSTime + (Tend - Tbeg)
 
 END SUBROUTINE
 
@@ -238,8 +280,12 @@ phis => FmInfo%phis
 myzb = PE%myzb; myze = PE%myze
 ng = GroupInfo%ng; nchi = GroupInfo%nchi
 nxy = COre%nxy; nFsr = Core%nCoreFsr; nFxr = Core%nCoreFxr
-ALLOCATE(Spectrum(ng))
+!ALLOCATE(Spectrum(ng))
 DO iz = myzb, myze
+  !$OMP PARALLEL DEFAULT(SHARED)&
+  !$OMP PRIVATE(ipin,FxrIdxSt,FsrIdxSt,icel,nlocalFxr,j,ifxr,myFxr,nFsrInFxr,ig,i,l,vol,ifsr,volsum,phisum,Spectrum)
+  ALLOCATE(Spectrum(ng))
+  !$OMP DO SCHEDULE(GUIDED)
   DO ipin = 1, nxy
     FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
     icel = Pin(ipin)%Cell(iz)
@@ -249,7 +295,8 @@ DO iz = myzb, myze
       ifxr = FxrIdxSt + j -1;  myFxr => Fxr(ifxr, iz)
       IF(.NOT. myFXR%lfUEL) CYCLE
       nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-      CALL CP_CA(Spectrum, 0._8, ng)
+      !CALL CP_CA(Spectrum, 0._8, ng)
+      Spectrum = 0._8;
       !Obtain a spectrum of Flat Xs Region
       DO ig = 1, ng
         volsum = 0; phisum = 0
@@ -261,16 +308,19 @@ DO iz = myzb, myze
         Spectrum(ig) = phisum/volsum
       ENDDO
 
-      CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng)
+      CALL GetMacChi(myFXR, Spectrum, 1, nchi, nchi, ng, .FALSE.)
     ENDDO
   ENDDO
+  !$OMP END DO
+  DEALLOCATE(Spectrum)
+  !$OMP END PARALLEL
 ENDDO
 
 !Free the variables
-Deallocate(Spectrum)
+!Deallocate(Spectrum)
 IF(ASSOCIATED(CellInfo)) NULLIFY(CellInfo)
 IF(ASSOCIATED(Pin)) NULLIFY(Pin)
 IF(ASSOCIATED(Phis)) NULLIFY(Phis)
-NULLIFY(MyFxr)
+!NULLIFY(MyFxr)
 
 END SUBROUTINE

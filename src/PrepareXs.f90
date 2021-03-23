@@ -3,7 +3,7 @@ SUBROUTINE PrepFxr(lXsLib, lfxr)
 !PrePare
 USE PARAM
 USE TYPEDEF,         ONLY : coreinfo_type,  Pin_Type,    Cell_Type,             &
-                            Mixture_Type,   Fxrinfo_type
+                            Mixture_Type
 USE GEOM,            ONLY : Core,           Pin,         CellInfo,              &
                             CellInfo,       ng
 USE CORE_mod,        ONLY : Fxr,            GroupInfo,   FmInfo      
@@ -17,11 +17,11 @@ USE PE_MOD,          ONLY : PE
 USE BasicOperation,  ONLY : CP_VA
 USE ALLOCS
 USE BenchXs,         ONLY : MacXsBen
-USE XSLIB_MOD,       ONLY : ldiso, mapnucl, CoreResIsoUpdate
+USE XSLIB_MOD,       ONLY : ldiso, mapnucl, CoreResIsoUpdate, nreshel
+USE PointXSRT_MOD,         ONLY : SetMGnPWInfo, nPGrid, CorePXSIsoUpdate, CalcPSM_ISOPIN
 IMPLICIT NONE
 
 TYPE(Mixture_Type), POINTER :: Mix       
-TYPE(Fxrinfo_type), POINTER :: FXR_Loc
 INTEGER :: i, j, k, ii, id
 INTEGER :: iz, ipin, icel, ireg, ifsr, ifxr, ixsreg, ifsrbeg, ig, imix, imix1, imixp
 INTEGER :: iasytype
@@ -70,76 +70,123 @@ DO iz = myzb, myze
       DO i = 1, nFsrInFxr
         area = area + CellInfo(icel)%vol(CellInfo(icel)%MapFxr2FsrIdx(i, j))
       ENDDO
-      
-      FXR_Loc => Fxr(ixsreg, iz)
-      
-      FXR_Loc%area = area
-      FXR_Loc%ipin = ipin
+      Fxr(ixsreg, iz)%area = area
+      Fxr(ixsreg, iz)%ipin = ipin
       
       imix = CellInfo(icel)%ireg(ifsrbeg)
       if(j.eq.1) imix1=imix
       IF( lfxr )THEN
-          FXR_Loc%imix = ixsreg !celtyp(it)%ireg(ir1)
-          FXR_Loc%lFuel = MacXsBen(ixsreg)%lfuel
+          Fxr(ixsreg, iz)%imix = ixsreg !celtyp(it)%ireg(ir1)
+          Fxr(ixsreg, iz)%lFuel = MacXsBen(ixsreg)%lfuel
           IF(MacXsBen(ixsreg)%lfuel)THEN
               lFuelPin=.TRUE.      
               lFuelPlane=.TRUE.
               IF(.NOT. Core%AsyInfo(iasytype)%lfuel) Core%AsyInfo(iasytype)%lfuel=.TRUE.
           ENDIF          
+          !Fxr(ixsreg, iz)%lFuel
       ELSE
-          FXR_Loc%imix = imix !celtyp(it)%ireg(ir1)
-          FXR_Loc%lFuel = CellInfo(icel)%lFuel
+          Fxr(ixsreg, iz)%imix = imix !celtyp(it)%ireg(ir1)
+          Fxr(ixsreg, iz)%lFuel = CellInfo(icel)%lFuel
       ENDIF
-      FXR_Loc%nFsrInFxr = nFsrInFxr
-      FXR_Loc%FsrIdxSt = FsrIdxSt + ifsrbeg - 1
-      IF(.NOT. lXsLib) CYCLE
+      Fxr(ixsreg, iz)%nFsrInFxr = nFsrInFxr
+      Fxr(ixsreg, iz)%FsrIdxSt = FsrIdxSt + ifsrbeg - 1
+      IF(.NOT. lXsLib) THEN
+        IF(nTracerCntl%libtyp .EQ. 11) THEN 
+          Fxr(ixsreg, iz)%temp = 306.6 + CKELVIN
+          Fxr(ixsreg, iz)%Doptemp = 618.3 + CKELVIN
+          Fxr(ixsreg, iz)%rho = 0.7125
+        END IF
+        CYCLE
+      END IF
       !Only for XSlibrary 
       MIX => Mixture(imix)
-      FXR_Loc%lfuel = Mix%lfuel; FXR_Loc%ldepl = Mix%ldepl
-      FXR_Loc%lCLD = Mix%lCLD
-      FXR_Loc%lAIC = Mix%lAIC
+      Fxr(ixsreg, iz)%lfuel = Mix%lfuel; Fxr(ixsreg, iz)%ldepl = Mix%ldepl
+      Fxr(ixsreg, iz)%lCLD = Mix%lCLD
+      Fxr(ixsreg, iz)%lAIC = Mix%lAIC
       IF(lres .and. Mixture(imix)%lres) then
-          IF (CellInfo(icel)%Geom%lcircle) FXR_Loc%lres = TRUE  !! Only for circular geometry
+          IF (CellInfo(icel)%Geom%lcircle) Fxr(ixsreg, iz)%lres = TRUE  !! Only for circular geometry
       ENDIF
-      FXR_Loc%lh2o = Mix%lh2o; FXR_Loc%temp = Mix%temp
-        !Allocation Isotope list and thems compostion list
-      niso = Mix%niso; nchi = GroupInfo%nchi; ntiso = GroupInfo%ntiso
-      IF(FXR_Loc%ldepl) THEN
-        CALL Dmalloc(FXR_Loc%idiso, ntiso)
-        CALL Dmalloc(FXR_Loc%pnum, ntiso)
-        CALL Dmalloc(FXR_Loc%chi, nchi)
-        FXR_Loc%ndim = ntiso
-      ELSEIF(FXR_Loc%lh2o .AND. nTracerCntl%lInitBoron) THEN
-        CALL Dmalloc(FXR_Loc%idiso, niso + 4)
-        CALL Dmalloc(FXR_Loc%pnum, niso + 4)
-        FXR_Loc%ndim = niso + 4
-      ELSEIF(FXR_Loc%lh2o) THEN
-        CALL Dmalloc(FXR_Loc%idiso, niso + 4)
-        CALL Dmalloc(FXR_Loc%pnum, niso + 4)
-        FXR_Loc%ndim = niso + 4
-      ELSE
-        CALL Dmalloc(FXR_Loc%idiso, niso)
-        CALL Dmalloc(FXR_Loc%pnum, niso)
-        FXR_Loc%ndim = niso
-      ENDIF
-      FXR_Loc%niso = niso; FXR_Loc%niso_depl = niso
-      CALL CP_VA(Fxr(ixsreg,iz)%idiso(1:niso),mix%idiso(1:niso),niso)
-      CALL CP_VA(Fxr(ixsreg,iz)%pnum(1:niso),mix%pnum(1:niso),niso)
-
-      CALL FIndGdFxr(FXR_Loc)
-      IF(FXR_Loc%lDepl) CALL GetFxrHmMass(Fxr(ixsreg,iz), Core%hz(iz))
       if (imix.eq.imix1.and.lflag) then
-          FXR_Loc%lRes = .FALSE.
+          Fxr(ixsreg, iz)%lRes = .FALSE.
       else
           lflag=.false.
       endif
-      IF (FXR_Loc%lRes .AND. FXR_Loc%lCLD) lcladplane=.TRUE.
+      Fxr(ixsreg, iz)%lh2o = Mix%lh2o;  Fxr(ixsreg, iz)%temp = Mix%temp
+        !Allocation Isotope list and thems compostion list
+      niso = Mix%niso; nchi = GroupInfo%nchi; ntiso = GroupInfo%ntiso
+      IF(Fxr(ixsreg, iz)%ldepl) THEN
+        CALL Dmalloc(Fxr(ixsreg, iz)%idiso, ntiso)
+        CALL Dmalloc(Fxr(ixsreg, iz)%pnum, ntiso)
+        IF (Fxr(ixsreg, iz)%lres .OR. Fxr(ixsreg, iz)%lCrRes) THEN
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_pastpsm, ntiso)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idx_Res, ntiso)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_Res, nreshel)
+          CALL Dmalloc(Fxr(ixsreg, iz)%pnum_Res, nreshel)
+        END IF
+        !CALL Dmalloc(Fxr(ixsreg, iz)%pnumrat, ntiso, ntiso)
+        CALL Dmalloc(Fxr(ixsreg, iz)%chi, nchi)
+        Fxr(ixsreg, iz)%ndim = ntiso
+      ELSEIF(Fxr(ixsreg, iz)%lh2o .AND. nTracerCntl%lInitBoron) THEN
+        CALL Dmalloc(Fxr(ixsreg, iz)%idiso, niso + 4)
+        CALL Dmalloc(Fxr(ixsreg, iz)%pnum, niso + 4)
+        IF (Fxr(ixsreg, iz)%lres) THEN
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_pastpsm, niso+4)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idx_Res, niso+4)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_Res, nreshel)
+          CALL Dmalloc(Fxr(ixsreg, iz)%pnum_Res, niso+4)
+        END IF
+        Fxr(ixsreg, iz)%ndim = niso + 4
+      ELSEIF(Fxr(ixsreg, iz)%lh2o) THEN
+        CALL Dmalloc(Fxr(ixsreg, iz)%idiso, niso + 4)
+        CALL Dmalloc(Fxr(ixsreg, iz)%pnum, niso + 4)
+        IF (Fxr(ixsreg, iz)%lres) THEN
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_pastpsm, niso+4)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idx_Res, niso+4)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_Res, nreshel)
+          CALL Dmalloc(Fxr(ixsreg, iz)%pnum_Res, niso+4)
+        END IF
+        Fxr(ixsreg, iz)%ndim = niso + 4
+      ELSE
+        CALL Dmalloc(Fxr(ixsreg, iz)%idiso, niso)
+        CALL Dmalloc(Fxr(ixsreg, iz)%pnum, niso)
+        IF (Fxr(ixsreg, iz)%lres) THEN
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_pastpsm, niso)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idx_Res, niso)
+          CALL Dmalloc(Fxr(ixsreg, iz)%idiso_Res, nreshel)
+          CALL Dmalloc(Fxr(ixsreg, iz)%pnum_Res, niso)
+        END IF
+        !CALL Dmalloc(Fxr(ixsreg, iz)%pnumrat, niso, niso)
+        Fxr(ixsreg, iz)%ndim = niso
+      ENDIF
+      Fxr(ixsreg, iz)%niso = niso; Fxr(ixsreg, iz)%niso_depl = niso
+      CALL CP_VA(Fxr(ixsreg,iz)%idiso(1:niso),mix%idiso(1:niso),niso)
+      CALL CP_VA(Fxr(ixsreg,iz)%pnum(1:niso),mix%pnum(1:niso),niso)
+
+      CALL FIndGdFxr(Fxr(ixsreg, iz))
+      IF(Fxr(ixsreg, iz)%lDepl) CALL GetFxrHmMass(Fxr(ixsreg,iz), Core%hz(iz))
+      if (imix.eq.imix1.and.lflag) then
+          Fxr(ixsreg, iz)%lRes = .FALSE.
+      else
+          lflag=.false.
+      endif
+      IF (Fxr(ixsreg, iz)%lRes .AND. Fxr(ixsreg, iz)%lCLD) lcladplane=.TRUE.
 #ifndef MPI_ENV
-      !Updae the lists of the resonance isotopes in the Active core
-      IF(FXR_Loc%lRes) CALL CoreResIsoUpdate(Fxr(ixsreg,iz)%idiso(1:niso), niso, iz)
+      !Update the lists of the resonance isotopes in the Active core
+      IF(Fxr(ixsreg, iz)%lRes) CALL CoreResIsoUpdate(Fxr(ixsreg,iz)%idiso(1:niso), niso, iz)
 #endif
       NULLIFY(MIX)
-    ENDDO    
+    ENDDO    ! IFXR in Cell
+#ifndef MPI_ENV
+    IF (nTRACERCntl%lPointRT) THEN
+      DO j = 1, CellInfo(icel)%nFxr
+        ixsreg = FxrIdxSt + j - 1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        ifsrbeg = CellInfo(icel)%MapFxr2FsrIdx(1, j)
+        niso = Fxr(ixsreg,iz)%niso
+        CALL CorePXSIsoUpdate(Fxr(ixsreg,iz)%idiso(1:niso), niso, iz)
+      END DO  
+    END IF
+#endif
     !Pin(ipin)%lFuel=lFuelPin
     IF( lFXR )    Pin(ipin)%lFuel=lFuelPin
     ! Define Cladding region
@@ -148,9 +195,7 @@ DO iz = myzb, myze
     DO j = CellInfo(icel)%nFxr, 1, -1
       ixsreg = FxrIdxSt + j - 1
       ifsrbeg = CellInfo(icel)%MapFxr2FsrIdx(1, j)
-      
-      FXR_Loc => Fxr(ixsreg, iz)
-      
+
       imix = CellInfo(icel)%ireg(ifsrbeg)
       if (j.eq.CellInfo(icel)%nFxr) then
           imixp = imix
@@ -161,18 +206,18 @@ DO iz = myzb, myze
       endif
       imixp = imix
       MIX => Mixture(imix)
-      IF (.not.FXR_Loc%lRes) cycle
+      IF (.not.Fxr(ixsreg, iz)%lRes) cycle
       IF (lflag) then
         do ii=1,Fxr(ixsreg,iz)%niso
           id=Fxr(ixsreg,iz)%idiso(ii)
           if (ldiso(mapnucl(id))%lclad) exit
         enddo
         if (ii.le.Fxr(ixsreg,iz)%niso) then
-            FXR_Loc%lCLD=.true.
+            Fxr(ixsreg, iz)%lCLD=.true.
             lcladplane=.TRUE.
         else
-            FXR_Loc%lCLD=.false.
-            if (.not.FXR_Loc%lfuel) FXR_Loc%lres=.false.
+            Fxr(ixsreg, iz)%lCLD=.false.
+            if (.not.Fxr(ixsreg, iz)%lfuel) Fxr(ixsreg, iz)%lres=.false.
         endif
       ENDIF
     ENDDO
@@ -196,8 +241,9 @@ ENDDO
 
 FMInfo%Fxr => Fxr
 #ifdef MPI_ENV
-!Updae the lists of the resonance isotopes in the Active core
+!Update the lists of the resonance isotopes in the Active core
 IF(lXsLib) CALL MakeResIsoList()
+IF(nTRACERCntl%lPointRT) CALL MakePXSIsoList()
 #endif
 IF(lXeDyn) THEN
   CALL InitXeDynInfo(Fxr, nCoreFxr, myzb, myze)
@@ -211,9 +257,20 @@ IF (.NOT. nTracerCntl%lnTIGRst) THEN
     Core%Hm_Mass0 = GetCoreHmMass(Core, FmInfo%Fxr, PE)
   ENDIF
 END IF
+
+IF (nTRACERCntl%lPointRT) CALL SetMGnPWInfo
+IF (nTRACERCntl%lPSM) CALL CalcPSM_ISOPIN
+
 !CALL  Calnum(Core, FmInfo, PE)
 !CALL  ReadFxr(Core, FmInfo, PE)
 !CALL SetStructure(Core, Fxr, 0.0859375, myzb, myze)
+IF(nTracerCntl%lProblem .EQ. lTransient) THEN 
+  DO iz = myzb, myze
+    DO ifxr = 1, Core%nCoreFxr
+      FmInfo%Fxr(ifxr, iz)%imix0 = FmInfo%Fxr(ifxr, iz)%imix
+    ENDDO
+  ENDDO
+END IF
 END SUBROUTINE
 
 SUBROUTINE FindGdFxr(myFxr)
@@ -299,12 +356,47 @@ ENDDO
 NULLIFY(Mix)
 END SUBROUTINE
     
+SUBROUTINE MakePXSIsoList()
+USE PARAM
+USE TYPEDEF,         ONLY : coreinfo_type,  Pin_Type,    Cell_Type,             &
+                            Mixture_Type
+USE GEOM,            ONLY : Core,           Pin,         CellInfo,              &
+                            CellInfo,       ng
+USE Material_mod,    ONLY : Mixture
+USE CNTL,            ONLY : nTracerCntl    
+USE PE_MOD,          ONLY : PE
+USE PointXSRT_MOD,         ONLY : CorePXSIsoUpdate
+IMPLICIT NONE
+TYPE(Mixture_Type), POINTER :: Mix      
+INTEGER :: j, iz, ipin, icel, imix, ifsrbeg
+INTEGER :: nxy, niso, myzb, myze
+
+myzb = PE%myzb; myze = PE%myze
+nxy = Core%nxy
+
+DO iz = myzb, myze
+  DO ipin = 1, nxy
+    icel = Pin(ipin)%Cell(iz)
+    DO j = 1, CellInfo(icel)%nFxr
+      ifsrbeg = CellInfo(icel)%MapFxr2FsrIdx(1, j)
+      imix = CellInfo(icel)%ireg(ifsrbeg)
+      MIX => Mixture(imix)
+      niso = MIX%niso
+      IF(MIX%lres) CALL CorePXSIsoUpdate(mix%idiso(1:niso), niso, iz)
+    ENDDO
+  ENDDO
+ENDDO
+NULLIFY(Mix)
+END SUBROUTINE
+    
 SUBROUTINE AllocResIsoInfo()
+! RESONANT NUCLIDE �� �����ϴ� index ���� �Ҵ� �� �ʱ�ȭ + category �ʱ�ȭ
 USE PE_MOD,        ONLY : PE
 USE CNTL,          ONLY : nTracerCntl    
-USE XSLIB_MOD,     ONLY : nreshel, maxnid, nActiveCat, IDRES_COR, NRES_COR, mapnuclRes, mlgdata
+USE XSLIB_MOD,     ONLY : nreshel, maxnid, nActiveCat, IDRES_COR, NRES_COR, mapnuclRes, mlgdata, npwxs
 USE ALLOCS
-USE nuclidmap_mod,  ONLY : InitResoCat
+USE nuclidmap_mod, ONLY : InitResoCat
+USE PointXSRT_MOD,       ONLY : mapnuclPXS, IDPXS_COR, NPXS_COR
 IMPLICIT NONE
 
 INTEGER :: myzb, myze, iz, i
@@ -333,13 +425,28 @@ IF (.not.nTracerCntl%lMLG) THEN
     CALL InitResoCat()
   ENDIF
 ENDIF
-
+!
+IF (nTRACERCntl%lPointRT) THEN
+  CALL Dmalloc0(NPXS_COR, myzb, myze)
+  CALL Dmalloc0(IDPXS_COR, 1, npwxs, myzb, myze)
+  CALL Dmalloc0(mapnuclPXS, 1, maxnid, myzb, myze)
+  DO iz=myzb,myze
+    NPXS_COR(iz)=0
+    DO i=1,npwxs
+      IDPXS_COR(i,iz)=0
+    ENDDO
+    DO i=1,maxnid
+      mapnuclPXS(i,iz)=0
+    ENDDO
+  ENDDO
+END IF
+!
 END SUBROUTINE
     
 SUBROUTINE AllocXsEQ()
-!PrePare
+!PrePare variables related to resonance treatment using equivalent XS
 USE PARAM
-USE TYPEDEF,       ONLY : Cell_TYpe, Pin_Type, ResVarPin_Type, Fxrinfo_type
+USE TYPEDEF,       ONLY : Cell_TYpe, Pin_Type, ResVarPin_Type
 USE GEOM,          ONLY : Core
 USE CORE_mod,      ONLY : Fxr,            GroupInfo
 USE CNTL,          ONLY : nTracerCntl    
@@ -348,16 +455,15 @@ USE BasicOperation,ONLY : CP_CA
 USE XSLIB_MOD,     ONLY : nlvflxmax, nreshel, nelthel, mlgdata0, nCat
 USE ALLOCS
 USE CP_mod,        ONLY : ngauss
+USE PointXSRT_MOD, ONLY : nPGrid
 IMPLICIT NONE
 TYPE(Cell_TYpe), POINTER :: CellInfo(:)
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(ResVarPin_Type), POINTER :: ResVarPin(:,:)
-TYPE(ResVarPin_Type), POINTER :: rvPin_Loc
-TYPE(Fxrinfo_type), POINTER :: FXR_Loc
 INTEGER :: nFxr, iResGrpBeg, iResGrpEnd
 INTEGER :: myzb, myze
-INTEGER :: iz, ifxr, icel, ipin, nxy, FxrIdxSt, j, ig, igt, ngt, nlocalFxr
-REAL :: fuelrad(100)
+INTEGER :: iz, ifxr, icel, ipin, nxy, FxrIdxSt, j, ig, igt, ngt, nlocalFxr, ir
+REAL :: fuelrad(100), sumvol
   
 IF (.not.nTracerCntl%lrestrmt) RETURN
 
@@ -379,13 +485,18 @@ DO iz = myzb, myze
     DO j = 1, CellInfo(icel)%nFxr
         ifxr = FxrIdxSt + j - 1
         IF (Fxr(ifxr, iz)%lRes) then
-            ResVarPin(ipin,iz)%lresA=.TRUE.
+            ResVarPin(ipin,iz)%lresA=.TRUE. ! unused..?
             IF (.not.Fxr(ifxr, iz)%lCLD) then
-                ResVarPin(ipin,iz)%lres=.TRUE.
+                ResVarPin(ipin,iz)%lres=.TRUE. ! existence of fuel or AIC?
             ELSE
-                ResVarPin(ipin,iz)%lresC=.TRUE.
+                ResVarPin(ipin,iz)%lresC=.TRUE. ! unused..?
             ENDIF
+        ELSE
+          IF(Fxr(ifxr, iz)%lCrRes) THEN 
+            ResVarPin(ipin, iz)%lCrRes = .TRUE.
+          END IF
         ENDIF
+        IF (FXR(ifxr,iz)%lfuel) ResVarPin(ipin, iz)%lfuel = .TRUE.
     ENDDO
   ENDDO
 ENDDO
@@ -396,127 +507,135 @@ ELSE
     IF (nTracerCntl%lMLG) CALL SetMLGrid
 ENDIF
 
-!$OMP PARALLEL PRIVATE(iz, ifxr, FXR_Loc, ig)
-!$OMP DO SCHEDULE(GUIDED)
 DO iz = myzb, myze    
   if (.not.Core%lFuelPlane(iz)) CYCLE
-  
   DO ifxr = 1, nFxr
-    FXR_Loc => Fxr(ifxr, iz)
-    
-    IF (.NOT. FXR_Loc%lres) CYCLE
-    
-    CALL Dmalloc0(FXR_Loc%fresoa, iResGrpBeg, iResGrpEnd)
-    CALL Dmalloc0(FXR_Loc%fresof, iResGrpBeg, iResGrpEnd)    
+    IF (.NOT. (Fxr(ifxr,iz)%lres .OR. Fxr(ifxr, iz)%lCRRes)) CYCLE
+    CALL Dmalloc0(Fxr(ifxr, iz)%fresoa, iResGrpBeg, iResGrpEnd)
+    CALL Dmalloc0(Fxr(ifxr, iz)%fresof, iResGrpBeg, iResGrpEnd)    
+    CALL Dmalloc0(Fxr(ifxr, iz)%fresonf, iResGrpBeg, iResGrpEnd)    
+    CALL Dmalloc0(Fxr(ifxr, iz)%fresokf, iResGrpBeg, iResGrpEnd)    
     do ig = iResGrpBeg,iResGrpEnd
-      FXR_Loc%fresoa(ig)=1.
-      FXR_Loc%fresof(ig)=1.
+      Fxr(ifxr, iz)%fresoa(ig)=1.
+      Fxr(ifxr, iz)%fresof(ig)=1.
+      Fxr(ifxr, iz)%fresonf(ig)=1.
+      Fxr(ifxr, iz)%fresokf(ig)=1.
     enddo
     
-    ALLOCATE(FXR_Loc%fresoAIso(FXR_Loc%ndim,iResGrpBeg:iResGrpEnd)) 
-    ALLOCATE(FXR_Loc%fresoFIso(FXR_Loc%ndim,iResGrpBeg:iResGrpEnd)) 
+    ALLOCATE(Fxr(ifxr, iz)%fresoAIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
+    ALLOCATE(Fxr(ifxr, iz)%fresoFIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
     do ig = iResGrpBeg,iResGrpEnd
-      FXR_Loc%fresoAIso(:,ig)=1.
-      FXR_Loc%fresoFIso(:,ig)=1.
+      Fxr(ifxr, iz)%fresoAIso(:,ig)=1.
+      Fxr(ifxr, iz)%fresoFIso(:,ig)=1.
     ENDDO
-
+    IF(nTracerCntl%lGamma) THEN
+      ALLOCATE(Fxr(ifxr, iz)%fresoCapIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
+      Fxr(ifxr, iz)%fresoCapIso = 1.
+    END IF
+    
     IF (nTracerCntl%lRST) THEN
-      CALL Dmalloc0(FXR_Loc%fresos, iResGrpBeg, iResGrpEnd)
-      CALL Dmalloc0(FXR_Loc%fresostr, iResGrpBeg, iResGrpEnd)
+      CALL Dmalloc0(Fxr(ifxr, iz)%fresos, iResGrpBeg, iResGrpEnd)
+      CALL Dmalloc0(Fxr(ifxr, iz)%fresostr, iResGrpBeg, iResGrpEnd)
       do ig = iResGrpBeg,iResGrpEnd
-        FXR_Loc%fresos(ig)=1.
-        FXR_Loc%fresostr(ig)=1.
+        Fxr(ifxr, iz)%fresos(ig)=1.
+        Fxr(ifxr, iz)%fresostr(ig)=1.
       enddo
     
-      ALLOCATE(FXR_Loc%fresoSIso(FXR_Loc%ndim,iResGrpBeg:iResGrpEnd)) 
-      ALLOCATE(FXR_Loc%fresoSSIso(FXR_Loc%ndim,iResGrpBeg:iResGrpEnd)) 
-      ALLOCATE(FXR_Loc%fresoS1Iso(FXR_Loc%ndim,iResGrpBeg:iResGrpEnd)) 
+      ALLOCATE(Fxr(ifxr, iz)%fresoSIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
+      ALLOCATE(Fxr(ifxr, iz)%fresoSSIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
+      ALLOCATE(Fxr(ifxr, iz)%fresoS1Iso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
       do ig = iResGrpBeg,iResGrpEnd
-        FXR_Loc%fresoSIso(:,ig)=1.
-        FXR_Loc%fresoSSIso(:,ig)=1.
-        FXR_Loc%fresoS1Iso(:,ig)=1.
+        Fxr(ifxr, iz)%fresoSIso(:,ig)=1.
+        Fxr(ifxr, iz)%fresoSSIso(:,ig)=1.
+        Fxr(ifxr, iz)%fresoS1Iso(:,ig)=1.
       ENDDO       
     ENDIF
     IF (nTracerCntl%lMLG) THEN
-      IF (FXR_Loc%lCLD) THEN
-        CALL Dmalloc(FXR_Loc%XsEq_c_1g, mlgdata0%c_nmaclv1G)
-        FXR_Loc%XsEq_c_1g=0._8
-      ELSEIF (FXR_Loc%lAIC) THEN
-        CALL Dmalloc(FXR_Loc%XsEq_f_1g, mlgdata0%f_nmaclv1G)
-        FXR_Loc%XsEq_f_1g=0._8  
+      IF (Fxr(ifxr,iz)%lCLD) THEN
+        CALL Dmalloc(Fxr(ifxr, iz)%XsEq_c_1g, mlgdata0%c_nmaclv1G)
+        Fxr(ifxr, iz)%XsEq_c_1g=0._8
+      ELSEIF (Fxr(ifxr,iz)%lAIC .OR. Fxr(ifxr, iz)%lCRRes) THEN
+        CALL Dmalloc(Fxr(ifxr, iz)%XsEq_f_1g, mlgdata0%f_nmaclv1G)
+        Fxr(ifxr, iz)%XsEq_f_1g=0._8  
       ELSE
-        CALL Dmalloc0(FXR_Loc%XsEq_f_mg, 1, mlgdata0%f_nmaclv, iResGrpBeg, iResGrpEnd)   
-        FXR_Loc%XsEq_f_mg=0._8
-        CALL Dmalloc0(FXR_Loc%FnAdj, iResGrpBeg, iResGrpEnd)  
-        FXR_Loc%FnAdj=1._8
-        CALL Dmalloc0(FXR_Loc%FtAdj, 1, mlgdata0%f_nmaclv, iResGrpBeg, iResGrpEnd)  
-        FXR_Loc%FtAdj=1._8  
+      ! fuel
+        CALL Dmalloc0(Fxr(ifxr, iz)%XsEq_f_mg, 1, mlgdata0%f_nmaclv, iResGrpBeg, iResGrpEnd)   
+        Fxr(ifxr, iz)%XsEq_f_mg=0._8
+        CALL Dmalloc0(Fxr(ifxr, iz)%FnAdj, iResGrpBeg, iResGrpEnd)  
+        Fxr(ifxr, iz)%FnAdj=1._8
+        CALL Dmalloc0(Fxr(ifxr, iz)%FtAdj, 1, mlgdata0%f_nmaclv, iResGrpBeg, iResGrpEnd)  
+        Fxr(ifxr, iz)%FtAdj=1._8  
       ENDIF
     ELSE
       IF (nTracerCntl%lCAT) THEN
-        CALL Dmalloc0(FXR_Loc%XsEq, 1, nlvflxmax, 1, nCat, iResGrpBeg, iResGrpEnd)   
-        CALL Dmalloc0(FXR_Loc%NDAF, 1, nlvflxmax, 1, nCat, iResGrpBeg, iResGrpEnd)    
+        CALL Dmalloc0(Fxr(ifxr, iz)%XsEq, 1, nlvflxmax, 1, nCat, iResGrpBeg, iResGrpEnd)   
+        CALL Dmalloc0(Fxr(ifxr, iz)%NDAF, 1, nlvflxmax, 1, nCat, iResGrpBeg, iResGrpEnd)    
       ELSE
-        CALL Dmalloc0(FXR_Loc%XsEq, 1, nlvflxmax, 1, nreshel, iResGrpBeg, iResGrpEnd)   
-        CALL Dmalloc0(FXR_Loc%NDAF, 1, nlvflxmax, 1, nreshel, iResGrpBeg, iResGrpEnd)    
+        CALL Dmalloc0(Fxr(ifxr, iz)%XsEq, 1, nlvflxmax, 1, nreshel, iResGrpBeg, iResGrpEnd)   
+        CALL Dmalloc0(Fxr(ifxr, iz)%NDAF, 1, nlvflxmax, 1, nreshel, iResGrpBeg, iResGrpEnd)    
       ENDIF
-      FXR_Loc%XsEq = 0._8
-      FXR_Loc%NDAF = 1._8
+      Fxr(ifxr, iz)%XsEq = 0._8
+      Fxr(ifxr, iz)%NDAF = 1._8
     ENDIF
   ENDDO
 ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
 
-!$OMP PARALLEL PRIVATE(iz, ipin, rvPin_Loc, icel, nlocalfxr)
-!$OMP DO SCHEDULE(GUIDED)
 DO iz = myzb, myze
   if (.not.Core%lFuelPlane(iz)) CYCLE
   DO ipin = 1, nxy
-    rvPin_Loc => ResVarPin(ipin,iz)
-    
-    if (.not.rvPin_Loc%lres) CYCLE  
+    if (.not. (ResVarPin(ipin,iz)%lres .OR. ResVarPin(ipin, iz)%lCrRes)) CYCLE  
     icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
-    ALLOCATE(rvPin_Loc%rad_cp(nlocalFxr))
-    ALLOCATE(rvPin_Loc%delr(nlocalFxr))
-    ALLOCATE(rvPin_Loc%vol(nlocalFxr))
-    ALLOCATE(rvPin_Loc%Qsurfvol(nlocalFxr))
-    ALLOCATE(rvPin_Loc%X(nlocalFxr,nlocalFxr,ngauss))
+    ALLOCATE(ResVarPin(ipin,iz)%rad_cp(nlocalFxr))
+    ALLOCATE(ResVarPin(ipin,iz)%delr(nlocalFxr))
+    ALLOCATE(ResVarPin(ipin,iz)%vol(nlocalFxr))
+    ALLOCATE(ResVarPin(ipin,iz)%Qsurfvol(nlocalFxr))
+    ALLOCATE(ResVarPin(ipin,iz)%X(nlocalFxr,nlocalFxr,ngauss))
     
-    rvPin_Loc%rad_cp(1:nlocalFxr)=CellInfo(icel)%rad_cp(1:nlocalFxr)    
-    CALL Dmalloc0(rvPin_Loc%idiso, 1, nelthel)  
-    CALL Dmalloc0(rvPin_Loc%pnum, 1, nelthel)  
+    ResVarPin(ipin,iz)%rad_cp(1:nlocalFxr)=CellInfo(icel)%rad_cp(1:nlocalFxr)    
+    CALL Dmalloc0(ResVarPin(ipin,iz)%idiso, 1, nelthel)  
+    CALL Dmalloc0(ResVarPin(ipin,iz)%pnum, 1, nelthel)  
+    CALL Dmalloc0(ResVarPin(ipin,iz)%idiso_Res, 1, nreshel)  
+    CALL Dmalloc0(ResVarPin(ipin,iz)%idx_Res, 1, nelthel)  
+    CALL Dmalloc0(ResVarPin(ipin,iz)%pnum_Res, 1, nreshel)  
+    !CALL Dmalloc0(ResVarPin(ipin,iz)%pnumrat, 1, nreshel, 1, nreshel)  
     
-    rvPin_Loc%lbar = 2._8 * CellInfo(icel)%FuelRad0
+    ResVarPin(ipin,iz)%lbar = 2._8 * CellInfo(icel)%FuelRad0 ! mean chord length
+    ResVarPin(ipin,iz)%XSEsc = 1._8 / ResVarPin(ipin,iz)%lbar ! escape XS in Equivalence Theory
     
     IF (.not.nTracerCntl%lMLG) THEN
       IF (nTracerCntl%lCAT) THEN
-        CALL Dmalloc0(rvPin_Loc%avgxseq, 1, nlvflxmax, 1, nCat, iResGrpBeg, iResGrpEnd)  
+        CALL Dmalloc0(ResVarPin(ipin,iz)%avgxseq, 1, nlvflxmax, 1, nCat, iResGrpBeg, iResGrpEnd)  
       ELSE
-        CALL Dmalloc0(rvPin_Loc%avgxseq, 1, nlvflxmax, 1, nreshel, iResGrpBeg, iResGrpEnd)
+        CALL Dmalloc0(ResVarPin(ipin,iz)%avgxseq, 1, nlvflxmax, 1, nreshel, iResGrpBeg, iResGrpEnd)
       ENDIF
-      rvPin_Loc%avgxseq=0._8
+      ResVarPin(ipin,iz)%avgxseq=0._8
     ELSE    
-      CALL Dmalloc0(rvPin_Loc%avgxseq_mg, 1, mlgdata0%f_nmaclv, iResGrpBeg, iResGrpEnd)  
-      rvPin_Loc%avgxseq_mg=0._8
-      CALL Dmalloc0(rvPin_Loc%avgxseq_1g, 1, mlgdata0%f_nmaclv1G)  
-      rvPin_Loc%avgxseq_1g=0._8
-      CALL Dmalloc0(rvPin_Loc%FnAdj, iResGrpBeg, iResGrpEnd)  
-      rvPin_Loc%FnAdj=1._8
+      CALL Dmalloc0(ResVarPin(ipin,iz)%avgxseq_mg, 1, mlgdata0%f_nmaclv, iResGrpBeg, iResGrpEnd)  
+      ResVarPin(ipin,iz)%avgxseq_mg=0._8
+      CALL Dmalloc0(ResVarPin(ipin,iz)%avgxseq_1g, 1, mlgdata0%f_nmaclv1G)  
+      ResVarPin(ipin,iz)%avgxseq_1g=0._8
+      CALL Dmalloc0(ResVarPin(ipin,iz)%FnAdj, iResGrpBeg, iResGrpEnd)  
+      ResVarPin(ipin,iz)%FnAdj=1._8
     ENDIF
     IF (nTracerCntl%lRIF) THEN
-      CALL Dmalloc0(rvPin_Loc%rifa, 1, nreshel, iResGrpBeg, iResGrpEnd)
-      CALL Dmalloc0(rvPin_Loc%riff, 1, nreshel, iResGrpBeg, iResGrpEnd)   
-      IF (nTracerCntl%lRST) CALL Dmalloc0(rvPin_Loc%rifs, 1, nreshel, iResGrpBeg, iResGrpEnd)
+      CALL Dmalloc0(ResVarPin(ipin,iz)%rifa, 1, nreshel, iResGrpBeg, iResGrpEnd)
+      CALL Dmalloc0(ResVarPin(ipin,iz)%riff, 1, nreshel, iResGrpBeg, iResGrpEnd)   
+      IF (nTracerCntl%lRST) CALL Dmalloc0(ResVarPin(ipin,iz)%rifs, 1, nreshel, iResGrpBeg, iResGrpEnd)
     ENDIF
   ENDDO
 ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-NULLIFY (FXR_Loc)
-NULLIFY (rvPin_Loc)
-
+!
+IF (nTRACERCntl%lPSM) THEN
+DO iz = myzb, myze
+  if (.not.Core%lFuelPlane(iz)) CYCLE
+  DO ipin = 1, nxy
+    if (.not.(ResVarPin(ipin,iz)%lres .OR. ResVarPin(ipin,iz)%lcrres)) CYCLE  
+    ! for PSM EDIT JSU 2020/06
+    ALLOCATE(ResVarPin(ipin,iz)%eta(nPGrid))
+  END DO ! ipin
+END DO ! iz
+END IF
+!
 END SUBROUTINE
 SUBROUTINE SetMLGrid
   USE PARAM
@@ -538,19 +657,20 @@ SUBROUTINE SetMLGrid
   nxy = Core%nxy
   Pin => Core%Pin; CellInfo => Core%CellInfo
 
-  nmlg=nTracerCntl%nMLG
+  nmlg=nTracerCntl%nMLG ! Default : 8 / modifiable by input
   mlgdata0%f_nmaclv=nmlg
   mlgdata0%f_nmaclv1G=nmlg
   
-  mlgdata0%c_nmaclv1G=5
+!  mlgdata0%c_nmaclv1G=5
+  mlgdata0%c_nmaclv1G=nTracerCntl%nMLGc ! Default : 5 / fixed
   allocate(mlgdata0%c_maclv1G(mlgdata0%c_nmaclv1G))
   allocate(mlgdata0%c_maclv1G_log(mlgdata0%c_nmaclv1G))
   mlgdata0%c_maclv1G=(/0.1_8,1._8,10._8,100._8,1000._8/)  
   mlgdata0%c_maclv1G_log=dlog(mlgdata0%c_maclv1G)
-  
+  mlgdata0%del_c1g=dlog(10._8);
+  ! Set MLG of fuel for each plane
   do iz=myzb,myze
     if (.not.core%lfuelplane(iz)) cycle
-    
     mlgdata(iz)%f_nmaclv=nmlg
     allocate(mlgdata(iz)%f_maclv(nmlg)) 
     allocate(mlgdata(iz)%f_maclv_log(nmlg))
@@ -571,17 +691,23 @@ SUBROUTINE SetMLGrid
         mlgdata(iz)%f_maclv(il)=mlgdata(iz)%f_maclv(il-1)*del
         mlgdata(iz)%f_maclv_log(il)=dlog(mlgdata(iz)%f_maclv(il))
     ENDDO
-    
-    if (.not.core%lAICplane(iz)) cycle
-    
+    mlgdata(iz)%del_fMG = dlog(del);
+    if (.not.core%lAICplane(iz) .AND. .NOT. nTracerCntl%lCrInfo ) cycle
+    ! Set MLG of AIC for each plane    
     mlgdata(iz)%f_nmaclv1G=nmlg
     allocate(mlgdata(iz)%f_maclv1G(nmlg))
     allocate(mlgdata(iz)%f_maclv1G_log(nmlg))
     radmin=100._8; radmax=0._8
     DO ipin = 1, nxy  
         icel = Pin(ipin)%Cell(iz)      
-        if (.not.CellInfo(icel)%lAIC) cycle
-        rad=CellInfo(icel)%FuelRad0
+        
+        IF(CellInfo(icel)%lAIC) THEN
+          rad=CellInfo(icel)%FuelRad0
+        ELSEIF(CellInfo(icel)%lCrCell .AND. CellInfo(CellInfo(icel)%CrCell%CellCrIdx)%lAIC) THEN 
+          rad = CellInfo(CellInfo(icel)%CrCell%CellCrIdx)%FuelRad0
+        ELSE
+          CYCLE
+        END IF
         if (rad.le.0.2_8) cycle
         radmin=min(radmin,rad)
         radmax=max(radmax,rad)
@@ -591,6 +717,7 @@ SUBROUTINE SetMLGrid
     del=(sigmax/sigmin)**(1._8/nmlg)
     mlgdata(iz)%f_maclv1G(1)=sigmin; mlgdata(iz)%f_maclv1G(nmlg)=sigmax
     mlgdata(iz)%f_maclv1G_log(1)=dlog(sigmin); mlgdata(iz)%f_maclv1G_log(nmlg)=dlog(sigmax)
+    mlgdata(iz)%del_f1G = dlog(del);
     DO il=2,nmlg-1
         mlgdata(iz)%f_maclv1G(il)=mlgdata(iz)%f_maclv1G(il-1)*del
         mlgdata(iz)%f_maclv1G_log(il)=dlog(mlgdata(iz)%f_maclv1G(il))
@@ -628,17 +755,19 @@ SUBROUTINE SetMLGrid_ED
   mlgdata0%f_nmaclv=nmlg
   mlgdata0%f_nmaclv1G=nmlg
   
-  mlgdata0%c_nmaclv1G=5
+!  mlgdata0%c_nmaclv1G=5
+  mlgdata0%c_nmaclv1G=nTracerCntl%nMLGc
   allocate(mlgdata0%c_maclv1G(mlgdata0%c_nmaclv1G))
   allocate(mlgdata0%c_maclv1G_log(mlgdata0%c_nmaclv1G))
   mlgdata0%c_maclv1G=(/0.1_8,1._8,10._8,100._8,1000._8/)  
   mlgdata0%c_maclv1G_log=dlog(mlgdata0%c_maclv1G)
-  
+  mlgdata0%del_c1g = dlog(10._8);
   do iz=myzb,myze
     if (.not.core%lfuelplane(iz)) cycle
     
     mlgdata(iz)%f_nmaclv=nmlg
     mlgdata(iz)%f_nmaclv1G=nmlg
+    ! count the number of fuel pellet sizes
     ngt = 0; fuelrad=0._8
     DO ipin = 1, nxy
       if (.NOT.ResVarPin(ipin,iz)%lres) cycle
@@ -676,6 +805,8 @@ SUBROUTINE SetMLGrid_ED
         mlgdata(iz)%f_maclv_pin(il,igt)=mlgdata(iz)%f_maclv_pin(il-1,igt)*del
         mlgdata(iz)%f_maclv_pin_log(il,igt)=dlog(mlgdata(iz)%f_maclv_pin(il,igt))
       ENDDO  
+      mlgdata(iz)%del_fmg = dlog(del);
+      mlgdata(iz)%del_f1g = dlog(del);
     ENDDO
   enddo
   
@@ -686,11 +817,11 @@ SUBROUTINE SetGroupInfo(GroupInfo,lXsLib)
 USE PARAM
 USE TYPEDEF,           ONLY : GroupInfo_Type
 !USE CORE_MOD,          ONLY : GroupInfo
-USE GEOM,              ONLY : ng,              nPrec
-USE BenchXs,           ONLY : nXslType,        XsSmBen
+USE GEOM,              ONLY : ng,              nPrec,         ngg
+USE BenchXs,           ONLY : nXslType,        XsSmBen,       DynMacXsBen,  XssmDynBen
 USE ALLOCS             
 USE XsLib_Mod,         ONLY : nelthel,         noghel,        nelrhel,      nchihel,              &
-                              ldiso       
+                              ldiso ,          noggphl,       enbhel,       enbgam,  phatom, nelmGAM
 USE TranMacXsLib_Mod,  ONLY : SetTranXsLibInfo
 USE cntl,              ONLY : nTracerCntl
 IMPLICIT NONE
@@ -700,6 +831,8 @@ LOGICAL :: lXsLib
 REAL, POINTER :: XsMacSm(:, :)
 INTEGER :: i, j, k, ig, ig2, iso
 INTEGER :: nid, ntemp, itemp
+INTEGER :: igg, igg2
+
 ALLOCATE(XsMacSm(ng, ng))
 
 IF(lXslib) ng = noghel
@@ -740,43 +873,118 @@ IF(lXsLib) THEN
       ENDDO !Temperature Sweep
     ENDDO  !Group Sweep
   ENDDO  !Isotope Sweep
+  
+  IF (nTracerCntl%lGamma) THEN
+    ngg = noggphl
+    GroupInfo%ngg = ngg
+    
+    ALLOCATE(GroupInfo%InScatRange_ph(2, ngg))
+    ALLOCATE(GroupInfo%OutScatRange_ph(2, ngg))
+    GroupInfo%InScatRange_ph(1, :) = ngg;  GroupInfo%InScatRange_ph(2, :) = 1;
+    GroupInfo%OutScatRange_ph(1, :) = ngg; GroupInfo%OutScatRange_ph(2, :) = 1;
+    
+    !InScattering Info
+    GroupInfo%UpScatRange_ph = ngg
+    DO nid = 1, nelmGAM
+      DO igg = 1, ngg
+        !Inscattering Range
+        GroupInfo%InScatRange_ph(1, igg) = min(GroupInfo%InScatRange_ph(1, igg), phatom(nid)%sm(igg)%ib)
+        GroupInfo%InScatRange_ph(2, igg) = max(GroupInfo%InScatRange_ph(2, igg), phatom(nid)%sm(igg)%ie)          
+        !Out Scattering Range
+        DO igg2 = phatom(nid)%sm(igg)%ib, phatom(nid)%sm(igg)%ie
+          GroupInfo%OutScatRange_ph(1, igg2) = min(phatom(nid)%sm(igg)%ib, GroupInfo%OutScatRange_ph(1, igg2))
+          GroupInfo%OutScatRange_ph(2, igg2) = max(phatom(nid)%sm(igg)%ie, GroupInfo%OutScatRange_ph(2, igg2))
+        ENDDO
+        !Upscatering Range
+        IF(phatom(nid)%sm(igg)%ie .GT. igg) THEN
+          GroupInfo%UpScatRange_ph(1) = min(igg, GroupInfo%UpScatRange_ph(1))
+          CONTINUE
+        ENDIF
+      ENDDO  !Group Sweep
+    ENDDO  !Isotope Sweep
+
+    GroupInfo%UpScatRange_ph(2) = ngg
+    GroupInfo%lUpScat_ph = FALSE
+    DO igg = 1, ngg
+      IF(GroupInfo%InScatRange_ph(2, igg) .GT. igg) THEN
+        GroupInfo%lUpScat_ph = TRUE
+        GroupInfo%UpScatRange_ph(1) = igg
+        EXIT
+      ENDIF
+    ENDDO
+    
+  END IF
 ELSE
   DO i = 1, nXslType
-    CALL XsSmBen(i, 1, ng, 1, ng, XsMacSm)
-    !InScattering 
-    DO ig = 1, ng
-      !Upper Bound
-      DO ig2 = 1, ig
-        IF(XsMacSm(ig2, ig) .NE. ZERO) EXIT
-      ENDDO
-      IF(ig2 .GT. ig) ig2 = ig
-      GroupInfo%InScatRange(1, ig) = min(GroupInfo%InScatRange(1, ig), ig2)
-      !Lower Bound
-      DO ig2 = ng, ig, -1
-        IF(XsMacSm(ig2, ig) .NE. ZERO) EXIT
-      ENDDO
-      IF(ig2 .LT. ig) ig2 = ig
-      GroupInfo%InScatRange(2, ig) = MAX(GroupInfo%InScatRange(2, ig), ig2)
-    ENDDO
+    IF(nTracerCntl%lDynamicBen) THEN
+      ntemp = DynMacXsBen(i)%ntemp
+      DO itemp = 1, ntemp
+        CALL XsSmDynBen(i, DynMacXsBen(i)%temp(itemp), 1, ng, 1, ng, XsMacSm)
+        !InScattering
+        DO ig = 1, ng
+          !Upper Bound
+          DO ig2 = 1, ig
+            IF(XsMacSm(ig2, ig) .NE. ZERO) EXIT
+          ENDDO
+          IF(ig2 .GT. ig) ig2 = ig
+          GroupInfo%InScatRange(1, ig) = min(GroupInfo%InScatRange(1, ig), ig2)
+          !Lower Bound
+          DO ig2 = ng, ig, -1
+            IF(XsMacSm(ig2, ig) .NE. ZERO) EXIT
+          ENDDO
+          IF(ig2 .LT. ig) ig2 = ig
+          GroupInfo%InScatRange(2, ig) = MAX(GroupInfo%InScatRange(2, ig), ig2)
+        ENDDO
 
-
-    DO ig = 1, ng
-      !Upper Bound
-      DO ig2 = 1, ig
-        IF(XsMacSm(ig, ig2) .NE. ZERO) EXIT
+        DO ig = 1, ng
+          !Upper Bound
+          DO ig2 = 1, ig
+            IF(XsMacSm(ig, ig2) .NE. ZERO) EXIT
+          ENDDO
+          IF(ig2 .GT. ig) ig2 = ig
+          GroupInfo%OutScatRange(1, ig) = min(GroupInfo%OutScatRange(1, ig), ig2)
+          !Lower Bound
+          DO ig2 = ng, ig, -1
+            IF(XsMacSm(ig, ig2) .NE. ZERO) EXIT
+          ENDDO
+          IF(ig2 .LT. ig) ig2 = ig
+          GroupInfo%OutScatRange(2, ig) = MAX(GroupInfo%OutScatRange(2, ig), ig2)
+        ENDDO
+      END DO
+    ELSE
+      CALL XsSmBen(i, 1, ng, 1, ng, XsMacSm)
+      !InScattering
+      DO ig = 1, ng
+        !Upper Bound
+        DO ig2 = 1, ig
+          IF(XsMacSm(ig2, ig) .NE. ZERO) EXIT
+        ENDDO
+        IF(ig2 .GT. ig) ig2 = ig
+        GroupInfo%InScatRange(1, ig) = min(GroupInfo%InScatRange(1, ig), ig2)
+        !Lower Bound
+        DO ig2 = ng, ig, -1
+          IF(XsMacSm(ig2, ig) .NE. ZERO) EXIT
+        ENDDO
+        IF(ig2 .LT. ig) ig2 = ig
+        GroupInfo%InScatRange(2, ig) = MAX(GroupInfo%InScatRange(2, ig), ig2)
       ENDDO
-      IF(ig2 .GT. ig) ig2 = ig
-      GroupInfo%OutScatRange(1, ig) = min(GroupInfo%OutScatRange(1, ig), ig2)
-      !Lower Bound
-      DO ig2 = ng, ig, -1
-        IF(XsMacSm(ig, ig2) .NE. ZERO) EXIT
-      ENDDO
-      IF(ig2 .LT. ig) ig2 = ig
-      GroupInfo%OutScatRange(2, ig) = MAX(GroupInfo%OutScatRange(2, ig), ig2)
-    ENDDO    
 
+      DO ig = 1, ng
+        !Upper Bound
+        DO ig2 = 1, ig
+          IF(XsMacSm(ig, ig2) .NE. ZERO) EXIT
+        ENDDO
+        IF(ig2 .GT. ig) ig2 = ig
+        GroupInfo%OutScatRange(1, ig) = min(GroupInfo%OutScatRange(1, ig), ig2)
+        !Lower Bound
+        DO ig2 = ng, ig, -1
+          IF(XsMacSm(ig, ig2) .NE. ZERO) EXIT
+        ENDDO
+        IF(ig2 .LT. ig) ig2 = ig
+        GroupInfo%OutScatRange(2, ig) = MAX(GroupInfo%OutScatRange(2, ig), ig2)
+      ENDDO
+    END IF
   ENDDO  !End of Base MacroScopic XS sweep
-
 ENDIF
 GroupInfo%UpScatRange(2) = ng
 GroupInfo%lUpScat = FALSE
@@ -867,6 +1075,7 @@ DO iRefPln = 1, nRefPln
       MIX => Mixture(imix)
       Fxr(ixsreg, iz)%lfuel = Mix%lfuel; Fxr(ixsreg, iz)%ldepl = Mix%ldepl
       Fxr(ixsreg, iz)%lCLD = Mix%lCLD
+      Fxr(ixsreg, iz)%lAIC = Mix%lAIC
       IF(lres .and. Mixture(imix)%lres) THEN
           IF (CellInfo(icel)%geom%lCircle) Fxr(ixsreg, iz)%lres = TRUE
       ENDIF
@@ -987,6 +1196,8 @@ DO iRefPln = myRefPlnBeg, myRefPlnEnd
       CALL Dmalloc0(Fxr(ifxr, iz)%fresoS, iResGrpBeg, iResGrpEnd)
       CALL Dmalloc0(Fxr(ifxr, iz)%fresoStr, iResGrpBeg, iResGrpEnd)
       CALL Dmalloc0(Fxr(ifxr, iz)%fresoF, iResGrpBeg, iResGrpEnd)
+      CALL Dmalloc0(Fxr(ifxr, iz)%fresoNF, iResGrpBeg, iResGrpEnd)  ! nu-fission resonance treatment  EDIT JSU 20190810
+      CALL Dmalloc0(Fxr(ifxr, iz)%fresokF, iResGrpBeg, iResGrpEnd)  ! kappa-fission resonance treatment  EDIT JSU 20190816
       !CALL CP_CA(Fxr(ifxr, iz)%fresoA(iResGrpBeg:iResGrpEnd), 1._8, iResGrpEnd-iResGrpBeg+1)
       !CALL CP_CA(Fxr(ifxr, iz)%fresoS(iResGrpBeg:iResGrpEnd), 1._8, iResGrpEnd-iResGrpBeg+1)
       !CALL CP_CA(Fxr(ifxr, iz)%fresoStr(iResGrpBeg:iResGrpEnd), 1._8, iResGrpEnd-iResGrpBeg+1)
@@ -1004,6 +1215,10 @@ DO iRefPln = myRefPlnBeg, myRefPlnEnd
       ALLOCATE(Fxr(ifxr, iz)%fresoFIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
       Fxr(ifxr, iz)%fresoAIso=1._8
       Fxr(ifxr, iz)%fresoFIso=1._8
+      IF (nTRACERCNTL%lGamma) THEN
+        ALLOCATE(Fxr(ifxr, iz)%fresocapIso(Fxr(ifxr, iz)%ndim,iResGrpBeg:iResGrpEnd)) 
+        Fxr(ifxr, iz)%fresocapIso=1._8
+      END IF
     ENDDO
   ENDDO
 ENDDO

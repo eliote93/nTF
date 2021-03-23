@@ -281,7 +281,7 @@ INTEGER :: iy, ix, ixy, i, j, k, iso, id
 CHARACTER :: localfn*100, formatdata*120
 LOGICAL :: lExist
 LOGICAL :: lOpened
-#ifdef __GFORTRAN__
+#if defined __GFORTRAN__ || __PGI
 CHARACTER(5) :: str2num
 INTEGER :: n
 #endif
@@ -301,7 +301,20 @@ myzb = PE%myzb; myze = PE%myze
 
 nIsoOut = nTracerCntl%OutpCntl%IsoOutList(0)
 INQUIRE(UNIT=300, OPENED=lOpened)
-#ifndef __GFORTRAN__
+#if defined __GFORTRAN__ || __PGI
+IF(.NOT.lOpened) THEN
+  n = nIsoout * nxya0
+  WRITE(str2num, '(I5)') n
+  localfn = trim(caseid)//'_AsyND.out'
+  OPEN(UNIT=300,FILE=localfn,STATUS='REPLACE',FORM='FORMATTED')
+  WRITE(300, '(a10,' // TRIM(str2num) // 'I16)') 'Isotope',((nTracerCntl%OutpCntl%IsoOutList(iso), ixy=1,nxya0), iso=1,nIsoOut)
+  WRITE(300, '(a10,' // TRIM(str2num) // '(6X,"(",I3,", ",I3,")"))') 'Asy Coord.',(((iy, ix, ix=1,nxa), iy=1,nya),iso=1,nIsoOut)
+  localfn = trim(caseid)//'_LRND.out'
+  OPEN(UNIT=301,FILE=localfn,STATUS='REPLACE',FORM='FORMATTED')
+  WRITE(301, '(a10,' // TRIM(str2num) // 'I16)') 'Isotope',((nTracerCntl%OutpCntl%IsoOutList(iso), ixy=1,nxya0), iso=1,nIsoOut)
+  WRITE(301, '(a10,' // TRIM(str2num) // '(6X,"(",I3,", ",I3,")"))') 'Asy Coord.',(((iy, ix, ix=1,nxa), iy=1,nya),iso=1,nIsoOut)
+ENDIF
+#else
 IF(.NOT.lOpened) THEN
   localfn = trim(caseid)//'_AsyND.out'
   OPEN(UNIT=300,FILE=localfn,STATUS='REPLACE',FORM='FORMATTED')
@@ -311,19 +324,6 @@ IF(.NOT.lOpened) THEN
   OPEN(UNIT=301,FILE=localfn,STATUS='REPLACE',FORM='FORMATTED')
   WRITE(301, '(a10,<nIsoOut*nxya0>I16)') 'Isotope',((nTracerCntl%OutpCntl%IsoOutList(iso), ixy=1,nxya0), iso=1,nIsoOut)
   WRITE(301, '(a10,<nIsoOut*nxya0>(6X,"(",I3,", ",I3,")"))') 'Asy Coord.',(((iy, ix, ix=1,nxa), iy=1,nya),iso=1,nIsoOut)
-ENDIF
-#else
-IF(.NOT.lOpened) THEN
-  n = nIsoout * nxya0
-  READ(str2num, *) n
-  localfn = trim(caseid)//'_AsyND.out'
-  OPEN(UNIT=300,FILE=localfn,STATUS='REPLACE',FORM='FORMATTED')
-  WRITE(300, '(a10,' // TRIM(str2num) // 'I16)') 'Isotope',((nTracerCntl%OutpCntl%IsoOutList(iso), ixy=1,nxya0), iso=1,nIsoOut)
-  WRITE(300, '(a10,' // TRIM(str2num) // '(6X,"(",I3,", ",I3,")"))') 'Asy Coord.',(((iy, ix, ix=1,nxa), iy=1,nya),iso=1,nIsoOut)
-  localfn = trim(caseid)//'_LRND.out'
-  OPEN(UNIT=301,FILE=localfn,STATUS='REPLACE',FORM='FORMATTED')
-  WRITE(301, '(a10,' // TRIM(str2num) // 'I16)') 'Isotope',((nTracerCntl%OutpCntl%IsoOutList(iso), ixy=1,nxya0), iso=1,nIsoOut)
-  WRITE(301, '(a10,' // TRIM(str2num) // '(6X,"(",I3,", ",I3,")"))') 'Asy Coord.',(((iy, ix, ix=1,nxa), iy=1,nya),iso=1,nIsoOut)
 ENDIF
 #endif
 ALLOCATE(AsyND(nxya0))
@@ -380,16 +380,16 @@ DO ii = 1, nIsoOut
       AsyND_Fuel(i) = NDsum/FuelVolSum
     ENDDO
   ENDDO
-#ifndef __GFORTRAN__
+#if defined __GFORTRAN__ || __PGI
   IF(PE%MASTER) THEN
-    WRITE(300,'(<nxya0>ES16.6)',ADVANCE='NO') AsyND(1:nxya0)
-    WRITE(301,'(<nxya0>ES16.6)',ADVANCE='NO') AsyND_Fuel(1:nxya0)
+    WRITE(str2num, '(I5)') nxya0
+    WRITE(300,'(' // TRIM(str2num) // 'ES16.6)',ADVANCE='NO') AsyND(1:nxya0)
+    WRITE(301,'(' // TRIM(str2num) // 'ES16.6)',ADVANCE='NO') AsyND_Fuel(1:nxya0)
   ENDIF
 #else
   IF(PE%MASTER) THEN
-    READ(str2num, *) nxya0
-    WRITE(300,'(' // TRIM(str2num) // 'ES16.6)',ADVANCE='NO') AsyND(1:nxya0)
-    WRITE(301,'(' // TRIM(str2num) // 'ES16.6)',ADVANCE='NO') AsyND_Fuel(1:nxya0)
+    WRITE(300,'(<nxya0>ES16.6)',ADVANCE='NO') AsyND(1:nxya0)
+    WRITE(301,'(<nxya0>ES16.6)',ADVANCE='NO') AsyND_Fuel(1:nxya0)
   ENDIF
 #endif
 ENDDO

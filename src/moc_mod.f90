@@ -373,12 +373,41 @@ INTEGER :: myzb, myze, ig, iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 END SUBROUTINE
 
+SUBROUTINE SetRtMacXs_Cusping(core, FmInfo, Fxr, xstr, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+USE PARAM
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE, FmInfo_Type
+USE BenchXs, ONLY : GetXstrBen
+IMPLICIT NONE
+TYPE(coreinfo_type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(Fxrinfo_type) :: Fxr(:)
+TYPE(PE_type) :: PE
+REAL, POINTER :: xstr(:)
+REAL, POINTER :: phis(:, :, :)
+
+INTEGER :: myzb, myze, ig, iz, ng
+logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
+END SUBROUTINE
+
 !--- CNJ Edit : Node Majors    
 SUBROUTINE SetRtMacXsNM(core, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 USE PARAM
 USE TYPEDEF,  ONLY : coreinfo_type,    Fxrinfo_type,    PE_TYPE
 IMPLICIT NONE
 TYPE(coreinfo_type) :: Core
+TYPE(Fxrinfo_type) :: Fxr(:)
+TYPE(PE_TYPE) :: PE
+REAL, POINTER :: xstnm(:, :)
+INTEGER :: iz, ng
+logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
+END SUBROUTINE
+
+SUBROUTINE SetRtMacXsNM_Cusping(core, FmInfo, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+USE PARAM
+USE TYPEDEF,  ONLY : coreinfo_type,    Fxrinfo_type,    PE_TYPE,   FmInfo_Type
+IMPLICIT NONE
+TYPE(coreinfo_type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
 TYPE(Fxrinfo_type) :: Fxr(:)
 TYPE(PE_TYPE) :: PE
 REAL, POINTER :: xstnm(:, :)
@@ -403,6 +432,24 @@ TYPE(PE_TYPE) :: PE
 
 END SUBROUTINE
 
+SUBROUTINE SetRtSrc_Cusping(Core, FmInfo, Fxr, src, phis, psi, axsrc, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
+USE PARAM
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE, FmInfo_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(FxrInfo_Type) :: Fxr(:)
+TYPE(GroupInfo_Type) :: GroupInfo
+REAL, POINTER :: src(:), phis(:, :, :), psi(:, :), AxSrc(:), xstr1g(:)
+REAL :: eigv
+INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr
+LOGICAL :: lxslib, lscat1, l3dim
+LOGICAL :: lNegFix
+TYPE(PE_TYPE) :: PE
+
+END SUBROUTINE
+
 !--- CNJ Edit : Node Majors 
 SUBROUTINE SetRtSrcNM(Core, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz,                                        &
                       gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
@@ -411,6 +458,25 @@ USE TYPEDEF,        ONLY : coreinfo_type,   Fxrinfo_type,   GroupInfo_Type,  PE_
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+TYPE(GroupInfo_Type):: GroupInfo
+TYPE(PE_TYPE) :: PE
+REAL, POINTER :: srcnm(:, :), phisnm(:, :), psi(:, :), AxSrc(:, :, :), xstnm(:, :)
+REAL :: eigv
+INTEGER :: gb, ge, ng, iz, ifsr, ifxr
+LOGICAL :: lxslib, lscat1, l3dim
+LOGICAL :: lNegFix
+INTEGER, OPTIONAL :: Offset
+END SUBROUTINE
+
+SUBROUTINE SetRtSrcNM_Cusping(Core, FmInfo, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz,                                        &
+                      gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
+USE PARAM
+USE TYPEDEF,        ONLY : coreinfo_type,   Fxrinfo_type,   GroupInfo_Type,  PE_TYPE, FmInfo_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
 TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(GroupInfo_Type):: GroupInfo
 TYPE(PE_TYPE) :: PE
@@ -815,6 +881,14 @@ REAL :: Jout(:, :, :, :, :)
 REAL :: w
 INTEGER :: iz, ig
 TYPE(PE_TYPE) :: PE
+
+END SUBROUTINE
+
+SUBROUTINE GetNeighborMocFlux(phis, neighphis, nFsr, myzb, myze, gb, ge, nz, AxBC)
+IMPLICIT NONE
+REAL, POINTER :: phis(:, :, :), neighphis(:, :, :)
+INTEGER :: nfsr, myzb, myze, gb, ge, nz
+INTEGER :: AxBC(2)
 
 END SUBROUTINE
 

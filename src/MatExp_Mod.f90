@@ -1,7 +1,6 @@
 MODULE MatExp_Mod
 IMPLICIT NONE
 TYPE Mat_Type
-  SEQUENCE
   LOGICAL :: lSparse=.TRUE.                                      
   LOGICAL :: lHessenberg=.FALSE.                      !
   INTEGER :: n, nmaxoffdiag
@@ -11,14 +10,12 @@ TYPE Mat_Type
 END TYPE
 
 TYPE Arnoldi_Type
-  SEQUENCE
   INTEGER :: m, dum
   REAL :: beta
   REAL, POINTER :: Hm(:, :), Vm(:, :)
 END TYPE
 
 TYPE MatExp_Type
-  SEQUENCE
   INTEGER :: nisodepl
   INTEGER :: Solver = 1
   TYPE(Mat_TYPE), POINTER :: Mat

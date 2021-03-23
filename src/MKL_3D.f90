@@ -7,6 +7,9 @@ MODULE MKL_3D
 USE PARAM
 USE TYPEDEF,        ONLY : PinXS_Type
 USE TYPEDEF_COMMON
+#ifdef __GAMMA_TRANSPORT
+USE GammaTYPEDEF,   ONLY : GPinXS_Type
+#endif
 USE CSRMATRIX
 USE OMP_LIB
 IMPLICIT NONE
@@ -28,10 +31,6 @@ TYPE blockMat_Type
   REAL, POINTER :: lower(:, :), upper(:, :)
 END TYPE
 
-TYPE mklMOC_Type
-  REAL, POINTER :: phisPolar(:, :, :, :)
-END TYPE
-
 TYPE mklCMFD_Type
   TYPE(CSR_DOUBLE), POINTER :: M(:)
   TYPE(CSR_DOUBLE), POINTER :: ILU(:)
@@ -39,6 +38,7 @@ TYPE mklCMFD_Type
   TYPE(mklDavidson_Type), POINTER :: Davidson
   TYPE(mklJacobi_Type), POINTER :: Jacobi(:)
   TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+  TYPE(GPinXS_Type), POINTER :: GPinXS(:, :)
   REAL, POINTER :: S(:, :, :), F(:, :), Chi(:, :)
   REAL, POINTER :: phis(:, :, :), phisd(:, :, :, :), phic(:, :, :), neighphis(:, :, :)
   REAL, POINTER :: src(:, :), psi(:, :), psid(:, :)
@@ -74,6 +74,7 @@ TYPE mklAxial_Type
   REAL, POINTER :: SmP1(:, :, :, :), SmP2(:, :, :, :), SmP3(:, :, :, :)
   REAL, POINTER :: phic(:, :, :), PhiAngIn(:, :, :, :), PhiAngOut(:, :, :, :), Jout(:, :, :, :, :)
   REAL, POINTER :: atil(:, :, :, :)
+  INTEGER :: ng
 END TYPE
 
 TYPE mklAngle_Type
@@ -85,7 +86,7 @@ END TYPE
 
 TYPE mklGeom_Type
   INTEGER :: myzb, myze
-  INTEGER :: ng, ngc = 2, nFsr, nxmax, ny, nxy, nz, nzCMFD, nSubplane = 1, nPolar1D = 10, nPolar2D
+  INTEGER :: ng, ngc = 2, ngg, nFsr, nxmax, ny, nxy, nz, nzCMFD, nSubplane = 1, nPolar1D = 10, nPolar2D
   INTEGER :: AxBC(2)
   INTEGER, POINTER :: nx(:), nzfm(:)
   INTEGER, POINTER :: ixRange(:, :), pinRange(:, :), fmRange(:, :), fxrRange(:, :)
@@ -99,6 +100,10 @@ TYPE mklGeom_Type
   LOGICAL, POINTER :: lH2OCell(:, :)
 END TYPE
 
+TYPE mklDepl_Type
+  INTEGER :: SysByte = 500, Scale = 6
+  INTEGER :: nSubStep = 8
+END TYPE
 TYPE mklCntl_Type
   LOGICAL :: lAxial = TRUE                          !--- Axial Calculation
   LOGICAL :: lAxRefFDM = FALSE                      !--- Axial Reflector FDM
@@ -123,6 +128,7 @@ TYPE mklCntl_Type
   LOGICAL :: lScat1 = FALSE                         !--- Internal Flag for Axial PN MOC
   LOGICAL :: lHyperbolic = TRUE                     !--- Axial MOC Hyperbolic Expansion
   LOGICAL :: lSubplane = FALSE                      !--- CMFD Subplane Scheme
+  LOGICAL :: lGamma = FALSE                         !--- Gamma Transport with MKL
   LOGICAL :: pCMFD = FALSE, odCMFD = FALSE          !--- Variants of CMFD
   INTEGER :: DcplLv = 1                             !--- Decoupling Level
   INTEGER :: polyOrder = 0                          !--- Axial MOC Expansion Order
@@ -134,13 +140,14 @@ TYPE mklCntl_Type
   REAL :: CMFDHeight, MOCHeight = 0.5               !--- Maximum Height of CMFD and MOC Subplane
   REAL :: outerConv = 0.1, innerConv = 0.01         !--- Convergence Criteria
   REAL :: Shift = 0.25                              !--- Wielandt Shift Value
+  LOGICAL :: lDepl = .FALSE.
 END TYPE
 
-TYPE(mklMOC_Type) :: mklMOC
-TYPE(mklCMFD_Type) :: mklCMFD, mklGcCMFD
-TYPE(mklAxial_Type) :: mklAxial
+TYPE(mklCMFD_Type) :: mklCMFD, mklGcCMFD, mklGammaCMFD
+TYPE(mklAxial_Type) :: mklAxial, mklGammaAxial
 TYPE(mklGeom_Type) :: mklGeom
 TYPE(mklCntl_Type) :: mklCntl
+TYPE(mklDepl_Type) :: mklDepl
 
 INTEGER, PRIVATE :: Request(4), nRequest
 

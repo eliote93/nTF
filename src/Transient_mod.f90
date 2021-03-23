@@ -1,14 +1,16 @@
+#include <defines.h>
 MODULE TRAN_MOD
 USE PARAM
-USE TYPEDEF,    ONLY : TranInfo_TYPE,       XsChange_TYPE,     TranCntl_TYPE
+USE TYPEDEF,    ONLY : TranInfo_TYPE,       XsChange_TYPE,     TranCntl_TYPE, XSNoise_Type, XsCntlRod_Type
 IMPLICIT NONE
 
 
 TYPE(TranCntl_Type), TARGET :: TranCntl
 TYPE(XsChange_Type), TARGET :: XsChange(100)
+TYPE(XSNoise_Type), TARGET :: XsNoise(100)
+TYPE(XsCntlRod_Type), TARGET :: XsCntlRod(100)
 
 TYPE(TranInfo_Type) :: TranInfo
-
 
 
 INTERFACE
@@ -82,7 +84,7 @@ USE TYPEDEF,     ONLY : CoreInfo_Type,       FmInfo_Type,           CmInfo_Type,
                         TranInfo_Type,       PE_Type,               GroupInfo_Type
 USE CNTL,        ONLY : nTracerCntl_Type
 IMPLICIT NONE
-  
+
 TYPE(CoreInfo_Type) :: Core
 TYPE(FmInfo_Type) :: FmInfo
 TYPE(CmInfo_Type) :: CmInfo
@@ -92,8 +94,31 @@ TYPE(nTracerCntl_Type) :: nTracerCntl
 TYPE(PE_Type) :: PE
 
 END SUBROUTINE
+SUBROUTINE InitFmPrecursor(Core, FmInfo, TranInfo, nTracerCntl, PE, ng, nprec)
+USE PARAM
+USE TYPEDEF,           ONLY : CoreInfo_Type,       FmInfo_Type,         TranInfo_Type,       PE_Type,   &
+                              FxrInfo_Type,        Pin_Type,            Cell_Type
+USE CNTL,              ONLY : nTracerCntl_Type
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(TranInfo_Type) :: TranInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+INTEGER :: ng, nprec
+
+END SUBROUTINE
 
 SUBROUTINE SetTimeStep(TranCntl)
+USE PARAM
+USE TYPEDEF,       ONLY : TranCntl_Type
+IMPLICIT NONE
+
+TYPE(TranCntl_Type) :: TranCntl
+
+END SUBROUTINE
+
+SUBROUTINE SetSamplingTimeStep(TranCntl)
 USE PARAM
 USE TYPEDEF,       ONLY : TranCntl_Type
 IMPLICIT NONE
@@ -219,9 +244,9 @@ END SUBROUTINE
 
 SUBROUTINE KinParamGen(Core, FmInfo, TranInfo, ThInfo,  GroupInfo,  lBetaUpdt, nTracerCntl, PE)
 USE PARAM
-USE TYPEDEF,          ONLY : CoreInfo_Type,    FmInfo_Type,      ThInfo_Type,          & 
+USE TYPEDEF,          ONLY : CoreInfo_Type,    FmInfo_Type,      ThInfo_Type,          &
                              TranInfo_Type,    GroupInfo_Type,   PE_Type,              &
-                             FXRInfo_Type,     PinXs_Type,       Pin_Type,             &              
+                             FXRInfo_Type,     PinXs_Type,       Pin_Type,             &
                              PinInfo_Type,     Cell_Type
 USE CNTL,             ONLY : nTracerCntl_Type
 USE BenchXs,          ONLY : XsBaseBen,        DnpBetaBen,        NeutVeloBen
@@ -296,6 +321,33 @@ TYPE(PE_Type) :: PE
 
 END SUBROUTINE
 
+SUBROUTINE CheckSGFSP(Core, ThInfo, TranCntl, PE)
+USE PARAM
+USE TYPEDEF,            ONLY : CoreInfo_Type,   ThInfo_Type,    TranCntl_Type,    PE_TYPE
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(ThInfo_Type) :: ThInfo
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(PE_Type) :: PE
+END SUBROUTINE
+
+SUBROUTINE CheckMOCUpdt(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, TranCntl, PE, lSave)
+USE PARAM
+USE TYPEDEF,            ONLY : CoreInfo_Type,     FmInfo_Type,         CmInfo_Type,          TranCntl_Type,  &
+                               Pin_Type,          PinXS_Type,          FxrInfo_TYpe,         Cell_Type,      &
+                               PE_Type,           GroupInfo_Type
+USE CNTL,               ONLY : nTracerCntl_Type
+IMPLICIT NONE
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(CmInfo_Type) :: CmInfo
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(TranCntl_Type) :: TranCntl
+TYPE(PE_Type) :: PE
+LOGICAL :: lSave
+END SUBROUTINE
+
 SUBROUTINE UpdtBaseXsCondiMOC(Core, FmInfo, CmInfo, TranInfo, ThInfo, GroupInfo, TranCntl, nTracerCntl, PE)
 USE PARAM
 USE TYPEDEF,            ONLY : CoreInfo_Type,         FmInfo_Type,         CmInfo_Type,    &
@@ -315,17 +367,17 @@ TYPE(PE_Type) :: PE
 
 END SUBROUTINE
 
-FUNCTION TranReactivityUpdt(CmInfo, eigv, TranCntl, PE)
+SUBROUTINE TranReactivityUpdt(CmInfo, eigv, TranCntl, PE, TranInfo)
 USE PARAM
-USE TYPEDEF,   ONLY : CmInfo_Type,  PE_TYPE, TranCntl_Type
+USE TYPEDEF,   ONLY : CmInfo_Type,  PE_TYPE, TranCntl_Type, TranInfo_Type
 IMPLICIT NONE
 
 TYPE(CmInfo_Type) :: CmInfo
 REAL :: eigv
 TYPE(PE_TYPE) :: PE
 TYPE(TranCntl_Type) :: TranCntl
-REAL :: TranReactivityUpdt
-END FUNCTION
+TYPE(TranInfo_Type) :: TranInfo
+END SUBROUTINE
 
 FUNCTION UpdtHomXsTr1g(PinXS, PhiC, ng)
 USE PARAM
@@ -393,6 +445,204 @@ INTEGER :: ng
 
 END FUNCTION
 
+SUBROUTINE SetCorrectorPrecParam(TranInfo, omegam, omega0, omegap, beta, factor_F, delt, deltp, nprec, norder)
+USE TYPEDEF,        ONLY : TranInfo_Type
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+REAL :: omegam(nprec), omega0(nprec), omegap(nprec), beta(nprec)
+REAL :: factor_F
+REAL :: delt, deltp
+INTEGER :: nprec, norder
+
+END SUBROUTINE
+
+SUBROUTINE CalcFisRate(FisRate, CmInfo, nxy, myzb, myze, ng)
+USE TYPEDEF,          ONLY : CmInfo_Type,       PinXs_Type
+IMPLICIT NONE
+REAL :: FisRate(nxy, myzb:myze)
+TYPE(CmInfo_Type) :: CmInfo
+INTEGER :: nxy, myzb, myze, ng
+END SUBROUTINE
+
 END INTERFACE
+
+  CONTAINS
+  SUBROUTINE SavePrevPKEParameters(TranInfo, paramsave, nparam)
+  USE TYPEDEF,      ONLY : TranInfo_Type
+  IMPLICIT NONE
+  TYPE(TranInfo_Type) :: TranInfo
+  REAL :: paramsave(nparam)
+  INTEGER, INTENT(IN) :: nparam
+
+  INTEGER :: nprec
+  INTEGER :: ibeg, iend
+
+  nprec = TranInfo%nprec
+
+  paramsave(1) = TranInfo%Prev_delrho
+  paramsave(2) = TranInfo%Prev_corebetat
+  paramsave(3) = TranInfo%Prev_lifetime
+  paramsave(4) = TranInfo%Prev_factor_F
+  ibeg = 5; iend = ibeg + nprec - 1
+  paramsave(ibeg:iend) = TranInfo%Prev_corebeta(1:nprec)
+  ibeg = iend + 1; iend = ibeg + nprec - 1
+  paramsave(ibeg:iend) = TranInfo%Prev_coreprec(1:nprec)
+
+  END SUBROUTINE
+
+  SUBROUTINE RecoverPrevPKEParameters(TranInfo, paramsave, nparam)
+  USE TYPEDEF,      ONLY : TranInfo_Type
+  IMPLICIT NONE
+  TYPE(TranInfo_Type) :: TranInfo
+  REAL :: paramsave(nparam)
+  INTEGER, INTENT(IN) :: nparam
+
+  INTEGER :: nprec
+  INTEGER :: ibeg, iend
+
+  nprec = TranInfo%nprec
+
+  TranInfo%Prev_delrho = paramsave(1)
+  TranInfo%Prev_corebetat = paramsave(2)
+  TranInfo%Prev_lifetime = paramsave(3)
+  TranInfo%Prev_factor_F = paramsave(4)
+  ibeg = 5; iend = ibeg + nprec - 1
+  TranInfo%Prev_corebeta(1:nprec) = paramsave(ibeg:iend)
+  ibeg = iend + 1; iend = ibeg + nprec - 1
+  TranInfo%Prev_coreprec(1:nprec) = paramsave(ibeg:iend)
+
+  END SUBROUTINE
+
+  SUBROUTINE ShowTransientFlag(io, calclevel, tbeg, tend)
+  USE PARAM,      ONLY : mesg
+  IMPLICIT NONE
+  INTEGER :: io
+  INTEGER :: calclevel
+  CHARACTER*17 :: CARD
+  REAL :: tbeg, tend
+
+  CHARACTER*12 :: hbar
+
+  SELECT CASE(calclevel)
+  CASE(0)
+    card = 'MATERIAL UPDATE  '
+  CASE(1)
+    card = 'PKE UPDATE       '
+  CASE(2)
+    card = 'TH UPDATE        '
+  CASE(3)
+    card = 'CMFD UPDATE      '
+  END SELECT
+
+
+  hbar = '------------'
+  WRITE(mesg,'(a12, i1,a2,a17,a,es12.4,a6,es12.4,a2,a12)') hbar, calclevel, ': ', card, '-', tbeg, ' s to ', tend, ' s', hbar
+
+  print '(a)', mesg
+  write(io, '(a)') mesg
+
+  END SUBROUTINE
+
+  SUBROUTINE EDIT_NNSAMPLING(Core, TranCntl, CmInfo, PE, ng)
+  USE TYPEDEF,    ONLY : coreinfo_type, TranCntl_TYPE, CMInfo_Type, PE_TYPE, &
+                         pin_type, cell_type
+#ifdef MPI_ENV
+  USE MPIComm_Mod,  ONLY : SENDRECV, MPI_SYNC
+#endif
+  IMPLICIT NONE
+  TYPE(coreinfo_type) :: Core
+  TYPE(TranCntl_TYPE) :: TranCntl
+  TYPE(CMInfo_Type) :: CmInfo
+  TYPE(PE_TYPE) :: PE
+  INTEGER :: ng
+
+  TYPE(pin_type), POINTER :: Pin(:)
+  TYPE(cell_type), POINTER :: Cell(:)
+  REAL, POINTER :: PhiC3D(:,:,:)
+  INTEGER :: nxy, nz, myzb, myze
+  INTEGER :: ixy, iz, icel, ig, iz1, iz2
+  INTEGER :: nowstep, iSstep
+  INTEGER :: Sio
+  INTEGER :: iAsy, iAsyTyp
+  INTEGER :: i
+
+  nowstep = TranCntl%nowstep
+  iSstep = TranCntl%iSstep
+  IF(iSstep .GT. TranCntl%nSstep) RETURN
+  IF(ABS(TranCntl%Ssteps(iSstep) - TranCntl%T(nowstep)) .GT. 1.E-5) THEN
+    IF(TranCntl%T(nowstep) .GT. TranCntl%Ssteps(iSstep)) THEN
+      STOP 'Noise Sampling Step is Skipped'
+    ELSE
+      RETURN
+    END IF
+  END IF
+
+  Sio = TranCntl%Sio
+  IF(iSstep .EQ. 1) THEN
+    OPEN(Sio, FILE = 'NNSAMPLING', STATUS = 'replace')
+  END IF
+  nxy = Core%nxy
+  nz = Core%nz
+  Pin => Core%Pin
+  Cell => Core%CellInfo
+  myzb = PE%myzb
+  myze = PE%myze
+
+  IF(pe%master) THEN
+  ALLOCATE(PhiC3D(ng,nxy,nz))
+  ELSE
+  ALLOCATE(PhiC3D(ng,nxy,myzb:myze))
+  END IF
+  PhiC3D = 1.
+  !$OMP PARALLEL
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+  DO iz = myzb, myze
+    DO ixy = 1, nxy
+      DO ig = 1, ng
+        phiC3D(ig,ixy,iz) = CmInfo%PhiC(ixy,iz,ig)
+      END DO
+    END DO
+  END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
+
+#ifdef MPI_ENV
+  IF(PE%master) THEN
+    DO i = 1, PE%nCmfdProc-1
+      iz1 = PE%AxDomRange(1,i)
+      iz2 = PE%AxDomRange(2,i)
+      CALL SENDRECV(PhiC3D(1:ng,1:nxy,iz1:iz2), ng, nxy, iz2-iz1+1,i,.FALSE., PE%MPI_CMFD_COMM)
+    END DO
+  ELSE
+      iz1 = myzb
+      iz2 = myze
+      CALL SENDRECV(PhiC3D(1:ng,1:nxy,iz1:iz2), ng, nxy, iz2-iz1+1, 0, .TRUE., PE%MPI_CMFD_COMM)
+  END IF
+  CALL MPI_SYNC(PE%MPI_CMFD_COMM)
+#endif
+
+  IF(PE%master) THEN
+    WRITE(Sio, '(a15, i5)') 'SAMPLING_STEP',  iSstep
+    DO iz = 1, nz
+      IF(.not. core%lfuelplane(iz)) CYCLE
+      DO ixy = 1, nxy
+        icel = Pin(ixy)%Cell(iz)
+        iAsy = Pin(ixy)%iasy
+        iAsyTyp = Core%Asy(iAsy)%AsyType
+        IF(.NOT. Core%AsyInfo(iAsyTyp)%lfuel) CYCLE
+        WRITE(Sio,'(3i5, 2es14.6)', advance = 'NO') Pin(ixy)%ix, Pin(ixy)%iy, iz, Cell(icel)%Geom%lx, Cell(icel)%Geom%ly
+        DO ig = 1, ng
+          WRITE(Sio, '(es14.6)', advance = 'NO') PhiC3D(ig,ixy,iz)
+        END DO
+        WRITE(Sio, *)
+      END DO
+    END DO
+  END IF
+
+  DEALLOCATE(PhiC3D)
+  NULLIFY(Pin, Cell)
+  TranCntl%iSstep = iSstep + 1
+
+  END SUBROUTINE
 
 END MODULE

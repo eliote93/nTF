@@ -104,7 +104,7 @@ IF(lGap) THEN
   jfr = 2; jto = nxc -1
 ENDIF
 
-CALL CP_CA(AsyConf(1:nxc+2, 1:nxc+2), 0, nxc+2, nxc+2)
+AsyConf(1:nxc+2, 1:nxc+2) = 0.
 
 SELECT CASE(iAng)
   case(360)
@@ -159,7 +159,7 @@ ENDIF
   
 nCrAsyConf = nCrAsyConf + 1
 CALL DMALLOC(CrAsyConf(ConfId)%CrLoc, nxc, nxc)
-CALL CP_VA(CrAsyConf(ConfId)%CrLoc(1:nxc, 1:nxc), AsyConf(1:nxc, 1:nxc), nxc, nxc)
+CrAsyConf(ConfId)%CrLoc(1:nxc,1:nxc) = AsyConf(1:nxc,1:nxc)
 
 END SUBROUTINE
 
@@ -331,6 +331,19 @@ ENDIF
 
 END SUBROUTINE 
 
+SUBROUTINE GetInp_CrDecusp(OneLine)
+IMPLICIT NONE
+CHARACTER(256) :: oneline
+CHARACTER(20) :: astring
+INTEGER :: BankId
+LOGICAL :: ltemp
+
+READ(oneline, *) astring, BankId, ltemp
+CrBank(BankId)%lCrDecusp = .TRUE.
+CrBank(BankId)%lCrDir = ltemp
+
+END SUBROUTINE
+
 SUBROUTINE GetInp_CrMvDom(OneLine, PE)
 IMPLICIT NONE
 CHARACTER(256) :: oneline
@@ -355,7 +368,7 @@ CrInfo%lCrChg = .TRUE.
   
 END SUBROUTINE
 
-SUBROUTINE InitCntlRodConf(Core, FmInfo, CmInfo, GroupInfo, nTRACERCntl, PE)
+SUBROUTINE InitCntlRodConf(Core, FmInfo, CmInfo, GroupInfo, nTRACERCntl, PE) 
 USE TYPEDEF,         ONLY : FmInfo_Type,        CmInfo_Type,        GroupInfo_Type
 USE CrCsp_MOD,       ONLY : InitCrCsp
 USE ioutil,          ONLY : message
@@ -383,6 +396,7 @@ CrInfo%CrPosDat => CrPosDat
 hzmax = sum(core%hz)
 
 CALL SetCrCellInfo(Core%CellInfo, Core%nCellType, Core%lEdge)
+CALL SetPRCellInfo(Core%CellInfo, Core%nCellType, Core%nCellType0, Core%lEdge)
 CALL SetCrAsyConf(Core)
 CALL SetCrBank(Core)
 CALL SetGlobalCrPinInfo(Core)
@@ -398,8 +412,265 @@ CONTINUE
 END SUBROUTINE
 
 
+SUBROUTINE SetCrBankPosition(Core, fmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
+USE TYPEDEF,       ONLY : FmInfo_Type,        CmInfo_Type,        GroupInfo_Type,          &
+                          PE_Type,            FxrInfo_Type,       Pin_Type,                &
+                          Cell_Type
+USE files,         ONLY : io8
+USE ioutil,        ONLY : message,            terminate
+USE BenchXs,       ONLY : xsBenChange_new,    xsDynBenChange
+USE XsPerturb_mod, ONLY : ChangeMixture
+IMPLICIT NONE
 
-SUBROUTINE SetCrBankPosition(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
+INCLUDE 'mpif.h'
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(CmInfo_Type) :: CmInfo
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(nTracerCntl_Type) :: nTracerCntl
+TYPE(PE_Type) :: PE
+
+TYPE(FxrInfo_Type), POINTER :: Fxr(:,:)
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+REAL :: CrPos0
+REAL, ALLOCATABLE :: wt(:), wt0(:)
+INTEGER, ALLOCATABLE :: lplnchg(:), sbuf(:), rbuf(:), idisp(:), ircnt(:)
+INTEGER :: myzb, myze, nxy, nzloc
+INTEGER :: xyb, xye
+INTEGER :: nLocalFxr, FxrIdxSt, nCrFxr
+INTEGER :: ibank, ixy, icel, iz, imix, imix_cr
+INTEGER :: upcel, downcel, incel, outcel
+INTEGER :: i, j, ifxr
+INTEGER :: ierr
+LOGICAL, ALLOCATABLE :: lComplete(:), linsert(:), ldiff(:)
+LOGICAL :: lres0, lpinchg, lrcv
+
+IF(PE%master) CALL message(io8, TRUE, TRUE, 'Set Control Rod Position...')
+
+Fxr => FmInfo%Fxr
+Pin => Core%Pin
+CellInfo => Core%CellInfo
+
+myzb = PE%myzb
+myze = PE%myze
+nxy = Core%nxy
+nzloc = myze - myzb + 1
+
+xyb = PE%myPinBeg
+xye = PE%myPinEnd
+IF(PE%RTMASTER) THEN 
+  xyb = 1
+  xye = nxy
+END IF
+
+ALLOCATE(lplnChg(myzb:myze), wt(myzb:myze), wt0(myzb:myze), linsert(myzb:myze), lcomplete(myzb:myze))
+ALLOCATE(ldiff(myzb:myze))
+ALLOCATE(sbuf(nzloc), rbuf(Core%nz))
+ALLOCATE(idisp(PE%nCMFDProc), ircnt(PE%nCMFDProc))
+
+DO i = 0, PE%nCMFDProc
+  idisp(i+1) = PE%AxDomRange(1, i)-1
+  ircnt(i+1) = PE%AxDomRange(2, i)-PE%AxDomRange(1,i)+1
+END DO 
+
+lplnChg = 0 
+nTracerCntl%lCusping_MPI = .FALSE.
+
+DO ibank = 1, nCrBank
+  CALL CalCrBankLocation(CrBank(ibank)%FracCrIn, CrBank(ibank)%lCrIn, CrBank(ibank)%RodInPos,     &
+                         CrBank(ibank)%RodPos, Core%hz, Core%nz, nTracerCntl%lCrCsp)
+  CrPos0 = CrBank(ibank)%RodInPos + CrBank(ibank)%RodPos
+  IF(PE%MASTER) THEN
+    IF(.NOT. CrBank(ibank)%lCrIn) THEN
+      WRITE(mesg, '(5x, A10,A2,x, A15)') CrBank(ibank)%BankName,':', 'Rod Out'
+    ELSE
+      WRITE(mesg, '(5x, A10,A2,x, F12.3,A3, x, A)') CrBank(ibank)%BankName,':', CrBank(ibank)%RodPos, 'cm', 'from Fuel Bottom'
+    ENDIF
+    CALL message(io8, FALSE, TRUE, mesg)
+  ENDIF  
+  DO ixy = xyb, xye
+    IF(.NOT. Pin(ixy)%lCrPin) CYCLE
+    IF(Pin(ixy)%CrBankId .NE. iBank) CYCLE
+    DO iz = myzb, myze
+      icel = Pin(ixy)%Cell(iz)
+      ldiff(iz) = .FALSE.
+      IF(.NOT. CellInfo(icel)%lCrCell) CYCLE
+      IF(ABS(CrBank(ibank)%FracCrIn(iz) - Pin(ixy)%FracCrIn(iz)) .GT. epsm5) THEN
+        IF(Pin(ixy)%FracCrIn(iz) .GT. CrBank(ibank)%FracCrIn(iz)) THEN
+          wt(iz) = (-CrBank(ibank)%FracCrIn(iz) + Pin(ixy)%FracCrIn(iz)) / (Pin(ixy)%FracCrIn(iz))
+          wt0(iz) = 1._8 - CrBank(ibank)%FracCrIn(iz)
+          linsert(iz) = .FALSE.
+        ELSE
+          wt(iz) = (CrBank(ibank)%FracCrIn(iz) - Pin(ixy)%FracCrIn(iz)) / (1._8 - Pin(ixy)%FracCrIn(iz))
+          wt0(iz) = CrBank(ibank)%FracCrIn(iz)
+          linsert(iz) = .TRUE.
+        END IF
+
+        IF(ABS(wt(iz)-1._8) .LT. epsm5) THEN
+          lComplete(iz) = .TRUE.
+          IF(linsert(iz)) THEN
+            Pin(ixy)%Cell(iz) = CellInfo(iCel)%CrCell%inIdx
+            wt(iz) = 1._8;    wt0(iz) = 1._8
+          ELSE
+            Pin(ixy)%Cell(iz) = CellInfo(iCel)%CrCell%outIdx
+            wt(iz) = 1._8;    wt0(iz) = 0._8
+          END IF
+        ELSE
+          lComplete(iz) = .FALSE.
+          IF(CellInfo(icel)%prcell .NE. -1)  Pin(ixy)%Cell(iz) = CellInfo(icel)%prcell
+        END IF
+      ELSE
+        IF((CrBank(ibank)%FracCrIn(iz) .GT. 1._8 - epsm5) .AND. CellInfo(icel)%prcell .EQ. -1) THEN
+            wt(iz) = 1._8;    wt0(iz) = 1._8
+            linsert(iz) = .TRUE.
+        ELSEIF((CrBank(ibank)%FracCrIn(iz) .LT. 0._8 + epsm5) .AND. CellInfo(icel)%prcell .EQ. -1) THEN
+            wt(iz) = 1._8;    wt0(iz) = 0._8
+            linsert(iz) = .FALSE.
+        ELSE
+          CYCLE
+        END IF
+        lComplete(iz) = .TRUE.
+      END IF
+      ldiff(iz) = .TRUE.
+
+      IF(lplnchg(iz) .NE. 1 .AND. CellInfo(Pin(ixy)%Cell(iz))%lAIC) THEN 
+        lplnchg(iz) = 1
+      END IF
+      IF(CellInfo(icel)%lAIC .NE. CellInfo(Pin(ixy)%Cell(iz))%lAIC) THEN
+        IF(.NOT. CellInfo(icel)%lAIC) THEN
+          Core%lAICPlane(iz) = .TRUE.
+        ELSEIF(lplnchg(iz) .EQ. 0) THEN
+         lplnchg(iz) = 2
+        END IF
+      END IF
+
+      nLocalFxr = CellInfo(icel)%nFxr
+      FxrIdxSt = Pin(ixy)%FxrIdxSt
+      nCrFxr = CellInfo(icel)%CrCell%nCrFxr
+
+      DO i = 1, nCrFxr
+        j = CellInfo(icel)%CrCell%CrFxrIdx(i)
+        ifxr = FxrIdxSt + j - 1
+        imix = CellInfo(icel)%CrCell%imix_CrOut(i)
+        imix_cr = CellInfo(icel)%CrCell%imix_CrIn(i)
+        IF(nTracerCntl%lXsLib) THEN
+          IF(Fxr(ifxr,iz)%lCrRes) lres0 = Fxr(ifxr, iz)%lRes
+          IF(linsert(iz)) THEN
+            CALL ChangeMixture(Fxr(ifxr, iz), imix, imix_cr, wt(iz), wt0(iz), lComplete(iz))
+          ELSE
+            CALL ChangeMixture(Fxr(ifxr, iz), imix_cr, imix, wt(iz), wt0(iz), lComplete(iz))
+          END IF
+          IF(Fxr(ifxr,iz)%lCrRes) lpinchg = Fxr(ifxr, iz)%lRes .NE. lres0
+        ELSE
+          CALL terminate('CNTLROD BLOCK for BENCHMARK is not supported')
+        END IF
+      END DO
+      Pin(ixy)%FracCrIn(iz) = CrBank(iBank)%FracCrIn(iz)
+      IF(lpinchg) THEN 
+        Core%ResVarPin(ixy,iz)%lres = .FALSE.
+        Core%ResVarPin(ixy,iz)%lresA = .FALSE.
+        Core%ResVarPin(ixy,iz)%lresC = .FALSE.
+        Core%ResVarPin(ixy,iz)%lres = .FALSE.
+        DO i = 1, nLocalFxr
+          ifxr = FxrIdxSt + i - 1
+          IF (Fxr(ifxr, iz)%lRes) then
+            Core%ResVarPin(ixy,iz)%lresA=.TRUE.
+            IF (.not.Fxr(ifxr, iz)%lCLD) then
+              Core%ResVarPin(ixy,iz)%lres=.TRUE.
+            ELSE
+              Core%ResVarPin(ixy,iz)%lresC=.TRUE.
+            ENDIF
+          END IF
+        END DO
+      END IF
+    END DO 
+
+    ! MPI Communication of Update Global Informations
+    sbuf(1:nzloc) = Pin(ixy)%Cell(myzb:myze)
+    CALL MPI_ALLGATHERV(sbuf, nzloc, MPI_INTEGER, rbuf, ircnt, idisp, MPI_INTEGER, PE%MPI_CMFD_COMM, ierr)
+    Pin(ixy)%Cell(1:Core%nz) = rbuf(1:Core%nz)
+    ! Decusping information
+    DO iz = myzb, myze
+      IF(.NOT. ldiff(iz)) CYCLE
+      icel = Pin(ixy)%Cell(iz)
+      FxrIdxSt = Pin(ixy)%FxrIdxSt
+      nCrFxr = CellInfo(icel)%CrCell%nCrFxr
+
+      DO i = 1, nCrFxr
+        j = CellInfo(icel)%CrCell%CrFxrIdx(i)
+        ifxr = FxrIdxSt + j - 1
+        imix = CellInfo(icel)%CrCell%imix_CrOut(i)
+        imix_cr = CellInfo(icel)%CrCell%imix_CrIn(i)
+        IF(nTracerCntl%lXslib) THEN 
+          Fxr(ifxr, iz)%lCusping = .FALSE.
+          IF(CrBank(ibank)%lCrDecusp .AND. .NOT. lComplete(iz)) THEN 
+            IF(iz .NE. 1 .AND. iz .NE. Core%nz) THEN
+              incel = CellInfo(icel)%CrCell%inIdx
+              outcel = CellInfo(icel)%CrCell%outIdx
+              upcel = Pin(ixy)%Cell(iz+1)
+              downcel = Pin(ixy)%Cell(iz-1)
+              IF(CrBank(ibank)%lCrDir .AND. (incel .EQ. upcel) .AND. (outcel .EQ. downcel)) THEN
+                IF(.NOT. nTracerCntl%lCusping_MPI) nTracerCntl%lCusping_MPI = .TRUE.
+                Fxr(ifxr, iz)%lCusping = .TRUE. 
+                Fxr(ifxr, iz)%iso0 = imix
+                Fxr(ifxr, iz)%iso1 = imix_cr
+                IF(linsert(iz)) THEN
+                  Fxr(ifxr, iz)%wt = wt0(iz)
+                ELSE
+                  Fxr(ifxr, iz)%wt = 1._8 - wt0(iz)
+                END IF
+              ELSE IF((.NOT. CrBank(ibank)%lCrDir) .AND. (incel .EQ. downcel) .AND. (outcel .Eq. upcel)) THEN
+                IF(.NOT. nTracerCntl%lCusping_MPI) nTracerCntl%lCusping_MPI = .TRUE.
+                Fxr(ifxr, iz)%lCusping = .TRUE. 
+                Fxr(ifxr, iz)%iso0 = imix_cr
+                Fxr(ifxr, iz)%iso1 = imix
+                IF(linsert(iz)) THEN
+                  Fxr(ifxr, iz)%wt = 1._8 - wt0(iz)
+                ELSE
+                  Fxr(ifxr, iz)%wt = wt0(iz)
+                END IF
+              END IF
+            END IF
+          END IF
+        END IF
+      END DO 
+    END DO 
+  END DO 
+END DO 
+
+DO iz = myzb, myze
+  IF(lplnchg(iz) .EQ. 2) THEN 
+    Core%lAICPlane(iz) = .FALSE.
+    DO ixy = xyb, xye
+      icel = Pin(ixy)%Cell(iz)
+      Core%lAICPlane(iz) = Core%lAICPlane(iz) .OR. CellInfo(icel)%lAIC 
+    END DO 
+  END IF
+END DO 
+DO iz = myzb, myze
+  IF(lplnchg(iz) .EQ. 2) THEN 
+    sbuf(1:nzloc) = Core%lAICPlane(myzb:myze)
+    CALL MPI_ALLGATHERV(sbuf, nzloc, MPI_INTEGER, rbuf, ircnt, idisp, MPI_INTEGER, PE%MPI_CMFD_COMM, ierr)
+    Core%lAICPlane(1:Core%nz) = rbuf(1:Core%nz)
+    EXIT
+  END IF 
+END DO 
+
+CALL MPI_ALLREDUCE(nTracerCntl%lCusping_MPI, lrcv, 1, MPI_LOGICAL, MPI_LOR, PE%MPI_CMFD_COMM, ierr)
+nTracerCntl%lCusping_MPI = lrcv
+
+DEALLOCATE(idisp, ircnt)
+DEALLOCATE(sbuf, rbuf)
+DEALLOCATE(ldiff)
+DEALLOCATE(lplnchg, wt, wt0, linsert, lcomplete)
+NULLIFY(Fxr, Pin, CellInfo)
+
+END SUBROUTINE 
+
+
+SUBROUTINE SetCrBankPosition_old(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 USE TYPEDEF,      ONLY : FmInfo_Type,        CmInfo_Type,        GroupInfo_Type,          &
                          PE_Type,                                                         &
                          FxrInfo_Type,       Pin_Type,           Cell_Type
@@ -530,8 +801,8 @@ myFxr%imix = imix
 myFxr%lRes = Mixture(imix)%lRes; myFxr%lh2o = Mixture(imix)%lh2o
 
 myFxr%niso = Mixture(imix)%niso
-CALL CP_VA(myFxr%idiso(1:niso), Mixture(imix)%idiso(1:niso), niso)
-CALL CP_VA(myFxr%pnum(1:niso), Mixture(imix)%pnum(1:niso), niso)
+myFxr%idiso(1:niso) = Mixture(imix)%idiso(1:niso)
+myFxr%pnum(1:niso) = Mixture(imix)%pnum(1:niso)
 
 END SUBROUTINE
 
@@ -561,7 +832,7 @@ wt1 = FracCrIn; wt2 = 1._8 - wt1
 niso_new = 0
 
 niso_new = mixture(iso1)%niso
-CALL CP_VA(IdIso_new(1:niso_new), mixture(iso1)%IdIso(1:niso_new), niso_new)
+Idiso_new(1:niso_new) = Mixture(iso1)%IdIso(1:niso_new)
 DO i = 1, niso_new
   pnum_new(i) = wt1 * mixture(iso1)%pnum(i)
 ENDDO
@@ -732,13 +1003,13 @@ DO iz = nz, 1, -1
   FracCrIn(iz) = (z(iz) - CrTip) / hz(iz)
   FracCrIn(iz) = max(0._8, FracCrIn(iz))
   FracCrIn(iz) = min(1._8, FracCrIn(iz))
-  IF(.NOT. lCusping) THEN
-    IF(FracCrIn(iz) .LT. 0.5_8) THEN
-      FracCrIn(iz) = 0._8
-    ELSE
-      FracCrIn(iz) = 1._8
-    ENDIF
-  ENDIF
+  !IF(.NOT. lCusping) THEN
+  !  IF(FracCrIn(iz) .LT. 0.5_8) THEN
+  !    FracCrIn(iz) = 0._8
+  !  ELSE
+  !    FracCrIn(iz) = 1._8
+  !  ENDIF
+  !ENDIF
 ENDDO
 FlagCrIn = sum(FracCrIn(1:nz))
 lCrIn = .FALSE.
@@ -836,12 +1107,12 @@ DO itype = 1, nCellType
   icrtype=CellInfo(itype)%CrCell%CellCrIdx
   DO i = 1, CellInfo(itype)%CrCell%nCrFxr
     j = CellInfo(itype)%CrCell%CrFxrIdx(i)
-    !ifxr = FxrIdxst + j - 1
-    !Fxr(ifxr, iz)%lCrFxr = .TRUE.
     ireg = CellInfo(itype)%MapFxr2FsrIdx(1, j)
     imix1 = CellInfo(itype)%iReg(ireg); imix2 = CellInfo(icrtype)%iReg(ireg)
     lRes1 = Mixture(imix1)%lres; lRes2 = Mixture(imix2)%lres
     If(lRes2 .AND. .NOT. lRes1) THEN
+      AllocFxr(j, itype) = .TRUE.
+    ELSEIf(lRes1 .AND. .NOT. lRes2) THEN
       AllocFxr(j, itype) = .TRUE.
     ENDIF
   ENDDO
@@ -888,6 +1159,13 @@ DO iz = myzb, myze
       j = CellInfo(icel)%CrCell%CrFxrIdx(i)
       ifxr = FxrIdxSt + j -1
       Fxr(ifxr, iz)%lCrFxr = .TRUE.
+      IF(AllocFxr(j, icel)) THEN 
+        Fxr(ifxr, iz)%lCrRes = .TRUE.
+        CALL Dmalloc(Fxr(ifxr, iz)%idiso_pastpsm, fxr(ifxr,iz)%ndim)
+        CALL Dmalloc(Fxr(ifxr, iz)%idx_Res, Fxr(ifxr,iz)%ndim)
+        CALL Dmalloc(Fxr(ifxr, iz)%idiso_Res, nreshel)
+        CALL Dmalloc(Fxr(ifxr, iz)%pnum_Res, Fxr(ifxr,iz)%ndim)
+      END IF
     ENDDO
   ENDDO
 ENDDO
@@ -1086,8 +1364,12 @@ DO i = 1, nCrCell
   ALLOCATE(CellInfo(icrin)%CrCell)
   CellInfo(icrout)%CrCell%CellCrIdx = icrin
   CellInfo(icrin)%CrCell%CellCrIdx = icrout
-  CellInfo(icrout)%CrCell%lCrout = .TRUE.;CellInfo(icrout)%CrCell%lCrIn = .FALSE.
-  CellInfo(icrin)%CrCell%lCrout = .TRUE.;CellInfo(icrin)%CrCell%lCrIn = .TRUE.
+  CellInfo(icrout)%CrCell%inIdx = icrin
+  CellInfo(icrout)%CrCell%outIdx = icrout
+  CellInfo(icrin)%CrCell%inIdx = icrin
+  CellInfo(icrin)%CrCell%outIdx = icrout
+  CellInfo(icrout)%CrCell%lCrout = .TRUE.; CellInfo(icrout)%CrCell%lCrIn = .FALSE.
+  CellInfo(icrin)%CrCell%lCrout = .FALSE.; CellInfo(icrin)%CrCell%lCrIn = .TRUE.
   
   IF(lEDGE) CYCLE
   IF(Cellinfo(iCrout)%lCCell) CYCLE 
@@ -1101,6 +1383,10 @@ DO i = 1, nCrCell
     ALLOCATE(CellInfo(icrin1)%CrCell)
     CellInfo(icrout1)%CrCell%CellCrIdx = icrin1
     CellInfo(icrin1)%CrCell%CellCrIdx = icrout1
+    CellInfo(icrout1)%CrCell%inIdx = icrin1
+    CellInfo(icrout1)%CrCell%outIdx = icrout1
+    CellInfo(icrin1)%CrCell%inIdx = icrin1
+    CellInfo(icrin1)%CrCell%outIdx = icrout1
     CellInfo(icrout1)%CrCell%lCrout = .TRUE.;CellInfo(icrout1)%CrCell%lCrIn = .FALSE.
     CellInfo(icrin1)%CrCell%lCrout = .TRUE.;CellInfo(icrin1)%CrCell%lCrIn = .TRUE.    
   ENDDO
@@ -1159,6 +1445,141 @@ DO i = 1, nCellType
 ENDDO
 
 END SUBROUTINE
+
+SUBROUTINE SetPRCellInfo(CellInfo, nCellType, nCellType0, lEDGE)
+USE TYPEDEF,              ONLY : Cell_Type
+USE ioutil,               ONLY : terminate
+USE pE_mod,               ONLY : PE
+IMPLICIT NONE
+TYPE(Cell_Type) :: CellInfo(nCellType) 
+INTEGER :: nCellType, nCellType0
+LOGICAL :: lEDGE
+
+INTEGER :: nmat, nreg, nj
+INTEGER :: i, j, icel, icel0, ires
+INTEGER :: icrin, icrout
+
+IF(lEDGE) THEN 
+  nj = 1
+ELSE
+  nj = 4
+END IF
+
+DO j = 1, nj
+  icel0 = nCellType0 - 3 - nCrCell + (j-1) * nCellType0
+  DO i = 1, nCrCell
+    icel = icel0 + i
+    icrout = CrCellMap(1, i)
+    icrin  = CrCellMap(2, i)
+    IF(j .GT. 1) THEN 
+      icrout = CellInfo(icrout)%EdgeCellIdx(j-1)
+      icrin  = CellInfo(icrin)%EdgeCellIdx(j-1)
+    END IF
+
+    CellInfo(icrin)%prcell = icel
+    CellInfo(icrout)%prcell = icel
+    CellInfo(icel)%prcell = -1
+
+
+    ! Copy Cell Information
+    CellInfo(icel)%icel0 = CellInfo(icrin)%icel0
+    CellInfo(icel)%lempty = CellInfo(icrin)%lempty
+    CellInfo(icel)%lrect = CellInfo(icrin)%lrect
+    CellInfo(icel)%lGap = CellInfo(icrin)%lGap
+    CellInfo(icel)%lCentX = CellInfo(icrin)%lCentX
+    CellInfo(icel)%lCentY = CellInfo(icrin)%lCentY
+    CellInfo(icel)%lCentXY = CellInfo(icrin)%lCentXY
+    CellInfo(icel)%lFuel = CellInfo(icrin)%lFuel .OR. CellInfo(icrout)%lFuel
+    CellInfo(icel)%lRes = CellInfo(icrin)%lRes .OR. CellInfo(icrout)%lRes
+    CellInfo(icel)%lGd = CellInfo(icrin)%lGd .OR. CellInfo(icrout)%lGd
+    CellInfo(icel)%lMox = CellInfo(icrin)%lMox .OR. CellInfo(icrout)%lMox
+    CellInfo(icel)%lAIC = CellInfo(icrin)%lAIC .OR. CellInfo(icrout)%lAIC
+    CellInfo(icel)%lSSPH = CellInfo(icrin)%lSSPH .OR. CellInfo(icrout)%lSSPH
+    CellInfo(icel)%lCR = CellInfo(icrin)%lCR .OR. CellInfo(icrout)%lCR
+    CellInfo(icel)%lCRCell = CellInfo(icrin)%lCR .OR. CellInfo(icrout)%lCR
+
+    CellInfo(icel)%nDivAzi = CellInfo(icrin)%nDivAzi
+    CellInfo(icel)%nFSR = CellInfo(icrin)%nFSR
+    CellInfo(icel)%nFxr = CellInfo(icrin)%nFxr
+    CellInfo(icel)%nBd  = CellInfo(icrin)%nBd
+    CellInfo(icel)%GapType = CellInfo(icrin)%GapType
+
+    CellInfo(icel)%ireg => CellInfo(icrin)%ireg
+    CellInfo(icel)%FxrIdxSt => CellInfo(icrin)%FxrIdxSt
+    CellInfo(icel)%nFsrInFxr => CellInfo(icrin)%nFsrInFxr
+    CellInfo(icel)%MapFxr2FsrIdx => CellInfo(icrin)%MapFxr2FsrIdx
+    CellInfo(icel)%vol => CellInfo(icrin)%vol
+
+    CellInfo(icel)%geom%lCircle = CellInfo(icrin)%geom%lCircle
+    CellInfo(icel)%geom%lrect = CellInfo(icrin)%geom%lrect
+    CellInfo(icel)%geom%lCCent = CellInfo(icrin)%geom%lCCent
+    CellInfo(icel)%geom%CCentType = CellInfo(icrin)%geom%CCentType
+    CellInfo(icel)%geom%cx = CellInfo(icrin)%geom%cx
+    CellInfo(icel)%geom%cy = CellInfo(icrin)%geom%cy
+    CellInfo(icel)%Geom%nCircle = CellInfo(icrin)%geom%nCircle
+    CellInfo(icel)%Geom%nbd = CellInfo(icrin)%geom%nbd
+    CellInfo(icel)%Geom%nline = CellInfo(icrin)%geom%nline
+    CellInfo(icel)%Geom%nx = CellInfo(icrin)%Geom%nx
+    CellInfo(icel)%Geom%ny = CellInfo(icrin)%Geom%ny
+    CellInfo(icel)%Geom%lx = CellInfo(icrin)%Geom%lx
+    CellInfo(icel)%Geom%ly = CellInfo(icrin)%Geom%ly
+    CellInfo(icel)%Geom%x = CellInfo(icrin)%Geom%x
+    CellInfo(icel)%Geom%y = CellInfo(icrin)%Geom%y
+
+      CellInfo(icel)%CadGeom => CellInfo(icrin)%CadGeom
+      CellInfo(icel)%Geom%bdline => Cellinfo(icrin)%Geom%bdline
+      CellInfo(icel)%Geom%bdlineRange => Cellinfo(icrin)%Geom%bdlineRange
+      CellInfo(icel)%Geom%line => Cellinfo(icrin)%Geom%line
+    
+    IF(CellInfo(icel)%lRect) THEN
+      CellInfo(icel)%Geom%inpnx = CellInfo(icrin)%Geom%inpnx
+      CellInfo(icel)%Geom%inpny = CellInfo(icrin)%Geom%inpny
+      CellInfo(icel)%Geom%inpdelx = CellInfo(icrin)%Geom%inpdelx
+      CellInfo(icel)%Geom%inpdely = CellInfo(icrin)%Geom%inpdely
+      CellInfo(icel)%Geom%inpdivx = CellInfo(icrin)%Geom%inpdivx
+      CellInfo(icel)%Geom%inpdivy = CellInfo(icrin)%Geom%inpdivy
+      CellInfo(icel)%Geom%delx => CellInfo(icrin)%Geom%delx
+      CellInfo(icel)%Geom%dely => CellInfo(icrin)%Geom%dely
+    END IF
+
+    IF(.NOT. CellInfo(icel)%lRect) THEN
+      ! Copy material index of 'crin' (NO material index for mixture)
+      nmat = CellInfo(icrin)%nmat
+      CellInfo(icel)%nmat = nmat
+      ALLOCATE(CellInfo(icel)%matidx(nmat), CellInfo(icel)%matrad(nmat))
+      CellInfo(icel)%matidx(1:nmat) = CellInfo(icrin)%matidx(1:nmat)
+      CellInfo(icel)%matrad(1:nmat) = CellInfo(icrin)%matidx(1:nmat)
+
+      nreg = CellInfo(icrin)%nreg_cp
+      ALLOCATE(CellInfo(icel)%rad_cp(nreg), CellInfo(icel)%fxrvol(nreg))
+      CellInfo(icel)%rad_cp = CellInfo(icrin)%rad_cp
+      CellInfo(icel)%fxrvol = CellInfo(icrin)%fxrvol
+      IF(CellInfo(icrin)%lAIC .OR. CellInfo(icrout)%lFuel) THEN
+        IF(CellInfo(icrin)%lAIC .AND. CellInfo(icrout)%lFuel) THEN
+          IF(CellInfo(icrin)%fuelgapcldvol .NE. CellInfo(icrout)%fuelgapcldvol) CALL terminate('Wrong Control Rod Cell Assignment')
+        END IF
+        IF(CellInfo(icrin)%lAIC) THEN
+          ires = icrin
+        ELSE
+          ires = icrout
+        END IF
+        CellInfo(icel)%Geom%circle => CellInfo(icrin)%Geom%circle
+        CellInfo(icel)%fuelgapcldvol = CellInfo(ires)%fuelgapcldvol
+        CellInfo(icel)%cldfxridx = CellInfo(ires)%cldfxridx
+        CellInfo(icel)%nmodfxr = nreg - CellInfo(icel)%cldfxridx
+        CellInfo(icel)%invnmodfxr = CellInfo(ires)%invnmodfxr
+        CellInfo(icel)%FuelRad0 = CellInfo(ires)%FuelRad0
+        CellInfo(icel)%nfueldiv = CellInfo(ires)%nfueldiv
+      END IF
+    END IF
+
+    CellInfo(icel)%CrCell => CellInfo(icrin)%CrCell
+
+  END DO
+END DO 
+
+END SUBROUTINE 
+
 
 SUBROUTINE CalCrFluxDip(io, Core, BankId, iz, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 USE TYPEDEF,              ONLY : FmInfo_Type,        CmInfo_Type,      GroupInfo_Type,      &

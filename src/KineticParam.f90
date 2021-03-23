@@ -10,7 +10,8 @@ USE CNTL,             ONLY : nTracerCntl_Type
                              
 
 USE CMFD_mod,       ONLY : XsMac
-USE BenchXs,        ONLY : XsBaseBen,        DnpBetaBen,        NeutVeloBen
+USE BenchXs,        ONLY : XsBaseBen,        DnpBetaBen,        NeutVeloBen,           &
+                           DnpBetaDynBen,    NeutVeloDynBen
 USE MacXsLib_Mod,   ONLY : MacXsBase
 
 USE BasicOperation,   ONLY : CP_VA,            CP_CA,            MULTI_VA
@@ -81,8 +82,13 @@ DO iz = myzb, myze
         beta0(1:nprec) = myFxr%Beta(1:nprec)
         velo0(1:ng) = myFxr%veloh(1:ng)
       ELSE
-        CALL DnpBetaBen(myFxr%imix, beta0(1:nprec))
-        CALL NeutVeloBen(myFxr%imix, velo0(1:ng))
+        IF(nTracerCntl%lDynamicBen) THEN
+          CALL DnpBetaDynBen(myFxr%imix, TranInfo%fuelTemp(ixy, iz), beta0(1:nprec))
+          CALL NeutVeloDynBen(myFxr%imix, TranInfo%fuelTemp(ixy, iz), velo0(1:ng))
+        ELSE
+          CALL DnpBetaBen(myFxr%imix, beta0(1:nprec))
+          CALL NeutVeloBen(myFxr%imix, velo0(1:ng))
+        END IF
       ENDIF
       DO i = 1, nFsrInFxr
         ifsrlocal = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
@@ -130,7 +136,8 @@ USE TYPEDEF,          ONLY : CoreInfo_Type,    FmInfo_Type,      ThInfo_Type,   
                              FXRInfo_Type,     PinXs_Type,       Pin_Type,             &              
                              ResVarPin_Type, PinInfo_Type,     Cell_Type,        XsMac_Type
 USE CNTL,             ONLY : nTracerCntl_Type
-USE BenchXs,          ONLY : XsBaseBen,        DnpBetaBen,        NeutVeloBen
+USE BenchXs,          ONLY : XsBaseBen,        DnpBetaBen,        NeutVeloBen,         &
+                             DnpBetaDynBen,    NeutVeloDynBen
 USE MacXsLib_mod,     ONLY : EffMacXS,         EffRIFPin,      MacXsBase
 USE MOC_MOD,          ONLY : FxrAvgPhi
 USE TranMacXsLib_Mod, ONLY : FxrBeta,          FxrVelo
@@ -219,10 +226,10 @@ DO iz = myzb, myze
           !    CALL EffMacXs(XsMac(tid), ResVarPin(ixy,iz), myFxr, PinFuelTempAvgsq, niso, ig, ng, .TRUE., iz, ixy, j, PE)                
           !  ENDDO
           !ENDIF
-          CALL FxrBeta(XsMac(tid), myFxr, FxrPhi(1:ng), ng)  
+          CALL FxrBeta(XsMac(tid), myFxr, FxrPhi(1:ng), ng, iresoGrp1, iresoGrp2)  
         ENDIF
         !Calculate neutron Velocity
-        CALL FxrVelo(myFxr, Temp, ng)
+        CALL FxrVelo(myFxr, Temp, ng, nTracerCntl%lfixvel)
         DO ig = 1, ng
           Veloh(ig) = Veloh(ig) + 1._8 / myFxr%velo(ig) * FxrPhi(ig) * myFxr%area
           PhiSum(ig) = PhiSum(ig) + Fxr(ifxr, iz)%area * FxrPhi(ig)    
@@ -230,8 +237,13 @@ DO iz = myzb, myze
         Betat = sum(myFxr%beta(1:nprec))
         NULLIFY(pnum, idiso)
       ELSE
-        CALL DnpBetaBen(myFxr%imix, beta0(1:nprec))
-        CALL NeutVeloBen(myFxr%imix, velo0(1:ng))        
+        IF(nTracerCntl%lDynamicBen) THEN
+          CALL DnpBetaDynBen(myFxr%imix, TranInfo%fuelTemp(ixy, iz), beta0(1:nprec))
+          CALL NeutVeloDynBen(myFxr%imix, TranInfo%fuelTemp(ixy, iz), velo0(1:ng))
+        ELSE
+          CALL DnpBetaBen(myFxr%imix, beta0(1:nprec))
+          CALL NeutVeloBen(myFxr%imix, velo0(1:ng))
+        END IF
         MyFxr%beta(1:nprec) = beta0(1:nprec)
         MyFxr%velo(1:nprec) = velo0(1:nprec)
         betat = sum(beta0(1:nprec))
@@ -239,7 +251,7 @@ DO iz = myzb, myze
       
       
       MyFxr%betat = betat
-      IF(myFxr%lfuel) myFxr%Chip(1:nchi) = (myFxr%Chi(1:nchi) - betat * Chid(1:nchi)) / ( 1._8 - betat)
+      !IF(myFxr%lfuel) myFxr%Chip(1:nchi) = (myFxr%Chi(1:nchi) - betat * Chid(1:nchi)) / ( 1._8 - betat)
     ENDDO
     IF(lXsLib) THEN
       DO ig = 1, ng
@@ -292,7 +304,7 @@ nprec = TranInfo%nprec; nxy = Core%nxy
 myzb = PE%myzb; myze = PE%myze
 norder = 2
 NowStep = TranCntl%NowStep
-IF(NowStep .EQ. 1) norder =2
+IF(NowStep .EQ. 1 .OR.  abs(TranCntl%theta - 0.5) .GT. epsm6) norder =1 !2
 Delt = TranCntl%Delt(nowstep)
 Deltp = TranCntl%Delt(nowstep)
 IF(NowStep .GT. 1) Deltp = TranCntl%Delt(nowstep - 1)
@@ -353,6 +365,7 @@ DO iz = myzb, myze
     PinXs(ixy, iz)%omega = omegalp
   ENDDO
 ENDDO
+!PRINT '(5es12.3)', (PinXS(i, 1)%omega , i = 51, 55)
 
 NULLIFY(CellOmegam, CellOmega0, CellOmegap)
 NULLIFY(PinXS)
@@ -429,7 +442,7 @@ USE TYPEDEF,         ONLY : CoreInfo_Type,          FmInfo_Type,          TranIn
                             TranCntl_Type,          PE_Type,                                 &
                             FxrInfo_Type,           Pin_Type,             Cell_Type
 USE CNTL,            ONLY : nTracerCntl_Type
-USE BenchXs,         ONLY : DnpBetaBen
+USE BenchXs,         ONLY : DnpBetaBen,             DnpBetaDynBen
 USE BasicOperation,  ONLY : CP_CA
 IMPLICIT NONE
 
@@ -466,6 +479,7 @@ lXsLib = nTracerCntl%lXsLib
 
 norder = 2
 NowStep = TranCntl%NowStep
+!IF(NowStep .EQ. 1 .OR. abs(TranCntl%theta - 0.5) .GT. epsm6) norder = 1
 IF(NowStep .EQ. 1) norder = 1
 Delt = TranCntl%Delt(nowstep); Deltp =  TranCntl%Delt(nowstep)
 IF(norder .EQ. 2) Deltp = TranCntl%Delt(nowstep - 1)
@@ -517,7 +531,12 @@ DO iz = myzb, myze
     IF(lXsLib) THEN
       Beta(1:nprec) = Fxr(ifxr, iz)%beta(1:nprec)
     ELSE
-      CALL DnpBetaBen(Fxr(ifxr, iz)%imix, beta(1:nprec))
+      IF(TranCntl%lDynamicBen) THEN
+        ixy = Fxr(ifxr, iz)%ipin
+        CALL DnpBetaDynBen(Fxr(ifxr, iz)%imix, TranInfo%fuelTemp(ixy, iz), beta(1:nprec))
+      ELSE
+        CALL DnpBetaBen(Fxr(ifxr, iz)%imix, beta(1:nprec))
+      END IF
     ENDIF
     
     omegalm = 0; omegal0 = 0; omegalp = 0
@@ -525,7 +544,7 @@ DO iz = myzb, myze
       FxrOmegam(i, ifxr, iz) = beta(i) * omegam(i)
       FxrOmega0(i, ifxr, iz) = beta(i) * omega0(i)
       FxrOmegap(i, ifxr, iz) = beta(i) * omegap(i)
-      !
+      
       omegalm = omegalm + FxrOmegam(i, ifxr, iz) * lambda(i)
       omegal0 = omegal0 + FxrOmega0(i, ifxr, iz) * lambda(i)
       omegalp = omegalp + FxrOmegap(i, ifxr, iz) * lambda(i)
@@ -539,3 +558,63 @@ ENDDO
 NULLIFY(FxrOmegam, FxrOmega0, FxrOmegap)
 NULLIFY(Fxr, Pin, CellInfo)
 END SUBROUTINE
+
+SUBROUTINE SetCorrectorPrecParam(TranInfo, omegam, omega0, omegap, beta, factor_F, delt, deltp, nprec, norder)
+USE TYPEDEF,        ONLY : TranInfo_Type
+IMPLICIT NONE
+TYPE(TranInfo_Type) :: TranInfo
+REAL :: omegam(nprec), omega0(nprec), omegap(nprec), beta(nprec)
+REAL :: factor_F
+REAL :: delt, deltp
+INTEGER :: nprec, norder
+
+REAL :: lambda(nprec), invlambda(nprec)
+REAL :: invldt(nprec), invldtgp1(nprec), kapbinvldt(nprec), kapbinvldt2(nprec), kappa(nprec), kappap1(nprec)
+REAL :: gamma, invgamma, invgammap1
+REAL :: coeff
+INTEGER :: i
+
+IF(norder .EQ. 2) THEN
+  gamma = delt / deltp
+  invgamma = 1._8 / gamma
+  invgammap1 = 1._8 / (gamma + 1._8)
+END IF
+DO i = 1, nprec
+  lambda(i) = TranInfo%lambda(i)
+  invlambda(i) = 1._8 / TranInfo%lambda(i)
+  kappa(i) = exp(-lambda(i) * delt)
+  kappap1(i) = kappa(i) + 1._8
+  invldt(i) = 1._8 / (deltp * lambda(i))
+  kapbinvldt(i) = (1._8 - kappa(i)) * invldt(i)
+  IF(norder .EQ. 2) THEN
+    invldtgp1(i) = invldt(i) * invgammap1
+    kapbinvldt2(i) = (1._8 - kappa(i)) * (1._8 - 2._8 * invldt(i))
+  END IF
+END DO 
+
+IF(norder .EQ. 1) THEN
+  DO i = 1, nprec
+    omegam(i) = 0
+    omega0(i) = invlambda(i) * (kapbinvldt(i) - kappa(i))
+    omegap(i) = invlambda(i) * (1 - kapbinvldt(i))
+  END DO 
+ELSE
+  DO i = 1, nprec
+    omegam(i) = invlambda(i) * invldtgp1(i) * (2._8 * kapbinvldt(i) - gamma * kappap1(i))
+    omega0(i) = invlambda(i) * (invldt(i) *(kappap1(i) + kapbinvldt2(i) * invgamma) - kappa(i)) 
+    omegap(i) = invlambda(i) * (1 - invldtgp1(i) * (2._8 + kapbinvldt2(i) * invgamma))
+  END DO 
+END IF
+
+coeff = factor_F * TranInfo%Inv_factor_F0
+DO i = 1, nprec
+  omegam(i) = coeff * beta(i) * omegam(i)
+  omega0(i) = coeff * beta(i) * omega0(i)
+  omegap(i) = coeff * beta(i) * omegap(i)
+END DO 
+
+
+
+END SUBROUTINE
+
+  

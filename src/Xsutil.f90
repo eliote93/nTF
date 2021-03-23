@@ -20,6 +20,13 @@ INTERFACE LineIntPol2
   MODULE PROCEDURE LineIntPol2Float
 END INTERFACE
 
+INTERFACE LineIntPol2_2Var
+  MODULE PROCEDURE LineIntPol2_2VarDD
+  MODULE PROCEDURE LineIntPol2_2VarDF
+  MODULE PROCEDURE LineIntPol2_2VarFD
+  MODULE PROCEDURE LineIntPol2_2VarFF
+END INTERFACE
+
 CONTAINS
 
 SUBROUTINE GetXsMacDat(XsMac, ng, lIsoXsOut)
@@ -108,6 +115,7 @@ SUBROUTINE AllocMacIsoXs(XsIsoMac, ng, niso)
 IMPLICIT NONE
 INTEGER :: ng, niso
 TYPE(XsMac_Type) :: XsIsoMac
+IF (XsIsoMac%lIsoalloc) CALL FreeXsIsoMac(XsIsoMac)
 CALL Dmalloc(XsIsoMac%IsoXsMacA, niso, ng)
 CALL Dmalloc(XsIsoMac%IsoXsMacnf, niso, ng)
 CALL Dmalloc(XsIsoMac%IsoXsMacf, niso, ng)
@@ -134,6 +142,61 @@ DEALLOCATE(XsIsoMac%IsoXsMacT);
 XsIsoMac%lIsoAlloc = .FALSE.
 XsIsoMac%niso = 0
 END SUBROUTINE
+
+SUBROUTINE AllocPxsMac(XsMac)
+USE PointXSRT_MOD, ONLY : neg
+TYPE(XsMac_TYPE) :: XsMac
+IF (XsMac%lAllocPXS) CALL FreePxsMac(XsMac)
+CALL Dmalloc(XsMac%PXST_MIX, neg)
+CALL Dmalloc(XsMac%PXSA_MIX, neg)
+CALL Dmalloc(XsMac%PXSF_MIX, neg)
+CALL Dmalloc(XsMac%UFGFLX_MIX, neg)
+CALL Dmalloc(XsMac%PXSS_MIX, neg)
+CALL Dmalloc(XsMac%PXSLS_MIX, neg)
+CALL Dmalloc(XsMac%PXST_ISO, neg)
+CALL Dmalloc(XsMac%PXSA_ISO, neg)
+CALL Dmalloc(XsMac%PXSF_ISO, neg)
+CALL Dmalloc(XsMac%UFGFLX_ISO, neg)
+CALL Dmalloc(XsMac%PXSS_ISO, neg)
+CALL Dmalloc(XsMac%PXSLS_ISO, neg)
+XsMac%lAllocPXS = .TRUE.
+END SUBROUTINE
+
+SUBROUTINE FreePxsMac(XsMac)
+TYPE(XsMac_TYPE) :: XsMac
+IF (.NOT. XsMac%lAllocPXS) RETURN
+DEALLOCATE(XsMac%PXST_MIX)
+DEALLOCATE(XsMac%PXSA_MIX)
+DEALLOCATE(XsMac%PXSF_MIX)
+DEALLOCATE(XsMac%UFGFLX_MIX)
+DEALLOCATE(XsMac%PXSS_MIX)
+DEALLOCATE(XsMac%PXSLS_MIX)
+DEALLOCATE(XsMac%PXST_ISO)
+DEALLOCATE(XsMac%PXSA_ISO)
+DEALLOCATE(XsMac%PXSF_ISO)
+DEALLOCATE(XsMac%UFGFLX_ISO)
+DEALLOCATE(XsMac%PXSS_ISO)
+DEALLOCATE(XsMac%PXSLS_ISO)
+XsMac%lAllocPXS = .FALSE.
+END SUBROUTINE
+
+!SUBROUTINE AllocPxsSMac(XsMac)
+!USE PointXSRT_MOD, ONLY : neg
+!TYPE(XsMac_TYPE) :: XsMac
+!IF (XsMac%lAllocPXSS) CALL FreePxsSMac(XsMac)
+!CALL Dmalloc(XsMac%PXSS_MIX, neg)
+!CALL Dmalloc(XsMac%PXSS_ISO, neg)
+!XsMac%lAllocPXSS = .TRUE.
+!END SUBROUTINE
+!
+!SUBROUTINE FreePxsSMac(XsMac)
+!TYPE(XsMac_TYPE) :: XsMac
+!IF (.NOT. XsMac%lAllocPXSS) RETURN
+!DEALLOCATE(XsMac%PXSS_MIX)
+!DEALLOCATE(XsMac%PXSS_ISO)
+!XsMac%lAllocPXSS = .FALSE.
+!END SUBROUTINE
+
 
 SUBROUTINE XsTempInterpolation(id, isodata, temp, wt1, wt2, it1, it2)
 USE PARAM
@@ -321,7 +384,153 @@ wt1 = 1 - wt2
 LineIntPol2Float = wt2 * ydat(n2) + wt1 * ydat(n1)
 END FUNCTION
 
+SUBROUTINE LineIntPol2_2VarDD(x, y1, y2, ndat, xdat, ydat1, ydat2)
+USE PARAM
+IMPLICIT NONE
+REAL :: x, y1, y2
+INTEGER :: ndat
+REAL :: xdat(ndat), ydat1(ndat), ydat2(ndat)
+REAL :: wt1, wt2
+INTEGER :: i, n1, n2
+
+IF(ndat .EQ. 1) THEN
+  y1 = ydat1(1); 
+  y2 = ydat2(1); 
+  RETURN
+ENDIF
+
+IF (x.le.xdat(1)) THEN
+    y1 = ydat1(1); 
+    y2 = ydat2(1); 
+    RETURN
+ELSEIF (x.ge.xdat(ndat)) THEN
+    y1 = ydat1(ndat); 
+    y2 = ydat2(ndat); 
+    RETURN
+ENDIF
+
+DO i = 2, ndat
+  if(x .le. xdat(i)) EXIT
+ENDDO
+IF(i .GT. ndat) i = ndat
+n2 = i; n1 = n2 - 1
+wt2 = (x - xdat(n1))/(xdat(n2) - xdat(n1))
+wt1 = 1 - wt2
+y1 = wt2 * ydat1(n2) + wt1 * ydat1(n1)
+y2 = wt2 * ydat2(n2) + wt1 * ydat2(n1)
+END SUBROUTINE
+
+SUBROUTINE LineIntPol2_2VarDF(x, y1, y2, ndat, xdat, ydat1, ydat2)
+USE PARAM
+IMPLICIT NONE
+REAL :: x, y1, y2
+INTEGER :: ndat
+REAL :: xdat(ndat), ydat1(ndat)
+REAL(4) :: ydat2(ndat)
+REAL :: wt1, wt2
+INTEGER :: i, n1, n2
+
+IF(ndat .EQ. 1) THEN
+  y1 = ydat1(1); 
+  y2 = ydat2(1); 
+  RETURN
+ENDIF
+
+IF (x.le.xdat(1)) THEN
+    y1 = ydat1(1); 
+    y2 = ydat2(1); 
+    RETURN
+ELSEIF (x.ge.xdat(ndat)) THEN
+    y1 = ydat1(ndat); 
+    y2 = ydat2(ndat); 
+    RETURN
+ENDIF
+
+DO i = 2, ndat
+  if(x .le. xdat(i)) EXIT
+ENDDO
+IF(i .GT. ndat) i = ndat
+n2 = i; n1 = n2 - 1
+wt2 = (x - xdat(n1))/(xdat(n2) - xdat(n1))
+wt1 = 1 - wt2
+y1 = wt2 * ydat1(n2) + wt1 * ydat1(n1)
+y2 = wt2 * ydat2(n2) + wt1 * ydat2(n1)
+END SUBROUTINE
+SUBROUTINE LineIntPol2_2VarFD(x, y1, y2, ndat, xdat, ydat1, ydat2)
+USE PARAM
+IMPLICIT NONE
+REAL :: x, y1, y2
+INTEGER :: ndat
+REAL :: xdat(ndat), ydat2(ndat)
+REAL(4) :: ydat1(ndat)
+REAL :: wt1, wt2
+INTEGER :: i, n1, n2
+
+IF(ndat .EQ. 1) THEN
+  y1 = ydat1(1); 
+  y2 = ydat2(1); 
+  RETURN
+ENDIF
+
+IF (x.le.xdat(1)) THEN
+    y1 = ydat1(1); 
+    y2 = ydat2(1); 
+    RETURN
+ELSEIF (x.ge.xdat(ndat)) THEN
+    y1 = ydat1(ndat); 
+    y2 = ydat2(ndat); 
+    RETURN
+ENDIF
+
+DO i = 2, ndat
+  if(x .le. xdat(i)) EXIT
+ENDDO
+IF(i .GT. ndat) i = ndat
+n2 = i; n1 = n2 - 1
+wt2 = (x - xdat(n1))/(xdat(n2) - xdat(n1))
+wt1 = 1 - wt2
+y1 = wt2 * ydat1(n2) + wt1 * ydat1(n1)
+y2 = wt2 * ydat2(n2) + wt1 * ydat2(n1)
+END SUBROUTINE
+SUBROUTINE LineIntPol2_2VarFF(x, y1, y2, ndat, xdat, ydat1, ydat2)
+USE PARAM
+IMPLICIT NONE
+REAL :: x, y1, y2
+INTEGER :: ndat
+REAL :: xdat(ndat)
+REAL(4) :: ydat1(ndat), ydat2(ndat)
+REAL :: wt1, wt2
+INTEGER :: i, n1, n2
+
+IF(ndat .EQ. 1) THEN
+  y1 = ydat1(1); 
+  y2 = ydat2(1); 
+  RETURN
+ENDIF
+
+IF (x.le.xdat(1)) THEN
+    y1 = ydat1(1); 
+    y2 = ydat2(1); 
+    RETURN
+ELSEIF (x.ge.xdat(ndat)) THEN
+    y1 = ydat1(ndat); 
+    y2 = ydat2(ndat); 
+    RETURN
+ENDIF
+
+DO i = 2, ndat
+  if(x .le. xdat(i)) EXIT
+ENDDO
+IF(i .GT. ndat) i = ndat
+n2 = i; n1 = n2 - 1
+wt2 = (x - xdat(n1))/(xdat(n2) - xdat(n1))
+wt1 = 1 - wt2
+y1 = wt2 * ydat1(n2) + wt1 * ydat1(n1)
+y2 = wt2 * ydat2(n2) + wt1 * ydat2(n1)
+END SUBROUTINE
+
 SUBROUTINE calcWgt(x,arrX,N,w,idx,flag)
+! If the x cannot locate beyond the arrX
     INTEGER,INTENT(IN) :: N
     CHARACTER*1,INTENT(IN) :: flag
     REAL,INTENT(IN) :: arrX(N)
@@ -353,6 +562,7 @@ SUBROUTINE calcWgt(x,arrX,N,w,idx,flag)
 END SUBROUTINE
 
 SUBROUTINE calcWgt2(x,arrX,N,w,idx,flag)
+! If the x can locate beyond the arrX
     INTEGER,INTENT(IN) :: N
     CHARACTER*1,INTENT(IN) :: flag
     REAL,INTENT(IN) :: arrX(N)

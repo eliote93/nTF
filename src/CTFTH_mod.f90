@@ -137,7 +137,7 @@ subroutine CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
 
 #endif  
 
-  call CTF%Bcast_SubChOut(ThInfo,PE)
+  call CTF%Bcast_SubChOut(ThInfo,.false.,PE)
   
   if (Core%lgap) then
     call CTF%SetAsyGapCoolinfo(Core,ThInfo)

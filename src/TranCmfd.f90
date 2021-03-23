@@ -239,8 +239,11 @@ DO iz = myzbf, myzef
     
     PrevSrc = Thetah * (ResSrc(ixy, iz, ig) - RvAlpha * TranPhi(ixy, iz, ig))
     PrevSrc = PrevSrc + rvdt * (TranPhi(ixy, iz, ig))*Vol
+    !PrevSrc = rvdt 
     PrevSrc = PrevSrc * Expo(ixy, iz, ig)
     TranSrc(ixy, iz) = TranSrc(ixy, iz) + PrevSrc
+
+    !IF(ig.EQ. 1 .AND. ixy .GE. 51 .AND. ixy .LE. 55) Print'(i5, es12.3)', ixy,PrevSrc !TranSrc(ixy, iz) - chieff0*Psi(ixy,iz) 
     CONTINUE
     !TranSrc(ixy, iz)=0
     !prevsrc = rvdt * TranPhi(ixy, iz, ig) - Expo_Alpha(ixy, iz, ig) * TranPhi(ixy, iz, ig) / CmfdPinXs(ixy, iz)%velo(ig)
@@ -409,9 +412,9 @@ TranResidualError = SQRT(TranResidualError/tsrc)
 
 END FUNCTION
 
-FUNCTION TranReactivityUpdt(CmInfo, eigv, TranCntl, PE)
+SUBROUTINE TranReactivityUpdt(CmInfo, eigv, TranCntl, PE, TranInfo)
 USE PARAM
-USE TYPEDEF,   ONLY : CmInfo_Type, PE_TYPE, TranCntl_Type
+USE TYPEDEF,   ONLY : CmInfo_Type, PE_TYPE, TranCntl_Type, TranInfo_Type
 USE CMFD_MOD,  ONLY : ng,          nxy,         myzbf,       myzef,  &
                      CmfdPinXs,    src,         CmfdLS,              &
                      AxDhat,       AxDtil,                           &
@@ -429,17 +432,16 @@ TYPE(CmInfo_Type) :: CmInfo
 REAL :: eigv
 TYPE(PE_TYPE) :: PE
 TYPE(TranCntl_Type) :: TranCntl
-
+TYPE(TranInfo_Type) :: TranInfo
 
 REAL, POINTER :: phifm(:, :, :), psifm(:, :), PrecFm(:, :, :)
-REAL :: TranReactivityUpdt
 REAL :: vol, area, jsum
 REAL :: myphi, neighphi, jnet, Dtil, Dhat, loss, lmnt
-REAL :: resphi, psil1, psil2, betaavg
+REAL :: resphi, psil1, psil2, betaavg, lifetime, phisum
 INTEGER :: ig, ig0, iz, iz0, ixy, ibd, ineigh, nbd
 
 INTEGER :: COMM
-REAL :: BUF0(4), BUF(4)
+REAL :: BUF0(6), BUF(6)
 
 PhiFm => CmInfo%PhiFm; PsiFm => CmInfo%PsiFm; PrecFm => CmInfo%PrecFm
 
@@ -447,6 +449,7 @@ CALL SetCmfdLinearSystem(TRUE, TRUE, 1)
 
 COMM = PE%MPI_CMFD_COMM
 
+betaavg = 0.; lifetime = 0.; phisum = 0.
 resphi = 0
 psil1 = 0; psil2 = 0
 nbd =4 
@@ -471,12 +474,10 @@ DO iz = myzbf, myzef
       ENDDO    
       jsum = jsum * hzfm(iz)
       Dtil = AxDtil(1, ixy, iz, ig); Dhat = AxDhat(1, ixy, iz, ig)
-      !Dtil = AxFlx(iz, ixy)%Dtil(1, ig); Dhat = AxFlx(iz, ixy)%Dhat(1, ig)
       neighphi = PhiFM(ixy, iz - 1, ig); 
       jnet = (dtil - dhat)*myphi  -(dtil + dhat)*neighphi
       jsum = jsum + jnet * area        
       Dtil = AxDtil(2, ixy, iz, ig); Dhat = AxDhat(2, ixy, iz, ig)
-      !Dtil = AxFlx(iz, ixy)%Dtil(2, ig); Dhat = AxFlx(iz, ixy)%Dhat(2, ig)
       neighphi = PhiFM(ixy, iz + 1, ig); 
       jnet = (dtil - dhat)*myphi  -(dtil + dhat)*neighphi
       jsum = jsum + jnet * area        
@@ -488,23 +489,146 @@ DO iz = myzbf, myzef
       DO ig0 = CmfdPinXS(ixy, iz0)%XSS(ig)%ib, CmfdPinXS(ixy, iz0)%XSS(ig)%ie
         Src(ixy, iz) = Src(ixy, iz) + phifm(ixy, iz, ig0) * CmfdPinXS(ixy, iz0)%XSS(ig)%From(ig0)
       ENDDO
+      phisum = phisum + phifm(ixy, iz, ig) * vol
+      lifetime = lifetime + (1._8/CmfdPinXS(ixy, iz0)%velo(ig)) * phifm(ixy, iz, ig) * vol  
     ENDDO      
-    SRC(ixy, iz) =  SRC(ixy, iz) * vol + (1._8- CmfdPinXs(ixy, iz0)%betat) * PsiFm(ixy, iz) 
-    DO ig = 1, nprec
-      SRC(ixy, iz) = SRC(ixy, iz) + lambda(ig) * PrecFm(ig, ixy, iz)
-    ENDDO
-    resphi = resphi + (SRC(ixy, iz) - Loss)*PsiFm(ixy, iz)
-    psil2 = psil2 + PsiFm(ixy, iz)*PsiFm(ixy, iz)
+    !SRC(ixy, iz) =  SRC(ixy, iz) * vol + (1._8- CmfdPinXs(ixy, iz0)%betat) * PsiFm(ixy, iz) 
+    !DO ig = 1, nprec
+    !  SRC(ixy, iz) = SRC(ixy, iz) + lambda(ig) * PrecFm(ig, ixy, iz)
+    !ENDDO
+    SRC(ixy, iz) =  SRC(ixy, iz) * vol + PsiFm(ixy, iz) 
+    resphi = resphi + (SRC(ixy, iz) - Loss)
+    psil2 = psil2 + PsiFm(ixy, iz)
     psil1 = psil1 + PsiFm(ixy, iz)
     betaavg = betaavg + CmfdPinXs(ixy, iz0)%betat * PsiFm(ixy, iz)
   ENDDO
 ENDDO
 #ifdef MPI_ENV
-buf0 = (/resphi, psil2, psil1, betaavg/)
-CALL REDUCE(buf0, buf, 4, COMM, .TRUE.)
-resphi = buf(1); psil2 = buf(2); psil1 = buf(3); betaavg = buf(4)
+buf0 = (/resphi, psil2, psil1, betaavg, lifetime, phisum/)
+CALL REDUCE(buf0, buf, 6, COMM, .TRUE.)
+resphi = buf(1); psil2 = buf(2); psil1 = buf(3); betaavg = buf(4); lifetime = buf(5); phisum = buf(6)
 #endif
 resphi = resphi / psil2
 betaavg = betaavg / psil1
-TranReactivityUpdt = resphi / betaavg / Eigv   
+lifetime = lifetime / psil2
+
+TranInfo%lifetime = lifetime
+TranInfo%CoreBeta = betaavg
+TranInfo%delRho = resphi
+TranInfo%Reactivity = resphi / betaavg
+TranInfo%TranEig = 1._8 / (1._8 - 1._8 * TranInfo%delRho)
+TranInfo%delRho = TranInfo%delRho * 1.E+5
+
+  END SUBROUTINE 
+
+  FUNCTION TranResidualError_rev(phifm, psifm, TranPhi, PrecSrc, ResSrc, TranCntl, PE)
+USE PARAM
+USE TYPEDEF,   ONLY : PE_TYPE, TranCntl_Type
+USE CMFD_MOD,  ONLY : ng,          nxy,         myzbf,       myzef,  &
+                     CmfdPinXs,   src,         CmfdLS,              &
+                     SubPlaneMap, PinVol,      PinVolFm,            &
+                     hzfm,        PinNeighIdx, CmfdSrcUpdt,         &
+                     AddConstCmfdSrc 
+USE TRANCMFD_MOD, ONLY : TrSrc,    CmfdTransrc
+USE OMP_LIB
+#ifdef MPI_ENV
+USE MPIComm_MOD,  ONLY : REDUCE, GetNeighDat
+#endif
+IMPLICIT NONE
+
+REAL :: TranResidualError_rev
+REAL, POINTER :: phifm(:, :, :), psifm(:, :)
+REAL, POINTER :: PrecSrc(:, :), TranPhi(:, :, :), TranPhi2(:, :, :), ResSrc(:, :, :)
+TYPE(PE_TYPE) :: PE
+TYPE(TranCntl_Type) :: TranCntl
+
+REAL :: lmnt
+REAL :: tsrc
+REAL :: tsrc_omp(nthreadmax), TranRes_omp(nthreadmax)
+#ifdef MPI_ENV
+REAL :: buf(2), buf0(2)
+#endif
+
+INTEGER :: iz, iz0, ixy, ig, ig0, ineigh, ibd, nbd, tid
+INTEGER :: nThread
+
+nbd = 4
+tid = 1
+nThread = PE%nCmfdThread
+
+TranResidualError_rev = 0
+tsrc = 0
+
+tsrc_omp(1:nThread) = 0
+TranRes_omp(1:nThread) = 0
+
+#ifdef MPI_ENV
+DO ig = 1, ng
+  IF(PE%nCMFDproc .GT. 1) THEN
+    CALL GetNeighDat(PhiFm(1:nxy, myzbf-1:myzef+1, ig), nxy, myzbf, myzef, &
+                            PE%myCmfdRank, PE%nproc, PE%MPI_CMFD_COMM)
+  END IF
+END DO 
+#endif
+
+DO ig = 1, ng
+    IF(TranCntl%lSCM) THEN        
+      !IF(TranCntl%lSCM_Prec) THEN
+      !  CALL CmfdTranSrc_SCM_Prec(TrSrc, PhiFm, TranPhi, PsiFm, PrecSrc, ResSrc, TranCntl, ig, PE%nCmfdThread)
+      !ELSE                
+      !  CALL CmfdTranSrc_SCM(TrSrc, PhiFm, TranPhi, PsiFm, PrecSrc, ResSrc, TranCntl, ig, PE%nCmfdThread)
+      !ENDIF    
+    ELSE
+      CALL CmfdTranSrc(TrSrc, PhiFm, TranPhi, PsiFm, PrecSrc, ResSrc, TranCntl, ig, PE%nCmfdThread)      
+    ENDIF
+    !$ call omp_set_dynamic(.FALSE.)
+    !$ call omp_set_num_threads(nThread)
+    !$OMP PARALLEL DEFAULT(SHARED)      &
+    !$OMP PRIVATE(ixy, lmnt, ibd, ineigh, ig0, tid)
+    !$ tid = omp_get_thread_num()+1
+    DO iz = myzbf, myzef
+        iz0 = SubPlaneMap(iz)
+        !$OMP DO
+        DO ixy = 1, nxy
+            lmnt = CMFDLS(ig)%Diag(ixy, iz) * PhiFm(ixy, iz, ig)
+            DO ibd = 1, nbd
+                ineigh = CMFDLS(ig)%NeighIdx(ibd, ixy)
+                IF(ineigh .LE. 0) CYCLE
+                lmnt = lmnt + CMFDLS(ig)%RadOffDiag(ibd, ixy, iz0) * PhiFm(ineigh, iz, ig)
+            END DO
+            ! Axial
+            lmnt = lmnt + CMFDLS(ig)%AxOffDiag(2, ixy, iz) * PhiFm(ixy, iz + 1, ig)
+            lmnt = lmnt + CMFDLS(ig)%AxOffDiag(1, ixy, iz) * PhiFm(ixy, iz - 1, ig)
+            IF(TranCntl%lSCM) THEN
+              SRC(ixy, iz) = cmfdPinXS(ixy, iz0)%chi(ig) * PsiFm(ixy, iz) / (TranCntl%EigD * PinVolFm(ixy, iz0)) + TrSrc(ixy, iz) / PinVolFm(ixy, iz0)
+            ELSE
+              SRC(ixy, iz) = cmfdPinXS(ixy, iz0)%chi(ig) * PsiFm(ixy, iz) / PinVolFm(ixy, iz0) + TrSrc(ixy, iz) / PinVolFm(ixy, iz0)
+            ENDIF
+            DO ig0 = CmfdPinXS(ixy, iz0)%XSS(ig)%ib, CmfdPinXs(ixy, iz0)%XSS(ig)%ie
+                SRC(ixy, iz) = SRC(ixy, iz) + phiFm(ixy, iz, ig0) * CmfdPinXS(ixy, iz0)%XSS(ig)%From(ig0)
+            END DO
+            SRC(ixy, iz) = SRC(ixy, iz) * PinVolFm(ixy, iz0)
+            lmnt = lmnt - SRC(ixy, iz)
+            tsrc_omp(tid) = tsrc_omp(tid) + src(ixy, iz) * src(ixy, iz)
+            TranRes_omp(tid) = TranRes_omp(tid) + lmnt * lmnt
+            
+            !PRINT*, SRC(ixy, iz), lmnt
+        END DO
+        
+        !$OMP END DO
+    END DO  
+    !$OMP END PARALLEL
+END DO
+tsrc = sum(tsrc_omp(1:nthread))
+TranResidualError_rev = sum(TranRes_omp(1:nthread))
+
+#ifdef MPI_ENV
+buf0 = (/TranResidualError_rev, tsrc/)
+CALL REDUCE(buf0, buf, 2, PE%MPI_CMFD_COMM, .TRUE.)
+TranResidualError_rev = buf(1)
+tsrc = buf(2)
+#endif
+TranResidualError_rev = SQRT(TranResidualError_rev/tsrc)
+!TranResidualError_rev = SQRT(TranResidualError_rev)
+
 END FUNCTION

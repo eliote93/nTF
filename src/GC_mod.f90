@@ -60,6 +60,9 @@ REAL :: myn2n, u238n2n, u238phi
 !--- Isotope-wise XS variables
 REAL,POINTER :: isoMicXs(:,:,:),isoMicSm(:,:,:), isoMicXs2g(:,:,:), isoMicSm2g(:,:,:) !tr, a, r, f, nu, k
 REAL,POINTER :: isoMacXs(:,:,:),isoMacSm(:,:,:), isoMacXs2g(:,:,:), isoMacSm2g(:,:,:) !D, a, r, f, nf, kf
+REAL,POINTER :: KinParMac_beta(:,:), KinParMac_betaeff(:,:), KinParMac_velo(:,:), KinParMac_ChiD(:,:), KinParMac_ChiDg(:,:,:), KinParMac_velo2g(:,:), KinParMac_velo2gAdj(:,:)
+REAL, POINTER :: KinParMac_fisrate(:), KinParMac_ChiDg2g(:,:,:)
+REAL, POINTER :: KinParMac_phiadj(:,:), KinParMac_phiadj2g(:,:)
 !isoMicXs(nisotot,0:nxs,ng), isoMicSm(nisotot,ng,ng),isoMicXs2g(nisotot,0:nxs,2),isoMicSm2g(nisotot,2,2)
 !isoMacXs(0:nisotot,0:nxs,ng), isoMacSm(0:nisotot,ng,ng),isoMacXs2g(0:nisotot,0:nxs,2),isoMacSm2g(nisotot,2,2)
 REAL, POINTER :: IsoMacXsSm(:,:,:)  !IsoMacXsSm(isosize,ng,ng)
@@ -119,13 +122,35 @@ INTEGER :: LFP_ID
 
 END MODULE
 
+#define H2H
 MODULE GCpin_mod
+#ifdef H2H
+    USE DeplType, ONLY : DeplXS_Type, DeplVars_Type, DeplLib_Type
+#endif
 IMPLICIT NONE
     !REAL, POINTER :: pinXSr(:,:), pinXSnf(:,:), pinXSss(:,:,:), pinChi(:,:)
     REAL, POINTER :: pinRmv(:,:), pinFis(:,:), pinSS(:,:,:), pinFlux(:,:), pinR(:,:), pinJ(:,:) !ipin,ng
     REAL, POINTER :: pinSout(:,:), pinSin(:,:), pinAbs(:,:)
     REAL, POINTER :: pinSoutG(:,:), pinSinG(:,:)
     REAL, POINTER :: pinJdir(:,:,:)
+    ! HHS 19/02/12
+    REAL, POINTER :: u238n2nMG(:), u238phiMG(:), u238n2nFG(:), u238phiFG(:)
+    
+    REAL :: bupin ! Edit by LHG 19/03/14
+#ifdef H2H    
+    REAL, ALLOCATABLE :: h2hfactor(:,:)                 !                     !
+    REAL, ALLOCATABLE :: h2hfactorpin(:)
+    !INTEGER, POINTER :: MapXS2Dep(:)
+    !LOGICAL :: lBu = .FALSE.
+    !INTEGER :: nIsoDep
+    TYPE(DeplXS_Type)   :: DeplXSPin              !                     !
+    TYPE(DeplVars_Type) :: DeplVarPin             !  Edit by LHG 032219 !
+    TYPE(DeplLib_Type)  :: DeplLibPin             !                     !
+    LOGICAL :: lInitDepl = .FALSE.                !                     !
+    !REAL, POINTER :: phisdFM(:,:,:)               !                     !
+    REAL, POINTER :: hetRxFrac(:,:), hetNumFrac(:,:)
+    INTEGER :: hetNreg
+#endif    
 
     !REAL, POINTER :: pinRmvR(:,:), pinFisR(:,:), pinJR(:,:)
     !REAL, POINTER :: Srcr(:,:), Lossr(:,:), pinres(:,:)

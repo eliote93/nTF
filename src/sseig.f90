@@ -1,11 +1,12 @@
 #include <defines.h>
+#include <DefDBG.h>
 
 SUBROUTINE SSEIG()
 USE PARAM
 USE GEOM,             ONLY : Core, ng
 USE RAYS,             ONLY : RayInfo
 USE Core_mod,         ONLY : CMInfo, FmInfo, THInfo, GroupInfo, GcGroupInfo,   &
-                             eigv, peigv, xkconv, xkcrit
+                             eigv, peigv, xkconv, xkcrit, eigv_adj
 USE PE_MOD,           ONLY : PE
 USE CNTL,             ONLY : nTracerCntl
 USE Depl_Mod,         ONLY : DeplCntl
@@ -16,8 +17,9 @@ USE ItrCNTL_mod,      ONLY : ItrCntl, ConvItrCntl
 USE FILES,            ONLY : io8
 USE IOUTIL,           ONLY : message, ShowHBar1,  terminate
 USE CritSpec_mod,     ONLY : GetCriticalSpectrum
-USE Boron_mod,        ONLY : UpdtBoronPPM,           SetBoronCoolant, SetBoronCoolantCTF
-USE XeDyn_Mod,        ONLY : UpdtXeDyn
+USE Boron_mod,        ONLY : UpdtBoronPPM, SetBoronCoolant, SetBoronCoolantCTF, &
+                              MixBoronPPMCal
+USE XeDyn_Mod,        ONLY : UpdtXeDyn, XeDynRelaxContrl
 USE CNTLROD_mod,      ONLY : SetCrBankPosition,      CntlRodSearch
 USE FXRVAR_MOD
 #ifdef inflow
@@ -29,11 +31,26 @@ USE MPIComm_mod,      ONLY : MPI_SYNC
 #ifdef __INTEL_MKL
 USE MKL_3D,           ONLY : mklCntl
 USE MKL_CMFD,         ONLY : MKL_CmfdPower,          MKL_CmfdDavidson
+#ifdef __GAMMA_TRANSPORT
+USE GAMMA_CMFD
 #endif
-USE MOC_COMMON,       ONLY : SetCoreMacXs
+#endif
+USE MOC_COMMON,       ONLY : SetCoreMacXs,           SetCoreMacXs_Cusping
+USE MOC_MOD,          ONLY : GetNeighborMocFlux
 use SubChCoupling_mod,    only: last_TH
 USE EFT_MOD
+USE XS_COMMON
+#ifdef __PGI
+USE AuxilDriver,      ONLY : CUDASubGrpEffXSGen
+#endif
+USE BenchXs,          ONLY : SetBoronCoolant_NEACRP
+USE TRAN_MOD,         ONLY : TranCntl, TranInfo
+USE XsPerturb_mod,    ONLY : XsCntlRodMix
+USE PointXSRT_MOD,    ONLY : CalcPSM_ISOPIN, CalcShadowingCorrection
+USE MacXsLib_Mod,     ONLY : PSMEffXSGen, GetfresoFXR
 
+USE BenchXs,          ONLY : DnpLambdaBen,      ChidBen
+USE TranMacXsLib_Mod, ONLY : InitChidLib,       InitLambdaLib,    initchidklib
 IMPLICIT NONE
 INTEGER :: i, j, n
 LOGICAL :: lTHconv, lsubgrp
@@ -55,8 +72,9 @@ ItrCntl%OuterMax = ConvItrCntl%OuterMax
 ItrCntl%eigconv = ConvItrCntl%eigconv
 ItrCntl%resconv = ConvItrCntl%resconv
 ItrCntl%psiconv = ConvItrCntl%psiconv
+ItrCntl%decuspconv = ConvItrCntl%decuspconv
 
-IF (nTracerCntl%lProblem .EQ. lDepletion .or. nTracerCntl%lXeDyn .or. (nTracerCntl%BoronPPM.GT.0._8)) THEN
+IF (nTracerCntl%lProblem .EQ. lDepletion .or. nTracerCntl%lXeDyn .or. (nTracerCntl%BoronPPM.GT.0._8) .OR. nTracerCntl%lCrInfo) THEN
    IF (nTracerCntl%lSSPH) nTracerCntl%lSSPHreg=.TRUE.
 ENDIF
 
@@ -67,29 +85,45 @@ CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 ! Initialize Iteration Variables
 CALL InitIterVar(Core, FMInfo, CmInfo, GroupInfo, .TRUE., ItrCntl, nTracerCntl, PE)
 
-IF (Core%CrInfo%lCrChg) THEN
-  CALL SetCrBankPosition(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
+IF (nTracerCntl%lCrInfo) THEN
+  IF (Core%CrInfo%lCrChg) THEN
+    CALL SetCrBankPosition(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
+  ENDIF
 ENDIF
 
 ! Set Boron Concentration
-IF (nTracerCntl%lXsLib .AND. nTracerCntl%BoronPPM .GT. 0._8) THEN
+!IF (nTracerCntl%lXsLib .AND. nTracerCntl%BoronPPM .GT. 0._8) THEN
+IF (nTracerCntl%lXsLib) THEN
+  IF (nTracerCntl%BoronPPM .GT. 0._8) THEN
   WRITE(mesg,'(a,f12.2,a)') ' =======  Applied Boron PPM : ',nTracerCntl%boronppm, ' PPM'
   IF(master) CALL message(io8, TRUE, TRUE, mesg)
   CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%boronppm, PE%myzb, PE%myze)
+  ELSE
+    CALL MixBoronPPMCal(Core,FmInfo%Fxr, nTracerCntl%boronppm)
+  END IF
 ENDIF
 WRITE(mesg, '(A, L3)') 'MOC Under-relaxtion Option : ', nTracerCntl%lMOCUR
 IF(master) CALL message(io8,TRUE, TRUE, mesg)
 WRITE(mesg, '(A, L3)') 'Axial Reflector FDM Option : ', nTracerCntl%lAxRefFDM
 IF(master) CALL message(io8,TRUE, TRUE, mesg)
 
+IF (nTracerCntl%lXeDyn) THEN
+  CALL XeDynRelaxContrl(.FALSE.)
+END IF
+
+IF (nTracerCntl%lXsAlign) THEN
+  CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+END IF
+
 IF (nTracerCntl%lFeedBack) THEN
 
   lThConv = FALSE
   IF (nTracerCntl%lSSPH) nTracerCntl%lSSPHreg=.TRUE.
 
+ IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
   CALL CmfdDriverSwitch()
-  
-#ifdef __GAMMA_TRANSPORT
+
+#if defined (__INTEL_MKL) && defined (__GAMMA_TRANSPORT)
   IF (nTracerCntl%lGamma) THEN
     WRITE(mesg, '(a12, i1, a31)') 'Performing P', nTracerCntl%GammaScatOd, ' Gamma Transport Calculation...'
     IF (Master) CALL message(io8, TRUE, TRUE, mesg)
@@ -103,12 +137,21 @@ IF (nTracerCntl%lFeedBack) THEN
 
   CALL SteadyStateTH(Core, CmInfo, FmInfo, ThInfo, Eigv, ng, GroupInfo, nTracerCntl, PE)
   CALL THFeedBack(Core, CmInfo, FmInfo, ThInfo, nTracerCntl, PE)
+  IF (nTracerCntl%lXsAlign) THEN
+    CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, THFeed)
+    CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+    CALL UpdateResPinFuelTemp
+  END IF
 
   IF (nTRACERCntl%lDeplVarInit) CALL InitIterVar(Core, FMInfo, CmInfo, GroupInfo, .TRUE., ItrCntl, nTracerCntl, PE)
 
   ! Update Xenon Dynamics
   IF (nTracerCntl%lXeDyn) THEN
     CALL UpdtXeDyn(Core, FmInfo, ThInfo, GroupInfo, nTracerCntl, DeplCntl, PE)
+    IF (nTracerCntl%lXsAlign) THEN
+      CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, XeDynFeed)
+      CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+    END IF
   ENDIF
 
   ! Generate Self-Shielded XS
@@ -118,14 +161,26 @@ IF (nTracerCntl%lFeedBack) THEN
   CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
 
-  ! Effective XS Calculation
-  CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+! Effective XS Calculation
+IF (.NOT. nTRACERCntl%lPSM) THEN
+#ifdef __PGI
+    IF (nTracerCntl%lXsAlign) THEN
+!      CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+      CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
+    ELSE
+      CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+    END IF
+#else
+    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+#endif
+ELSE
+  CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+END IF
   IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-  
+
   CALL CmfdDriverSwitch()
 
 ELSE
-
 #ifdef MPI_ENV
   CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
@@ -135,6 +190,17 @@ ELSE
   ! Update Xenon Dynamics
   IF (nTracerCntl%lXeDyn) THEN
     CALL UpdtXeDyn(Core, FmInfo, ThInfo, GroupInfo, nTracerCntl, DeplCntl, PE)
+!    print*, 'Updt Xe Done!'
+    IF (nTracerCntl%lXsAlign) THEN
+      CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, XeDynFeed)
+    END IF
+!    print*, 'Post Updt Xe Done!'
+  ENDIF
+
+  IF (nTracerCntl%lXsAlign) THEN
+    CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, THFeed)
+    CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+    CALL UpdateResPinFuelTemp
   ENDIF
 
   ! Generate Self-Shielded XS
@@ -143,17 +209,39 @@ ELSE
     lSubGrp = .TRUE.
   ENDIF
 
-  ! Effective XS Calculation
+! Effective XS Calculation
+IF (.NOT. nTRACERCntl%lPSM) THEN
+#ifdef __PGI
+  IF (nTracerCntl%lXsAlign) THEN
+!    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+    CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
+  ELSE
+    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+  END IF
+#else
   CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+#endif
+ELSE
+  CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+END IF
   IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-  
+
   CALL CmfdDriverSwitch()
 
 ENDIF
 
 IF (nTracerCntl%lBoronSearch) THEN
-  CALL UpdtBoronPPM(nTracerCntl%target_eigv, eigv, nTracerCntl%BoronPPM, .FALSE., MASTER)
-  CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%boronppm, PE%myzb, PE%myze)
+  CALL UpdtBoronPPM(nTracerCntl%target_eigv, eigv, nTracerCntl%BoronPPM, .TRUE., MASTER)
+  IF(nTracerCntl%lXslib) THEN
+    CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%boronppm, PE%myzb, PE%myze)
+    IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
+    IF (nTracerCntl%lXsAlign) THEN
+      CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, PPMFeed)
+      CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+    END IF
+  ELSE IF(nTracerCntl%libtyp .EQ. 11) THEN
+    CALL SetBoronCoolant_NEACRP(nTracerCntl%boronppm)
+  END IF
 ENDIF
 
 ! IF(nTracerCntl%lfxrlib)THEN
@@ -167,7 +255,13 @@ ENDIF
 !   CALL PrintFXRXs_CEA(Core,THInfo, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
 !   write(*,*) '                   exiting CEA_XS ... BYS edit 16/06/09'
 ! ENDIF
+IF (nTracerCntl%lXeDyn) THEN
+  CALL XeDynRelaxContrl(.TRUE.)
+END IF
 
+#ifdef HISTORY_OUT
+CALL PowerHistoryOutputEdit(TRUE)
+#endif
 DO i = 1, ItrCntl%OuterMax
 
 #ifdef MPI_ENV
@@ -176,14 +270,37 @@ DO i = 1, ItrCntl%OuterMax
 
   ItrCntl%SrcIt = ItrCntl%SrcIt + 1
   IF (nTracerCntl%lMOCUR .AND. RTMASTER) CALL MOCUnderRelaxationFactor(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
-  IF (lMOC) CALL MOCDriverSwitch()
-  
+  IF (lMOC) THEN
+    CALL MOCDriverSwitch()
+  ENDIF
+
   IF (nTracerCntl%lXeDyn) THEN
     CALL UpdtXeDyn(Core, FmInfo, ThInfo, GroupInfo, nTracerCntl, DeplCntl, PE)
-    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+    IF (nTracerCntl%lXsAlign) THEN
+      CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, XeDynFeed)
+      CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+    END IF
+    IF (nTRACERCntl%lPSM) THEN
+      CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+    ELSE
+#ifdef __PGI
+      IF (nTracerCntl%lXsAlign) THEN
+!        CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+        CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
+      ELSE
+        CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+      ENDIF
+#else
+      CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+#endif
+    END IF
+    IF (nTracerCntl%lMacro .AND. .NOT. nTracerCntl%lCusping_MPI) CALL SetCoreMacXs(Core, FmInfo)
   ENDIF
-  
+
   CALL CmfdDriverSwitch()
+#ifdef HISTORY_OUT
+  CALL PowerHistoryOutputEdit(FALSE)
+#endif
 
   if(i == ItrCntl%OuterMax) then
     last_TH=.true.
@@ -196,6 +313,11 @@ DO i = 1, ItrCntl%OuterMax
 
     CALL SteadyStateTH(Core, CmInfo, FmInfo, ThInfo, Eigv, ng, GroupInfo, nTracerCntl, PE)
     CALL THFeedBack(Core, CmInfo, FmInfo, ThInfo, nTracerCntl, PE)
+    IF (nTracerCntl%lXsAlign) THEN
+      CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, THFeed)
+      CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+      CALL UpdateResPinFuelTemp
+    END IF
 
 #ifdef MPI_ENV
     CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
@@ -206,11 +328,24 @@ DO i = 1, ItrCntl%OuterMax
         CALL SubgrpDriverSwitch()
         lSubGrp = .TRUE.
       ENDIF
-      CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+      IF (nTRACERCntl%lPSM) THEN
+        CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+      ELSE
+#ifdef __PGI
+        IF (nTracerCntl%lXsAlign) THEN
+!          CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+          CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
+        ELSE
+        CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+      ENDIF
+#else
+        CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+#endif
+      END IF
     ENDIF
 
-    IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-    
+    IF (nTracerCntl%lMacro .AND. .NOT. nTracerCntl%lCusping_MPI) CALL SetCoreMacXs(Core, FmInfo)
+
   ENDIF
 
 ! #ifdef inflow
@@ -218,11 +353,11 @@ DO i = 1, ItrCntl%OuterMax
 ! #endif
 
   IF (nTracerCntl%lSearch) THEN
-    IF (abs(eigv - nTracerCntl%target_eigv) / nTracerCntl%target_eigv .LT. 5.0E-5) lSearchConv = .TRUE.
+    IF (abs(eigv - nTracerCntl%target_eigv) / nTracerCntl%target_eigv .LT. 1.0E-5) lSearchConv = .TRUE.
     IF (nTracerCntl%lBoronSearch .AND. nTracerCntl%BoronPPM .EQ. 0._8) lSearchConv = .TRUE.
   ENDIF
 
-  IF(nTracerCntl%lFeedBack .AND. ThInfo%TdopChg .LT. 5.e-4_8) lThConv = TRUE
+  IF(nTracerCntl%lFeedBack .AND. ThInfo%TdopChg .LT. 5.e-5_8) lThConv = TRUE
 
   IF (MASTER) THEN
     WRITE(mesg, '(2x, A,L3, 3x, A, L3, 3x, A, L3)') 'Convergence - Flux :', ItrCntl%lconv, 'TH :',lThConv, 'B-Search:', lSearchConv
@@ -236,7 +371,9 @@ DO i = 1, ItrCntl%OuterMax
       IF (Master) CALL message(io8, TRUE, TRUE, mesg)
       ItrCntl%lGammaConv = FALSE
       DO WHILE (.NOT. ItrCntl%lGammaConv)
+#ifdef __INTEL_MKL
         IF (Core%nxy .NE. 1) CALL GammaCMFDAcc(Core, CmInfo, FmInfo)
+#endif
         CALL GammaMOCSweep(Core, RayInfo, FmInfo, PE, nTracerCntl, ItrCntl)
       ENDDO
     ENDIF
@@ -246,23 +383,48 @@ DO i = 1, ItrCntl%OuterMax
   ENDIF
 
   IF (nTracerCntl%lSearch) THEN
+!  IF (nTracerCntl%lSearch .AND. (.NOT. lSearchConv)) THEN
     IF (nTracerCntl%lBoronSearch) THEN
       CALL UpdtBoronPPM(nTracerCntl%target_eigv, eigv, nTracerCntl%BoronPPM, .FALSE., MASTER)
-      CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%boronppm, PE%myzb, PE%myze)
+      IF(nTracerCntl%lXslib) THEN
+        CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%boronppm, PE%myzb, PE%myze)
+        IF (nTracerCntl%lXsAlign) THEN
+          CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, PPMFeed)
+          CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+        END IF
+      ELSE IF(nTracerCntl%libtyp .EQ. 11) THEN
+        CALL SetBoronCoolant_NEACRP(nTracerCntl%boronppm)
+      END IF
+      IF (nTracerCntl%lMacro .AND. .NOT. nTracerCntl%lCusping_MPI) CALL SetCoreMacXs(Core, FmInfo)
     ENDIF
     IF (nTracerCntl%lCrSearch .AND. i .GT. 1) THEN
       CALL CntlRodSearch(Core, FmInfo, CmInfo, eigv, GroupInfo, GcGroupInfo, nTracerCntl, PE)
       CALL SetBoronCoolant(Core, FmInfo%Fxr, nTracerCntl%boronppm, PE%myzb, PE%myze)
     ENDIF
   ENDIF
-  
+
 ENDDO
 
+IF (nTracerCntl%lXeDyn) THEN
+  CALL XeDynRelaxContrl(.FALSE.)
+END IF
 xkconv = eigv
 
 IF (nTracerCntl%lCritSpec .AND. RTMASTER) THEN
   CALL GetCriticalSpectrum(Core, FmInfo, GroupInfo, nTracerCntl, PE)
 ENDIF
+
+IF(nTracerCntl%lAdjoint) THEN
+  IF(MASTER) THEN
+    IF (Master) CALL ShowHbar1(io8)
+    WRITE(mesg, *) 'Start to Calculate Adjoint Flux at Initial State...'
+    CALL message(io8, TRUE, TRUE, mesg)
+  END IF
+  ItrCntl%lConv = FALSE
+  IF(nTracerCntl%lCMFDAdj) THEN
+    CALL CMFD_adj_Switch()
+  END IF
+END IF
 
 IF (nTracerCntl%lproblem .EQ. lsseigv .AND. RTMASTER) THEN
 
@@ -280,6 +442,11 @@ IF (nTracerCntl%lproblem .EQ. lsseigv .OR. nTracerCntl%lproblem .EQ. lEFTsearch 
   IF (Master) CALL ShowHbar1(io8)
   write(mesg, '(A27, 5X, 1F8.5)')  'k-eff =', Eigv
   IF (Master) CALL message(io8, FALSE, TRUE, MESG)
+
+  IF(nTracerCntl%lAdjoint) THEN
+    WRITE(mesg, '(A27, 5X, 1F8.5)')  'Adjoint k-eff =', Eigv_adj
+    IF(Master) CALL message(io8, FALSE, TRUE, MESG)
+  ENDIF
   IF (PE%lCmfdGrp) THEN
     IF (nTracerCntl%lHex) THEN
       CALL HexOutputEdit()
@@ -287,6 +454,16 @@ IF (nTracerCntl%lproblem .EQ. lsseigv .OR. nTracerCntl%lproblem .EQ. lEFTsearch 
       CALL OutputEdit()
     END IF
   END IF
+ENDIF
+IF (nTracerCntl%lproblem .EQ. lTransient) THEN
+  IF (Master) CALL ShowHbar1(io8)
+  write(mesg, '(A27, 5X, 1F8.5)')  'k-eff =', Eigv
+  IF (Master) CALL message(io8, FALSE, TRUE, MESG)
+
+  IF(nTracerCntl%lAdjoint) THEN
+    WRITE(mesg, '(A27, 5X, 1F8.5)')  'Adjoint k-eff =', Eigv_adj
+    IF(Master) CALL message(io8, FALSE, TRUE, MESG)
+  ENDIF
 ENDIF
 IF (nTracerCntl%lproblem .EQ. lBranch) THEN
   IF (Master) CALL ShowHbar1(io8)
@@ -314,6 +491,22 @@ ENDIF
 IF(nTracerCntl%lGC .AND. (lEFT_GCGEN.OR..NOT.nTracerCntl%lEFTSearch)) THEN
     WRITE(mesg, '(A)') 'Generating Group Constants ...'
     CALL message(io8, TRUE, TRUE, mesg)
+    IF (nTracerCntl%lTranON .EQ. TRUE) THEN
+    CALL AllocTransient()
+    CALL KinParamGen(Core, FmInfo, TranInfo, ThInfo, GroupInfo, .TRUE., nTracerCntl, PE)
+    IF(nTRACERCntl%lXsLib) THEN
+      CALL InitLambdaLib(TranInfo%Lambda, nTracerCntl%refdcy_del, nTracerCntl%llibdcy_del, nTracerCntl%lfitbeta)
+      IF(nTracerCntl%lchidkgen) THEN
+        CALL InitChidkLib(Core, FmInfo, GroupInfo, PE, nTracerCntl, TranInfo%chid, TranInfo%Chidk, ng, TranInfo%nprec)
+      ELSE
+        CALL InitChidLib(Core, FmInfo, GroupInfo, PE, nTracerCntl, TranInfo%Chid, ng)
+      END IF
+    ELSE
+      !Chid, Lambda
+       CALL ChidBen(TranInfo%Chid)
+       CALL DnpLambdaBen(TranInfo%Lambda)
+    ENDIF
+END IF
     IF(nTracerCntl%gc_spec .GE. 3 )THEN
         IF(RTmaster) CALL GroupConstGenMac(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE, ng)
     ELSE
@@ -330,15 +523,24 @@ CONTAINS
 
 SUBROUTINE SubgrpDriverSwitch
 
+IF (nTRACERCntl%lPSM) THEN
+  CALL PSMEffXSGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+ELSE
 #ifdef __PGI
-IF (PE%lCUDA) THEN
-  CALL CUDASubGrpFsp(Core, FmInfo, THInfo, RayInfo, GroupInfo); GOTO 1
-ENDIF
+  IF (PE%lCUDA) THEN
+    IF (nTracerCntl%lXsAlign) THEN
+      CALL CUDASubGrpFsp_cuMLG(Core, FmInfo, THInfo, RayInfo, GroupInfo)
+!      CALL CUDASubGrpFsp(Core, FmInfo, THInfo, RayInfo, GroupInfo)
+    ELSE
+      CALL CUDASubGrpFsp(Core, FmInfo, THInfo, RayInfo, GroupInfo)
+    END IF
+    GOTO 1
+  ENDIF
 #endif
-CALL SubGrpFsp(Core, FmInfo%Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
-
+  CALL SubGrpFsp(Core, FmInfo%Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
+END IF
 1 CONTINUE
-  
+
 END SUBROUTINE
 
 SUBROUTINE MOCDriverSwitch
@@ -346,15 +548,26 @@ SUBROUTINE MOCDriverSwitch
 USE IEEE_ARITHMETIC
 #endif
 
+!IF(nTracerCntl%lMacro .AND. nTracerCntl%lCusping_MPI) THEN
+!  CALL GetNeighborMocFlux(FmInfo%phis, FmInfo%neighphis, Core%nCoreFsr, PE%myzb, PE%myze, 1, GroupInfo%ng, Core%nz, Core%AxBC)
+!  CALL SetCoreMacXS_Cusping(Core, FmInfo)
+!END IF
+
 #ifdef __PGI
 IF (PE%lCUDA) THEN
-  CALL CUDAMOCSweep(Core, RayInfo, FMInfo, eigv); GOTO 2
+  IF (nTracerCntl%lXsAlign) THEN
+    CALL CUDAMOCSweep_cuMac(Core, RayInfo, FMInfo, eigv)
+!    CALL CUDAMOCSweep(Core, RayInfo, FMInfo, eigv)
+  ELSE
+    CALL CUDAMOCSweep(Core, RayInfo, FMInfo, eigv)
+  END IF
+  GOTO 2
 ENDIF
 #endif
 CALL MOCSweep(Core, RayInfo, FMInfo, eigv, ng, PE, nTracerCntl, ItrCntl)
 
 2 CONTINUE
-    
+
 #ifdef __PGI
 IF (ieee_is_nan(eigv)) CALL terminate("The Calculation Has Diverged!")
 #else
@@ -370,9 +583,19 @@ USE IEEE_ARITHMETIC
 
 IF (lCMFD .AND. lCmfdGrp) THEN
 
+IF(nTracerCntl%lMacro .AND. nTracerCntl%lCusping_MPI .AND. (ItrCntl%srcit0 .NE. ItrCntl%srcit)) THEN
+  CALL GetNeighborMocFlux(FmInfo%phis, FmInfo%neighphis, Core%nCoreFsr, PE%myzb, PE%myze, 1, GroupInfo%ng, Core%nz, Core%AxBC)
+  CALL SetCoreMacXS_Cusping(Core, FmInfo)
+END IF
+
 #ifdef __PGI
 IF (PE%lCUDACMFD) THEN
-  CALL CUDACmfdAcc(Core, CMInfo, FMInfo, eigv); GOTO 3
+  IF (nTracerCntl%lXsAlign) THEN
+    CALL CUDACmfdAcc_cuMAC(Core, CMInfo, FMInfo, eigv)
+  ELSE
+    CALL CUDACmfdAcc(core,CmInfo,FmInfo,eigv)
+  END IF
+  GOTO 3
 ENDIF
 #endif
 #ifdef __INTEL_MKL
@@ -389,11 +612,43 @@ IF (nTracerCntl%lHex) CALL terminate("HEX MUST USE MKL CMFD!")
 CALL CmfdAcc(Core, CMInfo, FMInfo, THInfo, eigv, ng, TRUE, FALSE, PE, nTracerCntl, ItrCntl)
 
 3 CONTINUE
-    
+
 #ifdef __PGI
 IF (ieee_is_nan(eigv)) CALL terminate("The Calculation Has Diverged!")
 #else
 IF (isnan(eigv)) CALL terminate("The Calculation Has Diverged!")
+#endif
+
+ENDIF
+
+END SUBROUTINE
+
+SUBROUTINE CMFD_adj_Switch
+#ifdef __PGI
+USE IEEE_ARITHMETIC
+#endif
+
+IF (lCMFD .AND. lCmfdGrp) THEN
+
+#ifdef __PGI
+IF (PE%lCUDACMFD) THEN
+  CALL CUDACmfd_Adj(Core, CMInfo, eigv_adj); GOTO 3
+ENDIF
+#endif
+#ifdef __INTEL_MKL
+IF (PE%lMKL) THEN
+  CALL terminate("CMFD Adjoint Flux Calculation with MKL is under construction")
+  GOTO 3
+ENDIF
+#endif
+CALL terminate("CMFD Adjoint Flux Calculation is under construction")
+
+3 CONTINUE
+
+#ifdef __PGI
+IF (ieee_is_nan(eigv_adj)) CALL terminate("The Calculation Has Diverged!")
+#else
+IF (isnan(eigv_adj)) CALL terminate("The Calculation Has Diverged!")
 #endif
 
 ENDIF

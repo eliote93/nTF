@@ -74,8 +74,6 @@ IF(nTracerCntl%lCooling) THEN
   CALL ReloadFuelCooling(nTRACERCntl, PE)
 ENDIF
 CALL MPI_SYNC(PE%MPI_CMFD_COMM)
-NULLIFY(Fxr, Pin, AsyType, Asy)
-NULLIFY(CoreIdx, CoreMap, CellInfo)
 
 IF (nTracerCntl%LPShf) THEN
   mesg = 'Loading Pattern Shuffling ...'
@@ -103,8 +101,6 @@ IF (nTracerCntl%LPShf) THEN
   CALL MPI_SYNC(PE%MPI_CMFD_COMM)
 ENDIF
 
-NULLIFY(Fxr, Pin, AsyType, Asy)
-NULLIFY(CoreIdx, CoreMap, CellInfo)
 
 END SUBROUTINE
 

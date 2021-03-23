@@ -55,7 +55,8 @@ DO iz = myzb, myze
     DO ig = 1, ng
       PinPw = PinPw + PinXs(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig) 
     ENDDO
-    IF(PinPw .LT. 0._8) CYCLE
+    !IF(PinPw .LT. 0._8) CYCLE
+    IF(PinPw .LE. 0._8) CYCLE
     vol = PinVol(ixy, iz)
     !phisum = phisum + sum(PhiC(ixy, iz, 1:ng)) * vol
     PwSum = PwSum + PinPw * vol
@@ -73,7 +74,7 @@ Plevel = AvgPw * UnitPowerLevel0
 TranInfo%PowerLevel = Plevel
 NULLIFY(PhiC, PsiC, PinVol, PinXS)
 END SUBROUTINE
-
+  
 SUBROUTINE SaveTranSol(Core, FmInfo, CmInfo, TranInfo, ThInfo, GroupInfo, TranCntl, nTracerCntl, PE)
 USE PARAM
 USE TYPEDEF,             ONLY : CoreInfo_Type,          FmInfo_Type,        CmInfo_Type,       &
@@ -492,7 +493,7 @@ DO ig = 1, ng
       Expo_Alpha(ixy, iz, ig) = 0
       ratio = PhiC(ixy, iz, ig)/TranPhiCm(ixy, iz, ig)
       IF(PHIC(ixy, iz, ig) .GT. 0 .AND. TranPhiCm(ixy, iz, ig) .GT. 0) THEN
-        ratio = min(ratio, 10._8)
+        !ratio = min(ratio, 10._8)
         Expo_Alpha(ixy, iz, ig) = log(abs(ratio)) / delt
         Expo(ixy, iz, ig) = Exp(Expo_Alpha(ixy, iz, ig) * Deltn)
       ENDIF
@@ -606,4 +607,37 @@ NULLIFY(PhiC, TranPhiCm, Phis)
 !
 END SUBROUTINE
 
+SUBROUTINE CalcFisRate(FisRate, CmInfo, nxy, myzb, myze, ng)
+USE TYPEDEF,          ONLY : CmInfo_Type,       PinXs_Type
+IMPLICIT NONE
+REAL :: FisRate(nxy, myzb:myze)
+TYPE(CmInfo_Type) :: CmInfo
+INTEGER :: nxy, myzb, myze, ng
+
+TYPE(PinXs_Type), POINTER :: PinXs(:,:)
+REAL, POINTER :: PhiC(:,:,:)
+REAL :: pinfr
+INTEGER :: ixy, iz, ig
+
+PinXS => CmInfo%PinXS
+PhiC => CmInfo%PhiC
+
+!$OMP PARALLEL PRIVATE(pinfr)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+DO iz = myzb, myze
+  DO ixy = 1, nxy
+    pinfr = 0.
+    DO ig = 1, ng
+      pinfr = pinfr + PinXS(ixy, iz)%xskf(ig) * PhiC(ixy, iz, ig) 
+    END DO 
+    FisRate(ixy, iz) = pinfr
+  END DO
+END DO 
+!$OMP END DO
+!$OMP END PARALLEL
+
+NULLIFY(PinXS, PhiC)
+
+END SUBROUTINE
+  
 

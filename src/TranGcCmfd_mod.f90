@@ -53,7 +53,7 @@ USE CMFD_MOD, ONLY : nxy,         myzbf,       myzef,               &
                      hzfm,        PinNeighIdx
 IMPLICIT NONE
 REAL :: TranGcResidualError
-REAL :: phi(:, :, :), psi(:, :), TranSrc(:, :, :)
+REAL, POINTER :: phi(:, :, :), psi(:, :), TranSrc(:, :, :)
 TYPE(PE_TYPE) :: PE
 REAL, OPTIONAL :: ConstSrc
 

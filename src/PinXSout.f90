@@ -208,8 +208,8 @@ DO ig = 1, ng
     IF(myFxr%lres) THEN
       IF ((ig.ge.iResoGrpBeg).and.(ig.le.iResoGrpEnd)) THEN
         XsMac%XsMacA(ig) = XsMac%XsMacA(ig) * myFxr%FresoA(ig)
-        XsMac%XsMacNf(ig) = XsMac%XsMacNf(ig) * myFxr%FresoF(ig)
-        XsMac%XsMacKf(ig) = XsMac%XsMacKf(ig) * myFxr%FresoF(ig)
+        XsMac%XsMacNf(ig) = XsMac%XsMacNf(ig) * myFxr%FresoNF(ig)
+        XsMac%XsMacKf(ig) = XsMac%XsMacKf(ig) * myFxr%FresokF(ig)
         ENDIF
     ENDIF
     CALL CP_CA(XsMac%CHI, 0._8, ng)

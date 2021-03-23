@@ -1530,3 +1530,67 @@ CALL MPI_SYNC(Comm)
 END SUBROUTINE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 END MODULE
+
+MODULE MPIGetNeighbor
+
+IMPLICIT NONE
+
+INCLUDE 'mpif.h'
+
+INTEGER, PRIVATE :: Request(4), nRequest
+INTEGER, PARAMETER :: bottom = 1, top = 2
+
+CONTAINS
+
+!--- Non-blocking Communication Routines
+
+SUBROUTINE InitFastComm()
+
+IMPLICIT NONE
+
+nRequest = 0
+
+END SUBROUTINE
+
+SUBROUTINE GetNeighborFast(n, send, recv, dir, rank, comm, nproc)
+
+IMPLICIT NONE
+
+REAL :: send(*), recv(*)
+INTEGER :: n, nproc, dir, rank
+INTEGER :: i, ipartner
+INTEGER :: tag = 1, info, comm
+
+SELECT CASE (dir)
+CASE (top)
+  ipartner = rank + 1
+  IF (ipartner .LT. nproc) THEN
+    nRequest = nRequest + 1
+    CALL MPI_ISEND(send, n, MPI_DOUBLE_PRECISION, ipartner, tag, comm, Request(nRequest), info)
+    nRequest = nRequest + 1
+    CALL MPI_IRECV(recv, n, MPI_DOUBLE_PRECISION, ipartner, tag, comm, Request(nRequest), info)
+  ENDIF
+CASE (bottom)
+  ipartner = rank - 1
+  IF (ipartner .GE. 0) THEN
+    nRequest = nRequest + 1
+    CALL MPI_ISEND(send, n, MPI_DOUBLE_PRECISION, ipartner, tag, comm, Request(nRequest), info)
+    nRequest = nRequest + 1
+    CALL MPI_IRECV(recv, n, MPI_DOUBLE_PRECISION, ipartner, tag, comm, Request(nRequest), info)
+  ENDIF
+END SELECT
+
+END SUBROUTINE
+
+SUBROUTINE FinalizeFastComm(comm)
+IMPLICIT NONE
+INTEGER :: comm
+
+INTEGER :: status(MPI_STATUS_SIZE, 4), info
+
+CALL MPI_WAITALL(nRequest, Request, status, info)
+CALL MPI_BARRIER(comm, info)
+
+END SUBROUTINE
+   
+END MODULE

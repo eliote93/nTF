@@ -245,9 +245,7 @@ USE HexData, ONLY : hLgc, hGeoTypInfo, hAsyTypInfo
 
 IMPLICIT NONE
 
-INTEGER :: nach
-
-REAL :: rw, rgt, acf, xi
+REAL :: nach, rw, rgt, acf, xi
 REAL :: Area
 ! ----------------------------------------------------
 
@@ -256,7 +254,7 @@ IF (.NOT. hLgc%lspCMFD) CALL terminate("SET TH GEO")
 ! ASSUME : Area of Fuel Pin and GT Pin are same
 
 Area = hGeoTypInfo(1)%Area * epsm4
-nach = hAsyTypInfo(1)%nRodPin(1)
+nach = real(hAsyTypInfo(1)%nRodPin(1))
 
 ! IGNORE : rgt
 acf = (Area - PI * rw * rw * nach) / nach

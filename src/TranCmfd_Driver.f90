@@ -10,7 +10,7 @@ USE CNTL,              ONLY : nTracerCntl_Type
 USE itrcntl_mod,       ONLY : ItrCntl_TYPE,            CMFDItrCntl_TYPE
 USE CMFD_mod,          ONLY : CmfdPinXS,               CmfdLS,                                       &
                               PhiC1g,                  SRC,                                          &
-                              SetCMFDEnviorment,       HomoXsGen,             RadCouplingCoeffGen,   &
+                              SetCMFDEnviorment,       HomoXsGen_Cusping,     RadCouplingCoeffGen,   &
                               UpdatePhiC,              ConvertSubPlnPhi,                             &
                               CmfdSrcUpdt,             CmfdPsiUpdt,                                  &
                               CmfdEigUpdate,           ResidualError,         MOCSolUpdt,            &
@@ -20,7 +20,7 @@ USE TRANCMFD_MOD,      ONLY : TrSrc,                   PrecSrc,                 
                               SetTranCmfdEnv,          HomKineticParamGen,    SetCmfdPrecParam,      &
                               SetTranCmfdLinearSystem, CmfdPrecSrcUpdt,       CmfdTranSrc,           &
                               TranResidualError,       CmfdPrecUpdt,          CmfdSteadySrcUpdt,     &
-                              CmfdSteadyPsiUpdt
+                              CmfdSteadyPsiUpdt,       TranResidualError_rev
 USE TranGcCmfd_mod,    ONLY : TranGcCmfdAcc
 USE BiCGSTAB_mod,      ONLY : BiCGSTAB
 USE MPIAxSolver_Mod,   ONLY : AxNCntl_Type,                                                          &
@@ -123,7 +123,7 @@ WRITE(mesg,'(a)') 'Cell Homogenization (H)...'
 IF(CMFDMaster) CALL message(io8, TRUE, TRUE, mesg)    
 
 CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
-CALL HomoXsGen(Core, Fxr, Phis, CmfdPinXS, myzb, myze, ng, lXsLib, lScat1, FALSE)
+CALL HomoXsGen_Cusping(Core, FmInfo, Fxr, Phis, CmfdPinXS, myzb, myze, ng, lXsLib, lScat1, FALSE)
 
 lRadDhatUpdt = .TRUE.
 IF(ItrCntl%Cmfdit0 .EQ. ItrCntl%Cmfdit) lRadDhatUpdt = .FALSE.
@@ -155,8 +155,6 @@ ENDIF
 CALL SetTranCmfdLinearSystem(TRUE,  nTracerCntl%l3dim, AxSolver, TranCntl)
 CALL MakeBiLU(Core, CmInfo%CoreCMFDLS(1:ng), PhiFm, ng, PE)
 
-
-
 lconv = FALSE
 nGroupInfo = 2;
 IF(.NOT. GroupInfo%lUpScat) nGroupInfo = 1
@@ -173,7 +171,7 @@ DO iter = 1, nitermax
       CALL CmfdTranSrc(TrSrc, PhiFm, TranPhiFm, PsiFm, PrecSrc, ResSrcFm, TranCntl, ig, PE%nCmfdThread)
       CALL AD_VA_OMP(TrSrc(1:nxy, myzbf:myzef), TrSrc(1:nxy, myzbf:myzef), Src(1:nxy, myzbf:myzef), nxy, myzef-myzbf+1, PE%nCmfdThread)
       CALL CP_VA_OMP(Phic1g(1:nxy, myzbf : myzef), Phifm(1:nxy, myzbf : myzef, ig), nxy, myzef - myzbf + 1, PE%nCmfdThread)    
-      CALL BiCGSTAB(CmfdLs(ig), Phic1g, TrSRC, itrcntl%InSolverItrCntl)
+      CALL BiCGSTAB(CmfdLs(ig), Phic1g, TrSRC, itrcntl%InSolverItrCntl, itrcntl%innerit)
 #ifndef MPI_ENV
       CALL CP_VA_OMP(Phifm(1:nxy, myzbf : myzef, ig), Phic1g(1:nxy, myzbf : myzef), nxy, myzef - myzbf + 1, PE%nCmfdThread)    
 #else
@@ -186,7 +184,7 @@ DO iter = 1, nitermax
   !Fission Source Update
   CALL CmfdSteadyPsiUpdt(phifm, psifm, PE%nCmfdThread)
   CALL MULTI_CA_OMP(1._8 / eigv0, PsiFm(1:nxy, myzbf:myzef), nxy, myzef - myzbf + 1, PE%nCmfdThread)
-  ResErr = TranResidualError(phifm, psifm, TranPhiFm, PrecSrc, ResSrcFm, TranCntl, PE)
+  ResErr = TranResidualError_rev(phifm, psifm, TranPhiFm, PrecSrc, ResSrcFm, TranCntl, PE)
   IF(iter .eq. 1) ResErr0 = ResErr
   IF(CMFDMaster) WRITE(mesg,'(A9, I9, F22.6, 3x, F10.5, 1pe15.3)') 'MGOUTER', ItrCntl%Cmfdit, eigv0, ResErr/ResErr0, ResErr
   IF(CMFDMaster) CALL message(io8, FALSE, TRUE, mesg)
@@ -220,8 +218,8 @@ ENDDO
 
 
 !CALL ConvertSubPlnPhi(PhiC, PhiFm, 2)
-ItrCntl%lconv  = .FALSE.
-IF(ResErr .LT. 1.E-4) ItrCntl%lconv = .TRUE.
+!ItrCntl%lconv  = .FALSE.
+!IF(ResErr .LT. 1.E-4) ItrCntl%lconv = .TRUE.
 !Axial Source For MOC
 IF(nTracerCntl%l3dim) CALL AxSrcUpdate(Core, CmInfo, myzb, myze, 1, ng, PE, AxSolver)
 

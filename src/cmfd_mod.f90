@@ -18,6 +18,7 @@ REAL, POINTER :: SRC(:, :), Phic1g(:, :)
 INTEGER, POINTER :: PinNeighIdx(:, :)
 INTEGER, POINTER :: SubPlaneMap(:), SubPlaneRange(:, :)
 INTEGER :: nSubplane
+INTEGER, POINTER :: nSubPlanePtr(:)
 INTEGER :: ng, nxy, myzb, myze, myzbf, myzef, nz, nzfm
 REAL, POINTER :: hz(:), hzfm(:)
 REAL, POINTER :: PinVol(:, :), PinVolFm(:, :)
@@ -61,6 +62,19 @@ LOGICAL, INTENT(IN) :: lXsLib, lScat1, lSigT
 
 END SUBROUTINE
 
+SUBROUTINE HomoXsGen_Cusping(Core, FmInfo, FXR, Phis, PinXS, myzb, myze, ng, lXsLib, lScat1, lsigT)
+USE TYPEDEF,  ONLY : CoreInfo_Type,    FXRInfo_Type,      PinXs_Type,     FmInfo_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type), INTENT(IN) :: Core
+TYPE(FmInfo_Type) :: FmInfo
+TYPE(FxrInfo_Type), POINTER, INTENT(IN) :: FXR(:, :)
+TYPE(PinXs_Type), POINTER, INTENT(INOUT) :: PinXs(:, :)
+REAL, POINTER, INTENT(IN) :: Phis(:, :, :)
+INTEGER, INTENT(IN) :: myzb, myze, ng
+LOGICAL, INTENT(IN) :: lXsLib, lScat1, lSigT
+
+END SUBROUTINE
 SUBROUTINE HomoCellXsGen(CellInfo, Phis, PinXs, XsMac, ng, nFxr, nFsr, OutScatRange, lXsLib, lsigT)
 USE TYPEDEF, ONLY : Cell_Type, PinXs_Type, XsMac_Type
 IMPLICIT NONE

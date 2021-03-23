@@ -15,7 +15,7 @@ USE TRANMOC_MOD,       ONLY : TrSrc,                   PrecSrc,                 
                               SetPrecParam,            SetTranMOCEnv,         &
                               PrecSrcUpdt,             SetTranSrc,           TranMocResidualError,  &
                               SetExpTrsfXs
-USE MOC_MOD,           ONLY : RayTrace,                SetRtMacXs,           SetRtSrc,              &
+USE MOC_MOD,           ONLY : RayTrace,                SetRtMacXs_Cusping,   SetRtSrc_Cusping,      &
                               RayTrace_OMP,                                                         &
                               RayTraceLS,              PsiUpdate,            CellPsiUpdate,         &
                               MocResidual,             PsiErr,               PseudoAbsorption,      &
@@ -29,6 +29,8 @@ USE FILES,             ONLY : io8
 #ifdef MPI_ENV
 USE MPICOMM_MOD,       ONLY : BCAST,              MPI_SYNC,           MPI_MAX_REAL
 #endif
+USE XSLIB_MOD,   ONLY : igresb,igrese
+USE SPH_mod,     ONLY : ssphf,ssphfnm,calcPinSSPH
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
 TYPE(RayInfo_Type) :: RayInfo
@@ -62,7 +64,7 @@ INTEGER :: nFSR, nxy, nbd, GrpBeg, GrpEnd, nGroupInfo
 !Time Variables
 REAL :: TimeRt1gBeg, TimeRt1gEnd, TimeElasped, MocTimeBeg, MocTimeEnd
 !Error
-REAL :: ResErr, FisErr, PsiConv, EigErr
+REAL :: ResErr, FisErr, PsiConv, EigErr, errdat(3)
 
 INTEGER :: InIter, nInIter
 
@@ -115,6 +117,7 @@ IF(lFirst) THEN
   lFirst = .FALSE.
 ENDIF
 
+
 IF(RTMASTER) THEN
   CALL CP_VA(psid(1:nFsr, myzb:myze), psi(1:nFsr, myzb:myze), nFsr, myze - myzb +1)
   CALL CP_VA(psicd(1:nxy, myzb:myze), psic(1:nxy, myzb:myze), nxy,  myze - myzb +1)
@@ -139,6 +142,7 @@ itrcntl%mocit = itrcntl%mocit + 1; TimeElasped = 0.
 WRITE(mesg, '(a22,I5,a3)') 'Performing Ray Tracing for Transient', itrcntl%mocit, '...'
 IF(Master) CALL message(io8, TRUE, TRUE, mesg)
 IF(RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+IF(nTracerCntl%lCusping_MPI) CALL GetNeighborMocFlux(phis, FmInfo%neighphis, nFsr, myzb, myze, 1, ng, Core%nz, Core%AxBC)
 DO jsweep =1, nGroupInfo
   GrpBeg = 1; GrpEnd = ng
   !IF(.NOT. GroupInfo%lUpScat .AND. jsweep .GT. 1) EXIT
@@ -155,22 +159,29 @@ DO jsweep =1, nGroupInfo
       DO InIter = 1, nInIter
         IF(InIter .EQ. nInIter) ljout = TRUE
         IF(RTMASTER) THEN
-          CALL SetRtMacXs(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+          CALL SetRtMacXs_Cusping(Core, FmInfo, Fxr(:, iz), xst1g, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
           CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),                             &
                                 AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
-          !CALL SetExpTrsfXs(Core, Fxr, xst1g, iz, ig, GroupInfo, TranCntl, nTracerCntl, PE)
-          CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
+          !CALL SetExpTrsfXs(Core, Fxr, xst1g, iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
+          CALL SetRtSrc_Cusping(Core, FmInfo, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
                         1._8, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
           CALL SetTranSrc(Core, Fxr, TrSrc, Phis, TranPhi, Psi, PrecSrc, ResSrc, xst1g,              &
-                         iz, ig, GroupInfo, TranCntl, nTracerCntl, PE)
+                         iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
           CALL CP_VA(PhiAngin1g, FmInfo%PhiAngin(:,: ,iz, ig), RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
           CALL AD_VA(TrSrc(1:nfsr), TrSrc(1:nfsr), tsrc(1:nfsr), nfsr)
         ENDIF
+        
         CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, trsrc, MocJout1g, iz, lJout)
+        IF (lssph) THEN
+          IF (ig.ge.igresb.and.ig.le.igrese) phis1g=phis1g*ssphf(:,iz,ig)
+        ENDIF
         IF(RTMASTER) CALL CP_VA(phis(1:nFsr, iz, ig), phis1g(1:nFsr), nFsr)
         IF(RTMASTER) CALL CP_VA(FmInfo%PhiAngin(:,:,iz, ig), PhiAngin1g, RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
         IF(lJout .AND. RTMASTER) CALL CP_VA(RadJout(1:3, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:3, 1:nbd, 1:nxy), 3, nbd, nxy)   ! > 16/02/18
         !IF(lJout .AND. RTMASTER) CALL CP_VA(RadJout(1:2, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:2, 1:nbd, 1:nxy), 2, nbd, nxy)
+        IF(nTracerCntl%lCusping_MPI) THEN
+          IF(iz .EQ. myzb .OR. iz .EQ. myze) CALL GetNeighborMocFlux(phis, FmInfo%neighphis, nFsr, myzb, myze, ig, ig, Core%nz, Core%AxBC)
+        END IF
       ENDDO
     ENDDO
 #ifdef MPI_ENV
@@ -203,7 +214,13 @@ IF(RTMASTER) CALL PowerUpdate(Core, Fxr, phis, FmInfo%Power, myzb, myze, ng, lxs
 eigerr = 0
 fiserr = PsiErr(Core, Psi, PsiD, myzb, myze, PE)
 reserr = TranMocResidualError(Core, FmInfo, TranInfo, eigv0, GroupInfo, TranCntl, nTRACERCntl, PE)
+#ifdef MPI_ENV
+errdat = (/fiserr, eigerr, reserr/)
+CALL BCAST(errdat, 3, PE%MPI_RT_COMM)
+fiserr = errdat(1); eigerr = errdat(2); reserr = errdat(3)
+#endif
 WRITE(mesg ,'(A5,I7,F15.6, 3(1pE12.3))')  'RT',itrcntl%mocit, EIGV0, eigerr, fiserr, reserr
 IF(MASTER) CALL message(io8, TRUE, TRUE, mesg)
 !IF(fiserr .lt. psiconv) itrcntl%lconv = TRUE
+IF(fisErr .LT. TranCntl%psi_conv) ItrCntl%lConv = .TRUE.
 END SUBROUTINE
