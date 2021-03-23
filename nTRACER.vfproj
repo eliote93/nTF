@@ -4,9 +4,9 @@
 		<Platform Name="x64"/></Platforms>
 	<Configurations>
 		<Configuration Name="Debug|x64" OutputDirectory="Intel\$(ConfigurationName)" IntermediateDirectory="Intel\$(ConfigurationName)">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(ProjectDir)/src;C:\Program Files\MPICH2\include;" PreprocessorDefinitions="__INTEL_MKL" OpenMP="OpenMPParallelCode" RealKIND="realKIND8" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" UseMkl="mklParallel"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" MultiProcessorCompilation="true" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(ProjectDir)/src;C:\Program Files\MPICH2\include" PreprocessorDefinitions="__INTEL_MKL" OpenMP="OpenMPParallelCode" RealKIND="realKIND8" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL" UseMkl="mklParallel"/>
 				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="C:\Program Files\MPICH2\lib" GenerateManifest="false" GenerateDebugInformation="true" SubSystem="subSystemConsole" StackReserveSize="100000000" StackCommitSize="100000000" AdditionalDependencies="fmpich2.lib"/>
-				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFResourceCompilerTool" AdditionalIncludeDirectories="C:\Program Files (x86)\Intel\oneAPI\mkl\latest\redist\ia32;"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
 				<Tool Name="VFPreLinkEventTool"/>

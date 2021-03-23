@@ -307,6 +307,7 @@ IF (nSpt .EQ. 1) THEN
   READ (dataline(ipos(1)+1:nDataField),*) iCase
   
   READ (indev,'(a256)') oneline
+  IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
   READ (oneline, *) ii(1)
   
   IF (iCase .NE. 1) CALL terminate("WRONG [ASSEMBLY] - ASY TYPE INPUT")
