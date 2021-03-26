@@ -54,7 +54,7 @@ IF (any(Core%RadBC(1 : 4) .EQ. VoidCell)) itermax = 1
 
 CALL omp_set_num_threads(PE%nThread)
 
-WRITE(mesg,'(11x, a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
+WRITE(mesg,'(a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
 IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 WRITE(mesg,'(a)') 'Solving Subgroup FSP...'
 IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)

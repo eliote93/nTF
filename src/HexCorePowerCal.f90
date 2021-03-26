@@ -100,8 +100,7 @@ END IF
 IF (PE%lMKL .AND. .NOT. lCMFD) THEN
   CALL AllocCMFD(TRUE)
   CALL AllocHomoXSVar(Core, mklGeom%ng)
-  CALL HomogenizeXS(Core, mklGeom%superPin, Fxr, mklCMFD%PinXS, phis, ng, &
-                    mklGeom%nxy, mklGeom%myzb, mklGeom%myze, lxslib, lscat1, FALSE)
+  CALL HomogenizeXS(Core, mklGeom%superPin, Fxr, mklCMFD%PinXS, phis, ng, mklGeom%nxy, mklGeom%myzb, mklGeom%myze, lxslib, lscat1, FALSE)
 END IF
 
 IF (PE%lMKL) CALL MKL_ReorderPinXS(Core, CmInfo)

@@ -119,7 +119,7 @@ ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(11x,a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
+write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
 IF(master) call message(io8,TRUE,TRUE,mesg)
 WRITE(mesg,'(a,i3)') 'Solving Subgroup FSP'
 IF(master) CALL message(io8, TRUE, TRUE, mesg)
@@ -256,7 +256,7 @@ ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(11x,a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
+write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
 IF(master) call message(io8,TRUE,TRUE,mesg)
 WRITE(mesg,'(a,i3)') 'Solving Subgroup FSP'
 IF(master) CALL message(io8, TRUE, TRUE, mesg)
@@ -397,7 +397,7 @@ ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(11x,a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
+write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
 IF(master) call message(io8,TRUE,TRUE,mesg)
 WRITE(mesg,'(a)') 'Solving Subgroup FSP (MLG)'
 IF(master) CALL message(io8, TRUE, TRUE, mesg)
@@ -588,7 +588,7 @@ ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(11x,a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
+write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
 IF(master) call message(io8,TRUE,TRUE,mesg)
 WRITE(mesg,'(a,i3)') 'Solving FSP for Pin-wise Dancoff Factor'
 IF(master) CALL message(io8, TRUE, TRUE, mesg)

@@ -31,7 +31,7 @@ USE MOC_MOD,     ONLY : RayTrace,           SetRtMacXs,        SetRtSrc,        
                         SetRtP1SrcNM,       PseudoAbsorptionNM,                     &
                         phisnm,             PhiAngInnm,        MocJoutnm,           &
                         xstnm,              srcnm,             phimnm,              &
-                        srcmnm,             RayTraceNM_OMP,                         &
+                        srcmnm,             RayTraceNM_OMP,    RayTraceP1NM_OMP,    &
                         !--- CNJ Edit : Domain Decomposition
                         DcmpPhiAngIn,               DcmpPhiAngOut,                  &
                         DcmpScatterXS,              DcmpScatterBoundaryFlux,        &
@@ -301,31 +301,26 @@ DO iz = myzb, myze
       IF(InIter .EQ. nInIter) ljout = TRUE
       IF (RTMASTER) THEN
         IF (.NOT. nTracerCntl%lLinSrcCASMO) THEN
-          CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz,                             &
-                          GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+          CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
           IF (lScat1) THEN
-            CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd,                          &
-                              ng, GroupInfo, lXsLib, nTracerCntl%ScatOd, PE)
+            CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nTracerCntl%ScatOd, PE)
           ENDIF
         ELSE
-          CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope,             &
-                                 AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo,                             &
-                                 l3dim, lxslib, lscat1, FALSE)
+          CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
         ENDIF
       ENDIF
       IF (.NOT. nTracerCntl%lDomainDcmp) THEN
         IF (.NOT. nTracerCntl%lLinSrcCASMO) THEN
-          IF (.NOT. lscat1) THEN
-            CALL RayTraceNM_OMP(RayInfo, Core, phisnm, PhiAngInnm, xstnm, srcnm, MocJoutnm,                         &
-                                iz, GrpBeg, GrpEnd, ljout, nTracerCntl%lDomainDcmp, nTracerCntl%FastMocLv)
+          IF (lscat1) THEN
+            CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout, nTracerCntl%lDomainDcmp)
+          ELSE
+            CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, nTracerCntl%lDomainDcmp, nTracerCntl%FastMocLv)
           ENDIF
         ELSE
-          CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope,                      &
-                                xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lDomainDcmp)
+          CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lDomainDcmp)
         ENDIF
       ELSE
-        CALL RayTrace_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, FALSE, lScat1, nTracerCntl%lLinSrcCASMO,       &
-                           nTracerCntl%lHybrid)
+        CALL RayTrace_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, FALSE, lScat1, nTracerCntl%lLinSrcCASMO, nTracerCntl%lHybrid)
       ENDIF
       IF (nTracerCntl%lsSPH) THEN
         IF (GrpBeg .LE. igrese) THEN

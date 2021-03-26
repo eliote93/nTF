@@ -25,6 +25,7 @@ REAL, POINTER :: DcmpPhiAngOut(:, :, :, :, :)
 REAL, POINTER :: wtang(:, :), wtsurf(:, :, :)
 REAL, POINTER :: SrcAng(:, :, :, :)
 REAL, POINTER :: SrcAng1(:, :, :), SrcAng2(:, :, :)
+REAL, POINTER :: SrcAngnm1(:, :, :, :), SrcAngnm2(:, :, :, :)
 REAL, POINTER :: comp(:, :, :), mwt(:, :, :), mwt2(:, :, :)
 REAL, POINTER :: wPhim(:) !, wPhim3D(:)
 REAL, POINTER :: phia1g(:, :, :) !(ifsr, Azi, Pol) 
@@ -184,6 +185,24 @@ LOGICAL :: ljout, lDomainDcmp
 INTEGER, OPTIONAL :: FastMocLv
 END SUBROUTINE
 
+SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridInfo_Type
+
+IMPLICIT NONE
+
+TYPE(RayInfo_Type)  :: RayInfo
+TYPE(CoreInfo_Type) :: CoreInfo
+
+INTEGER :: iz, gb, ge
+LOGICAL :: ljout, lDomainDcmp
+
+REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
+REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+
+END SUBROUTINE RayTraceP1NM_OMP
+                          
 SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm,                                     &
                            joutnm, iz, iasy, gb, ge, ljout)
 USE PARAM

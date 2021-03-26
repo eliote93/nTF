@@ -364,7 +364,7 @@ TYPE MultigridInfo_Type
   INTEGER, POINTER :: AziList(:)
   INTEGER :: nAzi, nPolar
   REAL, POINTER :: wtang(:, :), wtsurf(:, :, :)
-  REAL, POINTER :: mwt(:, :, :), Comp(:, :, :)
+  REAL, POINTER :: mwt(:, :, :), mwt2(:, :, :), Comp(:, :, :)
   REAL, POINTER :: EXPA(:, :), EXPB(:, :)
 END TYPE
 
@@ -462,6 +462,7 @@ TYPE TrackingDat_Type
   LOGICAL :: lAllocNM = .FALSE.
   REAL, POINTER :: phisPolar(:, :, :), phisnm(:, :), srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
   REAL, POINTER :: phianm(:, :, :, :), SrcAngnm(:, :, :, :)
+  REAL, POINTER :: phimnm(:, :, :), SrcAngnm1(:, :, :, :), SrcAngnm2(:, :, :, :)
   REAL, POINTER :: PhiAngOutnm(:, :, :), PhiAngInnm(:, :, :)
   REAL, POINTER :: OptLenListnm(:, :, :), ExpAppnm(:, :, :, :)
   INTEGER, POINTER :: ExpAppIdxnm(:, :, :)

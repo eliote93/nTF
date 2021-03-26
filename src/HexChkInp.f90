@@ -1,6 +1,3 @@
-! ------------------------------------------------------------------------------------------------------------
-!                                     01. HEX CHK : Input
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexChkInp()
 
 USE CNTL,    ONLY : nTracerCntl
@@ -29,9 +26,8 @@ TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 IF (hLgc%lSngCel .AND. nTracerCntl%lCMFD) CALL terminate("SINGLE CELL CMFD IS NOT AVAILABLE")
 IF (hLgc%lSngCel .AND. .NOT.(nZ.EQ.1)) CALL terminate("3-D SINGLE CELL PROBLEM IS NOT AVAILABLE")
 IF (hLgc%lSngCel) RETURN
-! ----------------------------------------------------
-!               01. Core
-! ----------------------------------------------------
+
+! Core
 IF (nVA.LT.0 .AND. hLgc%lRadRef) CALL terminate("VOID ASY SHOULD NOT EXIST IN RADIAL REF")
 
 IF (hLgc%l360) THEN
@@ -41,9 +37,8 @@ ELSE IF (hLgc%l060) THEN
 END IF
 
 IF (nTmp .NE. 0) CALL terminate("RAD CONF ASY INP")
-! ----------------------------------------------------
-!               02. Asy
-! ----------------------------------------------------
+
+! Asy
 DO iaTyp = 1, nAsyType0
   aInf_Loc => hAsyTypInfo(iaTyp)
   
@@ -55,9 +50,8 @@ DO iaTyp = 1, nAsyType0
   
   CALL HexChkRange_INT(aInf_Loc%nPin, 2,          20, "# OF PIN")
   CALL HexChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN")
-  ! ----------------------------
-  !      1. CHK & SET : ROD
-  ! ----------------------------
+  
+  ! Rod Pin
   DO ix = 1, 2 * nPin - 1
     DO iy = 1, 2 * nPin - 1
       iPin = aInf_Loc%PinIdx(iy, ix)
@@ -75,18 +69,16 @@ DO iaTyp = 1, nAsyType0
       END DO
     END DO
   END DO
-  ! ----------------------------
-  !      2. CHK & SET : GAP
-  ! ----------------------------
+  
+  ! Gap Pin
   DO iz = 1, nZ
     iCel = GapPin(aInf_Loc%gTyp)%iCel(iz)
     
     CALL HexChkEqual_REAL(aiF2F, gCel(iCel)%aiF2F, 1, "LENGTH OF GAP IN ASY & CEL ARE DIFFERENT")
   END DO
 END DO
-! ----------------------------------------------------
-!               03. PIN
-! ----------------------------------------------------
+
+! Pin
 DO iPin = 1, nPinType
   IF (.NOT. RodPin(iPin)%luse) CYCLE
   
@@ -102,9 +94,8 @@ DO iPin = 1, nGapType
     CALL HexChkRange_INT(GapPin(iPin)%iCel(iz), 1, nGapType, "GAP PIN")
   END DO
 END DO
-! ----------------------------------------------------
-!               04. Rod Cel
-! ----------------------------------------------------
+
+! Rod Cel
 IF (nCellType .EQ. 0) CALL terminate("CEL DOES NOT EXIST")
 
 IF (nTracerCntl%lXsLib) THEN
@@ -132,9 +123,8 @@ DO iCel = 1, nCellType
   
   IF (hCel_Loc%nSct .NE. 12) CALL terminate("CEL # OF SECTORS")
 END DO
-! ----------------------------------------------------
-!               05. Gap Cel
-! ----------------------------------------------------
+
+! Gap Cel
 IF (nGapType .EQ. 0) CALL terminate("GAP DOES NOT EXIST")
 
 DO iCel = 1, nGapType
@@ -150,9 +140,8 @@ DO iCel = 1, nGapType
     CALL HexChkInc_REAL(gCel_Loc%xHgt(iFXR + 1), gCel_Loc%xHgt(iFXR), "GAP CEL HIGHT")
   END DO
 END DO
-! ----------------------------------------------------
-!               06. ETC
-! ----------------------------------------------------
+
+! Etc.
 DO iBss = 1, nVssTyp
   CALL HexChkInc_REAL(hVss(iBss)%Rad(1), hVss(iBss)%Rad(2), "VESSEL RAD")
   
@@ -176,8 +165,6 @@ NULLIFY (hCel_Loc, gCel_Loc, aInf_Loc)
 
 END SUBROUTINE HexChkInp
 ! ------------------------------------------------------------------------------------------------------------
-!                                     02. HEX CHK : Cel Geo Basis
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexChkCelBss()
 
 USE geom,    ONLY : nAsyType0, nPinType, nGapType, nZ
@@ -192,18 +179,15 @@ INTEGER :: iCel, iBss, jBss, iCB, jCB, iPin, iZ
 REAL    :: Tmp
 ! ----------------------------------------------------
 
-! ----------------------------------------------------
-!               01. CHK : Rod Cel Bss
-! ----------------------------------------------------
+! CHK : Rod Cel Bss
 DO iCel = 1, ncBss
   Tmp = 3 * (hCelBss(iCel)%nPin - 1) * hCelBss(iCel)%pPch &
       + 2 * hCelBss(iCel)%sRad(hCelBss(iCel)%nSub-1)
   
   CALL HexChkInc_REAL(Tmp, hCelBss(iCel)%aiF2F, "RAD EXCEEDS ASY F2F INN")
 END DO
-! ----------------------------------------------------
-!               02. CHK : EXTRUDED
-! ----------------------------------------------------
+
+! CHK : EXTRUDED
 IF (nTracerCntl%AxSolver .NE. 4) RETURN
 
 DO iPin = 1, nPinType

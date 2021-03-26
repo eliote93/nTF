@@ -89,8 +89,8 @@ write(mesg,601) "by ",trim(username)," on ",trim(hostname)," at ",hh,mm,ss,mon(i
 call message(OutDev,.false.,.TRUE.,mesg)
 WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)')
 
-600 format(11x,"Executing Case ",a)
-601 FORMAT (11x,5a,a2,':',a2,':',a2,', ',a4,1x,i2,', ',i4,a)
+600 format(13x,"Executing Case ",a)
+601 FORMAT (13x,5a,a2,':',a2,':',a2,', ',a4,1x,i2,', ',i4,a)
 
 
 END SUBROUTINE

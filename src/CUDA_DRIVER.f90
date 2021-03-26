@@ -274,7 +274,7 @@ lChkErr = (itermax.NE.1)
 CALL Cal_RefFuelTemp(THInfo%RefFuelTemp, Core, Fxr, nTracerCntl, PE)
 CALL UpdtCoreIsoInfo(Core, Fxr, PE)
 
-WRITE(mesg,'(11x, a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
+WRITE(mesg,'(a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
 IF (PE%MASTER) CALL message(io8, .TRUE., .TRUE., mesg)
 WRITE(mesg,'(a)') 'Solving Subgroup FSP...'
 IF (PE%MASTER) CALL message(io8, .TRUE., .TRUE., mesg)
@@ -566,7 +566,7 @@ IF (any(cuGeometry%RadBC .EQ. Void)) itermax = 1
 CALL Cal_RefFuelTemp(THInfo%RefFuelTemp, Core, Fxr, nTracerCntl, PE)
 CALL UpdtCoreIsoInfo(Core, Fxr, PE)
 
-WRITE(mesg,'(11x, a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
+WRITE(mesg,'(a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
 IF (PE%MASTER) CALL message(io8, .TRUE., .TRUE., mesg)
 WRITE(mesg,'(a)') 'Solving Subgroup FSP...'
 IF (PE%MASTER) CALL message(io8, .TRUE., .TRUE., mesg)

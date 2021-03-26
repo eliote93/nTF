@@ -568,7 +568,7 @@ TYPE(RayInfo_Type) :: RayInfo
 
 TYPE(AziAngleInfo_Type), POINTER :: AziAngle(:)
 TYPE(MultigridInfo_Type), POINTER :: MultigridInfo
-REAL, POINTER :: wtang(:, :), wtsurf(:, :, :), mwt(:, :, :), Comp(:, :, :)
+REAL, POINTER :: wtang(:, :), wtsurf(:, :, :), mwt(:, :, :), mwt2(:, :, :), Comp(:, :, :)
 REAL :: WeightSet(4, 4), SinvSet(4, 4)
 REAL :: wt(2), wttemp, wtsin2, wtcos, wtpolar
 REAL :: wtAzi(400), wtPol(4)
@@ -651,6 +651,7 @@ DO ilv = 1, nlv
   ALLOCATE(MultigridInfo%wtsurf(nPolar, nAzi, 4)); wtsurf => MultigridInfo%wtsurf
   ALLOCATE(MultigridInfo%Comp(9, nPolar, nAzi)); Comp => MultigridInfo%Comp
   ALLOCATE(MultigridInfo%mwt(9, nPolar, nAzi)); mwt => MultigridInfo%mwt
+  ALLOCATE(MultigridInfo%mwt2(9, nPolar, nAzi)); mwt2 => MultigridInfo%mwt2
   DO ipol = 1, MultigridInfo%nPolar
     wttemp = wtPol(ipol) * psinv(ipol)
     DO iazi = 1, MultigridInfo%nAzi
@@ -670,6 +671,8 @@ DO ilv = 1, nlv
         Comp(1, ipol, AziIdx) = wttemp * AziAngle(AziIdx)%cosv
         Comp(2, ipol, AziIdx) = wttemp * AziAngle(AziIdx)%sinv
         mwt(1:2, ipol, AziIdx) = Comp(1:2, ipol, AziIdx) * wtang(ipol, AziIdx)
+        
+        mwt2(1:2, ipol, AziIdx) = -mwt(1:2, ipol, AziIdx)
       ENDDO
     ENDDO
   ENDIF
@@ -686,6 +689,8 @@ DO ilv = 1, nlv
         Comp(5, ipol, AziIdx) = wtsin2 * (2.0 * AziAngle(AziIdx)%sinv * AziAngle(AziIdx)%cosv)
         mwt(3, ipol, AziIdx) = Comp(3, ipol, AziIdx) * wtang(ipol, AziIdx)
         mwt(4:5, ipol, AziIdx) = 0.75 * Comp(4:5, ipol, AziIdx) * wtang(ipol, AziIdx)
+        
+        mwt2(3:5, ipol, AziIdx) = mwt(3:5, ipol, AziIdx)
       ENDDO
     ENDDO
   ENDIF
@@ -700,6 +705,8 @@ DO ilv = 1, nlv
         Comp(9, ipol, AziIdx) = (wttemp ** 3.0) * (- 4.0 * (AziAngle(AziIdx)%sinv ** 3.0) + 3.0 * AziAngle(AziIdx)%sinv)
         mwt(6:7, ipol, AziIdx) = 0.375 * Comp(6:7, ipol, AziIdx) * wtang(ipol, AziIdx)
         mwt(8:9, ipol, AziIdx) = 0.625 * Comp(8:9, ipol, AziIdx) * wtang(ipol, AziIdx)
+        
+        mwt2(6:9, ipol, AziIdx) = -mwt(6:9, ipol, AziIdx)
       ENDDO
     ENDDO
   ENDIF
