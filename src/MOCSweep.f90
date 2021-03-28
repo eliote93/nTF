@@ -178,7 +178,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
         ljout = FALSE
         IF (.NOT. Core%lFuelPlane(iz) .AND. nTracerCntl%lAxRefFDM) CYCLE
         IF (nTracerCntl%lMOCUR) ljout = TRUE
-        IF (RTMASTER) AxSrc1g = AxSrc(:, iz, ig)
+        IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
         DO InIter = 1, nInIter
           IF(InIter .EQ. nInIter) ljout = TRUE
           IF(RTMASTER) THEN

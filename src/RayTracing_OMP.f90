@@ -1179,7 +1179,7 @@ IF (lfirst) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-!$OMP PARALLEL PRIVATE(ithr, iRotRay, AziIdx)
+!$OMP PARALLEL PRIVATE(ithr, irot, iazi, iRotRay, iray, AziIdx)
 ithr = omp_get_thread_num() + 1
 
 TrackingDat(ithr)%phisnm      = ZERO
@@ -1230,7 +1230,7 @@ END DO
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(FsrIdxSt, icel, ifsr)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr, ig)
 !$OMP DO SCHEDULE(GUIDED)
 DO ipin = 1, nxy
   FsrIdxSt = Pin(ipin)%FsrIdxSt
