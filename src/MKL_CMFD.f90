@@ -639,7 +639,7 @@ REAL :: eigv
 TYPE(mklDavidson_Type), POINTER :: Davidson
 TYPE(FxrInfo_type), POINTER :: Fxr(:, :)
 TYPE(PinXS_Type), POINTER :: PinXS(:, :)
-REAL, POINTER :: phis(:, :, :), phic(:, :, :)
+REAL, POINTER :: phis(:, :, :), phic(:, :, :), phim(:,:,:,:)
 REAL, POINTER :: Jout(:, :, :, :, :), AxSrc(:, :, :), AxPXS(:, :, :)
 REAL :: CmfdTimeBeg, CmfdTimeEnd
 REAL :: resTol = 1.0D-07, relTol = 1.0D-04
@@ -716,6 +716,7 @@ ENDDO
 
 CALL ReorderFlux(2)
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
+CALL SetMOCPhim(CoreInfo, PinXS, phim)
 
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)
@@ -1115,7 +1116,73 @@ ENDDO
 !$OMP END PARALLEL
 
 END SUBROUTINE
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE SetMOCPhim(CoreInfo, PinXS, phim)
 
+USE TYPEDEF, ONLY : CoreInfo_Type, PinXS_Type, Pin_Type, Cell_Type
+USE CNTL,    ONLY : nTracerCntl
+
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: CoreInfo
+
+TYPE(PinXS_Type), POINTER, DIMENSION(:,:) :: PinXS
+
+REAL, POINTER, DIMENSION(:,:,:,:) :: phim
+
+TYPE(Pin_Type),      POINTER, DIMENSION(:) :: Pin
+TYPE(superPin_Type), POINTER, DIMENSION(:) :: superPin
+TYPE(Cell_Type),     POINTER, DIMENSION(:) :: Cell
+
+INTEGER :: ig, iz, izf, ifsr, jfsr, icel, ixy, ixy_map, ipin, jpin
+INTEGER :: FsrIdxSt, ng, nxy, nLocalFsr, myzb, myze
+
+INTEGER, POINTER, DIMENSION(:) :: pinMap 
+
+REAL :: fmult
+! ----------------------------------------------------
+
+IF (.NOT. nTracerCntl%lScat1) RETURN
+
+Pin  => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
+
+superPin => mklGeom%superPin
+pinMap   => mklGeom%pinMap
+ng        = mklGeom%ng
+nxy       = mklGeom%nxy
+myzb      = mklGeom%myzb
+myze      = mklGeom%myze
+
+!$OMP PARALLEL PRIVATE(FsrIdxSt, ipin, jpin, icel, ixy_map, nLocalFsr, fmult, ifsr, jfsr)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+DO ig = 1, ng
+  DO iz = myzb, myze
+    DO ixy = 1, nxy
+      ixy_map = pinMap(ixy)
+      fmult   = mklCMFD%phic(ixy, iz, ig) / PinXS(ixy_map, iz)%Phi(ig)
+      
+      DO ipin = 1, superPin(ixy_map)%nxy
+        jpin      = superPin(ixy_map)%pin(ipin)
+        FsrIdxSt  = Pin(jpin)%FsrIdxSt
+        icel      = Pin(jpin)%Cell(iz)
+        nLocalFsr = Cell(icel)%nFsr
+        
+        DO ifsr = 1, nLocalFsr
+          jfsr = FsrIdxSt + ifsr - 1
+          
+          phim(:, ig, jfsr, iz) = phim(:, ig, jfsr, iz) * fmult
+        END DO
+      END DO
+    END DO
+  END DO
+END DO
+!$OMP END DO
+!$OMP END PARALLEL
+! ----------------------------------------------------
+
+END SUBROUTINE SetMOCPhim
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetAxialSrc(AxSrc, AxPXS, phic)
 USE CNTL,           ONLY : nTracerCntl
 IMPLICIT NONE

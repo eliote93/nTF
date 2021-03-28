@@ -37,7 +37,7 @@ TYPE(PinXS_Type),   POINTER :: PinXS(:, :)
 
 REAL, POINTER :: PhiS(:,:,:), PhiC(:,:,:) 
 
-INTEGER :: io, myzb, myze
+INTEGER :: io
 LOGICAL :: Master
 ! ----------------------------------------------------
 
@@ -53,7 +53,7 @@ IF(Master) THEN
   WRITE(mesg, *) 'Writing Calculation Results in Output File...'
   CALL message(io8, TRUE, TRUE, mesg)
   
-  WRITE(mesg, '(14x, a, I5, 4x a, I5)') 'Case No :', nTracerCntl%CaseNo, 'Calculation No :', nTracerCntl%CalNoId 
+  WRITE(mesg, '(14X, A, I5, 4X, A, I5)') 'Case No :', nTracerCntl%CaseNo, 'Calculation No :', nTracerCntl%CalNoId 
   CALL message(io8, FALSE, TRUE, mesg)
 ENDIF
 
@@ -61,14 +61,14 @@ IF(Master) THEN
   io = io8
   
   WRITE(io, *)
-  WRITE(io, '(a)') '========================================================================'
-  WRITE(io, '(5x, a)') 'Results'
-  WRITE(io, '(5x, a, I5)') 'Case No        :', nTracerCntl%CaseNo
-  WRITE(io, '(5x, a, I5)') 'Calculation No :', nTracerCntl%CalNoId
-  WRITE(io, '(a)') '========================================================================'
+  WRITE(io, '(A)') '========================================================================'
+  WRITE(io, '(5X, A)') 'Results'
+  WRITE(io, '(5X, A, I5)') 'Case No        :', nTracerCntl%CaseNo
+  WRITE(io, '(5X, A, I5)') 'Calculation No :', nTracerCntl%CalNoId
+  WRITE(io, '(A)') '========================================================================'
 
   WRITE(io, *)
-  WRITE(io, '(7x, A7, 3x, F8.5)') 'k-eff =', eigv
+  WRITE(io, '(7X, A7, 3X, F8.5)') 'k-eff =', eigv
   WRITE(io, *)
 END IF
 ! ----------------------------------------------------
@@ -87,11 +87,11 @@ IF(nTracerCntl%lExplicitKappa) CALL HexCalExplicitPower(Core, GammaCMFD, FmInfo,
 !                3. PRINT : Power
 ! ----------------------------------------------------
 IF(Master) THEN
-  WRITE(io, '(a)') '-------------------------Power Distribution------------------------------'
+  WRITE(io, '(A)') '-------------------------Power Distribution------------------------------'
   SELECT CASE(nTracerCntl%pout_mode)
   CASE(0)
   !CALL PrintRadialPower(io, Core, PowerDist)
-    WRITE(io, '(a)') '--- Fission Power' 
+    WRITE(io, '(A)') '--- Fission Power' 
   CALL HexPrint2DPinPower   (io, Core, PowerDist)
   CALL HexPrintLocalPinPower(io, Core, PowerDist)
   
@@ -103,7 +103,7 @@ IF(Master) THEN
   !IF (nTracerCntl%lED) CALL PrintDancoffFactor(io, Core, DancoffDist)
   CASE(1)
   CASE(2)
-    WRITE(io, '(a, ES14.6)') '--- Fission Power', PowerDist%pwsum
+    WRITE(io, '(A, ES14.6)') '--- Fission Power', PowerDist%pwsum
   CALL HexPrint2DPinPower   (io, Core, PowerDist)
   CALL HexPrintLocalPinPower(io, Core, PowerDist)
   
@@ -112,7 +112,7 @@ IF(Master) THEN
   CALL HexAxialAvgAsy2DPower(io, Core, PowerDist)
   CALL Axial1DPower         (io, Core, PowerDist)
 
-    WRITE(io, '(a, ES14.6)') '--- Neutron Power', NeutronPower%pwsum
+    WRITE(io, '(A, ES14.6)') '--- Neutron Power', NeutronPower%pwsum
   CALL HexPrint2DPinPower   (io, Core, NeutronPower)
   CALL HexPrintLocalPinPower(io, Core, NeutronPower)
   
@@ -121,7 +121,7 @@ IF(Master) THEN
   CALL HexAxialAvgAsy2DPower(io, Core, NeutronPower)
   CALL Axial1DPower         (io, Core, NeutronPower)
 
-    WRITE(io, '(a, ES14.6)') '--- Photon Power' , PhotonPower%pwsum
+    WRITE(io, '(A, ES14.6)') '--- Photon Power' , PhotonPower%pwsum
   CALL HexPrint2DPinPower   (io, Core, PhotonPower)
   CALL HexPrintLocalPinPower(io, Core, PhotonPower)
   
@@ -130,7 +130,7 @@ IF(Master) THEN
   CALL HexAxialAvgAsy2DPower(io, Core, PhotonPower)
   CALL Axial1DPower         (io, Core, PhotonPower)
 
-    WRITE(io, '(a, ES14.6)') '--- Explicit Power', TotalExpPower%pwsum
+    WRITE(io, '(A, ES14.6)') '--- Explicit Power', TotalExpPower%pwsum
   CALL HexPrint2DPinPower   (io, Core, TotalExpPower)
   CALL HexPrintLocalPinPower(io, Core, TotalExpPower)
   
@@ -187,6 +187,7 @@ SUBROUTINE HexPrint2DPinPower(io, Core, PowerDist)
 USE PARAM,   ONLY : ZERO, BLANK
 USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, Pin_Type
 USE CNTL,    ONLY : nTracerCntl
+USE geom,    ONLY : nAsyType0
 
 use HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nHexPin
 
@@ -205,11 +206,12 @@ INTEGER :: ixy, ix, iy, iPin, jPin, ivTyp
 REAL :: EffPinNum
 REAL :: VtxTypVolInv(7) = [6., 2., 1., 1., 1., 2., 2.]
 
-CHARACTER(12)  :: cTmp
-CHARACTER(512) :: sTmp
+CHARACTER(12) :: cTmp
 
-301 FORMAT('Assembly', I5, x, 'at', x, '(', I7, I7, ')')
-302 FORMAT(2X, A)
+CHARACTER(12), POINTER, DIMENSION(:) :: sTmp
+
+301 FORMAT('Assembly', I5, X, 'at', X, '(', I7, I7, ')')
+302 FORMAT(2X, 100A12)
 ! ----------------------------------------------------
 
 nxya = Core%nxya
@@ -224,12 +226,20 @@ DO iPin = 1, nHexPin
   END IF
 END DO
 
+nCx = 0
+
+DO iAsyTyp = 1, nAsyType0
+  nCx = max(nCx, hAsyTypInfo(iAsyTyp)%nPin)
+END DO
+
+ALLOCATE (sTmp (2*nCx-1))
+
 WRITE(io, '(A)') '- 2D Pin Power -'
 WRITE(io, '(A)') '- Coordinate : 1st = from NE to SW, 2nd = from NNW to SSE'
 WRITE(io, *)
 WRITE(io, '(A, F12.5)') 'Eff Pin Num', EffPinNum
 WRITE(io, *)
-
+! ----------------------------------------------------
 DO iAsy = 1, nxya
   WRITE(io, 301), iAsy, Asy1Dto2Dmap(1, iAsy), Asy1Dto2Dmap(2, iAsy)
 
@@ -250,24 +260,26 @@ DO iAsy = 1, nxya
         ivTyp = hAsyTypInfo(iAsyTyp)%PinVtxTyp(iGeoTyp, iPin)
         
         IF (jPin < 1) THEN
-          WRITE (cTmp, '(f12.5)') 0._8
+          WRITE (cTmp, '(F12.5)') 0._8
         ELSE
           ixy = hAsy(iAsy)%PinIdxSt + jPin - 1 ! Global Pin Idx
           
-          WRITE (cTmp, '(f12.5)') PowerDist%PinPower2D(iPin, iAsy) * hPinInfo(ixy)%Vol(1) * VtxTypVolInv(ivTyp)
+          WRITE (cTmp, '(F12.5)') PowerDist%PinPower2D(iPin, iAsy) * hPinInfo(ixy)%Vol(1) * VtxTypVolInv(ivTyp)
         END IF
       END IF
       
-      sTmp((ix-1)*12+1:ix*12) = cTmp
+      WRITE (sTmp(ix), '(A12)') cTmp
     END DO
     
-    WRITE(io, 302), sTmp(1:ix*12)
+    WRITE(io, 302), sTmp(1:2*nCx - 1)
   END DO
 END DO
 
 WRITE(io, *)
 
 NULLIFY (Pin)
+
+DEALLOCATE (sTmp)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexPrint2DPinPower
@@ -279,6 +291,7 @@ SUBROUTINE HexPrintLocalPinPower(io, Core, PowerDist)
 USE PARAM,   ONLY : ZERO, BLANK
 USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, Pin_Type
 USE CNTL,    ONLY : nTracerCntl
+USE geom,    ONLY : nAsyType0
 
 use HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nHexPin
 
@@ -298,10 +311,11 @@ REAL :: EffPinNum
 REAL :: VtxTypVolInv(7) = [6., 2., 1., 1., 1., 2., 2.]
 
 CHARACTER(12)  :: cTmp
-CHARACTER(512) :: sTmp
+
+CHARACTER(12), POINTER, DIMENSION(:) :: sTmp
 
 301 FORMAT('Assembly', i5, x,'at' ,x,  '(', i7, i7,' )')
-302 FORMAT(2X, A)
+302 FORMAT(2X, 100A12)
 ! ----------------------------------------------------
 
 nxya = Core%nxya
@@ -316,15 +330,23 @@ DO iPin = 1, nHexPin
   END IF
 END DO
 
+nCx = 0
+
+DO iAsyTyp = 1, nAsyType0
+  nCx = max(nCx, hAsyTypInfo(iAsyTyp)%nPin)
+END DO
+
+ALLOCATE (sTmp (2*nCx-1))
+
 WRITE(io, '(A)') '- Local Pin Power -'
 WRITE(io, '(A)') '- Coordinate : 1st = from NE to SW, 2nd = from NNW to SSE'
 WRITE(io, *)
 WRITE(io, '(A, F12.5)') 'Eff Pin Num', EffPinNum
 WRITE(io, *)
-
+! ----------------------------------------------------
 DO iz = 1, nz
   IF(.NOT. nTracerCntl%lExplicitKappa .AND. .NOT. Core%lFuelPlane(iz)) CYCLE
-  WRITE(io, '(x, A5, I5)'), 'Plane', iz
+  WRITE(io, '(X, A5, I5)'), 'Plane', iz
   
   DO iAsy = 1, nxya
     WRITE(io, 301), iAsy, Asy1Dto2Dmap(1, iAsy), Asy1Dto2Dmap(2, iAsy)
@@ -346,18 +368,18 @@ DO iz = 1, nz
           ivTyp = hAsyTypInfo(iAsyTyp)%PinVtxTyp(iGeoTyp, iPin)
           
           IF (jPin < 1) THEN
-            WRITE (cTmp, '(f12.5)') 0._8
+            WRITE (cTmp, '(F12.5)') 0._8
           ELSE
             ixy = hAsy(iAsy)%PinIdxSt + jPin - 1 ! Global Pin Idx
             
-            WRITE (cTmp, '(f12.5)') PowerDist%PinPower3D(iPin, iAsy, iz) * hPinInfo(ixy)%Vol(iz) * VtxTypVolInv(ivTyp)
+            WRITE (cTmp, '(F12.5)') PowerDist%PinPower3D(iPin, iAsy, iz) * hPinInfo(ixy)%Vol(iz) * VtxTypVolInv(ivTyp)
           END IF
         END IF
         
-        sTmp((ix-1)*12+1:ix*12) = cTmp
+        WRITE (sTmp(ix), '(A12)') cTmp
       END DO
       
-      WRITE(io, 302), sTmp(1:ix*12)
+      WRITE(io, 302), sTmp(1:2*nCx - 1)
     END DO
   END DO
 ENDDO
@@ -365,6 +387,8 @@ ENDDO
 WRITE(io, *)
 
 NULLIFY (Pin)
+
+DEALLOCATE (sTmp)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexPrintLocalPinPower
@@ -393,9 +417,10 @@ INTEGER :: i, j, ix, iy
 INTEGER :: iAsy
 
 CHARACTER(12)  :: cTmp
-CHARACTER(512) :: sTmp
 
-302 FORMAT(2X, A)
+CHARACTER(12), POINTER, DIMENSION(:) :: sTmp
+
+302 FORMAT(2X, 100A12)
 ! ----------------------------------------------------
 
 nxy = Core%nxya
@@ -409,6 +434,8 @@ ELSE
   nLgh = nAsyCore
 END IF
 
+ALLOCATE (sTmp (nLgh))
+! ----------------------------------------------------
 DO iy = 1, nLgh
   sTmp = BLANK
   
@@ -418,20 +445,22 @@ DO iy = 1, nLgh
     IF (iAsy < 1) THEN
       cTmp = BLANK
     ELSE
-      WRITE (cTmp, '(f12.5)') PowerDist%AsyPower2D(iAsy)
+      WRITE (cTmp, '(F12.5)') PowerDist%AsyPower2D(iAsy)
     END IF
     
-    sTmp((ix-1)*12+1:ix*12) = cTmp
+    WRITE (sTmp(ix), '(A12)') cTmp
   END DO
   
-  WRITE(io, 302), sTmp(1:ix*12)
+  WRITE(io, 302), sTmp(1:nLgh)
 END DO
-
+! ----------------------------------------------------
 maxv = maxval(PowerDist%AsyPower2D(1:nxy))
 
 WRITE(io, *)
-WRITE(io, '(5x, A7, 2x, F7.3)') 'Max. = ', maxv
+WRITE(io, '(5X, A7, 2X, F7.3)') 'Max. = ', maxv
 WRITE(io, *)
+
+DEALLOCATE (sTmp)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexAxialAvgAsy2DPower
@@ -441,8 +470,7 @@ END SUBROUTINE HexAxialAvgAsy2DPower
 SUBROUTINE HexAxAvg2DFlux(io, core, CmInfo, PowerDist, ng, PE)
 
 USE PARAM
-USE TYPEDEF, ONLY : CoreInfo_Type,   PowerDist_Type,  CMInfo_Type,     PE_TYPE,   &
-                    AsyInfo_Type,    Asy_Type,        PinXs_Type
+USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, CMInfo_Type, PE_TYPE, AsyInfo_Type, Asy_Type, PinXs_Type
 USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hPinInfo
 
@@ -497,7 +525,7 @@ ALLOCATE(Avg2DFlx(nxya, ng))
 #ifdef MPI_ENV
 ALLOCATE(Buf(nxya)) 
 #endif
-
+! ----------------------------------------------------
 DO ig = 1, ng
   Avg2DFlx(:, ig) = 0
 
@@ -508,12 +536,13 @@ DO ig = 1, ng
     Do iz = myzb, myze  ! Axial Sweep
       DO i = 1, nxy     ! Local Cell Sweep
         ixy = Asy(iasy)%GlobalPinIdx(i)
+        
         IF (ixy < 0) CYCLE
 
         Avg2DFlx(iAsy, ig) = Avg2DFlx(iAsy, ig) + hPinInfo(ixy)%Vol(iz) * Phic(ixy, iz, ig)
-      ENDDO
-    ENDDO
-  ENDDO
+      END DO
+    END DO
+  END DO
 
 #ifdef MPI_ENV
   CALL CP_CA(Buf, zero, nxya)
@@ -521,7 +550,7 @@ DO ig = 1, ng
   IF(Master) CALL CP_VA(Avg2DFlx(:,ig), Buf, nxya)
 #endif  
 ENDDO
-
+! ----------------------------------------------------
 #ifdef MPI_ENV
 DEALLOCATE(Buf)
 #endif
@@ -533,18 +562,25 @@ IF(Master) THEN
   WRITE(io, *)
 
   DO iasy = 1, nxya
-    WRITE(io, '(8x, A5, 3x, A8, 3x, I5)') 'Group', 'Assembly', iAsy
+    WRITE(io, '(8X, A5, 3X, A8, 3X, I5)') 'Group', 'Assembly', iAsy
     
     DO ig = 1, ng
-      WRITE(io, '(8x, I5, 3x, 200(1pe15.4))') ig, Avg2DFlx(iAsy, ig)
-    ENDDO
+      WRITE(io, '(8X, I5, 3X, 200(ES15.4))') ig, Avg2DFlx(iAsy, ig)
+    END DO
+    
     WRITE(io, *)
-  ENDDO
-ENDIF
+  END DO
+END IF
+
+NULLIFY (PhiC)
+NULLIFY (PinXs)
+NULLIFY (AsyInfo)
+NULLIFY (Asy)
+NULLIFY (hz)
+NULLIFY (PinVol)
+NULLIFY (AsyVol)
 
 DEALLOCATE(Avg2DFlx)
-
-NULLIFY (PhiC, PinXs, AsyInfo, Asy, hz, PinVol, AsyVol)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexAxAvg2DFlux
@@ -552,9 +588,9 @@ END SUBROUTINE HexAxAvg2DFlux
 !                                     08. Rad Avg 1D Flux
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRadAvg1DFlux(io, core, CmInfo, PowerDist, ng, PE)
+
 USE PARAM
-USE TYPEDEF, ONLY : CoreInfo_Type,   PowerDist_Type,  CMInfo_Type,     PE_TYPE,   &
-                    AsyInfo_Type,    Asy_Type,        PinXs_Type
+USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, CMInfo_Type, PE_TYPE, AsyInfo_Type, Asy_Type, PinXs_Type
 
 #ifdef MPI_ENV
 USE MpiComm_mod, ONLY : SENDRECV
@@ -603,8 +639,9 @@ nxya     = Core%nxya;
 nxy      = Core%nxy
 
 ALLOCATE(Avg1DFlx(ng, nz))
-
+! ----------------------------------------------------
 Avg1DFlx = 0
+
 DO ig = 1, ng  
   DO iasy = 1, nxya
     AsyType = Asy(iasy)%AsyType
@@ -636,15 +673,15 @@ ENDDO
     CALL SendRecv(Avg1DFlx(:, myzb:myze), ng, myze - myzb + 1, 0, TRUE, COMM)
   ENDIF
 #endif
-
+! ----------------------------------------------------
 IF(master) THEN
   WRITE(io, '(A)') ' -  Radially Averaged 1D Flux -'
   WRITE(io, *)
   WRITE(io, '(A)') '                --- > Plane #'
-  WRITE(io, '(2x,A,200(I10,5X))') 'Energy Group',(i, i=1,nz)
+  WRITE(io, '(2X, A, 200(I10, 5X))') 'Energy Group',(i, i=1,nz)
 
   DO ig = 1, ng
-    WRITE(io, '(I10,4x, 200(1pe15.4))') ig, (Avg1DFlx(ig, iz), iz = 1, nz)
+    WRITE(io, '(I10, 4X, 200(ES15.4))') ig, (Avg1DFlx(ig, iz), iz = 1, nz)
   ENDDO
   WRITE(io, *)
 ENDIF
@@ -695,7 +732,7 @@ hz     => Core%hz
 PinVol => Core%PinVol
 nxy     = Core%nxy
 nz      = Core%nz
-
+! ----------------------------------------------------
 DO ig = 1, ng
   Spectrum(ig) = 0
 
@@ -705,7 +742,7 @@ DO ig = 1, ng
     ENDDO
   ENDDO
 ENDDO
-
+! ----------------------------------------------------
 #ifdef MPI_ENV
 CALL REDUCE(Spectrum, buf, ng, PE%MPI_CMFD_COMM, FALSE)
 Spectrum=buf
@@ -715,7 +752,7 @@ IF(Master) THEN
   WRITE(io, '(A)') ' - Core Spectrum -'
   WRITE(io, *)
   DO ig = 1, ng
-    WRITE(io, '(5x,I5,1pe15.4)') ig, Spectrum(ig)
+    WRITE(io, '(5X, I5, ES15.4)') ig, Spectrum(ig)
   ENDDO
   WRITE(io, *)
 ENDIF
@@ -773,8 +810,6 @@ myzb    = PE%myzb
 myze    = PE%myze
 npinout = nTracerCntl%OutpCntl%FluxOutList(1, 0)
 ! ----------------------------------------------------
-!               01. 
-! ----------------------------------------------------
 ALLOCATE(OutDat (ng, nz, noutline))
 ALLOCATE(Buf    (ng, nz, noutline))
 
@@ -783,14 +818,12 @@ IF(mod(npinout, noutline) .NE. 0) nstep = nstep + 1
 
 IF(PE%MASTER) THEN
   WRITE(io, '(A)') ' -  Flux Distribution for selected Pins -  '
-  WRITE(io, '(7x, A)') 'Pin Identifier'
+  WRITE(io, '(7X, A)') 'Pin Identifier'
   DO i = 1, npinout
-    WRITE(io, '(7x, I5, 3x, A2, 3x, (A1, 4I4, A3))') i, '=>', '[', nTracerCntl%OutpCntl%FluxOutList(1:4, i), ']'
+    WRITE(io, '(7X, I5, 3X, A2, 3X, (A1, 4I4, A3))') i, '=>', '[', nTracerCntl%OutpCntl%FluxOutList(1:4, i), ']'
   ENDDO
   WRITE(io, *)
 ENDIF
-! ----------------------------------------------------
-!               01.
 ! ----------------------------------------------------
 DO j = 1, nstep 
   ibeg = (j - 1) * noutline + 1
@@ -819,14 +852,14 @@ DO j = 1, nstep
 #endif
 
   IF(.NOT. PE%MASTER) CYCLE
-  WRITE(io, '(7x, A)') 'Pin Index ->'
-  WRITE(io, '(4x, A5, 2x, A5, 2x, 100(I10,2x))') 'GROUP', 'PLANE', (i, i = ibeg, iend)
+  WRITE(io, '(7X, A)') 'Pin Index ->'
+  WRITE(io, '(4X, A5, 2X, A5, 2X, 100(I10, 2X))') 'GROUP', 'PLANE', (i, i = ibeg, iend)
 
   DO ig = 1, ng
     WRITE(GrpIdx, '(I5)') ig
     DO iz = 1, nz 
       IF(iz .NE. 1) GrpIdx=''
-      WRITE(io, '(4x, A5, 2x, I5, 2x, 100(e10.3,2x))') GrpIdx, iz, (OutDat(ig, iz, k), k = 1, nout)
+      WRITE(io, '(4X, A5, 2X, I5, 2X, 100(E10.3, 2X))') GrpIdx, iz, (OutDat(ig, iz, k), k = 1, nout)
     ENDDO
   ENDDO
   WRITE(io, *)

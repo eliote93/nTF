@@ -262,6 +262,7 @@ END IF
 #ifdef HISTORY_OUT
 CALL PowerHistoryOutputEdit(TRUE)
 #endif
+
 DO i = 1, ItrCntl%OuterMax
 
 #ifdef MPI_ENV

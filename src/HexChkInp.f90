@@ -48,7 +48,8 @@ DO iaTyp = 1, nAsyType0
   pF2F  = aInf_Loc%pF2F
   aiF2F = aInf_Loc%aiF2F
   
-  CALL HexChkRange_INT(aInf_Loc%nPin, 2,          20, "# OF PIN")
+  IF (aInf_Loc%nPin .LT. 2) CALL terminate("# of Pin")
+  
   CALL HexChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN")
   
   ! Rod Pin
@@ -109,8 +110,8 @@ DO iCel = 1, nCellType
   
   IF (.NOT. hCel_Loc%luse) CYCLE
   
-  CALL HexChkRange_INT(hCel_Loc%nPin, 2, 20, "# OF PIN")
-  
+  IF (hCel_Loc%nPin .LT. 2) CALL terminate("# of Pin")
+    
   DO iFXR = 1, hCel_Loc%nFXR
     CALL HexChkRange_INT(hCel_Loc%xMix(iFXR), 1, nMix, "ROD CEL MIXTURE")
   END DO
