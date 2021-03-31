@@ -1469,7 +1469,7 @@ DO while(TRUE)
     CASE(19)  ! ---BYS edit / BKLG : buckling for k.NE.1 search option
       READ(oneline, *) astring, nTracerCntl%lDetailOutput
     CASE(20)
-      READ(oneline, *) astring, nTracerCntl%lNODETIME
+      !READ(oneline, *) astring, nTracerCntl%lnodetime ! DELETED : KSC
 
     CASE(21)  !FXRMGMAC
       nTracerCntl%OutpCntl%nRegMGXsOut = nTracerCntl%OutpCntl%nRegMGXsOut + 1

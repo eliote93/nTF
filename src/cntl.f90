@@ -216,8 +216,7 @@ TYPE nTracerCntl_Type
   INTEGER :: EFT_nboron = 1
   !--- CNJ Edit : Group-wise Albedo (BYS Request)
   LOGICAL :: lGroupAlbedo = .FALSE.
-  LOGICAL :: lNodeTime = .FALSE.
-  !
+    !
   LOGICAL :: lGap = .FALSE.
   LOGICAL :: lUsrGap = .FALSE.       !User Defined Gap Structure
   LOGICAL :: lhGap = .FALSE.  ! --- BYS edit : homogenized gap cell with fuel cell
