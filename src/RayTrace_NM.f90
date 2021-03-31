@@ -84,13 +84,24 @@ DO irot = 1, 2
   DO iazi = 1, nAziAng / 2
     AziIdx = MultigridInfo(ilv)%AziList(iazi)
     
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iray = 1, RayInfo%RotRayAziList(0, Aziidx)
-      iRotRay = RayInfo%RotRayAziList(iray, AziIdx)
-      
-      CALL TrackRotRayNM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, ilv, irot, gb, ge)
-    END DO
-    !$OMP END DO NOWAIT
+    IF (nTracerCntl%lHex) THEN
+      !$OMP DO SCHEDULE(GUIDED)
+      DO iray = 1, RayInfo%RotRayAziList(0, Aziidx)
+        iRotRay = RayInfo%RotRayAziList(iray, AziIdx)
+        
+        CALL HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, ilv, irot, gb, ge)
+      END DO
+      !$OMP END DO NOWAIT
+    ELSE
+      !$OMP DO SCHEDULE(GUIDED)
+      DO iray = 1, RayInfo%RotRayAziList(0, Aziidx)
+        iRotRay = RayInfo%RotRayAziList(iray, AziIdx)
+        
+        CALL TrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, ilv, irot, gb, ge)
+      END DO
+      !$OMP END DO NOWAIT
+    END IF
+    
   END DO
 END DO
 !$OMP END PARALLEL
@@ -143,11 +154,10 @@ NULLIFY (MultigridInfo)
 
 END SUBROUTINE RayTraceNM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE TrackRotRayNM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge)
+SUBROUTINE TrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, PinInfo_Type, Cell_Type, AsyRayInfo_type, CoreRayInfo_Type, RotRayInfo_Type, CellRayInfo_type, TrackingDat_Type
-USE CNTL,    ONLY : nTracerCntl
 
 IMPLICIT NONE
 
@@ -186,11 +196,6 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: jout
 
 DATA mp /2, 1/
 ! ----------------------------------------------------
-
-IF (nTracerCntl%lHex) THEN
-  CALL HexTrackRotRayNM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge)
-  RETURN
-END IF
 
 AsyRay  => RayInfo%AsyRay
 CoreRay => RayInfo%CoreRay
@@ -387,9 +392,9 @@ END DO
 PhiAngIn(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
 ! ----------------------------------------------------
 
-END SUBROUTINE TrackRotRayNM
+END SUBROUTINE TrackRotRayNM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayNM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge)
+SUBROUTINE HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, PolarAngle_Type, TrackingDat_Type, Pin_Type
@@ -605,5 +610,5 @@ END DO
 PhiAngIn(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
 ! ----------------------------------------------------
 
-END SUBROUTINE HexTrackRotRayNM
+END SUBROUTINE HexTrackRotRayNM_OMP
 ! ------------------------------------------------------------------------------------------------------------

@@ -255,12 +255,23 @@ TrackingDat(tid)%PhiAngInnm => PhiAngIn
 DO irot = 1, 2
   DO iazi = 1, nAziAng / 2
     AziIdx = MultigridInfo(ilv)%AziList(iazi)
-    !$OMP DO SCHEDULE(GUIDED)
-    DO i = 1, RayInfo%RotRayAziList(0, Aziidx)
-      iRotRay = RayInfo%RotRayAziList(i, AziIdx)
-      CALL TrackRotRayNM(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
-    ENDDO
-    !$OMP END DO NOWAIT
+    
+    IF (nTracerCntl%lHex) THEN
+      !$OMP DO SCHEDULE(GUIDED)
+      DO i = 1, RayInfo%RotRayAziList(0, Aziidx)
+        iRotRay = RayInfo%RotRayAziList(i, AziIdx)
+        CALL HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
+      ENDDO
+      !$OMP END DO NOWAIT
+    ELSE
+      !$OMP DO SCHEDULE(GUIDED)
+      DO i = 1, RayInfo%RotRayAziList(0, Aziidx)
+        iRotRay = RayInfo%RotRayAziList(i, AziIdx)
+        CALL TrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
+      ENDDO
+      !$OMP END DO NOWAIT
+    END IF
+    
   ENDDO
 ENDDO
 

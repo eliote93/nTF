@@ -49,17 +49,17 @@ END SUBROUTINE RayTraceGM_One
 SUBROUTINE RayTraceGM_OMP(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv, lAFSS)
 
 USE PARAM
-USE TYPEDEF, ONLY :   RayInfo_Type,      CoreInfo_type,   Pin_Type,         Cell_Type,        &
-                      AziAngleInfo_Type, PolarAngle_Type
-USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay,      &
-                      Expa,              Expb,            ApproxExp,        TrackingDat,      &
-                      wtang
-USE geom,    ONLY : nbd
 USE TIMER
-USE BasicOperation, ONLY : CP_CA, CP_VA
 USE ALLOCS
-USE PE_MOD,  ONLY :   PE
 USE OMP_LIB
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type
+USE Moc_Mod, ONLY : nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, Expa, Expb, ApproxExp, TrackingDat, wtang
+USE geom,    ONLY : nbd
+USE PE_MOD,  ONLY : PE
+USE CNTL,    ONLY : nTracerCntl
+
+USE BasicOperation, ONLY : CP_CA, CP_VA
+
 IMPLICIT NONE
 
 TYPE(RayInfo_Type) :: RayInfo
@@ -71,132 +71,151 @@ INTEGER, OPTIONAL :: FastMocLv
 LOGICAL, OPTIONAL :: lAFSS
 
 LOGICAL, SAVE :: lfirst
-DATA lfirst /.TRUE./
+DATA lfirst /TRUE/
 
-TYPE(AziAngleInfo_Type), POINTER :: AziAng(:)
-TYPE(PolarAngle_Type), POINTER :: PolarAng(:)
-TYPE(Cell_Type), POINTER :: Cell(:)
-TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
+TYPE(PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
+TYPE(Cell_Type),         POINTER, DIMENSION(:) :: Cell
+TYPE(Pin_Type),          POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nPhiAngSv
-INTEGER :: nRotray
-INTEGER :: nFsr, nxy
-INTEGER :: nThread
-
+INTEGER :: nAziAng, nPolarAng, nPhiAngSv, nRotray, nFsr, nxy, nThread
 INTEGER :: tid        !Thread Id
 INTEGER :: FsrIdxSt, icel, ireg, iazi, ipol
 INTEGER :: i, j, l
-REAL :: wttemp
+
+REAL :: wttmp
 
 LOGICAL :: lJout_OMP(100)
+! ----------------------------------------------------
 
-!Get Essential Variable
-AziAng => RayInfo%AziAngle; PolarAng => RayInfo%PolarAngle;
-nAziAng = RayInfo%nAziAngle; nPolarAng = RayInfo%nPolarAngle
+AziAng   => RayInfo%AziAngle
+PolarAng => RayInfo%PolarAngle
+nAziAng   = RayInfo%nAziAngle
+nPolarAng = RayInfo%nPolarAngle
 nPhiAngSv = RayInfo%nPhiAngSv
-nRotRay = RayInfo%nRotRay
-nFsr = CoreInfo%nCoreFsr; nxy = CoreInfo%nxy
-nThread = PE%nThread
+nRotRay   = RayInfo%nRotRay
 
-!Allocate Static Memery
+nFsr = CoreInfo%nCoreFsr
+nxy  = CoreInfo%nxy
+
+nThread = PE%nThread
+! ----------------------------------------------------
 IF(lfirst) THEN
   lFirst = FALSE
+  
   CALL ApproxExp(RayInfo%PolarAngle, nPolarAng)
+  
   DO tid = 1, nThread
-    IF(TrackingDat(tid)%lAlloc) CYCLE
-    CALL Dmalloc(TrackingDat(tid)%FsrIdx, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%ExpAppIdx, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%OptLenList, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%ExpAppPolar, nPolarAng, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%PhiAngOutPolar, nPolarAng, nMaxRaySeg + 2)
-    CALL Dmalloc(TrackingDat(tid)%Phis, nFsr)
-    !CALL Dmalloc(TrackingDat(tid)%Jout, 2, nbd, nxy)
-    CALL Dmalloc(TrackingDat(tid)%Jout, 3, nbd, nxy) !---BYS edit / 150612 Surface flux (1:in 2:out 3:surfphi)
-    TrackingDat(tid)%lAlloc = .TRUE.
-  ENDDO
-  ALLOCATE(wtang(nPolarAng, nAziAng))
+    IF (TrackingDat(tid)%lAlloc) CYCLE
+    
+    CALL dmalloc(TrackingDat(tid)%FsrIdx,         nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(tid)%ExpAppIdx,      nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(tid)%OptLenList,     nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(tid)%ExpAppPolar,    nPolarAng,  nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(tid)%PhiAngOutPolar, nPolarAng,  nMaxRaySeg + 2)
+    CALL dmalloc(TrackingDat(tid)%Phis,           nFsr)
+    CALL dmalloc(TrackingDat(tid)%Jout,           3, nbd, nxy)
+    
+    TrackingDat(tid)%lAlloc = TRUE
+  END DO
+  
+  CALL dmalloc(wtang, nPolarAng, nAziAng)
+  
   DO ipol = 1, nPolarAng
-    wttemp = PolarAng(ipol)%weight * PolarAng(ipol)%sinv
+    wttmp = PolarAng(ipol)%weight * PolarAng(ipol)%sinv
+    
     DO iazi = 1, nAziAng
-      wtang(ipol, iazi) = wttemp * AziAng(iazi)%weight * AziAng(iazi)%del
-    ENDDO
-  ENDDO
-ENDIF
-
-!$  call omp_set_dynamic(.FALSE.)
+      wtang(ipol, iazi) = wttmp * AziAng(iazi)%weight * AziAng(iazi)%del
+    END DO
+  END DO
+END IF
+! ----------------------------------------------------
+!$  call omp_set_dynamic(FALSE)
 !$  call omp_set_num_threads(nThread)
 
 DO tid = 1, nThread
-  TrackingDat(tid)%Expa => Expa; TrackingDat(tid)%Expb => Expb
+  TrackingDat(tid)%Expa     => Expa
+  TrackingDat(tid)%Expb     => Expb
   TrackingDat(tid)%PhiAngIn => PhiAngIn(:, :)
-  TrackingDat(tid)%src => src; TrackingDat(tid)%xst => xst
-  TrackingDat(tid)%wtang => wtang
-ENDDO
+  TrackingDat(tid)%src      => src
+  TrackingDat(tid)%xst      => xst
+  TrackingDat(tid)%wtang    => wtang
+END DO
 
-!Pointing
-!Flux and current set to zero
 CALL CP_CA(phis, ZERO, nFsr)
-!IF(ljout)  CALL CP_CA(Jout, ZERO, 2, 4, CoreInfo%nxy) !---BYS edit / 150612 Surface flux
-IF(ljout)  CALL CP_CA(Jout, ZERO, 3, nbd, CoreInfo%nxy) !---BYS edit / 150612 Surface flux
+
+IF (ljout) CALL CP_CA(Jout, ZERO, 3, nbd, CoreInfo%nxy)
+
 lJout_OMP = lJout
-!$OMP PARALLEL DEFAULT(SHARED)      &
-!$OMP PRIVATE(tid, i, j)
+! ----------------------------------------------------
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(tid, i, j)
 !$  tid = omp_get_thread_num()+1
 !$OMP MASTER
 DO j = 1, nThread
   DO i = 1, nFsr
     TrackingDat (j)%phis(i) = zero
-  ENDDO
-ENDDO
+  END DO
+END DO
+
 DO j = 1, nThread
   DO i = 1, nxy
      TrackingDat(j)%jout(:, :, i) = zero
-     !TrackingDat(j)%Phisurf(:, i) = zero !---BYS edit / 150612 Surface flux
-  ENDDO
-ENDDO
-!$OMP END MASTER
-
-!$OMP BARRIER
-
-!$OMP DO SCHEDULE(GUIDED)
-DO i = 1, nRotRay
-  CALL TrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), i, iz, FastMocLv)
+  END DO
 END DO
-!$OMP END DO
-
+!$OMP END MASTER
+!$OMP BARRIER
+IF (nTracerCntl%lHex) THEN
+  !$OMP DO SCHEDULE(GUIDED)
+  DO i = 1, nRotRay
+    CALL HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), i, iz, FastMocLv)
+  END DO
+  !$OMP END DO
+ELSE
+  !$OMP DO SCHEDULE(GUIDED)
+  DO i = 1, nRotRay
+    CALL TrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), i, iz, FastMocLv)
+  END DO
+  !$OMP END DO
+END IF
 !$OMP END PARALLEL
+! ----------------------------------------------------
 DO j = 1, nThread
   DO i = 1, nFsr
     phis(i) = phis(i) + TrackingDat(j)%Phis(i)
-  ENDDO
-ENDDO
-  IF(ljout) THEN
-    DO j = 1, nThread
-      DO i = 1, nxy
-          jout(:, :, i) = jout(:, :, i) + TrackingDat(j)%jout(:, :, i)
-          !phisurf(:, i) = phisurf(:, i) + TrackingDat(j)%phisurf(:, i)    !---BYS edit / 150612 Surface flux
-      ENDDO
-    ENDDO
-  ENDIF
+  END DO
+END DO
 
-Cell => CoreInfo%CellInfo; Pin => CoreInfo%Pin
-!$OMP PARALLEL DEFAULT(SHARED)  &
-!$OMP PRIVATE(l, j, FsrIdxSt, icel, ireg)
+IF (ljout) THEN
+  DO j = 1, nThread
+    DO i = 1, nxy
+      jout(:, :, i) = jout(:, :, i) + TrackingDat(j)%jout(:, :, i)
+    END DO
+  END DO
+END IF
+! ----------------------------------------------------
+Cell => CoreInfo%CellInfo
+Pin  => CoreInfo%Pin
+
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(l, j, FsrIdxSt, icel, ireg)
 !$OMP DO
 DO l = 1, nxy
-  FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
+  FsrIdxSt = Pin(l)%FsrIdxSt
+  icel     = Pin(l)%Cell(iz)
+  
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
+    
     phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
-  ENDDO
-ENDDO
+  END DO
+END DO
 !$OMP END DO
-
 !$OMP END PARALLEL
+! ----------------------------------------------------
 
 END SUBROUTINE RayTraceGM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceGM_AFSS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv, lAFSS)
+
 USE PARAM
 USE TYPEDEF, ONLY :   RayInfo_Type,      coreinfo_type,                                       &
                       TrackingDat_Type,                                                       &
@@ -204,7 +223,7 @@ USE TYPEDEF, ONLY :   RayInfo_Type,      coreinfo_type,                         
                       AziAngleInfo_Type, PolarAngle_Type
 USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay,      &
                       Expa,              Expb,            TrackingDat,                        &
-                      ApproxExp,         wtang,           Phia1g,           Phia2g
+                      ApproxExp,         wtang,           Phia1g
 USE geom,           ONLY : nbd
 USE cntl,           ONLY : nTracerCntl
 USE TIMER
@@ -241,7 +260,7 @@ INTEGER :: iRotRay
 INTEGER :: tid        !Thread Id
 INTEGER :: FsrIdxSt, icel, ireg, iazi, ipol
 INTEGER :: i, j, k, l, m
-REAL :: wttemp
+REAL :: wttmp
 
 LOGICAL :: lJout_OMP(100)
 
@@ -408,9 +427,9 @@ IF(lfirst) THEN
   ENDDO
   ALLOCATE(wtang(nPolarAng, nAziAng))
   DO ipol = 1, nPolarAng
-    wttemp = PolarAng(ipol)%weight * PolarAng(ipol)%sinv
+    wttmp = PolarAng(ipol)%weight * PolarAng(ipol)%sinv
     DO iazi = 1, nAziAng
-      wtang(ipol, iazi) = wttemp  * AziAng(iazi)%weight * AziAng(iazi)%del
+      wtang(ipol, iazi) = wttmp  * AziAng(iazi)%weight * AziAng(iazi)%del
     ENDDO
   ENDDO
 ENDIF
@@ -512,7 +531,7 @@ USE TYPEDEF,  ONLY :  RayInfo_Type,      coreinfo_type,                         
                       TrackingDat_Type,  FastRaySegDat_Type
 USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay
 USE BasicOperation, ONLY : CP_CA, CP_VA
-USE CNTL, ONLY: nTracerCntl
+
 IMPLICIT NONE
 
 TYPE(RayInfo_Type), INTENT(INOUT) :: RayInfo
@@ -570,11 +589,6 @@ REAL, ALLOCATABLE :: phiobdPolar(:)
 LOGICAL :: lFast
 
 DATA mp /2, 1/
-
-IF (nTracerCntl%lHex) THEN
-  CALL HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
-  RETURN
-END IF
 
 lFast = FALSE
 IF(FastMocLv .GT. 0) lFast = .TRUE.
@@ -828,6 +842,7 @@ NULLIFY(wtang)
 END SUBROUTINE TrackRotRayGM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE TrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
+
 USE PARAM
 USE TYPEDEF,  ONLY :  RayInfo_Type,      coreinfo_type,                                       &
                       Pin_Type,          Asy_Type,        AsyInfo_Type,     PinInfo_Type,     &

@@ -45,23 +45,19 @@ END SUBROUTINE RayTraceP1GM_One
 SUBROUTINE RayTraceP1GM_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
 
 USE PARAM
-USE TYPEDEF, ONLY :   RayInfo_Type,      coreinfo_type,                                       &
-                      TrackingDat_Type,  AziAngleInfo_Type,    PolarAngle_Type,               &
-                      Pin_Type,          Cell_Type
-USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay,      &
-                      Expa,              Expb,                                                &
-                      WtAng,             SrcAng,          Comp,                               &
-                      TrackingDat,       PhiA1g,          SrcAng1,         SrcAng2,           &
-                      ApproxExp,         mwt,             mwt2
-USE geom,    ONLY : nbd
 USE TIMER
-USE BasicOperation, ONLY : CP_CA, CP_VA
 USE ALLOCS
-USE PE_MOD,  ONLY :   PE
 USE OMP_LIB
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type
+USE Moc_Mod, ONLY : nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, Expa, Expb, ApproxExp, TrackingDat, wtang, SrcAng, Comp, SrcAng1, SrcAng2, mwt, mwt2
+USE geom,    ONLY : nbd
+USE PE_MOD,  ONLY : PE
+USE CNTL,    ONLY : nTracerCntl
+
+USE BasicOperation, ONLY : CP_CA, CP_VA
+
 IMPLICIT NONE
 
-!INTEGER, PARAMETER :: nThread = 4
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
 REAL, POINTER :: phis(:), PhiAngIn(:, :), xst(:), src(:), jout(:, :, :), srcm(:,:)
@@ -86,7 +82,7 @@ INTEGER :: nFsr, nxy
 INTEGER :: nThread
 INTEGER :: od, iod
 
-INTEGER :: tid        !Thread Id
+INTEGER :: tid
 INTEGER :: FsrIdxSt, icel, ireg, iazi, ipol
 REAL :: wttemp, wtcos, wtpolar, wtsin2, tempsrc
 REAL :: ONETHREE, ONEFIVE, ONESEVEN
@@ -312,6 +308,7 @@ ENDIF
 END SUBROUTINE RayTraceP1GM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
+
 USE PARAM
 USE TYPEDEF, ONLY :   RayInfo_Type,      coreinfo_type,                                       &
                       TrackingDat_Type,                                                       &
@@ -319,7 +316,7 @@ USE TYPEDEF, ONLY :   RayInfo_Type,      coreinfo_type,                         
                       AziAngleInfo_Type, PolarAngle_Type
 USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay,      &
                       Expa,              Expb,            TrackingDat,                        &
-                      ApproxExp,         wtang,           Phia1g,           Phia2g,           &
+                      ApproxExp,         wtang, &
                       SrcAng1,           SrcAng2,         comp,             mwt
 USE geom,           ONLY : nbd
 USE cntl,           ONLY : nTracerCntl

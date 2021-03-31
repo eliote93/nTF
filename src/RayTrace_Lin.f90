@@ -1,5 +1,7 @@
 !#define newslope
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, LinSrc, Slope1g, jout, iz, ljout)
+
 USE PARAM
 USE TYPEDEF,  ONLY :  RayInfo_Type,      coreinfo_type,                                       &
                       Pin_Type,          Asy_Type,        AsyInfo_Type,     PinInfo_Type,     &
@@ -355,11 +357,11 @@ NULLIFY(Pin); NULLIFY(PinInfo)
 NULLIFY(Cell); NULLIFY(CellRay)
 NULLIFY(LenSeg); NULLIFY(LocalFsrIdx)
 DEALLOCATE(PhiAngOut)
-END SUBROUTINE 
 
-!--- CNJ Edit : CASMO Linear Source
-SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope,              &
-                            xstnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+END SUBROUTINE RayTraceLS
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+
 USE PARAM
 USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,           Asy_Type,               &
                         AsyInfo_Type,       PinInfo_Type,       Cell_Type,          AziAngleInfo_Type,      &
@@ -562,8 +564,8 @@ DEALLOCATE(phimx, phimy)
 NULLIFY(Cell); NULLIFY(Pin)
 NULLIFY(FsrMxx); NULLIFY(FsrMyy); NULLIFY(FsrMxy)
 
-END SUBROUTINE
-    
+END SUBROUTINE RayTraceLS_CASMO
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE TrackRotRayLS_CASMO(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, gb, ge)
 USE PARAM
 USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,           Asy_Type,               &
@@ -878,4 +880,5 @@ NULLIFY(EXPA); NULLIFY(EXPB)
 NULLIFY(E1); NULLIFY(E3); NULLIFY(R1); NULLIFY(R3)
 NULLIFY(q0); NULLIFY(q1); NULLIFY(x0); NULLIFY(y0)
 
-END SUBROUTINE
+END SUBROUTINE TrackRotRayLS_CASMO
+! ------------------------------------------------------------------------------------------------------------
