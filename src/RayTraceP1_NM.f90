@@ -152,7 +152,7 @@ DO irot = 1, 2
       DO iray = 1, RayInfo%RotRayAziList(0, Aziidx)
         iRotRay = RayInfo%RotRayAziList(iray, AziIdx)
         
-        CALL TrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, ilv, irot, gb, ge, scatod)
+        CALL RecTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, ilv, irot, gb, ge, scatod)
       END DO
       !$OMP END DO NOWAIT
     END IF
@@ -226,7 +226,7 @@ NULLIFY (Comp)
 
 END SUBROUTINE RayTraceP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE TrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge, scatod)
+SUBROUTINE RecTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge, scatod)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, PinInfo_Type, Cell_Type, AsyRayInfo_type, CoreRayInfo_Type, RotRayInfo_Type, CellRayInfo_type, TrackingDat_Type
@@ -477,7 +477,7 @@ END DO
 PhiAngIn(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
 ! ----------------------------------------------------
 
-END SUBROUTINE TrackRotRayP1NM_OMP
+END SUBROUTINE RecTrackRotRayP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, irot, gb, ge, ScatOd)
 

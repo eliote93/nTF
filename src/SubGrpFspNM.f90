@@ -267,7 +267,7 @@ DO irot = 1, 2
       !$OMP DO SCHEDULE(GUIDED)
       DO i = 1, RayInfo%RotRayAziList(0, Aziidx)
         iRotRay = RayInfo%RotRayAziList(i, AziIdx)
-        CALL TrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
+        CALL RecTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
       ENDDO
       !$OMP END DO NOWAIT
     END IF

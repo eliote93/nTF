@@ -79,9 +79,7 @@ TYPE(Cell_Type),         POINTER, DIMENSION(:) :: Cell
 TYPE(Pin_Type),          POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nAziAng, nPolarAng, nPhiAngSv, nRotray, nFsr, nxy, nThread
-INTEGER :: tid        !Thread Id
-INTEGER :: FsrIdxSt, icel, ireg, iazi, ipol
-INTEGER :: i, j, l
+INTEGER :: ithr, FsrIdxSt, icel, ireg, iazi, ipol, iray, ifsr, jfsr, ipin
 
 REAL :: wttmp
 
@@ -105,18 +103,18 @@ IF(lfirst) THEN
   
   CALL ApproxExp(RayInfo%PolarAngle, nPolarAng)
   
-  DO tid = 1, nThread
-    IF (TrackingDat(tid)%lAlloc) CYCLE
+  DO ithr = 1, nThread
+    IF (TrackingDat(ithr)%lAlloc) CYCLE
     
-    CALL dmalloc(TrackingDat(tid)%FsrIdx,         nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(tid)%ExpAppIdx,      nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(tid)%OptLenList,     nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(tid)%ExpAppPolar,    nPolarAng,  nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(tid)%PhiAngOutPolar, nPolarAng,  nMaxRaySeg + 2)
-    CALL dmalloc(TrackingDat(tid)%Phis,           nFsr)
-    CALL dmalloc(TrackingDat(tid)%Jout,           3, nbd, nxy)
+    CALL dmalloc(TrackingDat(ithr)%FsrIdx,         nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,      nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%OptLenList,     nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%ExpAppPolar,    nPolarAng,  nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%PhiAngOutPolar, nPolarAng,  nMaxRaySeg + 2)
+    CALL dmalloc(TrackingDat(ithr)%Phis,           nFsr)
+    CALL dmalloc(TrackingDat(ithr)%Jout,           3, nbd, nxy)
     
-    TrackingDat(tid)%lAlloc = TRUE
+    TrackingDat(ithr)%lAlloc = TRUE
   END DO
   
   CALL dmalloc(wtang, nPolarAng, nAziAng)
@@ -133,79 +131,63 @@ END IF
 !$  call omp_set_dynamic(FALSE)
 !$  call omp_set_num_threads(nThread)
 
-DO tid = 1, nThread
-  TrackingDat(tid)%Expa     => Expa
-  TrackingDat(tid)%Expb     => Expb
-  TrackingDat(tid)%PhiAngIn => PhiAngIn(:, :)
-  TrackingDat(tid)%src      => src
-  TrackingDat(tid)%xst      => xst
-  TrackingDat(tid)%wtang    => wtang
+DO ithr = 1, nThread
+  TrackingDat(ithr)%Expa     => Expa
+  TrackingDat(ithr)%Expb     => Expb
+  TrackingDat(ithr)%PhiAngIn => PhiAngIn(:, :)
+  TrackingDat(ithr)%src      => src
+  TrackingDat(ithr)%xst      => xst
+  TrackingDat(ithr)%wtang    => wtang
 END DO
 
-CALL CP_CA(phis, ZERO, nFsr)
+phis = ZERO
 
-IF (ljout) CALL CP_CA(Jout, ZERO, 3, nbd, CoreInfo%nxy)
+IF (ljout) jout = ZERO
 
 lJout_OMP = lJout
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(tid, i, j)
-!$  tid = omp_get_thread_num()+1
-!$OMP MASTER
-DO j = 1, nThread
-  DO i = 1, nFsr
-    TrackingDat (j)%phis(i) = zero
-  END DO
-END DO
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iray)
+ithr = omp_get_thread_num()+1
 
-DO j = 1, nThread
-  DO i = 1, nxy
-     TrackingDat(j)%jout(:, :, i) = zero
-  END DO
-END DO
-!$OMP END MASTER
-!$OMP BARRIER
+TrackingDat(ithr)%phis = ZERO
+TrackingDat(ithr)%jout = ZERO
+
 IF (nTracerCntl%lHex) THEN
   !$OMP DO SCHEDULE(GUIDED)
-  DO i = 1, nRotRay
-    CALL HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), i, iz, FastMocLv)
+  DO iray = 1, nRotRay
+    CALL HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), lJout_OMP(ithr), iray, iz, FastMocLv)
   END DO
   !$OMP END DO
 ELSE
   !$OMP DO SCHEDULE(GUIDED)
-  DO i = 1, nRotRay
-    CALL TrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), i, iz, FastMocLv)
+  DO iray = 1, nRotRay
+    CALL RecTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), lJout_OMP(ithr), iray, iz, FastMocLv)
   END DO
   !$OMP END DO
 END IF
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-DO j = 1, nThread
-  DO i = 1, nFsr
-    phis(i) = phis(i) + TrackingDat(j)%Phis(i)
-  END DO
+DO ithr = 1, nThread
+  phis = phis + TrackingDat(ithr)%phis
+  
+  IF (.NOT. ljout) CYCLE
+  
+  jout = jout + TrackingDat(ithr)%jout
 END DO
-
-IF (ljout) THEN
-  DO j = 1, nThread
-    DO i = 1, nxy
-      jout(:, :, i) = jout(:, :, i) + TrackingDat(j)%jout(:, :, i)
-    END DO
-  END DO
-END IF
 ! ----------------------------------------------------
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(l, j, FsrIdxSt, icel, ireg)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr)
 !$OMP DO
-DO l = 1, nxy
-  FsrIdxSt = Pin(l)%FsrIdxSt
-  icel     = Pin(l)%Cell(iz)
+DO ipin = 1, nxy
+  FsrIdxSt = Pin(ipin)%FsrIdxSt
+  icel     = Pin(ipin)%Cell(iz)
   
-  DO j = 1, Cell(icel)%nFsr
-    ireg = FsrIdxSt + j - 1
+  DO ifsr = 1, Cell(icel)%nFsr
+    jfsr = FsrIdxSt + ifsr - 1
     
-    phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
+    phis(jfsr) = phis(jfsr) / xst(jfsr) / Cell(icel)%vol(ifsr) + src(jfsr)
   END DO
 END DO
 !$OMP END DO
@@ -257,7 +239,7 @@ INTEGER :: nFsr, nxy
 INTEGER :: nThread
 
 INTEGER :: iRotRay
-INTEGER :: tid        !Thread Id
+INTEGER :: ithr        !Thread Id
 INTEGER :: FsrIdxSt, icel, ireg, iazi, ipol
 INTEGER :: i, j, k, l, m
 REAL :: wttmp
@@ -412,18 +394,18 @@ ENDIF
 IF(lfirst) THEN
   lFirst = FALSE
   CALL ApproxExp(RayInfo%PolarAngle, nPolarAng)
-  DO tid = 1, nThread
-    IF(TrackingDat(tid)%lAlloc) CYCLE
-    CALL Dmalloc(TrackingDat(tid)%FsrIdx, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%ExpAppIdx, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%OptLenList, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%ExpAppPolar, nPolarAng, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%PhiAngOutPolar, nPolarAng, nMaxRaySeg+2)
-    CALL Dmalloc(TrackingDat(tid)%phi1a, nPolarAng, nFsr, nOmpAng)
-    CALL Dmalloc(TrackingDat(tid)%phi2a, nPolarAng, nFsr, nOmpAng)
-    CALL Dmalloc(TrackingDat(tid)%Jout, 3, nbd, nxy)
-    TrackingDat(tid)%Expa => Expa; TrackingDat(tid)%Expb => Expb
-    TrackingDat(tid)%lAlloc = .TRUE.
+  DO ithr = 1, nThread
+    IF(TrackingDat(ithr)%lAlloc) CYCLE
+    CALL Dmalloc(TrackingDat(ithr)%FsrIdx, nMaxRaySeg, nMaxCoreRay)
+    CALL Dmalloc(TrackingDat(ithr)%ExpAppIdx, nMaxRaySeg, nMaxCoreRay)
+    CALL Dmalloc(TrackingDat(ithr)%OptLenList, nMaxRaySeg, nMaxCoreRay)
+    CALL Dmalloc(TrackingDat(ithr)%ExpAppPolar, nPolarAng, nMaxRaySeg, nMaxCoreRay)
+    CALL Dmalloc(TrackingDat(ithr)%PhiAngOutPolar, nPolarAng, nMaxRaySeg+2)
+    CALL Dmalloc(TrackingDat(ithr)%phi1a, nPolarAng, nFsr, nOmpAng)
+    CALL Dmalloc(TrackingDat(ithr)%phi2a, nPolarAng, nFsr, nOmpAng)
+    CALL Dmalloc(TrackingDat(ithr)%Jout, 3, nbd, nxy)
+    TrackingDat(ithr)%Expa => Expa; TrackingDat(ithr)%Expb => Expb
+    TrackingDat(ithr)%lAlloc = .TRUE.
   ENDDO
   ALLOCATE(wtang(nPolarAng, nAziAng))
   DO ipol = 1, nPolarAng
@@ -437,10 +419,10 @@ ENDIF
 !$  call omp_set_dynamic(.FALSE.)
 !$  call omp_set_num_threads(nThread)
 
-DO tid = 1, nThread
-  TrackingDat(tid)%PhiAngIn => PhiAngIn(:, :)
-  TrackingDat(tid)%src => src; TrackingDat(tid)%xst => xst
-  TrackingDat(tid)%wtang => WtAng;
+DO ithr = 1, nThread
+  TrackingDat(ithr)%PhiAngIn => PhiAngIn(:, :)
+  TrackingDat(ithr)%src => src; TrackingDat(ithr)%xst => xst
+  TrackingDat(ithr)%wtang => WtAng;
 ENDDO
 
 !Pointing
@@ -449,10 +431,10 @@ CALL CP_CA(phis, ZERO, nFsr)
 IF(ljout) CALL CP_CA(Jout, ZERO, 3, nbd, CoreInfo%nxy)
 lJout_OMP = lJout
 !$OMP PARALLEL DEFAULT(SHARED)      &
-!$OMP PRIVATE(irotray, tid, i, j, k, l, iazi, ipol, OmpAng)
-tid = 1
-!$  tid = omp_get_thread_num()+1
-j = tid
+!$OMP PRIVATE(irotray, ithr, i, j, k, l, iazi, ipol, OmpAng)
+ithr = 1
+!$  ithr = omp_get_thread_num()+1
+j = ithr
 
 DO iazi = 1, nOmpAng
   TrackingDat(j)%phi1a(:,:,iazi) = zero
@@ -466,15 +448,15 @@ ENDDO
 !$OMP BARRIER
 
 IF(lScatBd) THEN
-  DO i = OmpRayBeg(tid), OmpRayEnd(tid)
+  DO i = OmpRayBeg(ithr), OmpRayEnd(ithr)
     irotray = i
-    CALL TrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), irotray, iz, FastMocLv)
+    CALL RecTrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat(ithr), lJout_OMP(ithr), irotray, iz, FastMocLv)
   ENDDO
 ELSE
   DO i = 1, 2
-    DO j = OmpRayBegBd(i, tid), OmpRayEndBd(i, tid)
+    DO j = OmpRayBegBd(i, ithr), OmpRayEndBd(i, ithr)
       irotray = j
-      CALL TrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat(tid), lJout_OMP(tid), irotray, iz, FastMocLv)
+      CALL RecTrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat(ithr), lJout_OMP(ithr), irotray, iz, FastMocLv)
     ENDDO
   ENDDO
 ENDIF
@@ -483,7 +465,7 @@ ENDIF
 
 DO j = 1, nThread
   DO iazi = 1, nOmpAng
-   DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+   DO i = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
       DO ipol = 1, nPolarAng
         OmpAng = OmpMap(j, iazi)
         phis(i) = phis(i) + wtang(ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
@@ -494,7 +476,7 @@ ENDDO
 
 IF(ljout) THEN
   DO j = 1, nThread
-    DO i = PE%myOmpNxyBeg(tid), PE%myOmpNxyEnd(tid)
+    DO i = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
       jout(:, :, i) = jout(:, :, i) + TrackingDat(j)%jout(:, :, i)
     ENDDO
   ENDDO
@@ -520,7 +502,7 @@ ENDDO
 
 END SUBROUTINE RayTraceGM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE TrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
+SUBROUTINE RecTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
 
 USE PARAM
 USE TYPEDEF,  ONLY :  RayInfo_Type,      coreinfo_type,                                       &
@@ -839,9 +821,9 @@ NULLIFY(PhiAngOutPolar); NULLIFY(PhiAngIn)
 NULLIFY(EXPA); NULLIFY(EXPB)
 NULLIFY(wtang)
 
-END SUBROUTINE TrackRotRayGM_OMP
+END SUBROUTINE RecTrackRotRayGM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE TrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
+SUBROUTINE RecTrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
 
 USE PARAM
 USE TYPEDEF,  ONLY :  RayInfo_Type,      coreinfo_type,                                       &
@@ -1172,7 +1154,7 @@ NULLIFY(PhiAngOut); NULLIFY(PhiAngIn)
 NULLIFY(EXPA); NULLIFY(EXPB)
 NULLIFY(wtang)
 
-END SUBROUTINE TrackRotRayGM_AFSS
+END SUBROUTINE RecTrackRotRayGM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, FastMocLv)
 
