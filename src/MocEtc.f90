@@ -253,8 +253,8 @@ USE TYPEDEF,  ONLY : CoreInfo_Type,     FmInfo_Type,     GroupInfo_Type,     &
                      FxrInfo_Type
 USE MOC_MOD,  ONLY : tSrc,              xst1g,            AxSrc1g,              &
                      AxPxs1g,                                                   & 
-                     SetRtSrc,          SetRtMacXs,       PseudoAbsorption,     &
-                     AddBuckling,       AddConstSrc,                            &
+                     SetRtSrcGM,          SetRtMacXsGM,     PseudoAbsorptionGM,     &
+                     AddBucklingGM,       AddConstSrc,                            &
                      !--- CNJ Edit : Node Majors
                      phisnm,            srcnm,            xstnm,                &
                      SetRtSrcNM,        SetRtMacXsNM,     PseudoAbsorptionNM,   &
@@ -375,12 +375,12 @@ DO iz = myzb, myze
       ENDIF
       CALL CP_CA(xst1g(1:nFsr), 1._8, nFsr)
       IF(nTracerCntl%lDcplCal) THEN
-        CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                     &
+        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                     &
                       eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
       ELSE
         !CALL SetRtSrc(Core, Fxr(:, iz), tsrc(:), phis, psi, axSrc1g(:), xst1g(:), &
                       !eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
-        CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, &
+        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, &
                       eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, nTracerCntl%lscat1, lNegFix, PE)
       ENDIF
       IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
@@ -409,15 +409,15 @@ DO iz = myzb, myze
         CALL DcplSetMocAxEff(Core, AxPxs(:, iz, ig), phis(:, iz, ig), AxSrc1g, AxPxs1g, iz)
       ENDIF
     
-    CALL SetRtMacXs(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
+    CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
       IF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
 #ifdef LkgSplit  
-        CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),     &
+        CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),     &
                               AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
 #endif
       ENDIF
 #ifdef Buckling
-    IF(nTracerCntl%lBsq) CALL AddBuckling(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
+    IF(nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
 #endif 
       DO ipin = 1, nxy
         FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
@@ -459,21 +459,21 @@ DO ig = 1, ng
       !CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)
     ENDIF
     
-    CALL SetRtMacXs(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
+    CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
     IF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
 #ifdef LkgSplit  
-      CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),     &
+      CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),     &
                             AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
 #endif
     ENDIF
 #ifdef Buckling
-   IF(nTracerCntl%lBsq) CALL AddBuckling(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
+   IF(nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
 #endif  
     IF(nTracerCntl%lDcplCal) THEN
-      CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                &
+      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                &
                     eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
     ELSE
-      CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                &
+      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                &
                     eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
     ENDIF
     IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
@@ -1192,4 +1192,39 @@ IF(myze .EQ. nz) THEN
 END IF
 
 END SUBROUTINE GetNeighborMocFlux
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE AddConstSrc(Core, Fxr, Src, xstr1g, ConstSrc, iz, ig, ng)
+
+USE PARAM
+USE TYPEDEF,       ONLY : CoreInfo_Type,        Fxrinfo_type,                          &
+                          Cell_Type,            pin_Type
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+REAL, POINTER :: Src(:), xstr1g(:)
+REAL :: ConstSrc
+INTEGER :: iz, ig, ng
+
+
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+
+INTEGER :: ipin, ifsr, icel
+INTEGER :: FsrIdxSt
+INTEGER :: i, j, k
+Pin => Core%Pin
+CellInfo => Core%CellInfo
+nxy = Core%nxy
+DO ipin = 1, nxy
+  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+  DO j = 1, CellInfo(icel)%nFsr
+    ifsr = FsrIdxSt + j - 1
+    !IF(src(ifsr) .lt. 0) THEN
+    !  src(ifsr) = 0
+    !ENDIF
+    src(ifsr) = src(ifsr) + ConstSrc/xstr1g(ifsr)
+  ENDDO
+ENDDO
+
+END SUBROUTINE AddConstSrc
 ! ------------------------------------------------------------------------------------------------------------

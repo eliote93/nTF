@@ -72,7 +72,7 @@ USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST
 #endif
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP_cat,    SubGrpFspErr,    EquipXSGen,    SetSubGrpSrc1g, UpdtNDAF_CAT
-USE MOC_MOD,        ONLY : RayTrace
+USE MOC_MOD,        ONLY : RayTraceGM_One
 USE BasicOperation, ONLY : CP_CA,                CP_VA
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock,       TimeChk
@@ -158,7 +158,7 @@ DO iz = myzb, myze
             !Solving FSP
             IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
             rt1 = nTracer_dclock(FALSE, FALSE)
-            CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+            CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                           nTracerCntl%FastMocLv, .FALSE.)
             rt2 = nTracer_dclock(FALSE, FALSE)
             rtnet = rtnet + (rt2 - rt1)
@@ -209,7 +209,7 @@ USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST
 #endif
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP,    SubGrpFspErr,    EquipXsGen,    SetSubGrpSrc1g, UpdtNDAF
-USE MOC_MOD,        ONLY : RayTrace
+USE MOC_MOD,        ONLY : RayTraceGM_One
 USE BasicOperation, ONLY : CP_CA,                CP_VA
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock,       TimeChk
@@ -297,7 +297,7 @@ DO iz = myzb, myze
             !Solving FSP
             IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
             rt1 = nTracer_dclock(FALSE, FALSE)
-            CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+            CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                           nTracerCntl%FastMocLv, .FALSE.)
             rt2 = nTracer_dclock(FALSE, FALSE)
             rtnet = rtnet + (rt2 - rt1)
@@ -350,7 +350,7 @@ USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST, 
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP_MLG,  SetPlnLsigP_1gMLG,   SubGrpFspErr,  EquipXSGen_MLG,  &
                            EquipXsGen_1gMLG,  SetSubGrpSrc1g,  UpdtFnAdj, UpdtFtAdj
-USE MOC_MOD,        ONLY : RayTrace
+USE MOC_MOD,        ONLY : RayTraceGM_One
 USE BasicOperation, ONLY : CP_CA,                CP_VA
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock,       TimeChk
@@ -428,7 +428,7 @@ DO iz = myzb, myze
           !Solving FSP
           IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
           rt1 = nTracer_dclock(FALSE, FALSE)
-          CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+          CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                         nTracerCntl%FastMocLv, .FALSE.)
           rt2 = nTracer_dclock(FALSE, FALSE)
           rtnet = rtnet + (rt2 - rt1)
@@ -471,7 +471,7 @@ DO iz = myzb, myze
         !Solving FSP
         IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
         rt1 = nTracer_dclock(FALSE, FALSE)
-        CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+        CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                       nTracerCntl%FastMocLv, .FALSE.)
         rt2 = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
@@ -504,7 +504,7 @@ DO iz = myzb, myze
         !Solving FSP
         IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
         rt1 = nTracer_dclock(FALSE, FALSE)
-        CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+        CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                       nTracerCntl%FastMocLv, .FALSE.)
         rt2 = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
@@ -548,7 +548,7 @@ USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST
 #endif
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP_Dancoff, SetPlnLsigP_DancoffAIC, SetSubGrpSrc1g, Set_Dancoff, Set_DancoffAIC, SubGrpFspErr
-USE MOC_MOD,        ONLY : RayTrace
+USE MOC_MOD,        ONLY : RayTraceGM_One
 USE BasicOperation, ONLY : CP_CA,                CP_VA
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock,       TimeChk
@@ -610,7 +610,7 @@ DO iz = myzb, myze
   DO iter = 1, 100
     !Solving ENCM
     IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
-    CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+    CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                   nTracerCntl%FastMocLv, .FALSE.)
     !Update Equivalence XS
     errmax = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
@@ -642,7 +642,7 @@ DO iz = myzb, myze
     DO iter = 1, 100
       !Solving FSP
       IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
-      CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
+      CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE.,  &
                     nTracerCntl%FastMocLv, .FALSE.)
       !Update Equivalence XS
       errmax = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)

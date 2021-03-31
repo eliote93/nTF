@@ -15,10 +15,9 @@ USE TRANMOC_MOD,       ONLY : TrSrc,                   PrecSrc,                 
                               SetPrecParam,            SetTranMOCEnv,         &
                               PrecSrcUpdt,             SetTranSrc,           TranMocResidualError,  &
                               SetExpTrsfXs
-USE MOC_MOD,           ONLY : RayTrace,                SetRtMacXs_Cusping,   SetRtSrc_Cusping,      &
-                              RayTrace_OMP,                                                         &
+USE MOC_MOD,           ONLY : RayTraceGM_One,                SetRtMacXsGM_Cusping,   SetRtSrcGM_Cusping,      &
                               RayTraceLS,              PsiUpdate,            CellPsiUpdate,         &
-                              MocResidual,             PsiErr,               PseudoAbsorption,      &
+                              MocResidual,             PsiErr,               PseudoAbsorptionGM,      &
                               PowerUpdate,                                                          &
                               phis1g,                  MocJout1g,            xst1g,                 &
                               tSrc,                    AxSrc1g,              PhiAngin1g,            &
@@ -159,11 +158,11 @@ DO jsweep =1, nGroupInfo
       DO InIter = 1, nInIter
         IF(InIter .EQ. nInIter) ljout = TRUE
         IF(RTMASTER) THEN
-          CALL SetRtMacXs_Cusping(Core, FmInfo, Fxr(:, iz), xst1g, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
-          CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),                             &
+          CALL SetRtMacXsGM_Cusping(Core, FmInfo, Fxr(:, iz), xst1g, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+          CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),                             &
                                 AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
           !CALL SetExpTrsfXs(Core, Fxr, xst1g, iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
-          CALL SetRtSrc_Cusping(Core, FmInfo, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
+          CALL SetRtSrcGM_Cusping(Core, FmInfo, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
                         1._8, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
           CALL SetTranSrc(Core, Fxr, TrSrc, Phis, TranPhi, Psi, PrecSrc, ResSrc, xst1g,              &
                          iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
@@ -171,7 +170,7 @@ DO jsweep =1, nGroupInfo
           CALL AD_VA(TrSrc(1:nfsr), TrSrc(1:nfsr), tsrc(1:nfsr), nfsr)
         ENDIF
         
-        CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, trsrc, MocJout1g, iz, lJout)
+        CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, trsrc, MocJout1g, iz, lJout)
         IF (lssph) THEN
           IF (ig.ge.igresb.and.ig.le.igrese) phis1g=phis1g*ssphf(:,iz,ig)
         ENDIF

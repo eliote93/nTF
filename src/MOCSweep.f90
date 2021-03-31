@@ -6,8 +6,8 @@ USE TYPEDEF,     ONLY : CoreInfo_Type, RayInfo_Type, FmInfo_Type, PE_TYPE, FxrIn
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
-USE MOC_MOD,     ONLY : SetRtMacXs, SetRtSrc, SetRtLinSrc, SetRtP1Src, AddBuckling, RayTrace, RayTrace_OMP, RayTraceP1, RayTraceP1_Multigrid, RayTraceLS, &
-                        LinPsiUpdate, PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorption, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
+USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_One, RayTraceGM, RayTraceP1, RayTraceP1_Multigrid, RayTraceLS, &
+                        LinPsiUpdate, PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, PhiAngin1g, srcm, &
                         RayTraceLS_CASMO, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, &
                         SetRtMacXsNM, SetRtSrcNM, AddBucklingNM, SetRtP1SrcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP,    &
@@ -50,7 +50,7 @@ REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
 ! ----------------------------------------------------
 INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn
-INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod
+INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, errdat(3)
@@ -124,6 +124,7 @@ lmgrid    = nTracerCntl%lmultigrid
 laxrefFDM = nTracerCntl%laxrefFDM
 ldcmp     = nTracerCntl%ldomaindcmp
 lAFSS     = nTracerCntl%lAFSS
+fmoclv    = nTracerCntl%FastMOCLv
 
 nitermax = itrcntl%MOCItrCntl%nitermax
 psiconv  = itrcntl%psiconv
@@ -174,16 +175,16 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             
             ! SET : XS + Src.
             IF (RTMASTER) THEN
-              CALL SetRtMacXs(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
+              CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
               
 #ifdef LkgSplit
-              CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig), AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
+              CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig), AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
 #endif
 #ifdef Buckling
-              IF (lbsq) CALL AddBuckling(Core, Fxr, xst1g, nTracerCntl%bsq, iz, ig, ng, lxslib, lRST)
+              IF (lbsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%bsq, iz, ig, ng, lxslib, lRST)
 #endif
 
-              CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+              CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
               PhiAngin1g = FmInfo%PhiAngin(:, : ,iz, ig)
               
@@ -192,15 +193,19 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             
             ! Ray Trace
             IF (.NOT. lLinSrc) THEN
+              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
+              
               IF (.NOT. lscat1) THEN
-                CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, nTracerCntl%FastMocLv, lAFSS)
+                IF (lAFSS) THEN
+                  CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
+                ELSE
+                  CALL RayTraceGM     (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
+                END IF
               ELSE
-                CALL SetRtP1Src(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
-                
                 IF (lmgrid) THEN
                   CALL RayTraceP1_Multigrid(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nscttod, lJout)
                 ELSE
-                  CALL RayTraceP1(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, nTracerCntl%FastMocLv, lAFSS)
+                  CALL RayTraceP1(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv, lAFSS)
                 END IF
               END IF
             ELSE
@@ -317,7 +322,7 @@ ELSE
               IF (lscat1) THEN
                 CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp)
               ELSE
-                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp, nTracerCntl%FastMocLv)
+                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp, fmoclv)
               END IF
             ELSE
               CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout, ldcmp)

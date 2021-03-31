@@ -437,7 +437,7 @@ USE TYPEDEF,           ONLY : CoreInfo_Type,        FmInfo_Type,         GroupIn
 USE CNTL,              ONLY : nTracerCntl_Type
 USE MOC_MOD,           ONLY : tSrc,                 xst1g,               AxSrc1g,                &
                               AxPxs1g,                                                           & 
-                              SetRtSrc,             SetRtMacXs,          PseudoAbsorption
+                              SetRtSrcGM,             SetRtMacXsGM,        PseudoAbsorptionGM
 USE TRANMOC_MOD,       ONLY : TrSrc,                PrecSrc,                                    &
                               PrecSrcUpdt,          SetTranSrc,          SetExpTrsfXs
 USE BasicOperation,    ONLY : CP_CA,                CP_VA,               AD_VA
@@ -515,7 +515,7 @@ DO iz = myzb, myze
     CALL CP_CA(xst1g(1:nfsr), 1._8, nfsr) 
     CALL SetTranSrc(Core, Fxr, TrSrc, Phis, TranPhi, Psi, PrecSrc, ResSrc, xst1g,       &
                     iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE) 
-    CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                    &
+    CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                    &
                   1._8, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)    
   
      
@@ -541,8 +541,8 @@ DO iz = myzb, myze
       CALL CP_VA(AxPxs1g(1:nxy), AxPxs(1:nxy, iz, ig), nxy)
       CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)      
     ENDIF
-    CALL SetRtMacXs(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, TRUE, lRST, FALSE, FALSE, PE)
-    IF(l3dim)  CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),             &
+    CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, TRUE, lRST, FALSE, FALSE, PE)
+    IF(l3dim)  CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),             &
                                      AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
     !IF(TranCntl%lExptrsf) CALL SetExpTrsfXs(Core, Fxr, xst1g, iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)  
      

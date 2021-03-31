@@ -252,9 +252,9 @@ USE TYPEDEF,     ONLY : CoreInfo_Type,      RayInfo_Type,       FmInfo_Type,    
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 !USE CORE_MOD,    ONLY : GroupInfo
-USE MOC_MOD,     ONLY : RayTrace,           SetRtMacXs,        SetRtSrc,          &
+USE MOC_MOD,     ONLY : RayTraceGM_One,           SetRtMacXsGM,      SetRtSrcGM,          &
                         PsiUpdate,          CellPsiUpdate,     UpdateEigv,        &
-                        MocResidual,        PsiErr,            PseudoAbsorption,  &
+                        MocResidual,        PsiErr,            PseudoAbsorptionGM,  &
                         AddConstSrc,                                              &
                         phis1g,             MocJout1g,         xst1g,             &
                         tSrc,               AxSrc1g,           AxPxs1g,           &
@@ -387,13 +387,12 @@ DO iter = 1, 1
         IF(InIter .EQ. nInIter) ljout = TRUE
 
        !IF(InIter .EQ. 1 .OR. lNegFix) THEN
-          CALL SetRtMacXs(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg, PE)
-          CALL PseudoAbsorption(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),                 &
-                                AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, TRUE)
+          CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg, PE)
+          CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig), AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, TRUE)
        ! ENDIF
         !SET MOC Source
 
-        CALL SetRtSrc(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
+        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
                         eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, lscat1, lNegFix, PE)
         IF(.NOT. lEigProb) THEN
           !nTracerCntl%ConstSrc = 1.0
@@ -401,7 +400,7 @@ DO iter = 1, 1
         ENDIF
         !Add Constant source terms for a Reflector Region
         CALL CP_VA(PhiAngin1g, PhiAngin(:,: ,iz, ig), RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
-        CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
+        CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
         CALL CP_VA(phis(1:nFsr, iz, ig), phis1g(1:nFsr), nFsr)
       ENDDO
       !IF(lJout) CALL CP_VA(RadJout(1:2, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:2, 1:nbd, 1:nxy), 2, nbd, nxy)
