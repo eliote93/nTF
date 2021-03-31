@@ -50,14 +50,13 @@ REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
 ! ----------------------------------------------------
 INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn
-INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd
+INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, errdat(3)
-REAL :: t1gst, t1ged, tdel, tmocst, tmoced
-REAL :: tngst, tnged, tngdel(2)
+REAL :: t1gst, t1ged, tdel, tmocst, tmoced, tngst, tnged, tngdel(2)
 
-LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, CMFDMaster, CMFDSlave, lDmesg
+LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, lDmesg
 LOGICAL :: lLinSrc, lLSCASMO, lmocUR, lbsq, lmgrid, laxrefFDM, ldcmp
 
 CHARACTER(80) :: hostname
@@ -87,21 +86,21 @@ RTMaster = PE%RTMaster
 IF (nTracerCntl%lscat1)  phim        => FmInfo%phim
 IF (nTracerCntl%lLinSrc) LinSrcSlope => FmInfo%LinSrcSlope
 
-IF (nTracerCntl%lsSPHreg) call calcPinSSPH(Core, Fxr, PE)
+IF (nTracerCntl%lsSPHreg) CALL calcPinSSPH(Core, Fxr, PE)
 
 CALL omp_set_num_threads(PE%nThread)
 
 ! Basic
-myzb  = PE%myzb
-myze  = PE%myze
-lJout = TRUE
+myzb    = PE%myzb
+myze    = PE%myze
+lJout   = TRUE
+nscttod = nTracerCntl%scatod
 
 nPolarAngle = RayInfo%nPolarAngle
 nPhiAngSv   = RayInfo%nPhiAngSv
 
 nginfo = 2
 ninn   = 2
-
 IF(.NOT. GroupInfo%lUpScat) nginfo = 1
 IF (nTracerCntl%lHex)       ninn   = nInnMOCItr
 
@@ -124,6 +123,7 @@ lbsq      = nTracerCntl%lbsq
 lmgrid    = nTracerCntl%lmultigrid
 laxrefFDM = nTracerCntl%laxrefFDM
 ldcmp     = nTracerCntl%ldomaindcmp
+lAFSS     = nTracerCntl%lAFSS
 
 nitermax = itrcntl%MOCItrCntl%nitermax
 psiconv  = itrcntl%psiconv
@@ -131,7 +131,7 @@ eigconv  = itrcntl%eigconv
 resconv  = itrcntl%resconv
 
 lDmesg = TRUE
-IF(ng .gt. 10) lDmesg = FALSE
+IF(ng .GT. 10) lDmesg = FALSE
 
 ! UPD : psi
 IF (RTMASTER) THEN
@@ -193,14 +193,14 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             ! Ray Trace
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. lscat1) THEN
-                CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, nTracerCntl%FastMocLv, nTracerCntl%lAFSS)
+                CALL RayTrace(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, nTracerCntl%FastMocLv, lAFSS)
               ELSE
-                CALL SetRtP1Src(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nTracerCntl%ScatOd, PE)
+                CALL SetRtP1Src(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
                 
                 IF (lmgrid) THEN
-                  CALL RayTraceP1_Multigrid(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nTracerCntl%ScatOd, lJout)
+                  CALL RayTraceP1_Multigrid(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nscttod, lJout)
                 ELSE
-                  CALL RayTraceP1(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nTracerCntl%ScatOd, nTracerCntl%FastMocLv, nTracerCntl%lAFSS)
+                  CALL RayTraceP1(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, nTracerCntl%FastMocLv, lAFSS)
                 END IF
               END IF
             ELSE
@@ -231,8 +231,8 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
           IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
         END DO
         
-        t1ged   = nTracer_dclock(FALSE, FALSE)
-        tdel = tdel + t1ged - t1gst
+        t1ged = nTracer_dclock(FALSE, FALSE)
+        tdel  = tdel + t1ged - t1gst
         
         IF (.NOT.lDmesg .AND. MOD(iG, 10).NE.0 .AND. ig.NE.nG) CYCLE
         
@@ -304,7 +304,7 @@ ELSE
               CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
               IF (lScat1) THEN
-                CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nTracerCntl%ScatOd, PE)
+                CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
               END IF
             ELSE
               CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
@@ -312,15 +312,15 @@ ELSE
           END IF
           
           ! Ray Trace
-          IF (.NOT. nTracerCntl%lDomainDcmp) THEN
+          IF (.NOT. ldcmp) THEN
             IF (.NOT. lLSCASMO) THEN
               IF (lscat1) THEN
-                CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout, nTracerCntl%lDomainDcmp)
+                CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp)
               ELSE
-                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, nTracerCntl%lDomainDcmp, nTracerCntl%FastMocLv)
+                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp, nTracerCntl%FastMocLv)
               END IF
             ELSE
-              CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lDomainDcmp)
+              CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout, ldcmp)
             END IF
           ELSE
             CALL RayTrace_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, FALSE, lScat1, lLSCASMO, nTracerCntl%lHybrid)
@@ -404,7 +404,7 @@ reserr = errdat(3)
 #endif
 
 IF (MASTER) THEN
-  WRITE(mesg ,'(A5,I7,F15.6, 3(1pE12.3))')  'RT',itrcntl%mocit, EIGV, eigerr, fiserr, reserr
+  WRITE(mesg ,'(A5,I7,F15.6, 3(1pE12.3))') 'RT',itrcntl%mocit, EIGV, eigerr, fiserr, reserr
   CALL message(io8, TRUE, TRUE, mesg)
 END IF
 

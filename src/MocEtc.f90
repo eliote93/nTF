@@ -1,5 +1,7 @@
 #include <defines.h>
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
+
 USE PARAM
 USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
                          GroupInfo_Type,      XsMac_Type
@@ -84,105 +86,51 @@ ENDDO
 IF(.NOT. lxsLib) Deallocate(xsmacnf)
 IF(lXsLib) NULLIFY(XsMacNf)
 NULLIFY(Pin, CellInfo)
-END SUBROUTINE
 
-SUBROUTINE PowerUpdate(Core, Fxr, phis, power, myzb, myze, ng, lxslib, GroupInfo, PE)
+END SUBROUTINE PsiUpdate
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE CellPsiUpdate(CORE, psi, psic, myzb, myze)
+
 USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
-                         GroupInfo_Type,      XsMac_Type,         PE_TYPE
-USE BenchXs,       ONLY : xskfBen,            xskfDynBen
-USE MacXsLib_Mod, ONLY : MacXskf
-USE BasicOperation, ONLY : CP_CA, MULTI_VA
-#ifdef MPI_ENV
-USE MPIComm_Mod, ONLY : BCAST
-#endif
-USE TRAN_MOD,     ONLY : TranInfo,          TranCntl
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type
+USE BasicOperation, ONLY : CP_CA
 IMPLICIT NONE
 TYPE(coreinfo_type) :: CORE
-TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
-TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(PE_Type) :: PE
-REAL, POINTER :: phis(:, :, :)
-REAL, POINTER :: Power(:, :)
-INTEGER :: myzb, myze, ng
-LOGICAL :: lXsLib
-
+REAL, POINTER :: Psi(:, :)
+REAL, POINTER :: psiC(:, :)
+INTEGER :: myzb, myze
 
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(Fxrinfo_type),POINTER :: myFxr
-TYPE(XsMac_Type), SAVE :: XsMac
 
-INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
-INTEGER :: ipin, icel, ifsrlocal, ifsr, ifxr, iz, itype, ig
-INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
-INTEGER :: i, j, k
-
-REAL, POINTER :: xsmackf(:)
-
-Pin => Core%Pin
-CellInfo => Core%CellInfo; nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr; nxy = Core%nxy
-IF(lxslib) THEN
-  iResoGrpBeg = GroupInfo%nofg + 1
-  iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
-  norg = GroupInfo%norg
-ENDIF
-
-IF(.NOT. lxsLib) ALLOCATE(xsmackf(ng))
-CALL CP_CA(Power(1:nCoreFsr, 1:Core%nz), zero, nCoreFsr, Core%nz)
+INTEGER :: nxy, nCoreFsr, nCoreFxr, nLocalFsr
+INTEGER :: l, i, j, k, iz
+INTEGER :: FsrIdxSt, icel, ireg
+REAL, POINTER :: hz(:)
+Pin => Core%Pin; CellInfo => Core%CellInfo
+hz => Core%hz
+nCoreFsr = Core%nCoreFsr; nCoreFxr = Core%nCoreFxr
+nxy = Core%nxy
 DO iz = myzb, myze
-  
-  DO ipin = 1, nxy
-    FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
-    DO j = 1, nLocalFxr
-      ifxr = FxrIdxSt + j -1
-      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
-      myFxr => Fxr(ifxr, iz)
-      IF(lXsLib) Then
-        CALL MacXsKf(XsMac, myFxr, 1, ng, ng, 1._8, FALSE)
-        xsmacKf => XsMac%XsMacKf
-        IF(myFxr%lres) THEN
-          do ig = iResoGrpBeg, iResoGrpEnd
-            XsMackf(ig) = XsMackf(ig) * myFxr%fresokF(ig)  
-          enddo
-        ENDIF
-      ELSE
-        ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-        !itype = CellInfo(icel)%iReg(ifsrlocal)      
-        itype = myFxr%imix
-        IF(TranCntl%lDynamicBen) THEN
-          CALL xskfDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, xsmackf)
-        ELSE
-        CALL xskfben(itype, 1, ng, xsmackf)
-        END IF
-        !CHI(ig:ig) = GetChiBen(itype, ig, ig)
-      ENDIF
-      
-      DO i = 1, nFsrInFxr
-        ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
-        DO ig = 1, ng
-          Power(ifsr, iz) = power(ifsr, iz) + xsmackf(ig) * phis(ifsr, iz, ig)
-        ENDDO
-        CONTINUE
-        !src(ifsr) = reigv * chi(ig) * psic(ifsr, iz)
-      ENDDO !Fsr Sweep    
-    ENDDO
+  DO l = 1, nxy
+    FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
+    nLocalFsr = CellInfo(icel)%nFsr
+    psic(l, iz) = zero
+    DO j = 1, nLocalFsr
+      ireg = FsrIdxSt + j - 1
+      psic(l, iz) =  psic(l, iz) + CellInfo(icel)%vol(j) * psi(ireg, iz)
+    ENDDO  
+    psic(l, iz) = psic(l, iz)*hz(iz)
   ENDDO
 ENDDO
-#ifdef MPI_ENV
-DO iz = 1, Core%nz
-  CALL BCAST(Power(1:nCoreFsr, iz), nCoreFsr, PE%MPI_RTMASTER_COMM, PE%AxDomList(iz))
-ENDDO
-#endif
-IF(.NOT. lxsLib) Deallocate(xsmackf)
-IF(lXsLib) NULLIFY(XsMackf)
-NULLIFY(Pin, CellInfo)
-END SUBROUTINE
+NULLIFY(Pin)
+NULLIFY(CellInfo)
+NULLIFY(hz)
 
-
+END SUBROUTINE CellPsiUpdate
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE UpdateEigv(Core, psi, psid, eigv, peigv, myzb, myze, PE)
+
 USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Cell_Type, pin_Type, GroupInfo_Type, PE_TYPE
 USE BenchXs, ONLY : xsnfBen
@@ -241,47 +189,11 @@ eigv = eigv*psipsi/psipsid
 NULLIFY(Pin)
 NULLIFY(CellInfo)
 NULLIFY(hz)
-END SUBROUTINE
 
-SUBROUTINE CellPsiUpdate(CORE, psi, psic, myzb, myze)
-USE PARAM
-USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type
-USE BasicOperation, ONLY : CP_CA
-IMPLICIT NONE
-TYPE(coreinfo_type) :: CORE
-REAL, POINTER :: Psi(:, :)
-REAL, POINTER :: psiC(:, :)
-INTEGER :: myzb, myze
+END SUBROUTINE UpdateEigv
+! ------------------------------------------------------------------------------------------------------------
+FUNCTION PsiErr(Core, psi, psid, myzb, myze, PE)
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
-
-INTEGER :: nxy, nCoreFsr, nCoreFxr, nLocalFsr
-INTEGER :: l, i, j, k, iz
-INTEGER :: FsrIdxSt, icel, ireg
-REAL, POINTER :: hz(:)
-Pin => Core%Pin; CellInfo => Core%CellInfo
-hz => Core%hz
-nCoreFsr = Core%nCoreFsr; nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
-DO iz = myzb, myze
-  DO l = 1, nxy
-    FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
-    nLocalFsr = CellInfo(icel)%nFsr
-    psic(l, iz) = zero
-    DO j = 1, nLocalFsr
-      ireg = FsrIdxSt + j - 1
-      psic(l, iz) =  psic(l, iz) + CellInfo(icel)%vol(j) * psi(ireg, iz)
-    ENDDO  
-    psic(l, iz) = psic(l, iz)*hz(iz)
-  ENDDO
-ENDDO
-NULLIFY(Pin)
-NULLIFY(CellInfo)
-NULLIFY(hz)
-END SUBROUTINE
-
-Function PsiErr(Core, psi, psid, myzb, myze, PE)
 USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Cell_Type, pin_Type, PE_TYPE
 USE BenchXs, ONLY : xsnfBen
@@ -330,14 +242,11 @@ CALL REDUCE(psipsi, temp, PE%MPI_RTMASTER_COMM, .TRUE.)
 psipsi = temp
 #endif
 PsiErr = SQRT(ErrSqSum/psipsi)
-END FUNCTION
 
-
-!SUBROUTINE ReducePhiAngIn(RayInfo, PhiAngIn1g, )
-!
-!END SUBROUTINE
-
+END FUNCTION PsiErr
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION MocResidual(Core, FmInfo, eigv, GroupInfo, ng, PE, nTracerCntl)
+
 USE PARAM
 USE TYPEDEF,  ONLY : CoreInfo_Type,     FmInfo_Type,     GroupInfo_Type,     &
                      Cell_Type,         PinInfo_Type,     Pin_Type,             &
@@ -600,30 +509,115 @@ MocResidual = temp
 CALL REDUCE(SrcSum, temp, PE%MPI_RTMASTER_COMM, .TRUE.)
 SrcSum = temp
 #endif
-!!--- BYS edit / 160223 divergence problem in 3D
-!IF(MocResidual .LT. 0 )THEN 
-!    write(*,*) 'MocResidual .LT. ZERO !!', MocResidual
-!ELSE
-!    write(*,*) 'MocResidual .GT. ZERO -- good' , MocResidual   
-!ENDIF
-!IF(SrcSum .LT. 0 )THEN 
-!    write(*,*) 'SrcSum      .LT. ZERO !!', SrcSum
-!ELSE
-!    write(*,*) 'SrcSum      .GT. ZERO -- good', SrcSum
-!ENDIF
-!!--- BYS edit END / 160223 divergence problem in 3D
+
 MocResidual = MocResidual / SrcSum
 MocResidual = SQRT(MocResidual)
-
 
 NULLIFY(Pin)
 NULLIFY(PinInfo)
 NULLIFY(Cell)
-END FUNCTION
+
+END FUNCTION MocResidual
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE PowerUpdate(Core, Fxr, phis, power, myzb, myze, ng, lxslib, GroupInfo, PE)
+
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
+                         GroupInfo_Type,      XsMac_Type,         PE_TYPE
+USE BenchXs,       ONLY : xskfBen,            xskfDynBen
+USE MacXsLib_Mod, ONLY : MacXskf
+USE BasicOperation, ONLY : CP_CA, MULTI_VA
+#ifdef MPI_ENV
+USE MPIComm_Mod, ONLY : BCAST
+#endif
+USE TRAN_MOD,     ONLY : TranInfo,          TranCntl
+IMPLICIT NONE
+TYPE(coreinfo_type) :: CORE
+TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(PE_Type) :: PE
+REAL, POINTER :: phis(:, :, :)
+REAL, POINTER :: Power(:, :)
+INTEGER :: myzb, myze, ng
+LOGICAL :: lXsLib
 
 
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE(Fxrinfo_type),POINTER :: myFxr
+TYPE(XsMac_Type), SAVE :: XsMac
 
+INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
+INTEGER :: ipin, icel, ifsrlocal, ifsr, ifxr, iz, itype, ig
+INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
+INTEGER :: i, j, k
+
+REAL, POINTER :: xsmackf(:)
+
+Pin => Core%Pin
+CellInfo => Core%CellInfo; nCoreFsr = Core%nCoreFsr
+nCoreFxr = Core%nCoreFxr; nxy = Core%nxy
+IF(lxslib) THEN
+  iResoGrpBeg = GroupInfo%nofg + 1
+  iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
+  norg = GroupInfo%norg
+ENDIF
+
+IF(.NOT. lxsLib) ALLOCATE(xsmackf(ng))
+CALL CP_CA(Power(1:nCoreFsr, 1:Core%nz), zero, nCoreFsr, Core%nz)
+DO iz = myzb, myze
+  
+  DO ipin = 1, nxy
+    FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+    DO j = 1, nLocalFxr
+      ifxr = FxrIdxSt + j -1
+      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
+      myFxr => Fxr(ifxr, iz)
+      IF(lXsLib) Then
+        CALL MacXsKf(XsMac, myFxr, 1, ng, ng, 1._8, FALSE)
+        xsmacKf => XsMac%XsMacKf
+        IF(myFxr%lres) THEN
+          do ig = iResoGrpBeg, iResoGrpEnd
+            XsMackf(ig) = XsMackf(ig) * myFxr%fresokF(ig)  
+          enddo
+        ENDIF
+      ELSE
+        ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
+        !itype = CellInfo(icel)%iReg(ifsrlocal)      
+        itype = myFxr%imix
+        IF(TranCntl%lDynamicBen) THEN
+          CALL xskfDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, xsmackf)
+        ELSE
+        CALL xskfben(itype, 1, ng, xsmackf)
+        END IF
+        !CHI(ig:ig) = GetChiBen(itype, ig, ig)
+      ENDIF
+      
+      DO i = 1, nFsrInFxr
+        ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
+        DO ig = 1, ng
+          Power(ifsr, iz) = power(ifsr, iz) + xsmackf(ig) * phis(ifsr, iz, ig)
+        ENDDO
+        CONTINUE
+        !src(ifsr) = reigv * chi(ig) * psic(ifsr, iz)
+      ENDDO !Fsr Sweep    
+    ENDDO
+  ENDDO
+ENDDO
+#ifdef MPI_ENV
+DO iz = 1, Core%nz
+  CALL BCAST(Power(1:nCoreFsr, iz), nCoreFsr, PE%MPI_RTMASTER_COMM, PE%AxDomList(iz))
+ENDDO
+#endif
+IF(.NOT. lxsLib) Deallocate(xsmackf)
+IF(lXsLib) NULLIFY(XsMackf)
+NULLIFY(Pin, CellInfo)
+
+END SUBROUTINE PowerUpdate
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION FxrAvgPhi(Core, Fxr, Phis, ipin, iLocalfxr, iz, ng, PE)
+
 USE PARAM
 USE TYPEDEF,     ONLY : CoreInfo_Type,    PE_Type,     FxrInfo_Type,               &
                         Cell_Type,    Pin_Type
@@ -661,9 +655,11 @@ ENDDO
 FxrAvgPhi = FxrAvgPhi / AreaSum
 
 NULLIFY(Pin, CellInfo)
-END FUNCTION
 
+END FUNCTION FxrAvgPhi
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FluxUnderRelaxation(Core, Phis1g, Phis, w, iz, ig, PE)
+
 USE PARAM
 USE TYPEDEF,  ONLY : CoreInfo_Type,  PE_TYPE,  Pin_Type, Cell_Type
 IMPLICIT NONE
@@ -693,9 +689,11 @@ DO ixy = 1, nxy
     Phis(ireg, iz, ig) = w * Phis1g(ireg) + wbar * Phis(ireg, iz, ig)
   ENDDO
 ENDDO
-END SUBROUTINE
 
+END SUBROUTINE FluxUnderRelaxation
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FluxInUnderRelaxation(Core, PhiAngIn1g, PhiAngIn, w, n1, n2, iz, ig, PE)
+
 USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, PE_TYPE
 IMPLICIT NONE
@@ -715,9 +713,11 @@ wbar = 1-w
 FORALL(i=1:n2,j=1:n1)
   PhiAngIn(j, i, iz, ig) = w*PhiANgIn1g(j, i) + wbar *  PhiAngIn(j, i, iz, ig) 
 END FORALL
-END SUBROUTINE
 
+END SUBROUTINE FluxInUnderRelaxation
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CurrentUnderRelaxation(Core, Jout1g, Jout, w, iz, ig, PE)
+
 USE PARAM
 USE TYPEDEF,  ONLY : CoreInfo_Type,  PE_TYPE,  Pin_Type, Cell_Type
 IMPLICIT NONE
@@ -746,9 +746,10 @@ DO ixy = 1, nxy
   ENDDO
 ENDDO
 
-END SUBROUTINE
-
+END SUBROUTINE CurrentUnderRelaxation
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MOCUnderRelaxationFactor(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
+
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,     CmInfo_Type, &
                            GroupInfo_Type,      PE_Type,                      &
@@ -822,11 +823,7 @@ DO iz = myzb, myze
           wlocal = 3._8 * crit * crit
           wlocal = wlocal / (2._8+3._8*(1._8-c(ig))*crit*crit)
        ENDIF
-!       IF(ixy .EQ. 2) THEN
-!          PRINT *, ig
-!          PRINT *, 'c', c(ig), f, crit
-!          print *, wlocal
-!       ENDIF
+       
        wlocal = max(0.4_8, wlocal)
        wlocal = min(1._8, wlocal)
        w(ig, iz) = min(w(ig, iz), wlocal)
@@ -847,16 +844,14 @@ DO ig = 1, ng
     FmInfo%w(ig) = min(FmInfo%w(ig), w(ig, iz)) 
   ENDDO
 ENDDO
-!DO ig = 1, ng
-!  PRINT *, ig,  FmInfo%w(ig)
-!  FmInfo%w(ig) = 0.75
-!ENDDO
+
 IF(PE%MASTER) CALL PrintMOCUnderRelaxation(io8, FmInfo, GroupInfo, PE)
 DEALLOCATE(w, wbuf, scatsum)
-END SUBROUTINE
 
-!--- CNJ Edit : Domain Decomposition
+END SUBROUTINE MOCUnderRelaxationFactor
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+
 USE PARAM
 USE TYPEDEF,    ONLY : CoreInfo_Type,   RayInfo_Type,    DcmpAsyRayInfo_Type
 USE PE_Mod,     ONLY : PE
@@ -896,10 +891,10 @@ DO iAsy = 1, CoreInfo%nxya
   ENDDO
 ENDDO
 
-END SUBROUTINE
-
-!--- CNJ Edit : Domain Decomposition + MPI    
+END SUBROUTINE DcmpLinkBoundaryFlux
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterXS(CoreInfo, xst)
+
 USE PARAM
 USE TYPEDEF,    ONLY : CoreInfo_Type
 USE GEOM,       ONLY : ng
@@ -933,9 +928,10 @@ CALL MPI_SCATTERV(xst, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_xst, nDat, 
 xst(:, PE%myFsrBeg : PE%myFsrEnd) = buf_xst
 DEALLOCATE(buf_xst)
 
-END SUBROUTINE
-
+END SUBROUTINE DcmpScatterXS
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterSource(CoreInfo, src, srcm)
+
 USE PARAM
 USE TYPEDEF,    ONLY : CoreInfo_Type
 USE GEOM,       ONLY : ng
@@ -983,9 +979,10 @@ IF (PRESENT(srcm)) THEN
   ENDIF
 ENDIF
     
-END SUBROUTINE
-    
+END SUBROUTINE DcmpScatterSource
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngIn, DcmpPhiAngIn)
+
 USE PARAM
 USE TYPEDEF,    ONLY : RayInfo_Type
 USE GEOM,       ONLY : ng
@@ -1021,9 +1018,10 @@ CALL MPI_SCATTERV(DcmpPhiAngIn, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_Dc
 DcmpPhiAngIn(:, :, :, :, PE%myAsyBeg : PE%myAsyEnd) = buf_DcmpPhiAngIn
 DEALLOCATE(buf_DcmpPhiAngIn)
 
-END SUBROUTINE
-
+END SUBROUTINE DcmpScatterBoundaryFlux
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherFlux(CoreInfo, phis, phim)
+
 USE PARAM
 USE TYPEDEF,    ONLY : CoreInfo_Type
 USE GEOM,       ONLY : ng
@@ -1070,9 +1068,10 @@ IF (PRESENT(phim)) THEN
   ENDIF
 ENDIF
 
-END SUBROUTINE
-
+END SUBROUTINE DcmpGatherFlux
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherCurrent(CoreInfo, jout)
+
 USE PARAM
 USE TYPEDEF,    ONLY : CoreInfo_Type
 USE GEOM,       ONLY : ng
@@ -1102,9 +1101,10 @@ CALL MPI_GATHERV(buf_jout, nDat, MPI_DOUBLE_PRECISION, jout, recvcounts, displs,
                  MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 DEALLOCATE(buf_jout)
 
-END SUBROUTINE
-    
+END SUBROUTINE DcmpGatherCurrent
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
+
 USE PARAM
 USE TYPEDEF,    ONLY : RayInfo_Type
 USE GEOM,       ONLY : ng
@@ -1136,9 +1136,10 @@ CALL MPI_GATHERV(buf_DcmpPhiAngOut, nDat, MPI_DOUBLE_PRECISION, DcmpPhiAngOut, r
                  MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 DEALLOCATE(buf_DcmpPhiAngOut)
 
-END SUBROUTINE   
- 
+END SUBROUTINE DcmpGatherBoundaryFlux
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE GetNeighborMocFlux(phis, neighphis, nFsr, myzb, myze, gb, ge, nz, AxBC)
+
 USE PARAM,          ONLY : RefCell, VoidCell
 USE PE_Mod,         ONLY : PE
 USE MPIGetNeighbor
@@ -1190,4 +1191,5 @@ IF(myze .EQ. nz) THEN
   END IF
 END IF
 
-END SUBROUTINE
+END SUBROUTINE GetNeighborMocFlux
+! ------------------------------------------------------------------------------------------------------------

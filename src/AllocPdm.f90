@@ -215,7 +215,6 @@ USE Moc_mod,      ONLY : phis1g,     MocJout1g,   Xst1g,       tSrc,       &
                          AxSrc1g,    LinSrc1g,    LinPsi,      srcm,       &
                          AxPxs1g,    PhiAngIn1g,  phim1g,                  &
                          nMaxRaySeg, nMaxCellRay, nMaxCoreRay, nMaxAsyRay, &
-                         SetMocEnvironmentVariables,                       &
                          !--- CNJ Edit : Node Majors
                          phisnm,     PhiAngInnm,  MocJoutnm,   xstnm,      &
                          srcnm,      srcmnm,      phimnm,                  &
@@ -236,7 +235,6 @@ nPhiAngSv = RayInfo%nPhiAngSv
 myzb = PE%myzb; myze = PE%myze
 
 !CALL RayInfoMaxSize(Core, RayInfo, myzb, myze, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay)
-CALL SetMocEnvironmentVariables(nFsr, nxy, myzb, myze, ng)
 
 CALL Dmalloc0(phis1g, 1, nFsr)
 CALL Dmalloc0(PhiAngin1g, 1, nPolar, 1, nPhiAngSv)
