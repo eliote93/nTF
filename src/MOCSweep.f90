@@ -6,7 +6,7 @@ USE TYPEDEF,     ONLY : CoreInfo_Type, RayInfo_Type, FmInfo_Type, PE_TYPE, FxrIn
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
-USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_One, RayTraceGM, RayTraceP1, RayTraceP1_Multigrid, RayTraceLS, &
+USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTraceGM_OMP, RayTraceP1GM_OMP, RayTraceP1GM_AFSS, RayTraceP1GM_MGD, RayTraceLS, &
                         LinPsiUpdate, PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, PhiAngin1g, srcm, &
                         RayTraceLS_CASMO, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, &
@@ -199,13 +199,15 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
                 IF (lAFSS) THEN
                   CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
                 ELSE
-                  CALL RayTraceGM     (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
+                  CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
                 END IF
               ELSE
                 IF (lmgrid) THEN
-                  CALL RayTraceP1_Multigrid(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nscttod, lJout)
+                  CALL RayTraceP1GM_MGD(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nscttod, lJout)
+                ELSE IF (lAFSS) THEN
+                  CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv, lAFSS)
                 ELSE
-                  CALL RayTraceP1(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv, lAFSS)
+                  CALL RayTraceP1GM_OMP (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv, lAFSS)
                 END IF
               END IF
             ELSE

@@ -137,7 +137,7 @@ LOGICAL :: lJout, lLinSrcCASMO, lHybrid
 
 END SUBROUTINE RayTrace_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceGM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv, lAFSS)
+SUBROUTINE RayTraceGM_OMP(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv, lAFSS)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -152,7 +152,7 @@ LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
 LOGICAL, OPTIONAL :: lAFSS
 
-END SUBROUTINE RayTraceGM
+END SUBROUTINE RayTraceGM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceGM_AFSS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv, lAFSS)
 
@@ -260,7 +260,7 @@ INTEGER :: iz, gb, ge
 
 END SUBROUTINE TrackRotRayNM_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
+SUBROUTINE RayTraceP1GM_One(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -279,9 +279,9 @@ INTEGER :: ScatOd
 INTEGER, OPTIONAL :: FastMocLv
 LOGICAL, OPTIONAL :: lAFSS
 
-END SUBROUTINE RayTraceP1
+END SUBROUTINE RayTraceP1GM_One
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
+SUBROUTINE RayTraceP1GM_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -300,9 +300,9 @@ INTEGER :: ScatOd
 INTEGER, OPTIONAL :: FastMocLv
 LOGICAL, OPTIONAL :: lAFSS
 
-END SUBROUTINE RayTraceP1_OMP
+END SUBROUTINE RayTraceP1GM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_OMP_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
+SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv, lAFSS)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -321,9 +321,9 @@ INTEGER :: ScatOd
 INTEGER, OPTIONAL :: FastMocLv
 LOGICAL, OPTIONAL :: lAFSS
 
-END SUBROUTINE RayTraceP1_OMP_AFSS
+END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_Multigrid(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ScatOd, lJout)
+SUBROUTINE RayTraceP1GM_MGD(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ScatOd, lJout)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type
@@ -339,7 +339,7 @@ INTEGER :: iz
 LOGICAL :: ljout
 INTEGER :: ScatOd
 
-END SUBROUTINE RayTraceP1_Multigrid
+END SUBROUTINE RayTraceP1GM_MGD
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_Pn(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
 

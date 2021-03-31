@@ -1019,28 +1019,23 @@
 			<Option weight="0" />
 			<Option virtualFolder="Source Files/MC/" />
 		</Unit>
-		<Unit filename="../src/RayTraceGM.f90">
+		<Unit filename="../src/RayTraceP1_GM.f90">
 			<Option virtualFolder="Source Files/MOC/Group Major/" />
 		</Unit>
-		<Unit filename="../src/RayTracing.f90">
-			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/Common/" />
+		<Unit filename="../src/RayTraceP1_NM.f90">
+			<Option virtualFolder="Source Files/MOC/Node Major/" />
 		</Unit>
-		<Unit filename="../src/RayTracingLinSrc.f90">
-			<Option weight="10" />
+		<Unit filename="../src/RayTrace_Dcmp.f90">
+			<Option virtualFolder="Source Files/MOC/Domain Dcmp/" />
+		</Unit>
+		<Unit filename="../src/RayTrace_GM.f90">
+			<Option virtualFolder="Source Files/MOC/Group Major/" />
+		</Unit>
+		<Unit filename="../src/RayTrace_Lin.f90">
 			<Option virtualFolder="Source Files/MOC/Linear Src/" />
 		</Unit>
-		<Unit filename="../src/RayTracingP1.f90">
-			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/Group Major/" />
-		</Unit>
-		<Unit filename="../src/RayTracingP1_OMP.f90">
-			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/Group Major/" />
-		</Unit>
-		<Unit filename="../src/RayTracing_Dcmp.f90">
-			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/Domain Dcmp/" />
+		<Unit filename="../src/RayTrace_NM.f90">
+			<Option virtualFolder="Source Files/MOC/Node Major/" />
 		</Unit>
 		<Unit filename="../src/ReadDeplFile.f90">
 			<Option weight="4" />
