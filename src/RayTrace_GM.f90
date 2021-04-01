@@ -1177,19 +1177,19 @@ INTEGER :: icRay, imRay, jbeg, jend, jinc, ihpRay, iRaySeg, iGeoTyp, iAsyTyp, jh
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, ExpAppIdx
 
 REAL :: tau, phid, locsrc, ExpApp
-REAL :: wtazi(10)
 
+REAL :: wtazi(10)
 REAL, DIMENSION(RayInfo%nPolarAngle) :: locphiout
 
 REAL, POINTER, DIMENSION(:)     :: phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: expa, expb, wtang
+REAL, POINTER, DIMENSION(:,:)   :: EXPA, EXPB, wtang
 REAL, POINTER, DIMENSION(:,:,:) :: jout
+
+TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
 
 TYPE(Type_HexAsyRay),  POINTER :: haRay_Loc
 TYPE(Type_HexCelRay),  POINTER :: CelRay_Loc
 TYPE(Type_HexRotRay),  POINTER :: hRotRay_Loc
-
-TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
 ! ----------------------------------------------------
 
 nPolarAng      = RayInfo%nPolarAngle
@@ -1223,8 +1223,8 @@ DO icRay = jbeg, jend, jinc
   
   IF (krot .EQ. 2) jcRay = -jcRay ! Reverse the Sweep Direction
   
-  DO iPol = 1, nPolarAng
-    wtazi(ipol) = wtang(iPol, iazi)
+  DO ipol = 1, nPolarAng
+    wtazi(ipol) = wtang(ipol, iazi)
     
     !IF (lJout) wtazi2(ipol, 1:4) = wtsurf(ipol, iazi, 1:4)
   END DO
@@ -1252,7 +1252,7 @@ DO icRay = jbeg, jend, jinc
         IF (lJout) THEN
           iSurf = CelRay_Loc%SurfIdx(1) ! y : small
           
-          DO iPol = 1, nPolarAng
+          DO ipol = 1, nPolarAng
             Jout(1, iSurf, jhPin) = Jout(1, isurf, jhPin) + wtazi(ipol) * locphiout(ipol)
             !Jout(3, isurf, jhPin) = Jout(3, isurf, jhPin) + wtazi2(ipol, isurf) * locphiout(ipol)
           END DO
@@ -1351,7 +1351,7 @@ DO icRay = jbeg, jend, jinc
   END IF
 END DO
 
-TrackingDat%phiAngIn(:, PhiAngOutSvIdx) = locphiout
+TrackingDat%PhiAngIn(:, PhiAngOutSvIdx) = locphiout
 ! ----------------------------------------------------
 NULLIFY (phis)
 NULLIFY (src)

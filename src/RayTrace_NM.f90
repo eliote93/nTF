@@ -401,23 +401,22 @@ TYPE(TrackingDat_Type) :: TrackingDat
 LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: irotray, iz, ilv, krot, gb, ge
 ! ----------------------------------------------------
-
-TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
-
-TYPE(Type_HexAsyRay), POINTER :: haRay_Loc
-TYPE(Type_HexCelRay), POINTER :: CelRay_Loc
-TYPE(Type_HexRotRay), POINTER :: hRotRay_Loc
-
 INTEGER :: iazi, ipol, icRay, jcRay, iAsyRay, iRaySeg, imRay, ihpRay, iAsy, ifsr, iSurf, jbeg, jend, jinc, ig, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, PhiAnginSvIdx, PhiAngOutSvIdx, ExpAppIdx
 
 REAL :: phid, tau, locsrc, ExpApp
 
 REAL :: wtazi(10)
-REAL :: PhiAngOut(RayInfo%nPolarAngle, gb:ge)
+REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: PhiAngOut
 
 REAL, POINTER, DIMENSION(:,:)     :: phis, src, xst, EXPA, EXPB, wtang
 REAL, POINTER, DIMENSION(:,:,:,:) :: jout
+
+TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
+
+TYPE(Type_HexAsyRay), POINTER :: haRay_Loc
+TYPE(Type_HexCelRay), POINTER :: CelRay_Loc
+TYPE(Type_HexRotRay), POINTER :: hRotRay_Loc
 ! ----------------------------------------------------
 
 wtang    => RayInfo%MultigridInfo(ilv)%wtang
