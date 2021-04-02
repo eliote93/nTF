@@ -12,7 +12,8 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         RayTraceLS_CASMO, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, &
                         SetRtMacXsNM, SetRtSrcNM, AddBucklingNM, SetRtP1SrcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP,    &
                         phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, phimnm, srcmnm, &
-                        DcmpPhiAngIn, DcmpPhiAngOut, DcmpScatterXS, DcmpScatterBoundaryFlux, DcmpScatterSource, DcmpGatherBoundaryFlux, DcmpGatherFlux, DcmpGatherCurrent, DcmpLinkBoundaryFlux
+                        DcmpPhiAngIn, DcmpPhiAngOut, DcmpScatterXS, DcmpScatterBoundaryFlux, DcmpScatterSource, DcmpGatherBoundaryFlux, DcmpGatherFlux, DcmpGatherCurrent, DcmpLinkBoundaryFlux, &
+                        phissave, phimsave
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
@@ -42,13 +43,7 @@ TYPE(ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
-REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
-REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
-! ----------------------------------------------------
 INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn
 INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
@@ -66,6 +61,13 @@ CHARACTER(80) :: hostname
 INTEGER :: hostnm
 #endif
 #endif
+
+TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
+REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
+REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
 ! ----------------------------------------------------
 
 tmocst = nTracer_dclock(FALSE, FALSE)
@@ -100,9 +102,10 @@ nPolarAngle = RayInfo%nPolarAngle
 nPhiAngSv   = RayInfo%nPhiAngSv
 
 nginfo = 2
-ninn   = 2
 IF(.NOT. GroupInfo%lUpScat) nginfo = 1
-IF (nTracerCntl%lHex)       ninn   = nInnMOCItr
+
+ninn = 2
+IF (nTracerCntl%lHex) ninn = nInnMOCItr
 
 grpbndy(1, 1) = 1
 grpbndy(2, 1) = ng
@@ -132,7 +135,7 @@ eigconv  = itrcntl%eigconv
 resconv  = itrcntl%resconv
 
 lDmesg = TRUE
-IF(ng .GT. 10) lDmesg = FALSE
+IF (ng .GT. 10) lDmesg = FALSE
 
 ! UPD : psi
 IF (RTMASTER) THEN
@@ -141,11 +144,15 @@ IF (RTMASTER) THEN
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)
 END IF
+
+ALLOCATE (phissave (   Core%nCoreFsr, Core%nz, ng))
+ALLOCATE (phimsave (9, Core%nCoreFsr, Core%nz, ng))
 ! ----------------------------------------------------
 IF (.NOT. nTracerCntl%lNodeMajor) THEN
   DO iout = 1, ItrCntl%MocItrCntl%nitermax
+    !tdel = ZERO
+    
     itrcntl%mocit = itrcntl%mocit + 1
-    tdel = 0.
     
     IF (Master) THEN
       WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
@@ -156,22 +163,23 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     
     IF (lLinSrc .AND. RTMaster) CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
     
-    DO jswp = 1, nginfo
-      GrpBeg = grpbndy(1, jswp)
-      GrpEnd = grpbndy(2, jswp)
+    DO iz = myzb, myze
+      IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
       
-      DO ig = GrpBeg, GrpEnd
-        t1gst = nTracer_dclock(FALSE, FALSE)
+      DO jswp = 1, nginfo
+        GrpBeg = grpbndy(1, jswp)
+        GrpEnd = grpbndy(2, jswp)
         
-        DO iz = myzb, myze
-          IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
-          
-          ljout = lmocUR
+        phissave = phis ! DEBUG
+        IF (lscat1) phimsave = phim ! DEBUG
+        
+        DO ig = GrpBeg, GrpEnd
+          !t1gst = nTracer_dclock(FALSE, FALSE)
           
           IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
           
           DO iinn = 1, ninn
-            IF (iinn .EQ. ninn) ljout = TRUE
+            ljout = iinn.EQ.ninn .OR. lmocUR
             
             ! SET : XS + Src.
             IF (RTMASTER) THEN
@@ -186,9 +194,9 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
 
               CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              PhiAngin1g = FmInfo%PhiAngin(:, : ,iz, ig)
+              PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
               
-              IF (lscat1) phim1g = phim(:, : ,iz, ig)
+              IF (lscat1) phim1g = phim(:, :, iz, ig)
             END IF
             
             ! Ray Trace
@@ -238,20 +246,20 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
           IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
         END DO
         
-        t1ged = nTracer_dclock(FALSE, FALSE)
-        tdel  = tdel + t1ged - t1gst
+        !t1ged = nTracer_dclock(FALSE, FALSE)
+        !tdel  = tdel + t1ged - t1gst
         
-        IF (.NOT.lDmesg .AND. MOD(iG, 10).NE.0 .AND. ig.NE.nG) CYCLE
+        !IF (.NOT.lDmesg .AND. MOD(iG, 10).NE.0 .AND. ig.NE.nG) CYCLE
         
-        CALL MPI_MAX_REAL(tdel, PE%MPI_RTMASTER_COMM, TRUE)
+        !CALL MPI_MAX_REAL(tdel, PE%MPI_RTMASTER_COMM, TRUE)
         
-        IF (master) THEN
-          WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tdel, 'Sec'
-          
-          CALL message(io8, FALSE, TRUE, mesg)
-        END IF
-        
-        tdel = ZERO
+        !IF (master) THEN
+        !  WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tdel, 'Sec'
+        !  
+        !  CALL message(io8, FALSE, TRUE, mesg)
+        !END IF
+        !
+        !tdel = ZERO
       END DO
     END DO
   END DO
@@ -280,7 +288,7 @@ ELSE
           phisnm(ig, :) = phis(:, iz, ig)
           
           PhiAngInnm(:, ig, :) = FmInfo%PhiAngIn(:, :, iz, ig)
-        ENDDO
+        END DO
         
         IF (lscat1) phimnm => phim(:, :, :, iz)
         
@@ -342,6 +350,8 @@ ELSE
         
         tnged = nTracer_dclock(FALSE, FALSE)
         tngdel(jswp) = tngdel(jswp) + (tnged - tngst)
+        
+        tnged = ZERO ! DEBUG
       END DO
       
 #ifdef MPI_ENV
@@ -424,8 +434,7 @@ IF (fiserr.LT.psiconv .AND. eigerr.LT.eigconv .AND. reserr.LT.resconv) THEN
   
   IF (nTracerCntl%lFeedBack) last_TH = TRUE
 ENDIF
-
-! FIN
+! ----------------------------------------------------
 IF (nTracerCntl%lCusping_MPI .AND. fiserr.LT.ItrCntl%decuspconv) nTracerCntl%lCusping_MPI = FALSE
 
 tmoced = nTracer_dclock(FALSE, FALSE)
@@ -433,12 +442,11 @@ tmoced = nTracer_dclock(FALSE, FALSE)
 TimeChk%MocTime = TimeChk%MocTime + tmoced - tmocst
 
 NULLIFY (FXR)
-NULLIFY (phis)
-NULLIFY (phim)
 NULLIFY (psi)
 NULLIFY (psid)
 NULLIFY (psic)
-!NULLIFY (PhiAngin)
+NULLIFY (phis)
+NULLIFY (phim)
 NULLIFY (RadJout)
 NULLIFY (axsrc)
 ! ----------------------------------------------------

@@ -26,6 +26,8 @@ INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, nMaxDcmpRaySeg, nMa
 
 INTEGER, TARGET :: AziMap(360, 2)
 
+TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
+
 ! AFSS
 INTEGER, POINTER, DIMENSION(:)   :: nAziRotRay, nAziRotRay0, nSegRotRay, OmpRayBeg, OmpRayEnd, OmpRayList
 INTEGER, POINTER, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap, OmpRayNum
@@ -34,8 +36,8 @@ INTEGER, POINTER, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap, OmpRayNum
 REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb
 REAL, TARGET, DIMENSION(1:12, -40000:0) :: EXPA_p, EXPB_p
 
-! Tracking Data
-TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
+REAL, POINTER, DIMENSION(:,:,:)   :: phissave
+REAL, POINTER, DIMENSION(:,:,:,:) :: phimsave
 
 INTERFACE
 
