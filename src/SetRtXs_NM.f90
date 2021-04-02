@@ -3,147 +3,169 @@
 SUBROUTINE SetRtMacXsNM(core, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE PARAM
-USE TYPEDEF,  ONLY : coreinfo_type,    Fxrinfo_type,      Cell_Type, pin_Type,   &
-                     PE_TYPE,                                                    &
-                     XsMac_Type
-USE Core_mod, ONLY : GroupInfo
-
-USE BenchXs,  ONLY : GetXstrBen,       GetXsTrDynBen,     GetXsTBen,      GetXsTDynBen
-USE MacXsLib_mod,   ONLY : MacXsBase,  BaseMacSTr
 USE OMP_LIB
-USE SPH_mod,  ONLY : ssphfnm
-USE XSLIB_MOD,ONLY : igresb,igrese
-USE TRAN_MOD, ONLY : TranInfo,         TranCntl
-IMPLICIT NONE
-TYPE(coreinfo_type) :: Core
-TYPE(Fxrinfo_type) :: Fxr(:)
-TYPE(PE_TYPE) :: PE
-REAL, POINTER :: xstnm(:, :)
-INTEGER :: iz, ng
-logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
+USE TYPEDEF,      ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE, XsMac_Type
+USE Core_mod,     ONLY : GroupInfo
+USE BenchXs,      ONLY : GetXstrBen, GetXsTrDynBen, GetXsTBen, GetXsTDynBen
+USE MacXsLib_mod, ONLY : MacXsBase,  BaseMacSTr
+USE SPH_mod,      ONLY : ssphfnm
+USE XSLIB_MOD,    ONLY : igresb,igrese
+USE TRAN_MOD,     ONLY : TranInfo, TranCntl
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
-!TYPE(FxrInfo_Type), POINTER, SAVE :: myFxr
-INTEGER :: nCoreFxr, nCoreFsr, nxy, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
+IMPLICIT NONE
+
+TYPE(coreinfo_type) :: Core
+TYPE(Fxrinfo_type), DIMENSION(:) :: Fxr
+TYPE(PE_TYPE) :: PE
+
+INTEGER :: iz, ng
+LOGICAL :: lxslib, lTrCorrection, lRST, lssph, lssphreg
+! ----------------------------------------------------
+TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
+
+INTEGER :: nCoreFxr, nCoreFsr, nxy, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nofg, norg, xyb, xye
 INTEGER :: icel, ipin, ifxr, ifsr, ifsrlocal, itype, ig, tid
 INTEGER :: i, j, k
-INTEGER :: nofg, norg
-INTEGER :: xyb, xye   !--- CNJ Edit : Domain Decomposition + MPI
-REAL :: xsmactr(ng)
-REAL :: SPHfac(ng,40)
+
+REAL :: macstr
+
+REAL, DIMENSION(ng)     :: xsmactr
+REAL, DIMENSION(ng, 40) :: SPHfac
 
 LOGICAL :: lresogrp(ng), lres, lress
 
-REAL :: macstr
-TYPE(XsMac_Type), POINTER :: XsMac(:)
+REAL, POINTER, DIMENSION(:,:) :: xstnm
 
-Pin => Core%Pin
+TYPE(XsMac_Type), POINTER, DIMENSION(:) :: XsMac
+! ----------------------------------------------------
+
+Pin      => Core%Pin
 CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
-xyb = PE%myPinBeg; xye = PE%myPinEnd   !--- CNJ Edit : Domain Decomposition + MPI
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
 
-ALLOCATE(XsMac(PE%nThread))
+xyb = PE%myPinBeg
+xye = PE%myPinEnd ! Domain Dcmp + MPI
+
+ALLOCATE (XsMac (PE%nThread))
 
 IF(lxslib) THEN
-  nofg = GroupInfo%nofg; norg = GroupInfo%norg
+  nofg = GroupInfo%nofg
+  norg = GroupInfo%norg
+  
   DO ig = 1, ng
     lresogrp(ig) = FALSE
-    IF(ig .gt. nofg .and. ig .le. (nofg + norg)) lresogrp(ig) =TRUE
+    IF (ig.GT.nofg .AND. ig.LE.(nofg + norg)) lresogrp(ig) = TRUE
   ENDDO
 ENDIF
-SPHfac=1._8
 
+SPHfac = ONE
+! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED)                                                                                      &
 !$OMP PRIVATE(i, j, k, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr,                                                    &
 !$OMP         icel, ipin, ifxr, ifsr, ifsrlocal, itype, ig, tid, xsmactr, lres, lress, SPHfac)
 tid = omp_get_thread_num() + 1
 !$OMP DO SCHEDULE(DYNAMIC)
 DO ipin = xyb, xye
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-  icel = Pin(ipin)%Cell(iz)
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  icel      = Pin(ipin)%Cell(iz)
   nlocalFxr = CellInfo(icel)%nFxr 
+  
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j -1
+    ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    IF(lxslib) THEN
-      CALL MacXsBase(XSMac(tid), Fxr(ifxr), 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
+    ! ------------------------------------------------
+    IF (lxslib) THEN
+      CALL MacXsBase(XSMac(tid), Fxr(ifxr), 1, ng, ng, ONE, FALSE, TRUE, TRUE)
+      
       DO ig = 1, ng
-        lres = lresogrp(ig) .and. Fxr(ifxr)%lres
-        lress = lres .and. lRST
+        lres  = lresogrp(ig) .AND. Fxr(ifxr)%lres
+        lress = lres .AND. lRST
+        
         IF(lres) XsMac(tid)%XsMacA(ig) = XsMac(tid)%XsMacA(ig) * Fxr(ifxr)%fresoa(ig)
+        
         IF(lTrCorrection) THEN
           CALL BaseMacSTr(XsMac(tid), Fxr(ifxr), ig, ng, TRUE)  
+          
           IF(lress) XsMac(tid)%XsMacStr(ig) = XsMac(tid)%XsMacStr(ig) * Fxr(ifxr)%fresostr(ig)  
+          
           xsmactr(ig) = XsMac(tid)%XsMacA(ig) + XsMac(tid)%XsMacstr(ig)
         ELSE
-          IF(lress) XsMac(tid)%XsMacS(ig) = XsMac(tid)%XsMacS(ig) * Fxr(ifxr)%fresos(ig)
+          IF (lress) XsMac(tid)%XsMacS(ig) = XsMac(tid)%XsMacS(ig) * Fxr(ifxr)%fresos(ig)
+          
           xsmactr(ig) = XsMac(tid)%XsMacA(ig) + XsMac(tid)%XsMacs(ig)
-        ENDIF
-#ifdef inflow      
+        END IF
+#ifdef inflow
         xsmactr(ig) = xsmactr(ig) + fxr(ifxr)%Delinflow(ig)
 #endif
-      ENDDO
-      IF (lsSPH) THEN
+      END DO
+      
+      IF (lsSPH .AND. CellInfo(icel)%lsSPH) THEN
         DO ig = igresb, igrese
-          IF (CellInfo(icel)%lsSPH) THEN
-            IF (lsSPHreg) THEN
-              SPHfac(ig,j)=Fxr(ifxr)%SPHfactor(ig)
-            ELSE
-              SPHfac(ig,j)=CellInfo(icel)%SPHfactor(j,ig)
-            ENDIF
-            xsmactr(ig)=xsmactr(ig)*SPHfac(ig,j)
-          ENDIF
-        ENDDO
-      ENDIF
+          IF (lsSPHreg) THEN
+            SPHfac(ig, j) = Fxr(ifxr)%SPHfactor(ig)
+          ELSE
+            SPHfac(ig, j) = CellInfo(icel)%SPHfactor(j, ig)
+          END IF
+          
+          xsmactr(ig) = xsmactr(ig) * SPHfac(ig, j)
+        END DO
+      END IF
+    ! ----------------------------------------------------
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-      itype = Fxr(ifxr)%imix
-      IF(lTrCorrection) THEN
-        IF(TranCntl%lDynamicBen) THEN
+      itype     = Fxr(ifxr)%imix
+      
+      IF (lTrCorrection) THEN
+        IF (TranCntl%lDynamicBen) THEN
           xsmactr = GetXsTrDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng)
         ELSE
           xsmactr = GetXsTrBen(itype, 1, ng)
         END IF
       ELSE
-        IF(TranCntl%lDynamicBen) THEN
+        IF (TranCntl%lDynamicBen) THEN
           xsmactr = GetXsTDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng)
         ELSE
           xsmactr = GetXsTBen(itype, 1, ng)
         END IF
       END IF
-    ENDIF
+    END IF
+    ! ----------------------------------------------------
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      
       xstnm(:, ifsr) = xsmactr
-      IF (lsSPH) THEN
-        IF (CellInfo(icel)%lsSPH) ssphfnm(igresb:igrese,ifsr,iz) = SPHfac(igresb:igrese,j)
-      ENDIF
-    ENDDO
-  ENDDO
-ENDDO
+      
+      IF (lsSPH .AND. CellInfo(icel)%lsSPH) ssphfnm(igresb:igrese, ifsr, iz) = SPHfac(igresb:igrese, j)
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
-
+! ----------------------------------------------------
 DO i = 1, PE%nThread
   IF (XsMac(i)%lIsoAlloc) THEN
-    DEALLOCATE(XsMac(i)%IsoXsMacA,XsMac(i)%IsoXsMacf,XsMac(i)%ISoXsMacnf,XsMac(i)%IsoXsMacSS)
-    DEALLOCATE(XsMac(i)%IsoXsMacS1,XsMac(i)%IsoXsMacS0,XsMac(i)%IsoXsMackf)
-    DEALLOCATE(XsMac(i)%IsoXsMacT,XsMac(i)%IsoXsMacTr,XsMac(i)%IsoXsRadCap)
+    DEALLOCATE (XsMac(i)%IsoXsMacA,  XsMac(i)%IsoXsMacf,  XsMac(i)%ISoXsMacnf, XsMac(i)%IsoXsMacSS)
+    DEALLOCATE (XsMac(i)%IsoXsMacS1, XsMac(i)%IsoXsMacS0, XsMac(i)%IsoXsMackf)
+    DEALLOCATE (XsMac(i)%IsoXsMacT,  XsMac(i)%IsoXsMacTr, XsMac(i)%IsoXsRadCap)
   END IF
+  
   IF (XsMac(i)%lalloc) THEN
-    DEALLOCATE(XsMac(i)%xsmaca,XsMac(i)%xsmacf,XsMac(i)%xsmacnf,XsMac(i)%xsmackf)
-    DEALLOCATE(XsMac(i)%xsmacs,XsMac(i)%xsmacsm,XsMac(i)%xsmacstr)
-    DEALLOCATE(XsMac(i)%xsmacp1sm,XsMac(i)%xsmacp2sm,XsMac(i)%xsmacp3sm)
-    DEALLOCATE(XsMac(i)%xsmact,XsMac(i)%xsmactr,XsMac(i)%Chi)
+    DEALLOCATE (XsMac(i)%xsmaca,    XsMac(i)%xsmacf,    XsMac(i)%xsmacnf, XsMac(i)%xsmackf)
+    DEALLOCATE (XsMac(i)%xsmacs,    XsMac(i)%xsmacsm,   XsMac(i)%xsmacstr)
+    DEALLOCATE (XsMac(i)%xsmacp1sm, XsMac(i)%xsmacp2sm, XsMac(i)%xsmacp3sm)
+    DEALLOCATE (XsMac(i)%xsmact,    XsMac(i)%xsmactr,   XsMac(i)%Chi)
   END IF 
 END DO
-DEALLOCATE(XsMac)
 
-NULLIFY(Pin)
-NULLIFY(CellInfo)
+DEALLOCATE (XsMac)
+! ----------------------------------------------------
+NULLIFY (Pin)
+NULLIFY (CellInfo)
+! ----------------------------------------------------
 
 END SUBROUTINE SetRtMacXsNM
 ! ------------------------------------------------------------------------------------------------------------

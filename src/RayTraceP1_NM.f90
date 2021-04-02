@@ -81,12 +81,8 @@ IF (lfirst) THEN
 END IF
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, Ifsr, ipol, ig, srctmp)
+ithr = omp_get_thread_num() + 1
 
-ithr = 1
-
-!$ ithr = omp_get_thread_num()+1
-
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(4)
 DO iazi = 1, nAziAng
   DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
     DO ipol = 1, nPolarAng
@@ -116,7 +112,6 @@ DO iazi = 1, nAziAng
      END DO
   END DO
 END DO
-!$OMP END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 !$OMP PARALLEL PRIVATE(ithr, iRotRay, AziIdx)
@@ -160,7 +155,7 @@ DO krot = 1, 2
 END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-phisnm(gb:ge, :) = ZERO
+phisnm(gb:ge, :)    = ZERO
 phimnm(:, gb:ge, :) = ZERO
 
 IF (ljout) joutnm(:, gb:ge, :, :) = ZERO
@@ -522,6 +517,9 @@ nPolarAng = RayInfo%MultigridInfo(ilv)%nPolar
 mwt      => RayInfo%MultigridInfo(ilv)%mwt
 mwt2     => RayInfo%MultigridInfo(ilv)%mwt2
 
+PhiAngInSvIdx  = RayInfo%PhiAngInSvIdx (iRotRay, krot)
+PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
+
 hRotRay_Loc => hRotRay(iRotRay)
 nCoreRay     = hRotRay_Loc%ncRay
 
@@ -537,9 +535,6 @@ EXPB      => TrackingDat%EXPB
 SrcAngNM1 => TrackingDat%SrcAngnm1
 SrcAngNM2 => TrackingDat%SrcAngnm2
 locphiout  = TrackingDat%PhiAngInNM(:, gb:ge, PhiAnginSvIdx)
-
-PhiAngInSvIdx  = RayInfo%PhiAngInSvIdx (iRotRay, krot)
-PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 
 nod = 2
 IF (ScatOd .EQ. 2) nod = 5

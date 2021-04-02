@@ -310,9 +310,7 @@ ELSE
             IF (.NOT. lLSCASMO) THEN
               CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lScat1) THEN
-                CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
-              END IF
+              IF (lScat1) CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
             ELSE
               CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
             END IF

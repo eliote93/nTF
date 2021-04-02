@@ -3,255 +3,292 @@
 SUBROUTINE SetRtSrcGM(Core, Fxr, src, phis, psi, axsrc, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
 
 USE PARAM
-USE TYPEDEF,        ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
-                           pin_Type,               GroupInfo_Type,        PE_TYPE,        &
-                           XsMac_Type
-USE BenchXs,        ONLY : GetChiBen,              getChiDynBen,          xssben,                xssDynBen
+USE OMP_LIB
+USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, PE_TYPE, XsMac_Type
+USE BenchXs,        ONLY : GetChiBen, getChiDynBen, xssben, xssDynBen
 USE MacXsLib_mod,   ONLY : MacXsScatMatrix
 USE BasicOperation, ONLY : CP_CA
-USE CNTL,             ONLY : nTracerCntl
-USE OMP_LIB
+USE CNTL,           ONLY : nTracerCntl
 USE TRAN_MOD,       ONLY : TranInfo
+
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(GroupInfo_Type):: GroupInfo
-TYPE(PE_TYPE) :: PE
-REAL, POINTER :: src(:), phis(:, :, :), psi(:, :), AxSrc(:), xstr1g(:)
+TYPE(PE_TYPE)       :: PE
+
+TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:)     :: src, AxSrc, xstr1g
+REAL, POINTER, DIMENSION(:,:)   :: psi
+REAL, POINTER, DIMENSION(:,:,:) :: phis
+
 REAL :: eigv
+
 INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr, fsridx
-LOGICAL :: lxslib, lscat1, l3dim
-LOGICAL :: lNegFix
+LOGICAL :: lxslib, lscat1, l3dim, lNegFix
+! ----------------------------------------------------
+TYPE(XsMac_Type), SAVE, DIMENSION(nTHREADMAX) :: XsMac
 
+TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(XsMac_Type), SAVE :: XsMac(nTHREADMAX)
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nchi
 INTEGER :: ipin, icel, ifsrlocal, itype, ig2, tid
 INTEGER :: i, j, k
 
-REAL :: reigv
-REAL ::  chi(ng)
-REAL, POINTER :: xsmacsm(:,:)
-
-REAL :: psrc, pvol
-
 LOGICAL :: lNegSrcFix
-Pin => Core%Pin
-CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
 
-reigv = one/eigv
+REAL :: reigv, psrc, pvol
+
+REAL, DIMENSION(ng) ::  chi
+REAL, POINTER, DIMENSION(:,:) :: xsmacsm
+! ----------------------------------------------------
+
+Pin      => Core%Pin
+CellInfo => Core%CellInfo
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
+
+reigv = ONE / eigv
 
 lNegSrcFix = FALSE
 IF(lNegFix) lNegSrcFix = TRUE
 
-
-IF(.NOT. lxsLib) THEN
+IF (.NOT. lxsLib) THEN
   DO i = 1, PE%nThread
-    ALLOCATE(XsMac(i)%XsMacSm(ng, ng))
-  ENDDO
-ENDIF
-
-IF(lxsLib) nchi = GroupInfo%nchi
-
+    ALLOCATE (XsMac(i)%XsMacSm (ng, ng))
+  END DO
+ELSE
+  nchi = GroupInfo%nchi
+END IF
+! ----------------------------------------------------
 tid = 1
-!$  call omp_set_dynamic(.FALSE.)
+
+!$  call omp_set_dynamic(FALSE)
 !$  call omp_set_num_threads(PE%nThread)
+
 !$OMP PARALLEL DEFAULT(SHARED)      &
 !$OMP PRIVATE(i, j, k, ifsr, ifxr, ipin, icel, ifsrlocal, itype, ig2, tid, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, xsmacsm, chi, psrc, pvol, fsridx)
-!$  tid = omp_get_thread_num()+1
+!$  tid = omp_get_thread_num() + 1
 !$OMP DO
 DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-  icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
-  !Fission Source
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  icel      = Pin(ipin)%Cell(iz)
+  nlocalFxr = CellInfo(icel)%nFxr
+  ! --------------------------------------------------
+  ! Fission Source
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j -1
+    ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    IF(lXsLib) Then
-      IF(ig .gt. nchi) THEN
-        CHI(ig:ig) = 0
-      ELSE
-        CHI(ig:ig) = 0
-        IF(Fxr(ifxr)%ldepl) CHI(ig:ig) = Fxr(ifxr)%chi(ig)
-      ENDIF
+    
+    IF (lXsLib) Then
+      CHI(ig:ig) = 0
+      
+      IF (ig .LE. nchi .AND. Fxr(ifxr)%ldepl) CHI(ig:ig) = Fxr(ifxr)%chi(ig)
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-      !itype = CellInfo(icel)%iReg(ifsrlocal)
-      itype = Fxr(ifxr)%imix
+      itype     = Fxr(ifxr)%imix
+      
       IF(nTracerCntl%lDynamicBen) THEN
         CHI(ig:ig) = GetChiDynBen(itype, TranInfo%fuelTemp(ipin, iz), ig, ig)
       ELSE
-      CHI(ig:ig) = GetChiBen(itype, ig, ig)
-    ENDIF
-    ENDIF
+        CHI(ig:ig) = GetChiBen(itype, ig, ig)
+      END IF
+    END IF
 
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      
       src(ifsr) = reigv * chi(ig) * psi(ifsr, iz)
-    ENDDO !Fsr Sweep
-  ENDDO
+    END DO
+  END DO
+  ! --------------------------------------------------
   !Scattering Source Update
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j -1
+    ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    
     IF(lXsLib) Then
-      CALL MacXsScatMatrix(XsMac(tid), Fxr(ifxr), ig, ig, ng, GroupInfo, lscat1, .TRUE.)
+      CALL MacXsScatMatrix(XsMac(tid), Fxr(ifxr), ig, ig, ng, GroupInfo, lscat1, TRUE)
+      
       XsMacSm => XsMac(tid)%XsMacSm
 #ifdef inflow
       XsMacSm(ig, ig) = XsMacSm(ig, ig) + Fxr(ifxr)%DelInflow(ig)
 #endif
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-      !itype = CellInfo(icel)%iReg(ifsrlocal)
-      itype = Fxr(ifxr)%imix
-      XsMacSm => XsMac(tid)%XsMacSm
+      itype     = Fxr(ifxr)%imix
+      XsMacSm  => XsMac(tid)%XsMacSm
+      
       IF(nTracerCntl%lDynamicBen) THEN
         CALL xssDynben(itype, TranInfo%fuelTemp(ipin, iz), ig, 1, ng, XsMacsm, lscat1)
       ELSE
-      CALL xssben(itype, ig, 1, ng, XsMacsm, lscat1)
+        CALL xssben(itype, ig, 1, ng, XsMacsm, lscat1)
       END IF
-      !CHI(ig:ig) = GetChiBen(itype, ig, ig)
-    ENDIF
+    END IF
 
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      
       DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
-      !DO ig2 = 1, ng
         src(ifsr) = src(ifsr) + xsmacsm(ig2, ig)*phis(ifsr, iz, ig2)
-      ENDDO
-      IF(lNegSrcFix .AND. src(ifsr) .LT. 0._8) THEN
-        src(ifsr) = src(ifsr) - xsmacsm(ig, ig)*phis(ifsr, iz, ig)
+      END DO
+      
+      IF (lNegSrcFix .AND. src(ifsr) .LT. ZERO) THEN
+        src   (ifsr) = src   (ifsr) - xsmacsm(ig, ig) * phis(ifsr, iz, ig)
         xstr1g(ifsr) = xstr1g(ifsr) - xsmacsm(ig, ig)
-      ENDIF
-    ENDDO !Fsr Sweep
-
-  ENDDO !End of Fxr Sweep
-
+      END IF
+    END DO
+  END DO
+  ! --------------------------------------------------
   IF (l3dim) THEN
 #ifdef LkgSplit
-  SELECT CASE(nTracerCntl%LkgSplitLv)
-    CASE (4) ! radial split by D
-      !-- 1) calc. pinwise total source
-      psrc=0.0_8;
-      pvol=0.0_8;
+  SELECT CASE (nTracerCntl%LkgSplitLv)
+    CASE(0) ! default  : if AxSrc < 0
       DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
+        ifxr      = FxrIdxSt + j -1
         nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
         DO i = 1, nFsrInFxr
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
-          !-- D*phi proportional
-          psrc=psrc+(1._8/3._8/xstr1g(ifsr))*Cellinfo(icel)%Vol(fsridx);    ! pin-wise total source except axial source term
-          pvol=pvol+Cellinfo(icel)%Vol(fsridx)
-        ENDDO
-      ENDDO
-      psrc=psrc/pvol ! volume averaged source
-      DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
-        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-        DO i = 1, nFsrInFxr
-          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
-          src(ifsr) = src(ifsr)- AxSrc(ipin)*(1._8/3._8/xstr1g(ifsr))/psrc
-        ENDDO
-      ENDDO
-    CASE (3) ! radial split by Dphi
-      !-- 1) calc. pinwise total source
-      psrc=0.0_8;
-      pvol=0.0_8;
-      DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
-        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-        DO i = 1, nFsrInFxr
-          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
-          !-- D*phi proportional
-          psrc=psrc+(1._8/3._8/xstr1g(ifsr)*phis(ifsr, iz, ig))*Cellinfo(icel)%Vol(fsridx);    ! pin-wise total source except axial source term
-          pvol=pvol+Cellinfo(icel)%Vol(fsridx)
-        ENDDO
-      ENDDO
-      psrc=psrc/pvol ! volume averaged source
-      DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
-        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-        DO i = 1, nFsrInFxr
-          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
-          src(ifsr) = src(ifsr)- AxSrc(ipin)*(1._8/3._8/xstr1g(ifsr)*phis(ifsr, iz, ig))/psrc
-        ENDDO
-      ENDDO
-    CASE (2) ! radial split by src
-      !-- 1) calc. pinwise total source
-      psrc=0.0_8;
-      pvol=0.0_8;
-      DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
-        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-        DO i = 1, nFsrInFxr
-          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
-          !-- Source proportional
-          psrc=psrc+src(ifsr)*Cellinfo(icel)%Vol(fsridx);    ! pin-wise total source except axial source term
-          pvol=pvol+Cellinfo(icel)%Vol(fsridx)
-        ENDDO
-      ENDDO
-      psrc=psrc/pvol ! volume averaged source
-      DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
-        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-        DO i = 1, nFsrInFxr
-          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          fsridx=Cellinfo(icel)%MapFxr2FsrIdx(i, j)
-          src(ifsr) = src(ifsr)*(1.0_8- AxSrc(ipin)/psrc)
-        ENDDO
-      ENDDO
-    CASE(0) ! default  : if AxSrc<0
-      DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
-        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-        DO i = 1, nFsrInFxr
-          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-          IF(AxSrc(ipin) .LT. 0 .AND. .NOT. Fxr(ifxr)%lvoid) THEN
-            src(ifsr) = src(ifsr) - AxSrc(ipin)
-          ENDIF
-        ENDDO
-      ENDDO
+          
+          IF (AxSrc(ipin).LT.0 .AND. .NOT. Fxr(ifxr)%lvoid) src(ifsr) = src(ifsr) - AxSrc(ipin)
+        END DO
+      END DO
     CASE(1)
       DO j = 1, nLocalFxr
-        ifxr = FxrIdxSt + j -1
+        ifxr      = FxrIdxSt + j -1
         nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
         DO i = 1, nFsrInFxr
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          
           src(ifsr) = src(ifsr) - AxSrc(ipin)
-      ENDDO
-    ENDDO
-  ENDSELECT
+        END DO
+      END DO
+    CASE (2) ! radial split by src
+      !-- 1) calc. pinwise total source
+      psrc = ZERO
+      pvol = ZERO
+      
+      DO j = 1, nLocalFxr
+        ifxr      = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
+        DO i = 1, nFsrInFxr
+          ifsr    = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          
+          !-- Source proportional
+          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * src(ifsr) ! pin-wise total source except axial source term
+          pvol = pvol + Cellinfo(icel)%Vol(fsridx)
+        END DO
+      END DO
+      
+      psrc = psrc / pvol ! volume averaged source
+      
+      DO j = 1, nLocalFxr
+        ifxr      = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
+        DO i = 1, nFsrInFxr
+          ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          
+          src(ifsr) = src(ifsr) * (ONE - AxSrc(ipin) / psrc)
+        END DO
+      END DO
+    CASE (3) ! radial split by Dphi
+      !-- 1) calc. pinwise total source
+      psrc = ZERO
+      pvol = ZERO
+      
+      DO j = 1, nLocalFxr
+        ifxr      = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
+        DO i = 1, nFsrInFxr
+          ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          
+          !-- D*phi proportional
+          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xstr1g(ifsr) * phis(ifsr, iz, ig)) ! pin-wise total source except axial source term
+          pvol = pvol + Cellinfo(icel)%Vol(fsridx)
+        END DO
+      END DO
+      
+      psrc = psrc / pvol ! volume averaged source
+      
+      DO j = 1, nLocalFxr
+        ifxr      = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
+        DO i = 1, nFsrInFxr
+          ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          
+          src(ifsr) = src(ifsr) - AxSrc(ipin) * (ONE / 3._8 / xstr1g(ifsr) * phis(ifsr, iz, ig)) / psrc
+        END DO
+      END DO
+    CASE (4) ! radial split by D
+      !-- 1) calc. pinwise total source
+      psrc = ZERO
+      pvol = ZERO
+      
+      DO j = 1, nLocalFxr
+        ifxr      = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
+        DO i = 1, nFsrInFxr
+          ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          
+          !-- D*phi proportional
+          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xstr1g(ifsr)) ! pin-wise total source except axial source term
+          pvol = pvol + Cellinfo(icel)%Vol(fsridx)
+        END DO
+      END DO
+      
+      psrc = psrc / pvol ! volume averaged source
+      
+      DO j = 1, nLocalFxr
+        ifxr      = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+        
+        DO i = 1, nFsrInFxr
+          ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+          fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          
+          src(ifsr) = src(ifsr) - AxSrc(ipin) * (ONE / 3._8 / xstr1g(ifsr)) / psrc
+        END DO
+      END DO
+  END SELECT
 #endif
-  ENDIF
-
+  END IF
+! --------------------------------------------------
   DO j = 1, CellInfo(icel)%nFsr
     ifsr = FsrIdxSt + j - 1
-    src(ifsr) = src(ifsr)/xstr1g(ifsr)
-  ENDDO
-  NULLIFY(Xsmacsm)
-ENDDO !End of Pin
+    
+    src(ifsr) = src(ifsr) / xstr1g(ifsr)
+  END DO
+  
+  NULLIFY (Xsmacsm)
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
-
-IF(.NOT. lxsLib) THEN
+! ----------------------------------------------------
+IF (.NOT. lxsLib) THEN
   DO i = 1, PE%nThread
-    DEALLOCATE(Xsmac(i)%XsMacsm)
-  ENDDO
-ENDIF
+    DEALLOCATE (Xsmac(i)%XsMacsm)
+  END DO
+END IF
 
-NULLIFY(Pin)
-NULLIFY(CellInfo)
+NULLIFY (Pin)
+NULLIFY (CellInfo)
+! ----------------------------------------------------
 
 END SUBROUTINE SetRtSrcGM
 ! ------------------------------------------------------------------------------------------------------------
@@ -307,179 +344,203 @@ END SUBROUTINE PseudoAbsorptionGM
 SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm, phim, xstr1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
 USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
-                         pin_Type,               GroupInfo_Type,        XsMac_Type,     &
-                         PE_Type
-USE BenchXs,      ONLY : GetChiBen,              xssben,                                &
-                         xssm1ben,               xssm2ben,              xssm3ben,         &
-                         xssm1DynBen,            xssm2DynBen,           xssm3DynBen
-USE MacXsLib_mod, ONLY : MacP1XsScatMatrix,      MacP2XsScatMatrix,     MacP3XsScatMatrix
-USE XsUtil_mod,   ONLY : GetXsMacDat,            ReturnXsMacDat,        FreeXsMac
-USE BasicOperation, ONLY : CP_CA
 USE OMP_LIB
-USE TRAN_MOD,       ONLY : TranInfo,            TranCntl
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type, PE_Type
+USE BenchXs, ONLY : GetChiBen, xssben, xssm1ben, xssm2ben, xssm3ben, xssm1DynBen, xssm2DynBen, xssm3DynBen
+USE MacXsLib_mod,   ONLY : MacP1XsScatMatrix, MacP2XsScatMatrix, MacP3XsScatMatrix
+USE XsUtil_mod,     ONLY : GetXsMacDat, ReturnXsMacDat, FreeXsMac
+USE BasicOperation, ONLY : CP_CA
+USE TRAN_MOD,       ONLY : TranInfo, TranCntl
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
-REAL, POINTER :: srcm(:, :)
-REAL, POINTER :: phim(:, :, :, :)
-REAL, POINTER :: xstr1g(:)
-REAL :: eigv
-INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr
-LOGICAL :: lxslib, lscat1, l3dim
-INTEGER :: ScatOd
-TYPE(PE_Type) :: PE
+TYPE(CoreInfo_Type)  :: Core
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(PE_Type)        :: PE
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:)       :: xstr1g
+REAL, POINTER, DIMENSION(:,:)     :: srcm
+REAL, POINTER, DIMENSION(:,:,:,:) :: phim
+
+REAL :: eigv
+
+INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr, ScatOd
+LOGICAL :: lxslib, lscat1, l3dim
+! ----------------------------------------------------
 TYPE(XsMac_Type), POINTER :: XsMac
+
+TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
+
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nchi
 INTEGER :: ipin, icel, ifsrlocal, itype, ig2, tid
 INTEGER :: i, j, k
 
 REAL :: reigv
-REAL ::  chi(ng)
-REAL, POINTER :: XsMacP1sm(:,:), XsMacP2sm(:,:), XsMacP3sm(:,:)
 
-Pin => Core%Pin
+REAL, DIMENSION(ng) ::  chi
+
+REAL, POINTER, DIMENSION(:,:) :: XsMacP1sm, XsMacP2sm, XsMacP3sm
+! ----------------------------------------------------
+
+Pin      => Core%Pin
 CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
 
-reigv = one/eigv
-
-IF (ScatOd .EQ. 1) THEN
-  CALL CP_CA(srcm(:, :), zero, 2, nCoreFsr)
-ELSEIF (ScatOd .EQ. 2) THEN
-  CALL CP_CA(srcm(:, :), zero, 5, nCoreFsr)
-ELSEIF (ScatOd .EQ. 3) THEN
-  CALL CP_CA(srcm(:, :), zero, 9, nCoreFsr)
-ENDIF
+reigv = ONE / eigv
+srcm  = ZERO
 
 IF (lxsLib) nchi = GroupInfo%nchi
-!Fission Source Updates
+! ----------------------------------------------------
 tid = 1
-!Scattering Source Update
+
 !$  call omp_set_dynamic(.FALSE.)
 !$  call omp_set_num_threads(PE%nThread)
 !$OMP PARALLEL DEFAULT(SHARED)      &
 !$OMP PRIVATE(XsMac, i, j, k, ifsr, ifxr, ipin, icel, ifsrlocal, itype, ig2, tid, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, XsMacP1Sm, XsMacP2Sm, XsMacP3Sm)
-!$  tid = omp_get_thread_num()+1
-!Scattering Source Update
+!$  tid = omp_get_thread_num() + 1
 
 IF (.NOT. lxsLib) THEN
-  ALLOCATE(XsMacP1sm(ng, ng))
-  IF(ScatOd .GE. 2) ALLOCATE(XsMacP2sm(ng, ng))
-  IF(ScatOd .EQ. 3) ALLOCATE(XsMacP3sm(ng, ng))
-  CALL CP_CA(XsMacP1sm, zero, ng, ng)
-  IF(ScatOd .GE. 2) CALL CP_CA(XsMacP2sm, zero, ng, ng)
-  IF(ScatOd .EQ. 3) CALL CP_CA(XsMacP3sm, zero, ng, ng)
-ENDIF
+  ALLOCATE (XsMacP1sm (ng, ng))
+  
+  IF (ScatOd .GE. 2) ALLOCATE (XsMacP2sm (ng, ng))
+  IF (ScatOd .EQ. 3) ALLOCATE (XsMacP3sm (ng, ng))
+  
+  XsMacP1sm = ZERO
+  
+  IF (ScatOd .GE. 2) XsMacP2sm = ZERO
+  IF (ScatOd .EQ. 3) XsMacP3sm = ZERO
+END IF
 
 !$OMP DO
 DO ipin = 1, nxy
   CALL GetXsMacDat(XsMac, ng, TRUE)
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-  icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
+  
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  icel      = Pin(ipin)%Cell(iz)
+  nlocalFxr = CellInfo(icel)%nFxr
+  
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j -1
+    ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    IF(lXsLib) Then
+    
+    IF (lXsLib) Then
       CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
+      
       IF(ScatOd .GE. 2) CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
       IF(ScatOd .EQ. 3) CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
-      XsMacP1Sm => XsMac%XsMacP1Sm; XsMacP2Sm => XsMac%XsMacP2Sm; XsMacP3Sm => XsMac%XsMacP3Sm
+      
+      XsMacP1Sm => XsMac%XsMacP1Sm
+      XsMacP2Sm => XsMac%XsMacP2Sm
+      XsMacP3Sm => XsMac%XsMacP3Sm
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-      itype = Fxr(ifxr)%imix
-      IF(TranCntl%lDynamicBen) THEN
+      itype     = Fxr(ifxr)%imix
+      
+      IF (TranCntl%lDynamicBen) THEN
         CALL XsSm1DynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, XsMacP1Sm)
       ELSE
-      CALL XsSm1Ben(itype, 1, ng, 1, ng, XsMacP1Sm)
+        CALL XsSm1Ben(itype, 1, ng, 1, ng, XsMacP1Sm)
       END IF
-      IF(ScatOd .GE. 2) THEN
-        IF(TranCntl%lDynamicBen) THEN
+      
+      IF (ScatOd .GE. 2) THEN
+        IF (TranCntl%lDynamicBen) THEN
           CALL XsSm2DynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, XsMacP2Sm)   !!  OPTIMZIE
         ELSE
           CALL XsSm2Ben(itype, 1, ng, 1, ng, XsMacP2Sm)   !!  OPTIMZIE
         END IF
       END IF
-      IF(ScatOd .EQ. 3) THEN
-        IF(TranCntl%lDynamicBen) THEN
+
+      IF (ScatOd .EQ. 3) THEN
+        IF (TranCntl%lDynamicBen) THEN
           CALL XsSm3DynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, XsMacP3Sm)
         ELSE
           CALL XsSm3Ben(itype, 1, ng, 1, ng, XsMacP3Sm)
         END IF
       END IF
-    ENDIF
+    END IF
 
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      !DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
-      IF(ScatOd .EQ. 1) THEN
+      
+      IF (ScatOd .EQ. 1) THEN
         DO ig2 = 1, ng
            srcm(1, ifsr) = srcm(1, ifsr) + XsMacP1Sm(ig2, ig) * phim(1, ifsr, iz, ig2)
            srcm(2, ifsr) = srcm(2, ifsr) + XsMacP1Sm(ig2, ig) * phim(2, ifsr, iz, ig2)
-        ENDDO
-      ELSEIF(ScatOd .EQ. 2) THEN
+        END DO
+      ELSE IF(ScatOd .EQ. 2) THEN
         DO ig2 = 1, ng
           srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, iz, ig2)
           srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, iz, ig2)
-        ENDDO
-      ELSEIF(ScatOd .EQ. 3) THEN
+        END DO
+      ELSE IF(ScatOd .EQ. 3) THEN
         DO ig2 = 1, ng
           srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, iz, ig2)
           srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, iz, ig2)
           srcm(6:9, ifsr) = srcm(6:9, ifsr) + XsMacP3Sm(ig2, ig) * phim(6:9, ifsr, iz, ig2)
-        ENDDO
-      ENDIF
-
-    ENDDO !Fsr Sweep
-  ENDDO !End of Fxr Sweep
-  CALL ReturnXsMacDat(XsMac)   !Memory leak problem !! 17/01/09   big memory but stable
-ENDDO !End of Pin
+        END DO
+      END IF
+    END DO
+  END DO
+  
+  CALL ReturnXsMacDat(XsMac) !Memory leak problem !! 17/01/09   big memory but stable
+END DO
 !$OMP END DO
 
-IF(.NOT. lxsLib) DEALLOCATE(XsMacP1sm) ! modified because of crash! in benchmark XS
-IF(.NOT. lxsLib .AND. ScatOd .GE. 2) DEALLOCATE(XsMacP2sm)
-IF(.NOT. lxsLib .AND. ScatOd .EQ. 3) DEALLOCATE(XsMacP3sm)
+IF (.NOT. lxsLib) DEALLOCATE(XsMacP1sm) ! modified because of crash! in benchmark XS
+IF (.NOT. lxsLib .AND. ScatOd .GE. 2) DEALLOCATE(XsMacP2sm)
+IF (.NOT. lxsLib .AND. ScatOd .EQ. 3) DEALLOCATE(XsMacP3sm)
 !$OMP END PARALLEL
-!Axail Source Contribution
-IF(ScatOd .EQ. 1) THEN
+! ----------------------------------------------------
+! Axail Source Contribution
+IF (ScatOd .EQ. 1) THEN
   DO ipin = 1, nxy
-    FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+    FsrIdxSt = Pin(ipin)%FsrIdxSt
+    icel     = Pin(ipin)%Cell(iz);
+    
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1
+      
       srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xstr1g(ifsr)
-    ENDDO
-  ENDDO
-ELSEIF(ScatOd .EQ. 2) THEN
+    END DO
+  END DO
+ELSE IF (ScatOd .EQ. 2) THEN
   DO ipin = 1, nxy
-    FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+    FsrIdxSt = Pin(ipin)%FsrIdxSt
+    icel     = Pin(ipin)%Cell(iz)
+    
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1
+      
       srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xstr1g(ifsr)
       srcm(3:5, ifsr) = 5._8 * srcm(3:5, ifsr) / xstr1g(ifsr)
-    ENDDO
-  ENDDO
-ELSEIF(ScatOd .EQ. 3) THEN
+    END DO
+  END DO
+ELSE IF (ScatOd .EQ. 3) THEN
   DO ipin = 1, nxy
-    FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+    FsrIdxSt = Pin(ipin)%FsrIdxSt
+    icel     = Pin(ipin)%Cell(iz);
+    
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1
+      
       srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xstr1g(ifsr)
       srcm(3:5, ifsr) = 5._8 * srcm(3:5, ifsr) / xstr1g(ifsr)
       srcm(6:9, ifsr) = 7._8 * srcm(6:9, ifsr) / xstr1g(ifsr)
-    ENDDO
-  ENDDO
-ENDIF
+    END DO
+  END DO
+END IF
+! ----------------------------------------------------
+IF (lXslib) NULLIFY (XsMacP1Sm)
 
-IF(lXslib) NULLIFY(XsMacP1Sm)
-NULLIFY(Pin)
-NULLIFY(CellInfo)
+NULLIFY (Pin)
+NULLIFY (CellInfo)
+! ----------------------------------------------------
 
 END SUBROUTINE SetRtP1SrcGM
 ! ------------------------------------------------------------------------------------------------------------
