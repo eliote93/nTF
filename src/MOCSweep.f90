@@ -12,8 +12,7 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         RayTraceLS_CASMO, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, &
                         SetRtMacXsNM, SetRtSrcNM, AddBucklingNM, SetRtP1SrcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP,    &
                         phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, phimnm, srcmnm, &
-                        DcmpPhiAngIn, DcmpPhiAngOut, DcmpScatterXS, DcmpScatterBoundaryFlux, DcmpScatterSource, DcmpGatherBoundaryFlux, DcmpGatherFlux, DcmpGatherCurrent, DcmpLinkBoundaryFlux, &
-                        phissave, phimsave
+                        DcmpPhiAngIn, DcmpPhiAngOut, DcmpScatterXS, DcmpScatterBoundaryFlux, DcmpScatterSource, DcmpGatherBoundaryFlux, DcmpGatherFlux, DcmpGatherCurrent, DcmpLinkBoundaryFlux
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
@@ -44,7 +43,7 @@ REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
 
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn,    ifsr, iod ! DEBUG
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn
 INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
@@ -68,8 +67,6 @@ REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
 REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
 REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
-
-REAL, POINTER, DIMENSION(:,:,:) :: phimgm ! DEBUG, (iod, ig, ifsr)
 ! ----------------------------------------------------
 
 tmocst = nTracer_dclock(FALSE, FALSE)
@@ -104,7 +101,7 @@ nPolarAngle = RayInfo%nPolarAngle
 nPhiAngSv   = RayInfo%nPhiAngSv
 
 nginfo = 2
-IF(.NOT. GroupInfo%lUpScat) nginfo = 1
+IF (.NOT. GroupInfo%lUpScat) nginfo = 1
 
 ninn = 2
 IF (nTracerCntl%lHex) ninn = nInnMOCItr
@@ -146,12 +143,6 @@ IF (RTMASTER) THEN
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)
 END IF
-
-! DEBUG
-ALLOCATE (phissave (   Core%nCoreFsr, Core%nz, ng))
-ALLOCATE (phimsave (9, Core%nCoreFsr, Core%nz, ng))
-
-ALLOCATE (phimgm (9, ng, Core%nCoreFsr))
 ! ----------------------------------------------------
 IF (.NOT. nTracerCntl%lNodeMajor) THEN
   DO iout = 1, ItrCntl%MocItrCntl%nitermax
@@ -183,27 +174,9 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
       DO jswp = 1, nginfo
         GrpBeg = grpbndy(1, jswp)
         GrpEnd = grpbndy(2, jswp)
-        
-        phissave = phis ! DEBUG
-        IF (lscat1) phimsave = phim ! DEBUG
-        
+                
         DO iinn = 1, ninn
           ljout = iinn.EQ.ninn .OR. lmocUR
-          
-          DO ig = 1, ng
-            phisnm(ig, :) = phis(:, iz, ig)
-          END DO
-          
-          IF (lscat1) THEN
-            DO ifsr = 1, Core%nCoreFsr
-              DO ig = 1, ng
-                phimgm(:, ig, ifsr) = phim(:, ifsr, iz, ig)
-              END DO
-            END DO
-          END IF
-          
-          CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE) ! NOTICE
-          IF (lscat1) CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimgm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
           
           DO ig = GrpBeg, GrpEnd
             IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
@@ -212,14 +185,12 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (RTMASTER) THEN
               xst1g = xstnm(ig, :)
               
-              !CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
-              tsrc = srcnm(ig, :) ! DEBUG
+              CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
               PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
               
               IF (lscat1) phim1g = phim(:, :, iz, ig)
-              !IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
-              srcm = srcmnm(:,ig,:)
+              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
             END IF
             
             ! Ray Trace
@@ -377,7 +348,7 @@ IF (RTMASTER) THEN
   
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)
-ENDIF
+END IF
 
 ! UDD : eigv
 CALL UpdateEigv(Core, psi, psid, eigv, peigv, myzb, myze, PE)
@@ -414,7 +385,7 @@ IF (fiserr.LT.psiconv .AND. eigerr.LT.eigconv .AND. reserr.LT.resconv) THEN
   itrcntl%lconv = TRUE
   
   IF (nTracerCntl%lFeedBack) last_TH = TRUE
-ENDIF
+END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lCusping_MPI .AND. fiserr.LT.ItrCntl%decuspconv) nTracerCntl%lCusping_MPI = FALSE
 

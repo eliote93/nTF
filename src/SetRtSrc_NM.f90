@@ -60,7 +60,7 @@ IF (PRESENT(Offset)) off = Offset
 reigv = one / eigv
 
 lNegSrcFix = FALSE
-IF(lNegFix) lNegSrcFix = TRUE
+IF (lNegFix) lNegSrcFix = TRUE
 
 srcnm = zero
 
@@ -91,13 +91,13 @@ DO ipin = xyb, xye
       DO ig = gb, ge
         CHI(ig) = 0
         
-        IF(ig.LE.nchi .AND. Fxr(ifxr)%ldepl) CHI(ig) = Fxr(ifxr)%chi(ig)
+        IF (ig.LE.nchi .AND. Fxr(ifxr)%ldepl) CHI(ig) = Fxr(ifxr)%chi(ig)
       END DO
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1, j)
       itype     = Fxr(ifxr)%imix
       
-      IF(nTracerCntl%lDynamicBen) THEN
+      IF (nTracerCntl%lDynamicBen) THEN
         CHI(gb:ge) = GetChiDynBen(itype, TranInfo%fuelTemp(ipin, iz), gb, ge)
       ELSE
         CHI(gb:ge) = GetChiBen(itype, gb, ge)
@@ -117,14 +117,14 @@ DO ipin = xyb, xye
     ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     
-    IF(lXsLib) Then
+    IF (lXsLib) Then
       CALL MacXsScatMatrix(XsMac(tid), Fxr(ifxr), gb, ge, ng, GroupInfo, lscat1, TRUE)
       
       XsMacSm => XsMac(tid)%XsMacSm
 #ifdef inflow
       DO ig = gb, ge
         XsMacSm(ig, ig) = XsMacSm(ig, ig) + Fxr(ifxr)%DelInflow(ig)
-      ENDDO
+      END DO
 #endif
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
@@ -132,7 +132,7 @@ DO ipin = xyb, xye
       XsMacSm  => XsMac(tid)%XsMacSm
       
       DO ig = gb, ge
-        IF(nTracerCntl%lDynamicBen) THEN
+        IF (nTracerCntl%lDynamicBen) THEN
           CALL xssDynben(itype, TranInfo%fuelTemp(ipin, iz), ig, 1, ng, XsMacsm, lscat1)
         ELSE
           CALL xssben(itype, ig, 1, ng, XsMacsm, lscat1)
@@ -156,7 +156,7 @@ DO ipin = xyb, xye
     END DO
   END DO
   ! --------------------------------------------------
-  IF(l3dim) THEN
+  IF (l3dim) THEN
     IF (nTracerCntl%LkgSplitLv .EQ. 0) THEN
       DO j = 1, nLocalFxr
         ifxr      = FxrIdxSt + j -1

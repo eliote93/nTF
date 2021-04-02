@@ -36,9 +36,6 @@ INTEGER, POINTER, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap, OmpRayNum
 REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb
 REAL, TARGET, DIMENSION(1:12, -40000:0) :: EXPA_p, EXPB_p
 
-REAL, POINTER, DIMENSION(:,:,:)   :: phissave
-REAL, POINTER, DIMENSION(:,:,:,:) :: phimsave
-
 INTERFACE
 
 ! ------------------------------------------------------------------------------------------------------------

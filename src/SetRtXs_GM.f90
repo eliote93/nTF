@@ -94,7 +94,7 @@ DO ipin = 1, nxy
         IF (lress) XsMac(tid)%XsMacS(ig) = XsMac(tid)%XsMacS(ig) * Fxr(ifxr)%fresoS(ig)
         
         xsmactr(ig) = XsMac(tid)%XsMacA(ig) + XsMac(tid)%XsMacs(ig)
-      ENDIF
+      END IF
 #ifdef inflow
       xsmactr(ig) = xsmactr(ig) + fxr(ifxr)%Delinflow(ig)
 #endif
@@ -106,7 +106,7 @@ DO ipin = 1, nxy
         END IF
         
         xsmactr(ig) = xsmactr(ig) * SPHfac(j)
-      ENDIF
+      END IF
     ! ----------------------------------------------------
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
@@ -119,7 +119,7 @@ DO ipin = 1, nxy
           xsmactr(ig:ig) = GetXsTrBen(itype, ig, ig)
         END IF
       ELSE
-        IF(TranCntl%lDynamicBen) THEN
+        IF (TranCntl%lDynamicBen) THEN
           xsmactr(ig:ig) = GetXsTDynBen(itype, TranInfo%fuelTemp(ipin, iz), ig, ig)
         ELSE
           xsmactr(ig:ig) = GetXsTBen(itype, ig, ig)

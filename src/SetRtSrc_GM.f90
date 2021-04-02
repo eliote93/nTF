@@ -11,8 +11,6 @@ USE BasicOperation, ONLY : CP_CA
 USE CNTL,           ONLY : nTracerCntl
 USE TRAN_MOD,       ONLY : TranInfo
 
-USE MOC_MOD, ONLY : phissave
-
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
@@ -56,7 +54,7 @@ nxy       = Core%nxy
 reigv = ONE / eigv
 
 lNegSrcFix = FALSE
-IF(lNegFix) lNegSrcFix = TRUE
+IF (lNegFix) lNegSrcFix = TRUE
 
 IF (.NOT. lxsLib) THEN
   DO i = 1, PE%nThread
@@ -94,7 +92,7 @@ DO ipin = 1, nxy
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
       itype     = Fxr(ifxr)%imix
       
-      IF(nTracerCntl%lDynamicBen) THEN
+      IF (nTracerCntl%lDynamicBen) THEN
         CHI(ig:ig) = GetChiDynBen(itype, TranInfo%fuelTemp(ipin, iz), ig, ig)
       ELSE
         CHI(ig:ig) = GetChiBen(itype, ig, ig)
@@ -113,7 +111,7 @@ DO ipin = 1, nxy
     ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     
-    IF(lXsLib) Then
+    IF (lXsLib) Then
       CALL MacXsScatMatrix(XsMac(tid), Fxr(ifxr), ig, ig, ng, GroupInfo, lscat1, TRUE)
       
       XsMacSm => XsMac(tid)%XsMacSm
@@ -137,12 +135,10 @@ DO ipin = 1, nxy
       
       DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
         src(ifsr) = src(ifsr) + xsmacsm(ig2, ig) * phis(ifsr, iz, ig2)
-        !src(ifsr) = src(ifsr) + xsmacsm(ig2, ig) * phissave(ifsr, iz, ig2) DEBUG
       END DO
       
       IF (lNegSrcFix .AND. src(ifsr) .LT. ZERO) THEN
         src   (ifsr) = src   (ifsr) - xsmacsm(ig, ig) * phis(ifsr, iz, ig)
-        !src   (ifsr) = src   (ifsr) - xsmacsm(ig, ig) * phissave(ifsr, iz, ig) ! DEBUG
         xstr1g(ifsr) = xstr1g(ifsr) - xsmacsm(ig, ig)
       END IF
     END DO
@@ -220,7 +216,6 @@ DO ipin = 1, nxy
           
           !-- D*phi proportional
           psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xstr1g(ifsr) * phis(ifsr, iz, ig)) ! pin-wise total source except axial source term
-          !psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xstr1g(ifsr) * phissave(ifsr, iz, ig)) ! DEBUG
           pvol = pvol + Cellinfo(icel)%Vol(fsridx)
         END DO
       END DO
@@ -236,7 +231,6 @@ DO ipin = 1, nxy
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
           src(ifsr) = src(ifsr) - AxSrc(ipin) * (ONE / 3._8 / xstr1g(ifsr) * phis(ifsr, iz, ig)) / psrc
-          !src(ifsr) = src(ifsr) - AxSrc(ipin) * (ONE / 3._8 / xstr1g(ifsr) * phissave(ifsr, iz, ig)) / psrc ! DEBUG
         END DO
       END DO
     CASE (4) ! radial split by D
@@ -308,8 +302,6 @@ USE MacXsLib_mod,   ONLY : MacP1XsScatMatrix, MacP2XsScatMatrix, MacP3XsScatMatr
 USE XsUtil_mod,     ONLY : GetXsMacDat, ReturnXsMacDat, FreeXsMac
 USE BasicOperation, ONLY : CP_CA
 USE TRAN_MOD,       ONLY : TranInfo, TranCntl
-
-USE MOC_MOD, ONLY : phimsave
 
 IMPLICIT NONE
 
@@ -431,24 +423,17 @@ DO ipin = 1, nxy
         DO ig2 = 1, ng
           srcm(1, ifsr) = srcm(1, ifsr) + XsMacP1Sm(ig2, ig) * phim(1, ifsr, iz, ig2)
           srcm(2, ifsr) = srcm(2, ifsr) + XsMacP1Sm(ig2, ig) * phim(2, ifsr, iz, ig2)
-          !srcm(1, ifsr) = srcm(1, ifsr) + XsMacP1Sm(ig2, ig) * phimsave(1, ifsr, iz, ig2) ! DEBUG
-          !srcm(2, ifsr) = srcm(2, ifsr) + XsMacP1Sm(ig2, ig) * phimsave(2, ifsr, iz, ig) ! DEBUG
         END DO
       ELSE IF(ScatOd .EQ. 2) THEN
         DO ig2 = 1, ng
           srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, iz, ig2)
           srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, iz, ig2)
-          !srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phimsave(1:2, ifsr, iz, ig2) ! DEBUG
-          !srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phimsave(3:5, ifsr, iz, ig2) ! DEBUG
         END DO
       ELSE IF(ScatOd .EQ. 3) THEN
         DO ig2 = 1, ng
           srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, iz, ig2)
           srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, iz, ig2)
           srcm(6:9, ifsr) = srcm(6:9, ifsr) + XsMacP3Sm(ig2, ig) * phim(6:9, ifsr, iz, ig2)
-          !srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phimsave(1:2, ifsr, iz, ig2) ! DEBUG
-          !srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phimsave(3:5, ifsr, iz, ig2) ! DEBUG
-          !srcm(6:9, ifsr) = srcm(6:9, ifsr) + XsMacP3Sm(ig2, ig) * phimsave(6:9, ifsr, iz, ig2) ! DEBUG
         END DO
       END IF
     END DO

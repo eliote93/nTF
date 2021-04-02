@@ -51,15 +51,15 @@ xye = PE%myPinEnd ! Domain Dcmp + MPI
 
 ALLOCATE (XsMac (PE%nThread))
 
-IF(lxslib) THEN
+IF (lxslib) THEN
   nofg = GroupInfo%nofg
   norg = GroupInfo%norg
   
   DO ig = 1, ng
     lresogrp(ig) = FALSE
     IF (ig.GT.nofg .AND. ig.LE.(nofg + norg)) lresogrp(ig) = TRUE
-  ENDDO
-ENDIF
+  END DO
+END IF
 
 SPHfac = ONE
 ! ----------------------------------------------------
@@ -85,12 +85,12 @@ DO ipin = xyb, xye
         lres  = lresogrp(ig) .AND. Fxr(ifxr)%lres
         lress = lres .AND. lRST
         
-        IF(lres) XsMac(tid)%XsMacA(ig) = XsMac(tid)%XsMacA(ig) * Fxr(ifxr)%fresoa(ig)
+        IF (lres) XsMac(tid)%XsMacA(ig) = XsMac(tid)%XsMacA(ig) * Fxr(ifxr)%fresoa(ig)
         
-        IF(lTrCorrection) THEN
+        IF (lTrCorrection) THEN
           CALL BaseMacSTr(XsMac(tid), Fxr(ifxr), ig, ng, TRUE)  
           
-          IF(lress) XsMac(tid)%XsMacStr(ig) = XsMac(tid)%XsMacStr(ig) * Fxr(ifxr)%fresostr(ig)  
+          IF (lress) XsMac(tid)%XsMacStr(ig) = XsMac(tid)%XsMacStr(ig) * Fxr(ifxr)%fresostr(ig)  
           
           xsmactr(ig) = XsMac(tid)%XsMacA(ig) + XsMac(tid)%XsMacstr(ig)
         ELSE
@@ -554,16 +554,16 @@ DO ipin = xyb, xye
           END IF
         END IF
       END IF
-    ENDIF
+    END IF
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       xstnm(:, ifsr) = xsmactr
       IF (lsSPH) THEN
         IF (CellInfo(icel)%lsSPH) ssphfnm(igresb:igrese,ifsr,iz) = SPHfac(igresb:igrese,j)
-      ENDIF
-    ENDDO
-  ENDDO
-ENDDO
+      END IF
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 

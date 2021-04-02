@@ -275,16 +275,14 @@ ENDIF
 
 !--- CNJ Edit : Node Majors
 IF (nTracerCntl%lNodeMajor) THEN
-  !CALL Dmalloc(phisnm, ng, nFsr)
+  CALL Dmalloc(phisnm, ng, nFsr)
   CALL Dmalloc(PhiAngInnm, nPolar, ng, nPhiAngSv)
   CALL Dmalloc(MocJoutnm, 3, ng, nbd, nxy)
   !CALL Dmalloc(xstnm, ng, nFsr)
-  !CALL Dmalloc(srcnm, ng, nFsr)
+  CALL Dmalloc(srcnm, ng, nFsr)
 ENDIF
 
 CALL Dmalloc(xstnm, ng, nFsr)
-CALL Dmalloc(srcnm, ng, nFsr)
-CALL Dmalloc(phisnm, ng, nFsr)
 
 !--- CNJ Edit : Domain Decomposition
 IF (nTracerCntl%lDomainDcmp) THEN
