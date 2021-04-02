@@ -467,7 +467,7 @@ IF (.NOT. lxsLib .AND. ScatOd .EQ. 3) DEALLOCATE(XsMacP3sm)
 IF (ScatOd .EQ. 1) THEN
   DO ipin = 1, nxy
     FsrIdxSt = Pin(ipin)%FsrIdxSt
-    icel     = Pin(ipin)%Cell(iz);
+    icel     = Pin(ipin)%Cell(iz)
     
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1

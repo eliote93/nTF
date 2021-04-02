@@ -44,7 +44,7 @@ REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
 
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn,    ifsr ! DEBUG
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn,    ifsr, iod ! DEBUG
 INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
@@ -68,6 +68,8 @@ REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
 REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
 REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
+
+REAL, POINTER, DIMENSION(:,:,:) :: phimgm ! DEBUG, (iod, ig, ifsr)
 ! ----------------------------------------------------
 
 tmocst = nTracer_dclock(FALSE, FALSE)
@@ -145,13 +147,14 @@ IF (RTMASTER) THEN
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)
 END IF
 
+! DEBUG
 ALLOCATE (phissave (   Core%nCoreFsr, Core%nz, ng))
 ALLOCATE (phimsave (9, Core%nCoreFsr, Core%nz, ng))
+
+ALLOCATE (phimgm (9, ng, Core%nCoreFsr))
 ! ----------------------------------------------------
 IF (.NOT. nTracerCntl%lNodeMajor) THEN
   DO iout = 1, ItrCntl%MocItrCntl%nitermax
-    !tdel = ZERO
-    
     itrcntl%mocit = itrcntl%mocit + 1
     
     IF (Master) THEN
@@ -184,29 +187,43 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
         phissave = phis ! DEBUG
         IF (lscat1) phimsave = phim ! DEBUG
         
-        DO ig = GrpBeg, GrpEnd
-          !t1gst = nTracer_dclock(FALSE, FALSE)
+        DO iinn = 1, ninn
+          ljout = iinn.EQ.ninn .OR. lmocUR
           
-          IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
+          DO ig = 1, ng
+            phisnm(ig, :) = phis(:, iz, ig)
+          END DO
           
-          DO iinn = 1, ninn
-            ljout = iinn.EQ.ninn .OR. lmocUR
+          IF (lscat1) THEN
+            DO ifsr = 1, Core%nCoreFsr
+              DO ig = 1, ng
+                phimgm(:, ig, ifsr) = phim(:, ifsr, iz, ig)
+              END DO
+            END DO
+          END IF
+          
+          CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE) ! NOTICE
+          IF (lscat1) CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimgm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
+          
+          DO ig = GrpBeg, GrpEnd
+            IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
             
             ! SET : Src.
             IF (RTMASTER) THEN
               xst1g = xstnm(ig, :)
               
-              CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+              !CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+              tsrc = srcnm(ig, :) ! DEBUG
               
               PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
               
               IF (lscat1) phim1g = phim(:, :, iz, ig)
+              !IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
+              srcm = srcmnm(:,ig,:)
             END IF
             
             ! Ray Trace
             IF (.NOT. lLinSrc) THEN
-              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
-              
               IF (.NOT. lscat1) THEN
                 IF (lAFSS) THEN
                   CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
@@ -245,25 +262,10 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               CALL FluxInUnderRelaxation(Core, PhiANgIn1g, FmInfo%PhiAngIn, FmInfo%w(ig), nPolarAngle, nPhiAngSv, iz, ig, PE)
               CALL CurrentUnderRelaxation(Core, MocJout1g, RadJout, FmInfo%w(ig),iz, ig, PE)
             END IF
+            
+            IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
           END DO
-          
-          IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
         END DO
-        
-        !t1ged = nTracer_dclock(FALSE, FALSE)
-        !tdel  = tdel + t1ged - t1gst
-        
-        !IF (.NOT.lDmesg .AND. MOD(iG, 10).NE.0 .AND. ig.NE.nG) CYCLE
-        
-        !CALL MPI_MAX_REAL(tdel, PE%MPI_RTMASTER_COMM, TRUE)
-        
-        !IF (master) THEN
-        !  WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tdel, 'Sec'
-        !  
-        !  CALL message(io8, FALSE, TRUE, mesg)
-        !END IF
-        !
-        !tdel = ZERO
       END DO
     END DO
   END DO
@@ -271,8 +273,6 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
 ELSE
   DO iout = 1, ItrCntl%MocItrCntl%nitermax
     itrcntl%mocit = itrcntl%mocit + 1
-    
-    tngdel = ZERO
     
     IF (MASTER) THEN
       WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
@@ -311,8 +311,6 @@ ELSE
         GrpBeg = grpbndy(1, jswp)
         GrpEnd = grpbndy(2, jswp)
         
-        tngst = nTracer_dclock(FALSE, FALSE)
-        
         DO iinn = 1, ninn
           ljout = iinn .EQ. ninn
           
@@ -350,11 +348,6 @@ ELSE
           
           phisnm(ist:ied, :) = phisnm(ist:ied, :) * ssphfnm(ist:ied, :, iz)
         END DO
-        
-        tnged = nTracer_dclock(FALSE, FALSE)
-        tngdel(jswp) = tngdel(jswp) + (tnged - tngst)
-        
-        tnged = ZERO ! DEBUG
       END DO
       
 #ifdef MPI_ENV
@@ -374,21 +367,6 @@ ELSE
 #ifdef MPI_ENV
     CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
-    
-    ! CAL : Time
-    DO jswp = 1, nginfo
-      tdel = tngdel(jswp)
-      
-      CALL MPI_MAX_REAL(tdel, PE%MPI_NTRACER_COMM, TRUE)
-      
-      GrpBeg = grpbndy(1, jswp)
-      GrpEnd = grpbndy(2, jswp)
-      
-      IF (MASTER) THEN
-        WRITE (mesg,'(10X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tdel, 'Sec'
-        CALL message(io8, FALSE, TRUE, mesg)
-      END IF
-    END DO
   END DO
 END IF
 ! ----------------------------------------------------
