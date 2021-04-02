@@ -44,7 +44,7 @@ REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
 
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn,    ifsr ! DEBUG
 INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
@@ -166,6 +166,17 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     DO iz = myzb, myze
       IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
       
+      ! SET : XS
+      IF (RTMASTER) THEN
+        CALL SetRtMacXsNM(Core, Fxr(:, iz), xstnm, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
+#ifdef LkgSplit
+        CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
+#endif
+#ifdef Buckling
+        IF (lbsq) CALL AddBucklingNM(Core, Fxr, xstnm, nTracerCntl%bsq, iz, ng, lxslib, lRST)
+#endif
+      END IF
+      
       DO jswp = 1, nginfo
         GrpBeg = grpbndy(1, jswp)
         GrpEnd = grpbndy(2, jswp)
@@ -181,17 +192,10 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
           DO iinn = 1, ninn
             ljout = iinn.EQ.ninn .OR. lmocUR
             
-            ! SET : XS + Src.
+            ! SET : Src.
             IF (RTMASTER) THEN
-              CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
+              xst1g = xstnm(ig, :)
               
-#ifdef LkgSplit
-              CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig), AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
-#endif
-#ifdef Buckling
-              IF (lbsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%bsq, iz, ig, ng, lxslib, lRST)
-#endif
-
               CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
               PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
@@ -225,7 +229,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             END IF
             
             ! Spectral SPH
-            IF (lssph .AND. ig.GE.igresb .AND. ig.LE.igrese) phis1g = phis1g * ssphf(:, iz, ig)
+            IF (lssph .AND. ig.GE.igresb .AND. ig.LE.igrese) phis1g = phis1g * ssphfnm(ig, :, iz)
             
             ! CnP
             IF (.NOT. RTMASTER) CYCLE
@@ -295,7 +299,6 @@ ELSE
         IF (ldcmp)  DcmpPhiAngIn => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
         
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstnm, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
-        
 #ifdef LkgSplit
         CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
 #endif

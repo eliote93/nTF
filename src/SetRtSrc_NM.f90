@@ -209,59 +209,6 @@ NULLIFY (CellInfo)
 
 END SUBROUTINE SetRtSrcNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
-
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
-                         pin_Type,               GroupInfo_Type,        XsMac_Type
-USE PE_MOD,       ONLY : PE
-IMPLICIT NONE
-
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
-REAL, POINTER :: AxPXS(:, :, :), xstnm(:, :)
-REAL :: eigv
-INTEGER :: iz, ng
-LOGICAL :: l3dim
-
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
-REAL :: pAbXs, phiavg, vol
-INTEGER :: nCoreFsr, nCoreFxr, nxy
-INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
-INTEGER :: i, j, ipin, icel, ifsr, ifxr, ig
-INTEGER :: xyb, xye   !--- CNJ Edit : Domain Decomposition + MPI
-
-IF(.NOT. l3dim) RETURN
-
-Pin => Core%Pin
-CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
-xyb = PE%myPinBeg; xye = PE%myPinEnd   !--- CNJ Edit : Domain Decomposition + MPI
-
-DO ipin = xyb, xye
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
-  FxrIdxSt = Pin(ipin)%FxrIdxSt; nLocalFxr = CellInfo(icel)%nFxr
-  DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j - 1
-    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    DO i = 1, nFsrInFxr
-      ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      DO ig = 1, ng
-        IF(.NOT. Fxr(ifxr)%lVoid) xstnm(ig, ifsr) = xstnm(ig, ifsr) + AxPXS(ipin, iz, ig)
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-
-NULLIFY(Pin)
-NULLIFY(CellInfo)
-
-END SUBROUTINE PseudoAbsorptionNM
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimnm, xstnm, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
 
 USE PARAM

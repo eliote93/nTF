@@ -145,6 +145,55 @@ NULLIFY (CellInfo)
 
 END SUBROUTINE SetRtMacXsGM
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE PseudoAbsorptionGM(Core, Fxr, src, phis1g, AxPXS, xstr1g, iz, ig, ng, GroupInfo, l3dim)
+
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
+                         pin_Type,               GroupInfo_Type,        XsMac_Type
+IMPLICIT NONE
+
+TYPE(CoreInfo_Type) :: Core
+TYPE(FxrInfo_Type) :: Fxr(:)
+TYPE(GroupInfo_Type):: GroupInfo
+REAL :: phis1g(:), AxPXS(:)
+REAL, POINTER :: src(:), xstr1g(:)
+REAL :: eigv
+INTEGER :: myzb, myze, ig, ng, iz
+LOGICAL :: l3dim
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+REAL :: pAbXs, phiavg, vol, pSrc
+INTEGER :: nxy, nCoreFsr, nCoreFxr
+INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
+INTEGER :: i, j, ipin, icel, ifsr, ifxr
+
+IF(.NOT. l3dim) RETURN
+
+Pin => Core%Pin
+CellInfo => Core%CellInfo
+nCoreFsr = Core%nCoreFsr
+nCoreFxr = Core%nCoreFxr
+nxy = Core%nxy
+DO ipin = 1, nxy
+  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
+  FxrIdxSt = Pin(ipin)%FxrIdxSt; nLocalFxr = CellInfo(icel)%nFxr
+  pSrc=0
+  DO j = 1, nLocalFxr
+    ifxr = FxrIdxSt + j - 1
+    nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    DO i = 1, nFsrInFxr
+      ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      pSrc=pSrc+ xstr1g(ifsr)
+      IF(.NOT. Fxr(ifxr)%lVoid) xstr1g(ifsr) = xstr1g(ifsr)+AxPXS(ipin)
+    ENDDO
+  ENDDO
+ENDDO
+NULLIFY(Pin)
+NULLIFY(CellInfo)
+
+END SUBROUTINE PseudoAbsorptionGM
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddBucklingGM(Core, Fxr, xstr1g, bsq, iz, ig, ng, lxslib, lRST)
 
 USE PARAM
