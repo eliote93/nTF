@@ -2,10 +2,10 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
 
-USE PARAM
 USE TIMER
 USE ALLOCS
 USE OMP_LIB
+USE PARAM,       ONLY : TRUE, FALSE, ZERO, ONE
 USE TYPEDEF,     ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridInfo_Type
 USE ITRCNTL_MOD, ONLY : ItrCntl
 USE Moc_Mod,     ONLY : TrackingDat, SrcAngnm1, SrcAngnm2
@@ -15,8 +15,8 @@ USE CNTL,        ONLY : nTracerCntl
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type)  :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout, lDomainDcmp
@@ -28,9 +28,9 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 LOGICAL, SAVE :: lfirst
 DATA lfirst /TRUE/
 
-TYPE(Cell_Type),          POINTER, DIMENSION(:) :: Cell
-TYPE(Pin_Type),           POINTER, DIMENSION(:) :: Pin
-TYPE(MultigridInfo_Type), POINTER, DIMENSION(:) :: MultigridInfo
+TYPE (Cell_Type),          POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),           POINTER, DIMENSION(:) :: Pin
+TYPE (MultigridInfo_Type), POINTER, DIMENSION(:) :: MultigridInfo
 
 INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThread, scatod, nod
 INTEGER :: iRotRay, ipol, iazi, krot, AziIdx, ithr, FsrIdxSt, ipin, icel, ibd, ilv, ig, ifsr, jfsr, iray, iod
@@ -477,7 +477,6 @@ END SUBROUTINE RecTrackRotRayP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, krot, gb, ge, ScatOd)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, Pin_Type
 USE HexData, ONLY : hAsy
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
@@ -485,9 +484,9 @@ USE HexData, ONLY : haRay, hcRay, hRotRay, hAsyTypInfo
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type)     :: RayInfo
-TYPE(CoreInfo_Type)    :: CoreInfo
-TYPE(TrackingDat_Type) :: TrackingDat
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingDat
 
 LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: irotray, iz, ilv, krot, gb, ge, ScatOd
@@ -504,11 +503,11 @@ REAL, POINTER, DIMENSION(:,:)     :: phis, src, xst, EXPA, EXPB, wtang
 REAL, POINTER, DIMENSION(:,:,:)   :: phim, mwt, mwt2
 REAL, POINTER, DIMENSION(:,:,:,:) :: jout, SrcAngnm1, SrcAngnm2
 
-TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
+TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
 
-TYPE(Type_HexAsyRay), POINTER :: haRay_Loc
-TYPE(Type_HexCelRay), POINTER :: CelRay_Loc
-TYPE(Type_HexRotRay), POINTER :: hRotRay_Loc
+TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
+TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
+TYPE (Type_HexRotRay), POINTER :: hRotRay_Loc
 ! ----------------------------------------------------
 
 wtang    => RayInfo%MultigridInfo(ilv)%wtang

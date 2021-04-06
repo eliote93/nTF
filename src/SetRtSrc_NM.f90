@@ -2,8 +2,8 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcNM(Core, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz,gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
-USE PARAM
 USE OMP_LIB
+USE PARAM,        ONLY : ZERO, ONE, TRUE, FALSE, nThreadMax
 USE TYPEDEF,      ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, PE_TYPE, XsMac_Type
 USE BenchXs,      ONLY : GetChiBen, GetChiDynBen, xssben, xssDynBen
 USE MacXsLib_mod, ONLY : MacXsScatMatrix
@@ -12,11 +12,11 @@ USE TRAN_MOD,     ONLY : TranInfo
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(GroupInfo_Type):: GroupInfo
-TYPE(PE_TYPE)        :: PE
+TYPE (CoreInfo_Type) :: Core
+TYPE (GroupInfo_Type):: GroupInfo
+TYPE (PE_TYPE)        :: PE
 
-TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
+TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
 REAL, POINTER, DIMENSION(:,:)   :: srcnm, phisnm, psi, xstnm
 REAL, POINTER, DIMENSION(:,:,:) :: AxSrc
@@ -27,11 +27,10 @@ INTEGER :: gb, ge, ng, iz, ifsr, ifxr
 LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 INTEGER, OPTIONAL :: Offset
 ! ----------------------------------------------------
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
-TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
-TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
-
-TYPE(XsMac_Type), SAVE, DIMENSION(nThreadMax) :: XsMac
+TYPE (XsMac_Type), SAVE, DIMENSION(nThreadMax) :: XsMac
 
 INTEGER :: nCoreFsr, nCoreFxr, nxy, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nchi, xyb, xye, off
 INTEGER :: ipin, icel, ifsrlocal, itype, ig, ig2, tid
@@ -211,8 +210,8 @@ END SUBROUTINE SetRtSrcNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimnm, xstnm, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
 
-USE PARAM
 USE OMP_LIB
+USE PARAM,   ONLY : ZERO, ONE, TRUE, FALSE
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type, PE_Type
 USE BenchXs, ONLY : GetChiBen, xssben, xssm1ben, xssm2ben, xssm3ben, xssm1DynBen, xssm2DynBen, xssm3DynBen
 
@@ -223,11 +222,11 @@ USE TRAN_MOD,       ONLY : TranInfo, TranCntl
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type)  :: Core
-TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(PE_Type)        :: PE
+TYPE (CoreInfo_Type)  :: Core
+TYPE (GroupInfo_Type) :: GroupInfo
+TYPE (PE_Type)        :: PE
 
-TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
+TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
 REAL :: eigv
 

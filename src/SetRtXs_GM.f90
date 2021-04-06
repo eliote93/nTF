@@ -2,8 +2,8 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtMacXsGM(core, Fxr, xstr, iz, ig, ng, lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg, PE)
 
-USE PARAM
 USE OMP_LIB
+USE PARAM,        ONLY : TRUE, FALSE, ONE, nThreadMax
 USE TYPEDEF,      ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE, XsMac_Type
 USE Core_mod,     ONLY : GroupInfo
 USE BenchXs,      ONLY : GetXstrBen, GetXsTBen, GetXsTrDynBen,  GetXsTDynBen
@@ -147,142 +147,176 @@ END SUBROUTINE SetRtMacXsGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PseudoAbsorptionGM(Core, Fxr, src, phis1g, AxPXS, xstr1g, iz, ig, ng, GroupInfo, l3dim)
 
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
-                         pin_Type,               GroupInfo_Type,        XsMac_Type
+USE PARAM,   ONLY : ZERO
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
-REAL :: phis1g(:), AxPXS(:)
-REAL, POINTER :: src(:), xstr1g(:)
+TYPE (CoreInfo_Type) :: Core
+TYPE (GroupInfo_Type):: GroupInfo
+
+TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
+
+REAL, DIMENSION(:) :: phis1g, AxPXS
+
+REAL, POINTER, DIMENSION(:) :: src, xstr1g
+
 REAL :: eigv
 INTEGER :: myzb, myze, ig, ng, iz
 LOGICAL :: l3dim
+! ----------------------------------------------------
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo\
+
 REAL :: pAbXs, phiavg, vol, pSrc
-INTEGER :: nxy, nCoreFsr, nCoreFxr
-INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
+
+INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
 INTEGER :: i, j, ipin, icel, ifsr, ifxr
+! ----------------------------------------------------
 
-IF(.NOT. l3dim) RETURN
+IF (.NOT. l3dim) RETURN
 
-Pin => Core%Pin
+Pin      => Core%Pin
 CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
+
 DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
-  FxrIdxSt = Pin(ipin)%FxrIdxSt; nLocalFxr = CellInfo(icel)%nFxr
-  pSrc=0
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  icel      = Pin(ipin)%Cell(iz)
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  nLocalFxr = CellInfo(icel)%nFxr
+  
+  pSrc = ZERO
+  
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j - 1
+    ifxr      = FxrIdxSt + j - 1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      pSrc=pSrc+ xstr1g(ifsr)
-      IF(.NOT. Fxr(ifxr)%lVoid) xstr1g(ifsr) = xstr1g(ifsr)+AxPXS(ipin)
-    ENDDO
-  ENDDO
-ENDDO
+      pSrc = pSrc + xstr1g(ifsr)
+      
+      IF (.NOT. Fxr(ifxr)%lVoid) xstr1g(ifsr) = xstr1g(ifsr) + AxPXS(ipin)
+    END DO
+  END DO
+END DO
+
 NULLIFY(Pin)
 NULLIFY(CellInfo)
+! ----------------------------------------------------
 
 END SUBROUTINE PseudoAbsorptionGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddBucklingGM(Core, Fxr, xstr1g, bsq, iz, ig, ng, lxslib, lRST)
 
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,       Cell_Type,      pin_Type,      &
-                         Fxrinfo_type,        XsMac_Type
+USE PARAM,        ONLY : TRUE, FALSE, ONE, EPSM3
+USE TYPEDEF,      ONLY : coreinfo_type, Cell_Type, pin_Type, Fxrinfo_type, XsMac_Type
 USE Core_mod,     ONLY : GroupInfo
-USE BenchXs,      ONLY : GetXstrBen,          GetXstrDynBen  
-USE MacXsLib_mod,   ONLY : MacXsBase,  BaseMacSTr
-USE TRAN_MOD,     ONLY : TranInfo,            TranCntl
+USE BenchXs,      ONLY : GetXstrBen, GetXstrDynBen  
+USE MacXsLib_mod, ONLY : MacXsBase, BaseMacSTr
+USE TRAN_MOD,     ONLY : TranInfo, TranCntl
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
-REAL, POINTER :: xstr1g(:)
+TYPE (CoreInfo_Type) :: Core
+TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:) :: xstr1g
+
 INTEGER :: iz, ig, ng
 REAL :: Bsq
 LOGICAL :: lxslib, lRST
-TYPE(FxrInfo_Type), POINTER, SAVE :: myFxr
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(XsMac_Type), SAVE :: XsMac 
+! ----------------------------------------------------
+TYPE (FxrInfo_Type), POINTER, SAVE :: myFxr
+
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
+
+TYPE (XsMac_Type), SAVE :: XsMac 
+
 REAL :: XsD
 REAL :: xsmactr(ng)
-INTEGER :: nxy, nCoreFsr, nCoreFxr
-INTEGER :: FsrIdxSt, ipin, icel, ifsr, ifxr, itype, ifsrlocal
-INTEGER :: FxrIdxSt, nLocalFxr, nFsrInFxr
-INTEGER :: i, j
-INTEGER :: nofg, norg
+
+INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr, nofg, norg
+INTEGER :: ipin, icel, ifsr, ifxr, itype, ifsrlocal, i, j
 LOGICAL :: lresogrp, lres
+! ----------------------------------------------------
 
-Pin => Core%Pin
+Pin      => Core%Pin
 CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
 
-IF(lxslib) THEN
-  nofg = GroupInfo%nofg; norg = GroupInfo%norg
+IF (lxslib) THEN
+  nofg = GroupInfo%nofg
+  norg = GroupInfo%norg
+  
   lresogrp = FALSE
-  if(ig.gt.nofg.and.ig.le.(nofg+norg)) lresogrp =TRUE
-ENDIF
+  IF (ig.GT.nofg .AND. ig.LE.(nofg+norg)) lresogrp = TRUE
+END IF
 
 DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-  icel = Pin(ipin)%Cell(iz)
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  icel      = Pin(ipin)%Cell(iz)
   nlocalFxr = CellInfo(icel)%nFxr 
+  
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j -1
+    ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    !Get Transport XS
+    
+    ! Get Transport XS
     myFxr => Fxr(ifxr, iz)
+    
     IF(lxslib) THEN
-      
       !Obtain Absoprtion Xs
       CALL MacXsBase(XSMac, myFxr, ig, ig, ng, 1._8, FALSE, TRUE, TRUE)  
       CALL BaseMacSTr(XsMac, myFxr, ig, ng, TRUE)  
-      !Self-Sheilding Effect of Absorption XS
-      lres = lresogrp .and. myFxr%lres
+      
+      ! Self-Sheilding Effect of Absorption XS
+      lres = lresogrp .AND. myFxr%lres
+      
       IF(lres) THEN 
         XsMac%XsMacA(ig) = XsMac%XsMacA(ig) * myFxr%fresoa(ig)
+        
         IF (lRST) XsMac%XsMacStr(ig) = XsMac%XsMacStr(ig) * myFxr%fresostr(ig)
-      ENDIF
-      !Obtain Outgoing total XS(trasport Corrected)      
+      END IF
+      
+      ! Obtain Outgoing total XS(trasport Corrected)      
       xsmactr(ig) = XsMac%XsMacA(ig) + XsMac%XsMacstr(ig)
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-      !itype = CellInfo(icel)%iReg(ifsrlocal)
-      itype = myFxr%imix
-      IF(TranCntl%lDynamicBen) THEN
+      itype     = myFxr%imix
+      
+      IF (TranCntl%lDynamicBen) THEN
         xsmactr(ig:ig) = GetXsTrDynBen(itype, TranInfo%fuelTemp(ipin, iz), ig, ig)
       ELSE
         xsmactr(ig:ig) = GetXsTrBen(itype, ig, ig)
       END IF
-      !CALL xstrben(itype, ig, ig, xsmactr)
-    ENDIF
-    !Assgin  
+    END IF
+    
+    ! Assgin  
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      IF((xstr1g(ifsr)) .LT. epsm3) CYCLE
-      XsD = 1._8 / (3._8 * xsmactr(ig)); XsD = XsD*Bsq
+      
+      IF ((xstr1g(ifsr)) .LT. epsm3) CYCLE
+      
+      XsD = ONE / (3._8 * xsmactr(ig))
+      XsD = XsD * Bsq
+      
       xstr1g(ifsr) = xstr1g(ifsr) + XsD
-      !xstr(ifsr, iz) = xstr(ifsr, iz)
-    ENDDO
-  ENDDO !End of Fxr Sweep
-ENDDO !End of Pin Sweep
+    END DO
+  END DO
+END DO
 
-NULLIFY(Pin)
-NULLIFY(CellInfo)
-NULLIFY(myFxr)
+NULLIFY (Pin)
+NULLIFY (CellInfo)
+NULLIFY (myFxr)
+! ----------------------------------------------------
 
 END SUBROUTINE AddBucklingGM
 ! ------------------------------------------------------------------------------------------------------------

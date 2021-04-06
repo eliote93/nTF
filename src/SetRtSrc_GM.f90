@@ -2,8 +2,8 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcGM(Core, Fxr, src, phis, psi, axsrc, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
 
-USE PARAM
 USE OMP_LIB
+USE PARAM,          ONLY : ZERO, TRUE, FALSE, ONE, nTHREADMAX
 USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, PE_TYPE, XsMac_Type
 USE BenchXs,        ONLY : GetChiBen, getChiDynBen, xssben, xssDynBen
 USE MacXsLib_mod,   ONLY : MacXsScatMatrix
@@ -28,10 +28,10 @@ REAL :: eigv
 INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr, fsridx
 LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 ! ----------------------------------------------------
-TYPE(XsMac_Type), SAVE, DIMENSION(nTHREADMAX) :: XsMac
+TYPE (XsMac_Type), SAVE, DIMENSION(nTHREADMAX) :: XsMac
 
-TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
-TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nchi
 INTEGER :: ipin, icel, ifsrlocal, itype, ig2, tid
@@ -85,9 +85,9 @@ DO ipin = 1, nxy
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     
     IF (lXsLib) Then
-      CHI(ig:ig) = 0
+      CHI(ig:ig) = ZERO
       
-      IF (ig .LE. nchi .AND. Fxr(ifxr)%ldepl) CHI(ig:ig) = Fxr(ifxr)%chi(ig)
+      IF (ig.LE.nchi .AND. Fxr(ifxr)%ldepl) CHI(ig:ig) = Fxr(ifxr)%chi(ig)
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
       itype     = Fxr(ifxr)%imix
@@ -155,7 +155,7 @@ DO ipin = 1, nxy
         DO i = 1, nFsrInFxr
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           
-          IF (AxSrc(ipin).LT.0 .AND. .NOT. Fxr(ifxr)%lvoid) src(ifsr) = src(ifsr) - AxSrc(ipin)
+          IF (AxSrc(ipin).LT.0 .AND. .NOT.Fxr(ifxr)%lvoid) src(ifsr) = src(ifsr) - AxSrc(ipin)
         END DO
       END DO
     CASE(1)
@@ -294,8 +294,8 @@ END SUBROUTINE SetRtSrcGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm, phim, xstr1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
-USE PARAM
 USE OMP_LIB
+USE PARAM,   ONLY : ZERO, TRUE, FALSE, ONE
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type, PE_Type
 USE BenchXs, ONLY : GetChiBen, xssben, xssm1ben, xssm2ben, xssm3ben, xssm1DynBen, xssm2DynBen, xssm3DynBen
 USE MacXsLib_mod,   ONLY : MacP1XsScatMatrix, MacP2XsScatMatrix, MacP3XsScatMatrix
@@ -320,10 +320,10 @@ REAL :: eigv
 INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim
 ! ----------------------------------------------------
-TYPE(XsMac_Type), POINTER :: XsMac
+TYPE (XsMac_Type), POINTER :: XsMac
 
-TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
-TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nchi
 INTEGER :: ipin, icel, ifsrlocal, itype, ig2, tid
@@ -349,7 +349,7 @@ IF (lxsLib) nchi = GroupInfo%nchi
 ! ----------------------------------------------------
 tid = 1
 
-!$  call omp_set_dynamic(.FALSE.)
+!$  call omp_set_dynamic(FALSE)
 !$  call omp_set_num_threads(PE%nThread)
 !$OMP PARALLEL DEFAULT(SHARED)      &
 !$OMP PRIVATE(XsMac, i, j, k, ifsr, ifxr, ipin, icel, ifsrlocal, itype, ig2, tid, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, XsMacP1Sm, XsMacP2Sm, XsMacP3Sm)
@@ -383,8 +383,8 @@ DO ipin = 1, nxy
     IF (lXsLib) Then
       CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
       
-      IF(ScatOd .GE. 2) CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
-      IF(ScatOd .EQ. 3) CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
+      IF (ScatOd .GE. 2) CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
+      IF (ScatOd .EQ. 3) CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr), ig, ig, ng, GroupInfo)
       
       XsMacP1Sm => XsMac%XsMacP1Sm
       XsMacP2Sm => XsMac%XsMacP2Sm
@@ -406,7 +406,7 @@ DO ipin = 1, nxy
           CALL XsSm2Ben(itype, 1, ng, 1, ng, XsMacP2Sm)   !!  OPTIMZIE
         END IF
       END IF
-
+      
       IF (ScatOd .EQ. 3) THEN
         IF (TranCntl%lDynamicBen) THEN
           CALL XsSm3DynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, XsMacP3Sm)

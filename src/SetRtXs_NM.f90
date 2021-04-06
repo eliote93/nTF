@@ -2,8 +2,8 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtMacXsNM(core, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
-USE PARAM
 USE OMP_LIB
+USE PARAM,        ONLY : TRUE, FALSE, ONE
 USE TYPEDEF,      ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, PE_TYPE, XsMac_Type
 USE Core_mod,     ONLY : GroupInfo
 USE BenchXs,      ONLY : GetXstrBen, GetXsTrDynBen, GetXsTBen, GetXsTDynBen
@@ -14,15 +14,15 @@ USE TRAN_MOD,     ONLY : TranInfo, TranCntl
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: Core
-TYPE(Fxrinfo_type), DIMENSION(:) :: Fxr
-TYPE(PE_TYPE) :: PE
+TYPE (coreinfo_type) :: Core
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+TYPE (PE_TYPE) :: PE
 
 INTEGER :: iz, ng
 LOGICAL :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 ! ----------------------------------------------------
-TYPE(Pin_Type),  POINTER, DIMENSION(:) :: Pin
-TYPE(Cell_Type), POINTER, DIMENSION(:) :: CellInfo
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
 INTEGER :: nCoreFxr, nCoreFsr, nxy, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nofg, norg, xyb, xye
 INTEGER :: icel, ipin, ifxr, ifsr, ifsrlocal, itype, ig, tid
@@ -171,147 +171,181 @@ END SUBROUTINE SetRtMacXsNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
 
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
-                         pin_Type,               GroupInfo_Type,        XsMac_Type
-USE PE_MOD,       ONLY : PE
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
+USE PE_MOD,  ONLY : PE
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
-REAL, POINTER :: AxPXS(:, :, :), xstnm(:, :)
+TYPE (CoreInfo_Type) :: Core
+TYPE (GroupInfo_Type):: GroupInfo
+
+TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)   :: xstnm
+REAL, POINTER, DIMENSION(:,:,:) :: AxPXS
+
 REAL :: eigv
 INTEGER :: iz, ng
 LOGICAL :: l3dim
+! ----------------------------------------------------
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
 REAL :: pAbXs, phiavg, vol
-INTEGER :: nCoreFsr, nCoreFxr, nxy
-INTEGER :: FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr
+
+INTEGER :: nCoreFsr, nCoreFxr, nxy, FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr, xyb, xye
 INTEGER :: i, j, ipin, icel, ifsr, ifxr, ig
-INTEGER :: xyb, xye   !--- CNJ Edit : Domain Decomposition + MPI
+! ----------------------------------------------------
 
-IF(.NOT. l3dim) RETURN
+IF (.NOT. l3dim) RETURN
 
-Pin => Core%Pin
+Pin      => Core%Pin
 CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
-xyb = PE%myPinBeg; xye = PE%myPinEnd   !--- CNJ Edit : Domain Decomposition + MPI
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
+
+xyb = PE%myPinBeg ! CNJ Edit : Domain Decomposition + MPI
+xye = PE%myPinEnd
 
 DO ipin = xyb, xye
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; icel = Pin(ipin)%Cell(iz);
-  FxrIdxSt = Pin(ipin)%FxrIdxSt; nLocalFxr = CellInfo(icel)%nFxr
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  icel      = Pin(ipin)%Cell(iz);
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  nLocalFxr = CellInfo(icel)%nFxr
+  
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j - 1
+    ifxr      = FxrIdxSt + j - 1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      
       DO ig = 1, ng
-        IF(.NOT. Fxr(ifxr)%lVoid) xstnm(ig, ifsr) = xstnm(ig, ifsr) + AxPXS(ipin, iz, ig)
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
+        IF (.NOT. Fxr(ifxr)%lVoid) xstnm(ig, ifsr) = xstnm(ig, ifsr) + AxPXS(ipin, iz, ig)
+      END DO
+    END DO
+  END DO
+END DO
 
 NULLIFY(Pin)
 NULLIFY(CellInfo)
+! ----------------------------------------------------
 
 END SUBROUTINE PseudoAbsorptionNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddBucklingNM(Core, Fxr, xstnm, bsq, iz, ng, lxslib, lRST)
 
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,       Cell_Type,      pin_Type,      &
-                         Fxrinfo_type,        XsMac_Type
+USE PARAM,        ONLY : TRUE, FALSE, EPSM3, ONE
+USE TYPEDEF,      ONLY : coreinfo_type, Cell_Type, pin_Type, Fxrinfo_type, XsMac_Type
 USE Core_mod,     ONLY : GroupInfo
-USE BenchXs,      ONLY : GetXstrBen,          GetXstrDynBen
-USE MacXsLib_mod, ONLY : MacXsBase,           BaseMacSTr
+USE BenchXs,      ONLY : GetXstrBen, GetXstrDynBen
+USE MacXsLib_mod, ONLY : MacXsBase, BaseMacSTr
 USE PE_MOD,       ONLY : PE
-USE TRAN_MOD,     ONLY : TranInfo,            TranCntl
+USE TRAN_MOD,     ONLY : TranInfo, TranCntl
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
-REAL, POINTER :: xstnm(:, :)
+TYPE (CoreInfo_Type) :: Core
+TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:) :: xstnm
 INTEGER :: iz, ng
 REAL :: Bsq
 LOGICAL :: lxslib, lRST
+! ----------------------------------------------------
+TYPE (FxrInfo_Type), POINTER, SAVE :: myFxr
+TYPE (Pin_Type),     POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type),    POINTER, DIMENSION(:) :: CellInfo
 
-TYPE(FxrInfo_Type), POINTER, SAVE :: myFxr
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
-TYPE(XsMac_Type), SAVE :: XsMac 
+TYPE (XsMac_Type), SAVE :: XsMac 
+
 REAL :: XsD
 REAL :: xsmactr(ng)
-INTEGER :: nCoreFsr, nCoreFxr, nxy
-INTEGER :: FsrIdxSt, ipin, icel, ifsr, ifxr, itype, ifsrlocal, ig
-INTEGER :: FxrIdxSt, nLocalFxr, nFsrInFxr
-INTEGER :: i, j
-INTEGER :: nofg, norg
-INTEGER :: xyb, xye   !--- CNJ Edit : Domain Decomposition + MPI
+
+INTEGER :: nCoreFsr, nCoreFxr, nxy, FsrIdxSt, FxrIdxSt, nLocalFxr, nFsrInFxr, nofg, norg, xyb, xye
+INTEGER :: i, j, ipin, icel, ifsr, ifxr, itype, ifsrlocal, ig
 LOGICAL :: lresogrp(ng), lres
+! ----------------------------------------------------
 
-Pin => Core%Pin
+Pin      => Core%Pin
 CellInfo => Core%CellInfo
-nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
-xyb = PE%myPinBeg; xye = PE%myPinEnd   !--- CNJ Edit : Domain Decomposition + MPI
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
+nxy       = Core%nxy
 
-IF(lxslib) THEN
-  nofg = GroupInfo%nofg; norg = GroupInfo%norg
+xyb = PE%myPinBeg ! CNJ Edit : Domain Decomposition + MPI
+xye = PE%myPinEnd
+
+IF (lxslib) THEN
+  nofg = GroupInfo%nofg
+  norg = GroupInfo%norg
+  
   DO ig = 1, ng
     lresogrp(ig) = FALSE
-    if(ig .gt. nofg .and. ig .le. (nofg + norg)) lresogrp(ig) =TRUE
-  ENDDO
-ENDIF
+    
+    IF (ig.GT.nofg .AND. ig.LE.(nofg + norg)) lresogrp(ig) = TRUE
+  END DO
+END IF
 
 DO ipin = xyb, xye
-  FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-  icel = Pin(ipin)%Cell(iz)
+  FsrIdxSt  = Pin(ipin)%FsrIdxSt
+  FxrIdxSt  = Pin(ipin)%FxrIdxSt
+  icel      = Pin(ipin)%Cell(iz)
   nlocalFxr = CellInfo(icel)%nFxr 
+  
   DO j = 1, nLocalFxr
-    ifxr = FxrIdxSt + j -1
+    ifxr      = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
+    
     myFxr => Fxr(ifxr, iz)
-    IF(lxslib) THEN
+    
+    IF (lxslib) THEN
       CALL MacXsBase(XSMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)
+      
       DO ig = 1, ng
         CALL BaseMacSTr(XsMac, myFxr, ig, ng, TRUE)  
-        lres = lresogrp(ig) .and. myFxr%lres
-        IF(lres) THEN 
+        
+        lres = lresogrp(ig) .AND. myFxr%lres
+        
+        IF (lres) THEN 
           XsMac%XsMacA(ig) = XsMac%XsMacA(ig) * myFxr%fresoa(ig)
+          
           IF (lRST) XsMac%XsMacStr(ig) = XsMac%XsMacStr(ig) * myFxr%fresostr(ig)
-        ENDIF
+        END IF
+        
         xsmactr(ig) = XsMac%XsMacA(ig) + XsMac%XsMacstr(ig)
-      ENDDO
+      END DO
     ELSE
       ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1, j)
-      itype = myFxr%imix
-      IF(TranCntl%lDynamicBen) THEN
+      itype     = myFxr%imix
+      
+      IF (TranCntl%lDynamicBen) THEN
         xsmactr = GetXsTrDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng)
       ELSE
         xsmactr = GetXsTrBen(itype, 1, ng)
       END IF
-    ENDIF
+    END IF
+    
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
+      
       DO ig = 1, ng
-        IF((xstnm(ig, ifsr)) .LT. epsm3) CYCLE
-        XsD = 1._8 / (3._8 * xsmactr(ig)); XsD = XsD * Bsq
+        IF ((xstnm(ig, ifsr)) .LT. epsm3) CYCLE
+        
+        XsD = ONE / (3._8 * xsmactr(ig))
+        XsD = XsD * Bsq
+        
         xstnm(ig, ifsr) = xstnm(ig, ifsr) + XsD
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
+      END DO
+    END DO
+  END DO
+END DO
 
 NULLIFY(Pin)
 NULLIFY(CellInfo)
 NULLIFY(myFxr)
+! ----------------------------------------------------
 
 END SUBROUTINE AddBucklingNM
 ! ------------------------------------------------------------------------------------------------------------
