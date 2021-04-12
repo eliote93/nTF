@@ -538,7 +538,7 @@ DO ibank = 1, nCrBank
       IF(lplnchg(iz) .NE. 1 .AND. CellInfo(Pin(ixy)%Cell(iz))%lAIC) THEN 
         lplnchg(iz) = 1
       END IF
-      IF(CellInfo(icel)%lAIC .NE. CellInfo(Pin(ixy)%Cell(iz))%lAIC) THEN
+      IF(CellInfo(icel)%lAIC .NEQV. CellInfo(Pin(ixy)%Cell(iz))%lAIC) THEN
         IF(.NOT. CellInfo(icel)%lAIC) THEN
           Core%lAICPlane(iz) = .TRUE.
         ELSEIF(lplnchg(iz) .EQ. 0) THEN
@@ -562,7 +562,7 @@ DO ibank = 1, nCrBank
           ELSE
             CALL ChangeMixture(Fxr(ifxr, iz), imix_cr, imix, wt(iz), wt0(iz), lComplete(iz))
           END IF
-          IF(Fxr(ifxr,iz)%lCrRes) lpinchg = Fxr(ifxr, iz)%lRes .NE. lres0
+          IF(Fxr(ifxr,iz)%lCrRes) lpinchg = Fxr(ifxr, iz)%lRes .NEQV. lres0
         ELSE
           CALL terminate('CNTLROD BLOCK for BENCHMARK is not supported')
         END IF

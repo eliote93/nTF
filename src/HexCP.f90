@@ -147,7 +147,7 @@ DO iCel = 1, nCellType
     Cel_Loc%Geom%nCircle = nSub - 1 ! # of Sub-Rings
     
     CALL dmalloc(Cel_Loc%geom%Circle, 3, Cel_Loc%geom%nCircle)
-        
+    
     DO iSub = 1, Cel_Loc%Geom%nCircle
       Cel_Loc%geom%Circle(3, iSub) = cBs_Loc%sRad(iSub + 1)
     END DO

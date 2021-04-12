@@ -136,7 +136,7 @@ SUBROUTINE GCInit(Core, CmInfo, ng)
     u238n2n=0.;u238phi=0.0
     u238n2nMG = 0.; u238n2nFG = 0.; u238phiMG = 0.; u238phiFG = 0. !-- HHS 19/02/12
 
-    IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+    IF (nTracerCntl%lTranON) THEN
       ALLOCATE(KinParMac_beta(0:nisotot,8), KinParMac_velo(0:nisotot,ng), KinParMac_ChiD(0:nisotot,ng), KinParMac_ChiDg(0:nisotot,ng,8))
       ALLOCATE(KinParMac_velo2g(0:nisotot,ngrp), KinParMac_velo2gAdj(0:nisotot,ngrp), KinParMac_ChiDg2g(0:nisotot,ngrp,8))
       ALLOCATE(KinParMac_betaeff(0:nisotot,8))

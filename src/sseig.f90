@@ -492,7 +492,7 @@ ENDIF
 IF(nTracerCntl%lGC .AND. (lEFT_GCGEN.OR..NOT.nTracerCntl%lEFTSearch)) THEN
     WRITE(mesg, '(A)') 'Generating Group Constants ...'
     CALL message(io8, TRUE, TRUE, mesg)
-    IF (nTracerCntl%lTranON .EQ. TRUE) THEN
+    IF (nTracerCntl%lTranON) THEN
     CALL AllocTransient()
     CALL KinParamGen(Core, FmInfo, TranInfo, ThInfo, GroupInfo, .TRUE., nTracerCntl, PE)
     IF(nTRACERCntl%lXsLib) THEN

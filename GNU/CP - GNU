@@ -19,7 +19,7 @@ MKL_DEFINE = -D__INTEL_MKL
 IDIR = -I$(MKL_DIR)/include
 endif
 
-MPI_PATH = /usr/local/openmpi-2.1.0-gcc
+MPI_PATH = /usr/local/openmpi-gcc
 EXE = nTRACER
 FC = $(MPI_PATH)/bin/mpif90
 IDIR += -I./src -I$(MPI_PATH)/include

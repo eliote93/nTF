@@ -205,8 +205,8 @@ SUBROUTINE GCCon(ng, lPinGC)
         ChiG(gidx)=ChiG(gidx)+isoMacXs(0,6,ig)
     ENDDO
 
-    IF (lPinGC .EQ. .TRUE.) THEN
-      IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+    IF (lPinGC) THEN
+      IF (nTracerCntl%lTranON) THEN
         KinParMac_velo2g = 0._8; KinParMac_velo2gAdj = 0._8
         ixyl= AsyInfo(iasytype)%Pin2DIdx(xbg, yst)
         ixy = Asy(iasy)%GlobalPinIdx(ixyl)

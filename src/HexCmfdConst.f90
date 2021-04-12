@@ -508,35 +508,43 @@ ALLOCATE (superPin (nxy))
 DO ixy = 1, nxy
   sPin_Loc => superPin(ixy)
   cPin_Loc => hcPin(ixy)
-
+  
   ! Garbage
   sPin_Loc%nx = 0
   sPin_Loc%ny = 0
   sPin_Loc%ix = 0
   sPin_Loc%iy = 0
-
+  
   ! CP
   sPin_Loc%nxy = cPin_Loc%nmPin
-
-  CALL dmalloc(sPin_Loc%pin, 3)
-
+  
+  CALL dmalloc(sPin_Loc%pin,             3)
+  CALL dmalloc(sPin_Loc%neighidx,       15)
+  CALL dmalloc(sPin_Loc%neighsurfidx,   15)
+  CALL dmalloc(sPin_Loc%BDLength,        6)
+  CALL dmalloc(sPin_Loc%Center2SurfaceL, 6)
+  
   ! SELF
-  sPin_Loc%pin             = cPin_Loc%mpIdx  ! MOC Pin
-  sPin_Loc%Area            = cPin_Loc%Area
-  sPin_Loc%BdLength        = cPin_Loc%BdLgh
-  sPin_Loc%Center2SurfaceL = cPin_Loc%BdC2B
-
+  sPin_Loc%pin  = cPin_Loc%mpIdx  ! MOC Pin
+  sPin_Loc%Area = cPin_Loc%Area
+  
+  sPin_Loc%BdLength(1:6) = cPin_Loc%BdLgh(1:6)
+  
+  sPin_Loc%Center2SurfaceL(1:6) = cPin_Loc%BdC2B(1:6)
+  
   ! MP
   sPin_Loc%nBdmPin = cPin_Loc%nBdmPin
   sPin_Loc%BdMPidx = cPin_Loc%BdMPidx ! MOC Pin
   sPin_Loc%BdMPsuf = cPin_Loc%BdMPsuf ! MOC Pin
-
+  
   ! CP
-  sPin_Loc%nNgh         = cPin_Loc%nNgh
-  sPin_Loc%NeighIdx     = cPin_Loc%NghPin
-  sPin_Loc%NeighSurfIdx = cPin_Loc%NghSuf
-  sPin_Loc%NghBd        = cPin_Loc%NghBd
-  sPin_Loc%NghLgh       = cPin_Loc%NghLgh
+  sPin_Loc%nNgh   = cPin_Loc%nNgh
+  sPin_Loc%NghBd  = cPin_Loc%NghBd
+  sPin_Loc%NghLgh = cPin_Loc%NghLgh
+  
+  sPin_Loc%NeighIdx(1:15) = cPin_Loc%NghPin(1:15)
+  
+  sPin_Loc%NeighSurfIdx(1:15) = cPin_Loc%NghSuf(1:15)
 END DO
 ! ----------------------------------------------------
 !               02. SET : Fuel Dat

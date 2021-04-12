@@ -6,10 +6,15 @@ IMPLICIT NONE
 TYPE superPin_Type
   INTEGER :: nx, ny, nxy
   INTEGER :: ix, iy, iFuelPin
-  INTEGER :: NeighIdx(15), NeighSurfIdx(15)
-  INTEGER, POINTER :: pin(:), pin2D(:, :)
-  REAL :: BdLength(6), Center2SurfaceL(6), Area
-  LOGICAL, POINTER :: lFuel(:)
+  
+  INTEGER, POINTER, DIMENSION(:)   :: NeighIdx, NeighSurfIdx, pin
+  INTEGER, POINTER, DIMENSION(:,:) :: pin2D
+  
+  REAL :: Area
+  
+  REAL, POINTER, DIMENSION(:) :: BDLength, Center2SurfaceL
+  
+  LOGICAL, POINTER, DIMENSION(:) :: lFuel
 
   ! HEX
   INTEGER :: nNgh = 4, nBdmPin(6)

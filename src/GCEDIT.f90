@@ -278,7 +278,7 @@ SUBROUTINE GCEDIT_SA(ng)
 #else
         WRITE(io2,'(t2,i15,1p,1e15.7)') ipin, bupin
 #endif
-IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+IF (nTracerCntl%lTranON) THEN
   WRITE(io2,'(t2,1p,100e15.7)') KinParMac_fisrate(0)
   WRITE(io2,'(t2,1p,100e15.7)') KinParMac_beta(0,1:6)
   !WRITE(io2,'(t2,1p,100e15.7)') KinParMac_betaeff(0,:) 

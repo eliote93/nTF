@@ -833,7 +833,7 @@ subroutine gen_preproc_input_ESCOT(Core,nTracerCntl)
     write(ESCOTinp,'(2X,A)') 'rodtype'
     write(ESCOTinp,'(2X,A)') '{1}'
     do j=1,NCELLX0
-      write(ESCOTinp,'(<NCELLX0>I3)') (fuelrod_map(i,j), i=1,NCELLX0)
+      write(ESCOTinp,'(1000I3)') (fuelrod_map(i,j), i=1,NCELLX0)
     enddo
     deallocate(fuelrod_map)
   endif

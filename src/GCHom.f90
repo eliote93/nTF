@@ -770,7 +770,7 @@ END INTERFACE
                             ENDDO
                             isoMacXs(0,4,ig)=isoMacXs(0,4,ig)+XsMac%isoXsMacNF(iso,ig) *myPhiVol  !nu-fission
                             isoMacXs(0,5,ig)=isoMacXs(0,5,ig)+XsMac%isoXsMacKF(iso,ig) *myPhiVol  !kappa-fission
-                            IF (iso .EQ. 1 .AND. nTracerCntl%lTranON .EQ. .TRUE.) KinParMac_velo(0,ig) = KinParMac_velo(0,ig) + 1._8/myFXR%velo(ig) * myPhiVol
+                            IF (iso .EQ. 1 .AND. nTracerCntl%lTranON) KinParMac_velo(0,ig) = KinParMac_velo(0,ig) + 1._8/myFXR%velo(ig) * myPhiVol
                             IF( ig .LE. groupinfo%nchi .AND. isoFSV .NE. 0)THEN
                                 isoMacXs(0,6,ig)=isoMacXs(0,6,ig)+myFXR%CHI(ig) *isoFSV           !CHI
                             ENDIF
@@ -899,7 +899,7 @@ END INTERFACE
     ENDDO    
     ENDDO !---END of nPin sweep
 
-    IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+    IF (nTracerCntl%lTranON) THEN
       FSV_nu=0._8
       FSV_nu_Adj = 0._8
       KinParMac_beta = 0._8
@@ -993,7 +993,7 @@ END INTERFACE
             isoMacXs(iso,i,ig)=isoMacXs(iso,i,ig)/PhiVol(ig)
         ENDDO
         XSt(ig)=isoMacXs(iso,0,ig)
-        IF (nTracerCntl%lTranON .EQ. .TRUE.) THEN
+        IF (nTracerCntl%lTranON) THEN
           KinParMac_velo(iso,ig)=KinParMac_velo(iso,ig)/PhiVol(ig)
           KinParMac_velo(iso,ig)=1._8/KinParMac_velo(iso,ig)
         END IF

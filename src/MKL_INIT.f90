@@ -100,8 +100,8 @@ mklGeom%myze = PE%myze
 mklGeom%nPolar2D = RayInfo%nPolarAngle
 mklGeom%l3dim = l3dim
 
-ALLOCATE(mklGeom%InScatRange(2, mklGeom%ng)); mklGeom%OutScatRange = GroupInfo%OutScatRange 
-ALLOCATE(mklGeom%OutScatRange(2, mklGeom%ng)); mklGeom%InScatRange = GroupInfo%InScatRange
+ALLOCATE(mklGeom%InScatRange (2, mklGeom%ng)); mklGeom%InScatRange  = GroupInfo%InScatRange
+ALLOCATE(mklGeom%OutScatRange(2, mklGeom%ng)); mklGeom%OutScatRange = GroupInfo%OutScatRange 
 
 mklCntl%lSuperpin = mklCntl%lSuperpin .AND. CoreInfo%lGap
 

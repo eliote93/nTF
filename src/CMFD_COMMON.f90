@@ -997,6 +997,12 @@ IF (.NOT. lSuperpin) THEN
   DO ixy = 1, nxy
     ALLOCATE(superPin(ixy)%pin(1))
     ALLOCATE(superPin(ixy)%pin2D(1, 1))
+    
+    ALLOCATE(superPin(ixy)%NeighIDX(4))
+    ALLOCATE(superPin(ixy)%NeighSurfIdx(4))
+    ALLOCATE(superPin(ixy)%BDLength(4))
+    ALLOCATE(superPin(ixy)%Center2SurfaceL(4))
+    
     superPin(ixy)%nx = 1
     superPin(ixy)%ny = 1
     superPin(ixy)%nxy = 1

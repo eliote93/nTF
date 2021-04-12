@@ -395,7 +395,7 @@ SUBROUTINE BurnupUpdate(is_reset)
       is_reset = .false.
     else
       LCORRECT = .not. DeplCntl%LPREDICT
-      if (LCORRECT_SAVE /= LCORRECT) then
+      if (LCORRECT_SAVE .NEQV. LCORRECT) then
         is_reset = .true.
       else
         is_reset = .false.
@@ -978,7 +978,8 @@ SUBROUTINE tfcalss_pwshape(tfvol, Tfuel, tcool, htcoef, qf, pwshape, nr, ThVar, 
   TYPE(ThVar_Type) :: ThVar
   TYPE(ThOPT_Type) :: ThOPT
   LOGICAL :: lMox
-  REAL, OPTIONAL :: hgap
+  !REAL, OPTIONAL :: hgap
+  REAL :: hgap
   
   INTEGER :: hGapModel
   REAL :: diag(100), L(100), U(100), x(100), xd(100), b(100), xvol(100)
@@ -1028,14 +1029,14 @@ SUBROUTINE tfcalss_pwshape(tfvol, Tfuel, tcool, htcoef, qf, pwshape, nr, ThVar, 
     kmr = 0.5_8 * (kf(npr3) + kf(npr4))
     kml = 0.5_8 * (kf(npr3) + kf(npr2))
   
-    IF(PRESENT(hGap)) THEN
+    !IF(PRESENT(hGap)) THEN
       IF(hGapModel .EQ. 3) THEN
         hgap = RSGAPCOND(kf(npr1), kf(npr2), x(npr1), x(npr2))
         kgap = hgap * delr;
         kgap2 = hgap * tw * rs / rgap
         kgap4 = hgap * tw * (4._8 - tw / rgap) * rs / rgap
       END IF
-    END IF
+    !END IF
   
     x(1:npr4) = tfuel(1:npr4)
     xd(1:npr4) = x(1:npr4)
