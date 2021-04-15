@@ -185,7 +185,7 @@
 		<File RelativePath=".\src\GenFxrMacXs.f90"/></Filter>
 		<Filter Name="Hex">
 		<Filter Name="Bridge">
-		<File RelativePath=".\src\HexCP.f90"/>
+		<File RelativePath=".\src\HexCnP.f90"/>
 		<File RelativePath=".\src\HexData.f90"/>
 		<File RelativePath=".\src\HexInit.f90"/>
 		<File RelativePath=".\src\HexMain.f90"/>

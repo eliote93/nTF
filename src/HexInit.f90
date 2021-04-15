@@ -1,7 +1,7 @@
 #include <defines.h>
 SUBROUTINE HexInit
 
-USE ALLOCS
+USE allocs
 USE Geom,          ONLY : Core
 USE RAYS,          ONLY : RayInfo, RayInfo4Cmfd
 USE CNTL,          ONLY : nTracerCntl
@@ -15,8 +15,8 @@ IMPLICIT NONE
 
 INTEGER :: iAng, nAziAng, nRotRay, irRay, icRay, jcRay, iAzm, nRay
 ! ----------------------------------------------------
-!               01. INIT : Basic
-! ----------------------------------------------------
+
+! Basic
 CALL SetGeomPEVariables(PE)
 
 IF(nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo()
@@ -32,9 +32,8 @@ CALL SetRayPEVariables(PE, Core, RayInfo)
 #endif
 
 CALL HexRayInfo4CmfdGen(RayInfo, RayInfo4Cmfd)
-! ----------------------------------------------------
-!               02. INIT : NM
-! ----------------------------------------------------
+
+! NM
 nAziAng = RayInfo%nAziAngle
 nRotRay = RayInfo%nRotRay
 

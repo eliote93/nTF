@@ -18,7 +18,7 @@ USE TYPEDEF,        ONLY : CoreInfo_Type,       Cell_Type
 USE CMFD_MOD,       ONLY : CMFDPinXS
 USE PE_MOD,         ONLY : PE
 USE XsUtil_mod,     ONLY : AllocXsMac
-USE HexData,        ONLY : nInf
+USE HexData,        ONLY : ncTyp
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -33,8 +33,8 @@ nCellType = CoreInfo%nCellType
 
 nFxrMax = 0
 
-IF(nTracerCntl%lHex) THEN
-  DO icel = 1, nInf
+IF (nTracerCntl%lHex) THEN
+  DO icel = 1, ncTyp
     IF (.NOT. Cell(icel)%luse) CYCLE
 
     nFxrMax = max(nFxrMax, Cell(icel)%nFxr)

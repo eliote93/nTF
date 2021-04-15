@@ -19,7 +19,7 @@ use SubChCoupling_mod,      only: is_coupled
 USE MPIComm_Mod,  ONLY : MPIWaitTurn
 #endif
 
-USE HexData,     ONLY : nInf
+USE HexData,     ONLY : ncTyp
 USE HexGeoConst, ONLY : HexSetThGeo
 
 IMPLICIT NONE
@@ -29,7 +29,7 @@ INTEGER :: icel, i, ich, nEd
 INTEGER :: nxy, nz, nrpallet
 
 IF(nTracerCntl%lHex) THEN
-  nEd = nInf
+  nEd = ncTyp
 ELSE
   nEd = Core%nCellType
 ENDIF

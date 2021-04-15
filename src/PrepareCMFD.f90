@@ -78,7 +78,7 @@ USE Core_Mod,     ONLY : PhiC,   PhiFm,    CoreCMFDLs,                       &
 USE CMFD_Mod,     ONLY : XsMac,    PinNeighIdx,                              &
                          SRC,    Phic1g,                                     &
                          AllocPinXs
-USE HexData,      ONLY : nInf
+USE HexData,      ONLY : ncTyp
 USE RAYS,         ONLY : RayInfo4Cmfd
 USE BiCGSTAB_mod, ONLY : AllocBiCGSTAB
 USE XsUtil_mod,   ONLY : AllocXsMac
@@ -102,7 +102,7 @@ CALL Dmalloc0(Phic, 1, nxy, myzb-1, myze+1, 1, ng)
 Allocate(PinXs(nxy, myzb : myze))
 
 IF(nTracerCntl%lHex) THEN
-  nEd = nInf
+  nEd = ncTyp
 ELSE
   nEd = nCellType
 ENDIF

@@ -78,7 +78,7 @@ USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        RayInfo_Type
 USE CNTL,           ONLY : nTracerCntl
 USE CMFD_COMMON,    ONLY : SetSuperPin
 USE PE_MOD,         ONLY : PE
-USE HexCmfdConst,   ONLY : HexCPSuperPin, HexSetGlobalPin
+USE HexCmfdConst,   ONLY : HexCnPSuperPin, HexSetGlobalPin
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -108,7 +108,7 @@ mklCntl%lSuperpin = mklCntl%lSuperpin .AND. CoreInfo%lGap
 CALL SetCMFDPlane(CoreInfo, l3dim)
 
 IF (nTracerCntl%lHex) THEN
-  CALL HexCPSuperPin(CoreInfo, mklGeom%superPin, mklGeom%nxy, mklCntl%lSuperpin)
+  CALL HexCnPSuperPin(CoreInfo, mklGeom%superPin, mklGeom%nxy, mklCntl%lSuperpin)
   CALL HexSetGlobalPin(CoreInfo, FmInfo)
 ELSE
   CALL SetSuperPin(CoreInfo, mklGeom%superPin, mklGeom%nxy, mklGeom%myzb, mklGeom%myze, mklCntl%lSuperpin)

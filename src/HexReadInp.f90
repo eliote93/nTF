@@ -16,7 +16,7 @@ CHARACTER(256) :: dataline
 
 INTEGER, PARAMETER :: idblock = 6
 
-INTEGER :: i, k, indev, idcard, nLineField
+INTEGER :: ist, iz, indev, idcard, nLineField
 LOGICAL :: Master
 ! ----------------------------------------------------
 
@@ -29,16 +29,18 @@ Master  = PE%master
 
 CALL HexInitInp
 ! ----------------------------------------------------
-DO WHILE(TRUE)
-  READ (indev,'(a256)') oneline
+DO WHILE (TRUE)
+  READ (indev, '(A256)') oneline
   
   IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
-  ! ----------------------------------------------------
-  !               01. CHK : Valid Input
-  ! ----------------------------------------------------
-  IF (probe   .EQ. BANG)  CYCLE; IF (probe .EQ. POUND)   CYCLE
-  IF (oneline .EQ. BLANK) CYCLE; IF (IFnumeric(oneline)) CYCLE
-  IF (probe   .EQ. DOT)   EXIT;  IF (probe .EQ. SLASH)   EXIT
+  
+  IF (probe   .EQ. BANG)  CYCLE
+  IF (probe   .EQ. POUND) CYCLE
+  IF (oneline .EQ. BLANK) CYCLE
+  IF (IFnumeric(oneline)) CYCLE
+  
+  IF (probe .EQ. DOT)   EXIT
+  IF (probe .EQ. SLASH) EXIT
   
   READ (oneline, *) cardname
   CALL toupper(cardname)
@@ -46,124 +48,45 @@ DO WHILE(TRUE)
   idcard     = FindCardId(idblock, cardname)
   nLineField = nfields(oneline)-1
   
-  IF(idcard .eq. 0) EXIT
-  ! ----------------------------------------------------
-  !               02. READ
-  ! ----------------------------------------------------  
-  SELECT CASE(idcard)
-    ! ----------------------------
-    !      3. PITCH
-    ! ----------------------------
-    CASE(3)
-      IF(nLineField .NE. 1) CALL terminate("PITCH")
+  IF (idcard .EQ. 0) EXIT
+  
+  ist = icolfield(oneline, 2)
+  dataline = oneline(ist:256)
+  ! --------------------------------------------------
+  SELECT CASE (idcard)
+    ! PITCH
+    CASE (3)
+      IF (nLineField .NE. 1) CALL terminate("PITCH")
       
-      READ (oneline,*) ASTRING, aoF2F
+      READ (oneline, *) ASTRING, aoF2F
       
       aoPch = aoF2F * Sq3Inv
-    ! ----------------------------
-    !      4. AX_MESH
-    ! ----------------------------
-    CASE(4)
+    
+    ! AX_MESH
+    CASE (4)
       CALL dmalloc(hz,    nz)
       CALL dmalloc(HzInv, nz)
       
-      READ (oneline, *) astring, (hz(k), k = 1, nz)
+      READ (oneline, *) astring, (hz(iz), iz = 1, nz)
+      
       HzInv = ONE / Hz
-    ! ----------------------------
-    !      5. ALBEDO
-    ! ----------------------------
-    CASE(5)
-      i = icolfield(oneline,2)
-      dataline = oneline(i:256)
       
-      CALL HexRead_Albedo(dataline)
-    ! ----------------------------
-    !      7. CEL
-    ! ----------------------------
-    CASE(7)
-      i = icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Cel(dataline)
-    ! ----------------------------
-    !      8. PIN
-    ! ----------------------------
-    CASE(9)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Pin(dataline)
-    ! ----------------------------
-    !      9. ASSEMBLY
-    ! ----------------------------
-    CASE(10)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Asy(indev,dataline)
-    ! ----------------------------
-    !     11. RAD_CONF
-    ! ----------------------------
-    CASE(11)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Core(indev,dataline)
-    ! ----------------------------
-    !     13. GAP CEL
-    ! ----------------------------
-    CASE(13)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_GapCel(dataline)
-    ! ----------------------------
-    !     14. GAP Pin
-    ! ----------------------------
-    CASE(14)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_GapPin(dataline)
-    ! ----------------------------
-    !     21. Vessel
-    ! ----------------------------
-    CASE(21)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Vss(dataline)
-    ! ----------------------------
-    !     22. Vygordka
-    ! ----------------------------
-    CASE(22)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Vyg(dataline)
-    ! ----------------------------
-    !     23. Hex Opt
-    ! ----------------------------
-    CASE(23)
-      i=icolfield(oneline,2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_Opt(dataline)
-    ! ----------------------------
-    !     26. Corner Stiffener
-    ! ----------------------------
-    CASE (26)
-      i = icolfield(oneline, 2)
-      dataline = oneline(i:256)
-      
-      CALL HexRead_CrnStff(dataline)
+    ! Other
+    CASE (5);  CALL HexRead_Albedo (dataline)
+    CASE (7);  CALL HexRead_Cel    (dataline)
+    CASE (9);  CALL HexRead_Pin    (dataline)
+    CASE (10); CALL HexRead_Asy    (indev, dataline)
+    CASE (11); CALL HexRead_Core   (indev, dataline)
+    CASE (13); CALL HexRead_GapCel (dataline)
+    CASE (14); CALL HexRead_GapPin (dataline)
+    CASE (21); CALL HexRead_Vss    (dataline)
+    CASE (22); CALL HexRead_Vyg    (dataline)
+    CASE (23); CALL HexRead_Opt    (dataline)
   END SELECT
 END DO
+! ----------------------------------------------------
+BACKSPACE (indev)
 
-BACKSPACE(indev)
-! ----------------------------------------------------
-!               03. SET : Cel Geo Basis
-! ----------------------------------------------------
 CALL HexChkInp
 CALL HexSetRodCelBss
 CALL HexSetGapCelBss

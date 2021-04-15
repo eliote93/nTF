@@ -472,9 +472,9 @@ CalNghSegLgh = FindPtLgh(Seg(1:2, 1), Seg(1:2, 2))
 
 END FUNCTION CalNghSegLgh
 ! ------------------------------------------------------------------------------------------------------------
-!                                     07. CP : Super Pin
+!                                     07. CnP : Super Pin
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexCPSuperPin(CoreInfo, superPin, nxy, lSuperpin)
+SUBROUTINE HexCnPSuperPin(CoreInfo, superPin, nxy, lSuperpin)
 
 USE allocs
 USE PARAM,          ONLY : TRUE, FALSE
@@ -581,7 +581,7 @@ END DO
 NULLIFY (sPin_Loc, cPin_Loc, Pin, Cell)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexCPSuperPin
+END SUBROUTINE HexCnPSuperPin
 ! ------------------------------------------------------------------------------------------------------------
 !                                     08. SET : Global Pin
 ! ------------------------------------------------------------------------------------------------------------
