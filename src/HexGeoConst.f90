@@ -1,11 +1,3 @@
-MODULE HexGeoConst
-
-USE ioutil, ONLY : terminate
-
-IMPLICIT NONE
-
-CONTAINS
-
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Albedo
 ! ------------------------------------------------------------------------------------------------------------
@@ -14,9 +6,9 @@ SUBROUTINE HexSetAlbedo()
 USE PARAM,   ONLY : FALSE, TRUE, VOIDCELL, REFCELL, ROTCELL, CBDCELL, ZERO
 USE geom,    ONLY : Core, lcbd, Albedo
 USE HexData, ONLY : hLgc
+USE ioutil,  ONLY : terminate
 
 IMPLICIT NONE
-
 ! ----------------------------------------------------
 Core%RadSym = FALSE
 Core%RadBC  = VoidCell
@@ -242,6 +234,7 @@ SUBROUTINE HexSetThGeo(nach, rw, rgt, acf, xi)
 
 USE PARAM,   ONLY : PI, epsm4
 USE HexData, ONLY : hLgc, hGeoTypInfo, hAsyTypInfo
+USE ioutil,  ONLY : terminate
 
 IMPLICIT NONE
 
@@ -263,5 +256,3 @@ xi  = 2._8 * PI * rw
 
 END SUBROUTINE HexSetThGeo
 ! ------------------------------------------------------------------------------------------------------------
-
-END MODULE HexGeoConst

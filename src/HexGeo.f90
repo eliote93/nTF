@@ -5,20 +5,13 @@ USE PARAM,   ONLY : ZERO, FALSE
 USE geom,    ONLY : Core, Pin, nZ, nAsyType0
 USE HexData, ONLY : nHexPin, nhAsy, nHexPin, hAsyTypInfo
 
-USE HexGeoConst
-USE HexAsyConst
-USE HexAsyTypConst
-USE HexPinConst
-USE HexVtx
-USE HexNgh
-
 IMPLICIT NONE
 
 INTEGER :: iAsy, iaTyp, iPin, ipTyp
 INTEGER :: FsrIdxSt, FxrIdxSt
 ! ----------------------------------------------------
-!                1. SET : Asy
-! ----------------------------------------------------
+
+! Asy
 CALL HexSetAsyBndy
 CALL HexSetGeoTyp
 CALL HexSetAsyLoc
@@ -31,6 +24,7 @@ DO iaTyp = 1, nAsyType0
   CALL HexSetAsyTypVtxTyp   (iaTyp)
   CALL HexSetAsyTypPinVtx   (iaTyp)
   CALL HexSetAsyTypPinNgh   (iaTyp)
+  CALL HexSetAsyTypCstMap   (iaTyp)
 END DO
 
 DO iAsy = 1, nhAsy
@@ -38,17 +32,16 @@ DO iAsy = 1, nhAsy
   CALL HexSetAsyNgh   (iAsy)
   CALL HexSetAsyRotNgh(iAsy)
 END DO
-! ----------------------------------------------------
-!                2. SET : Core
-! ----------------------------------------------------
+
+! Core
 CALL HexSetAlbedo
 CALL HexSetCore
-! ----------------------------------------------------
-!                3. SET : Pin & Msh
-! ----------------------------------------------------
-CALL dmalloc(Core%lFuelPlane,        nz)
-CALL dmalloc(Core%lCladPlane,        nz)
-CALL dmalloc(Core% lAICPlane,        nz)
+
+! Pin & Mesh
+CALL dmalloc(Core%lFuelPlane, nz)
+CALL dmalloc(Core%lCladPlane, nz)
+CALL dmalloc(Core% lAICPlane, nz)
+
 CALL dmalloc(Core%PinVol,   nHexPin, nZ)
 CALL dmalloc(Core%PinVolFm, nHexPin, nZ)
 

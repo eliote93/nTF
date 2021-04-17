@@ -1,8 +1,3 @@
-MODULE HexPinConst
-  
-IMPLICIT NONE
-
-CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Pin Typ
 ! ------------------------------------------------------------------------------------------------------------
@@ -27,9 +22,8 @@ hAsy_Loc => hAsy(iAsy)
 aInf_Loc => hAsyTypInfo(hAsy_Loc%AsyTyp)
 
 iGeo = hAsy_Loc%GeoTyp
-! ----------------------------------------------------
-!               01. SET : Rod Pin Data
-! ----------------------------------------------------
+
+! Rod
 DO iPin = 1, hAsy_Loc%nRodPin
   jPin = hAsy_Loc%PinIdxSt - 1 + iPin ! Numeric # in Core
   kPin = hPinInfo(jPin)%OrdInAsy01    ! Numeric # in Asy Typ
@@ -43,14 +37,13 @@ DO iPin = 1, hAsy_Loc%nRodPin
   pInf_Loc%VtxTyp = aInf_Loc%PinVtxTyp(iGeo, kPin)
   pInf_Loc%nSct   = hCel(RodPin(pInf_Loc%PinTyp)%iCel(1))%nSct
   
-  IF (pInf_Loc%VtxTyp < 4) CYCLE
+  IF (pInf_Loc%VtxTyp .LT. 4) CYCLE
   
   pInf_Loc%lInn  = FALSE
   pInf_Loc%lBndy = TRUE
 END DO
-! ----------------------------------------------------
-!               02. SET : Gap Pin Data
-! ----------------------------------------------------
+
+! Gap
 DO iPin = hAsy_Loc%nRodPin + 1, hAsy_Loc%nTotPin
   jPin = hAsy_Loc%PinIdxSt - 1 + iPin ! Numeric # in Core
   kPin = hPinInfo(jPin)%OrdInAsy01    ! Numeric # in Asy Typ
@@ -64,9 +57,13 @@ DO iPin = hAsy_Loc%nRodPin + 1, hAsy_Loc%nTotPin
   pInf_Loc%lInn = FALSE
   pInf_Loc%lRod = FALSE
   pInf_Loc%lGap = TRUE
+  
+  IF (aInf_Loc%cstTyp .NE. 0) pInf_Loc%PinTyp = aInf_Loc%cstMap(kPin)
 END DO
 
-NULLIFY (hAsy_Loc, pInf_Loc, aInf_Loc)
+NULLIFY (hAsy_Loc)
+NULLIFY (pInf_Loc)
+NULLIFY (aInf_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetPinTyp
@@ -111,7 +108,9 @@ DO iPin = 1, hAsy_Loc%nTotPin
   pInf_Loc%Cnt = aInf_Loc%PinCnt(:, kPin) + hAsy_Loc%Cnt
 END DO
 
-NULLIFY (pInf_Loc, hAsy_Loc, aInf_Loc)
+NULLIFY (pInf_Loc)
+NULLIFY (hAsy_Loc)
+NULLIFY (aInf_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetPinVol
@@ -141,9 +140,8 @@ ivTyp = pInf_Loc%VtxTyp
 ! ----------------------------------------------------
 nSubMax  = 0
 nFSRMax  = 0
-! ----------------------------
-!      1. Rod Pin
-! ----------------------------
+
+! Rod
 IF (pInf_Loc%lRod) THEN
   SELECT CASE (ivTyp)
   CASE (1);   nFSRinSub = pInf_Loc%nSct / 6 ! ASSUME : nSct is same along z-axis
@@ -159,9 +157,7 @@ IF (pInf_Loc%lRod) THEN
     nSubMax = max(nSubMax, nSub)
     nFSRMax = max(nFSRMax, nSub * nFSRinSub)
   END DO
-! ----------------------------
-!      2. Gap Pin
-! ----------------------------
+! Gap
 ELSE
   DO iz = 1, nZ
     igBss = gCel(GapPin(pInf_Loc%PinTyp)%iCel(iz))%igBss
@@ -385,10 +381,11 @@ DO iPin = 1, nHexPin
   END DO
 END DO
 
-DEALLOCATE (lvssCel, lvssPin, aux01, aux02)
+DEALLOCATE (lvssCel)
+DEALLOCATE (lvssPin)
+DEALLOCATE (aux01)
+DEALLOCATE (aux02)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetVss
 ! ------------------------------------------------------------------------------------------------------------
-
-END MODULE HexPinConst

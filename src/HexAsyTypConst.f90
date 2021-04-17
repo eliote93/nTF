@@ -1,13 +1,7 @@
-MODULE HexAsyTypConst
-  
-IMPLICIT NONE
-
-CONTAINS
-
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Asy Typ Pin Map
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexSetAsyTypPinMap(iAsyTyp)
+SUBROUTINE HexSetAsyTypPinMap(iaTyp)
 
 USE allocs
 USE PARAM,   ONLY : HALF, PI, ZERO
@@ -17,7 +11,7 @@ USE HexUtil, ONLY : SetEqn, ChkArrayZero
 
 IMPLICIT NONE
 
-INTEGER :: iAsyTyp
+INTEGER :: iaTyp
 
 INTEGER :: nPin, nRng, nRod, nTot, nTmp
 INTEGER :: ix, iy, jx, jy, iPin, jPin, kPin, iBndy, iDir, iCor
@@ -26,10 +20,10 @@ INTEGER :: mp(1:2) = (/-1, 1/)
 REAL :: dx, dy, rr, Ang
 REAL :: Cnt(2), Tmp(2)
 
-TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
+TYPE (Type_HexAsyTypInfo), POINTER :: aInf_Loc
 ! ----------------------------------------------------
 
-aInf_Loc => hAsyTypInfo(iAsyTyp)
+aInf_Loc => hAsyTypInfo(iaTyp)
 
 nPin = aInf_Loc%nPin
 nRng = 2 * nPin - 1
@@ -135,7 +129,7 @@ END SUBROUTINE HexSetAsyTypPinMap
 ! ------------------------------------------------------------------------------------------------------------
 !                                     02. HEX SET : Asy Typ Pin Loc Idx
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexSetAsyTypPinLocIdx(iAsyTyp)
+SUBROUTINE HexSetAsyTypPinLocIdx(iaTyp)
 
 USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
@@ -145,15 +139,15 @@ USE HexUtil, ONLY : ChkPtEqn, CalPtLineSgn
 
 IMPLICIT NONE
 
-INTEGER :: iAsyTyp, iGeo, iPin, jPin, nRod, iBndy
+INTEGER :: iaTyp, iGeo, iPin, jPin, nRod, iBndy
 
 REAL :: gCnt(2), Cnt(2), gEqn(3)
 
-TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
-TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
+TYPE (Type_HexAsyTypInfo), POINTER :: aInf_Loc
+TYPE (Type_HexGeoTypInfo), POINTER :: gInf_Loc
 ! ----------------------------------------------------
 
-aInf_Loc => hAsyTypInfo(iAsyTyp)
+aInf_Loc => hAsyTypInfo(iaTyp)
 
 CALL dmalloc(aInf_Loc%PinLocIdx, nGeoTyp, aInf_Loc%nTotPin(1))
 CALL dmalloc(aInf_Loc%lGeoPin,   nGeoTyp, aInf_Loc%nTotPin(1))
@@ -203,10 +197,54 @@ DO iGeo = 1, nGeoTyp
   aInf_Loc%nTotPin(iGeo) = jPin
 END DO
 
-NULLIFY (aInf_Loc, gInf_Loc)
+NULLIFY (aInf_Loc)
+NULLIFY (gInf_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetAsyTypPinLocIdx
 ! ------------------------------------------------------------------------------------------------------------
+!                                     03. HEX SET : Asy Typ Cst Map
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexSetAsyTypCstMap(iaTyp)
 
-END MODULE HexAsyTypConst
+USE allocs
+USE PARAM,   ONLY : HALF
+USE HexType, ONLY : Type_HexAsyTypInfo
+USE HexData, ONLY : hAsyTypInfo, aoPch
+
+IMPLICIT NONE
+
+INTEGER :: iaTyp, iDir, nDat, mDat, nRod, ist, ied
+
+TYPE (Type_HexAsyTypInfo), POINTER :: aInf_Loc
+! ----------------------------------------------------
+
+aInf_Loc => hAsyTypInfo(iaTyp)
+
+IF (aInf_Loc%cstTyp .EQ. 0) RETURN
+
+nRod = aInf_Loc%nRodPin(1)
+nDat = aInf_Loc%nPin - 1 ! # of Gap Pin at 1/12
+mDat = 1 + 2 * (aInf_Loc%cstNum-1)   ! # of Cstt. Pins
+
+CALL dmalloc0(aInf_Loc%cstMap, nRod+1, aInf_Loc%nTotPin(1))
+
+aInf_Loc%cstMap(nRod+1:) = aInf_Loc%gTyp
+
+DO iDir = 1, 6
+  ist = nRod + 1 + 2 * nDat * (iDir - 1)
+  ied = ist + mDat - 1
+  
+  aInf_Loc%cstMap(ist:ied) = aInf_Loc%cstTyp
+  
+  ied = nRod + 2 * nDat * iDir
+  ist = ied - mDat + 1
+  
+  aInf_Loc%cstMap(ist:ied) = aInf_Loc%cstTyp
+END DO
+
+NULLIFY (aInf_Loc)
+! ----------------------------------------------------
+
+END SUBROUTINE HexSetAsyTypCstMap
+! ------------------------------------------------------------------------------------------------------------

@@ -9,7 +9,6 @@ USE PE_MOD,        ONLY : PE
 USE MPIConfig_Mod, ONLY : SetGeomPEVariables, SetRayPEVariables, SetDcmpPEVariables
 USE HexCmfd,       ONLY : HexRayInfo4CmfdGen
 USE HexData,       ONLY : hRotRay, hcRay
-USE HexGeoConst,   ONLY : HexSetVyg
 
 IMPLICIT NONE
 
@@ -19,7 +18,7 @@ INTEGER :: iAng, nAziAng, nRotRay, irRay, icRay, jcRay, iAzm, nRay
 ! Basic
 CALL SetGeomPEVariables(PE)
 
-IF(nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo()
+IF (nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo()
 
 CALL PrepFxr(nTracerCntl%lXsLib, nTracerCntl%lfxrlib)
 

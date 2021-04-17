@@ -1,11 +1,3 @@
-MODULE HexRayConst
-
-USE ioutil, ONLY : terminate
-
-IMPLICIT NONE
-
-CONTAINS
-
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Core Ray
 ! ------------------------------------------------------------------------------------------------------------
@@ -16,8 +8,8 @@ USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE geom,    ONLY : nZ
 USE Moc_Mod, ONLY : nMaxCellRay, nMaxRaySeg
 USE HexType, ONLY : Type_HexCoreRay, Type_HexAsyRay
-USE HexData, ONLY : nhAsy, ncRay, Asy2Dto1DMap, hAsy, haRay, hcRay, hAsyTypInfo, &
-                    nAzmAng, NumMray, AngMray, hmRay, hPinInfo, RodPin, GapPin, hCel, gCel, gCelBss
+USE HexData, ONLY : nhAsy, ncRay, Asy2Dto1DMap, hAsy, haRay, hcRay, hAsyTypInfo, nAzmAng, NumMray, AngMray, hmRay, hPinInfo, RodPin, GapPin, hCel, gCel, gCelBss
+USE ioutil,  ONLY : terminate
 
 IMPLICIT NONE
 
@@ -64,9 +56,8 @@ DO iAng = 1, nAzmAng
       ncRay = ncRay + 1
       
       mRayLst(imRay, iAsy) = FALSE
-      ! ----------------------------
-      !      1. GO : Nxt mRay
-      ! ----------------------------
+      
+      ! GO : Nxt mRay
       cRayLst  = 0
       icRayNxt = 0
       
@@ -105,9 +96,8 @@ DO iAng = 1, nAzmAng
         
         IF (iNxt > nMaxModRay) CALL terminate("SET CORE RAY")
       END DO
-      ! ----------------------------
-      !      2. COLLECT
-      ! ----------------------------
+      
+      ! COLLECT
       hcRay_Loc(ncRay)%nmRay  = icRayNxt(1) - icRayNxt(-1) + 1
       hcRay_Loc(ncRay)%AzmIdx = iAng
       
@@ -210,6 +200,7 @@ USE PARAM,   ONLY : ZERO, FALSE, TRUE
 USE HexData, ONLY : ncRay, nRotRay, hcRay, hAsy, hRotRay, hLgc, hmRay, Asy2Dto1Dmap, Asy1Dto2DMap
 USE HexUtil, ONLY : SetSgn_INT
 USE Moc_Mod, ONLY : nMaxCoreRay
+USE ioutil,  ONLY : terminate
 
 IMPLICIT NONE
 
@@ -380,5 +371,3 @@ NULLIFY (RayConn, lcRayUse, tLst)
 
 END SUBROUTINE HexSetRotRay
 ! ------------------------------------------------------------------------------------------------------------
-
-END MODULE HexRayConst

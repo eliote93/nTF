@@ -35,7 +35,7 @@ INTEGER :: nhcPin     = 0
 INTEGER :: nGeoTyp    = 1
 INTEGER :: nInnMOCItr = 2
 
-! Geom
+! Geo
 REAL :: aoF2F = ZERO
 REAL :: aoPch = ZERO
 

@@ -7,10 +7,10 @@ IMPLICIT NONE
 INTEGER, PARAMETER :: nMaxFXR = 30 ! ARBITRARY
 
 ! ------------------------------------------------------------------------------------------------------------
-!                                     01. HEX : Cel
+!                                     01. Cel
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Cel
+!               01. Rod Cel
 ! ----------------------------------------------------
 TYPE Type_HexRodCel
   SEQUENCE
@@ -32,7 +32,7 @@ TYPE Type_HexRodCel
   
 END TYPE Type_HexRodCel
 ! ----------------------------------------------------
-!               02. TYPE : Hex Cel Basis
+!               02. Rod Cel Basis
 ! ----------------------------------------------------
 TYPE Type_HexRodCelBss
   SEQUENCE
@@ -65,7 +65,7 @@ TYPE Type_HexRodCelBss
   
 END TYPE Type_HexRodCelBss
 ! ----------------------------------------------------
-!               03. TYPE : Hex Gap Cel
+!               03. Gap Cel
 ! ----------------------------------------------------
 TYPE Type_HexGapCel
   SEQUENCE
@@ -85,7 +85,7 @@ TYPE Type_HexGapCel
   
 END TYPE Type_HexGapCel
 ! ----------------------------------------------------
-!               04. TYPE : Hex Gap Cel Basis
+!               04. Gap Cel Basis
 ! ----------------------------------------------------
 TYPE Type_HexGapCelBss
   SEQUENCE
@@ -115,10 +115,10 @@ TYPE Type_HexGapCelBss
   INTEGER, POINTER :: iCel(:) ! (iz), Numeric # of Cel
 END TYPE Type_HexGapCelBss
 ! ------------------------------------------------------------------------------------------------------------
-!                                     02. HEX : Pin
+!                                     02. Pin
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Pin
+!               01. Pin
 ! ----------------------------------------------------
 TYPE Type_HexPin
   SEQUENCE
@@ -132,7 +132,7 @@ TYPE Type_HexPin
   INTEGER, POINTER :: iCel(:) ! (iz)
 END TYPE
 ! ----------------------------------------------------
-!               02. TYPE : Hex Pin Info
+!               02. Pin Info
 ! ----------------------------------------------------
 TYPE Type_HexPinInfo
   SEQUENCE
@@ -165,7 +165,7 @@ TYPE Type_HexPinInfo
   
 END TYPE Type_HexPinInfo
 ! ----------------------------------------------------
-!               03. TYPE : Hex CMFD Pin
+!               03. CMFD Pin
 ! ----------------------------------------------------
 TYPE Type_HexCmfdPin
   SEQUENCE
@@ -197,10 +197,10 @@ TYPE Type_HexCmfdPin
   
 END TYPE Type_HexCmfdPin
 ! ------------------------------------------------------------------------------------------------------------
-!                                     03. HEX : Asy
+!                                     03. Asy
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Asy Type Info
+!               01. Asy Type Info
 ! ----------------------------------------------------
 TYPE Type_HexAsyTypInfo
   SEQUENCE
@@ -218,9 +218,11 @@ TYPE Type_HexAsyTypInfo
   
   LOGICAL :: luse = FALSE
   
-  INTEGER :: nPin = 0
-  INTEGER :: iBss = 0 ! Rod Cel Bss
-  INTEGER :: gTyp = 0
+  INTEGER :: nPin   = 0
+  INTEGER :: iBss   = 0 ! Rod Cel Bss
+  INTEGER :: gTyp   = 0
+  INTEGER :: cstTyp = 0
+  INTEGER :: cstNum = 0
   
   INTEGER :: nRodPin(7) = 0 ! (iGeo)
   INTEGER :: nTotPin(7) = 0 ! (iGeo)
@@ -259,6 +261,8 @@ TYPE Type_HexAsyTypInfo
   REAL,    POINTER :: PinVtxAng(:, :) ! (iGeo, iPin), Rotated by (Ang)
   INTEGER, POINTER :: PinVtxTyp(:, :) ! (iGeo, iPin)
   
+  INTEGER, POINTER :: CstMap(:) ! (iPin)
+  
   ! CMFD
   INTEGER, POINTER :: cpSlfMPnum(:, :)    !       (iGeo, iPin), MOC Pin
   INTEGER, POINTER :: cpSlfMPidx(:, :, :) ! (jPin, iGeo, iPin), MOC Pin
@@ -269,7 +273,7 @@ TYPE Type_HexAsyTypInfo
   
 END TYPE Type_HexAsyTypInfo
 ! ----------------------------------------------------
-!               02. TYPE : Hex Asy Geo Typ Info
+!               02. Asy Geo Typ Info
 ! ----------------------------------------------------
 TYPE Type_HexGeoTypInfo
   SEQUENCE
@@ -286,7 +290,7 @@ TYPE Type_HexGeoTypInfo
   
 END TYPE Type_HexGeoTypInfo
 ! ----------------------------------------------------
-!               03. TYPE : Hex Asy
+!               03. Hex Asy
 ! ----------------------------------------------------
 TYPE Type_HexAsy
   SEQUENCE
@@ -312,10 +316,10 @@ TYPE Type_HexAsy
   
 END TYPE Type_HexAsy
 ! ------------------------------------------------------------------------------------------------------------
-!                                     04. HEX : Ray Geo
+!                                     04. Ray Geo
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Ray Cel
+!               01. Ray Cel
 ! ----------------------------------------------------
 TYPE Type_HexRayCel
   SEQUENCE
@@ -336,7 +340,7 @@ TYPE Type_HexRayCel
   
 END TYPE Type_HexRayCel
 ! ----------------------------------------------------
-!               02. TYPE : Hex Ray Pin Info
+!               02. Ray Pin Info
 ! ----------------------------------------------------
 TYPE Type_HexRayPinInfo
   SEQUENCE
@@ -354,10 +358,10 @@ TYPE Type_HexRayPinInfo
   
 END TYPE Type_HexRayPinInfo
 ! ------------------------------------------------------------------------------------------------------------
-!                                     05. HEX : Asy Ray Base
+!                                     05. Asy Ray Base
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Pin Ray
+!               01. Pin Ray
 ! ----------------------------------------------------
 TYPE Type_HexPinRay
   SEQUENCE
@@ -368,7 +372,7 @@ TYPE Type_HexPinRay
   
 END TYPE Type_HexPinRay
 ! ----------------------------------------------------
-!               02. TYPE : hCel Ray
+!               02. Cel Ray
 ! ----------------------------------------------------
 TYPE Type_HexCelRay
   SEQUENCE
@@ -384,7 +388,7 @@ TYPE Type_HexCelRay
   
 END TYPE Type_HexCelRay
 ! ----------------------------------------------------
-!               03. TYPE : Hex Asy Ray
+!               03. Asy Ray
 ! ----------------------------------------------------
 TYPE Type_HexAsyRay
   SEQUENCE
@@ -395,10 +399,10 @@ TYPE Type_HexAsyRay
   
 END TYPE Type_HexAsyRay
 ! ------------------------------------------------------------------------------------------------------------
-!                                     06. HEX : Ray
+!                                     06. Ray
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Mod Ray
+!               01. Mod Ray
 ! ----------------------------------------------------
 TYPE Type_HexModRay
   SEQUENCE
@@ -421,7 +425,7 @@ TYPE Type_HexModRay
   
 END TYPE Type_HexModRay
 ! ----------------------------------------------------
-!               02. TYPE : Hex Core Ray
+!               02. Core Ray
 ! ----------------------------------------------------
 TYPE Type_HexCoreRay
   SEQUENCE
@@ -434,7 +438,7 @@ TYPE Type_HexCoreRay
   
 END TYPE Type_HexCoreRay
 ! ----------------------------------------------------
-!               03. TYPE : Hex Rot Ray
+!               03. Rot Ray
 ! ----------------------------------------------------
 TYPE Type_HexRotRay
   SEQUENCE
@@ -445,10 +449,10 @@ TYPE Type_HexRotRay
   
 END TYPE Type_HexRotRay
 ! ------------------------------------------------------------------------------------------------------------
-!                                     08. HEX : ETC
+!                                     08. ETC
 ! ------------------------------------------------------------------------------------------------------------
 ! ----------------------------------------------------
-!               01. TYPE : Hex Vss
+!               01. Vss.
 ! ----------------------------------------------------
 TYPE Type_HexVss
   SEQUENCE
@@ -462,7 +466,7 @@ TYPE Type_HexVss
   
 END TYPE Type_HexVss
 ! ----------------------------------------------------
-!               02. TYPE : Hex Logical
+!               02. Logical
 ! ----------------------------------------------------
 TYPE Type_HexLogical
   SEQUENCE
@@ -482,7 +486,6 @@ TYPE Type_HexLogical
   LOGICAL :: lSngAsy  = FALSE
   LOGICAL :: lSngCel  = FALSE
   LOGICAL :: lspCMFD  = TRUE  ! Super-pin based CMFD
-  LOGICAL :: lcrnstff = FALSE ! Corner Stiffener
   
   INTEGER :: iSym = 0 ! 1 = 60 / 2 = 120 / 3 = 360
                       ! 4 = Sng Asy / 5 = Sng Cel

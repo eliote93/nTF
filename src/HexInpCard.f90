@@ -272,6 +272,7 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: indev 
 CHARACTER(256), INTENT(IN) :: dataline0
 CHARACTER(256) :: dataline
+character*512  :: astring
 
 INTEGER :: nSpt, nDataField, ndat
 INTEGER :: ipos(100), ii(100)
@@ -293,24 +294,25 @@ IF (Azm .NE. 360) CALL terminate("WRONG [ASSEMBLY] - HEX ASY AZM")
 
 aInf_Loc => hAsyTypInfo(iAsy)
 
+IF (aInf_Loc%nPin .NE. 0) CALL terminate("WRONG [ASSEMBLY] - OVERLAPPED ASY INPUT")
+
 nDataField = len_trim(dataline)
 CALL fndchara(dataline, ipos, nSpt, SLASH)
-
-IF (aInf_Loc%nPin .NE. 0) CALL terminate("WRONG [ASSEMBLY] - OVERLAPPED ASY INPUT")
 
 ! CASE : Sng Cel
 IF (nSpt .EQ. 1) THEN
   READ (dataline(ipos(1)+1:nDataField), *) iCase
-  
-  READ (indev, '(A256)') oneline
-  IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
-  READ (oneline, *) ii(1)
   
   IF (iCase .NE. 1) CALL terminate("WRONG [ASSEMBLY] - ASY TYPE INPUT")
   
   aInf_Loc%nPin = 1
   
   CALL dmalloc(aInf_Loc%PinIdx, 1, 1)
+  
+  READ (indev, '(A256)') oneline
+  IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+  
+  READ (oneline, *) ii(1)
   
   aInf_Loc%PinIdx = ii(1)
   aInf_Loc%pF2F   = hCel(ii(1))%pF2F
@@ -331,6 +333,13 @@ READ (dataline(ipos(1)+1:nDataField), *) aInf_Loc%gTyp
 aInf_Loc%pPCH  = aInf_Loc%pF2F  * Sq3Inv
 aInf_Loc%aiPch = aInf_Loc%aiF2F * Sq3Inv
 
+! Corner Stiffener
+WRITE (astring, '(A512)') dataline(ipos(1)+1:ipos(2)-1)
+
+ndat = nFields(astring)
+
+IF (ndat .EQ. 3) READ (dataline(ipos(1)+1:nDataField), *) aInf_Loc%gTyp, aInf_Loc%cstTyp, aInf_Loc%cstNum
+
 ! Pin Data
 CALL dmalloc(aInf_Loc%PinIdx, 2*aInf_Loc%nPin-1, 2*aInf_Loc%nPin-1)
 
@@ -340,6 +349,7 @@ xed = aInf_Loc%nPin
 DO iy = 1, 2 * aInf_Loc%nPin - 1
   READ (indev, '(A256)') oneline
   IF (Master) CALL message(io8, FALSE, FALSE, oneline) ! ECHO
+  
   IF (probe.EQ.BANG .OR. probe.EQ.POUND) CYCLE
   
   ndat = nFields(oneline)
@@ -596,8 +606,10 @@ DO iAsy = 1, nhAsy
   
   CALL HexChkRange_INT(jAsy, 1, nAsyType0, "WRONG [RAD_CONF] - CORE ASY INPUT")
   
+  ! Asy.
   hAsyTypInfo(jAsy)%luse = TRUE
   
+  ! Rod Pin, hCel
   nPin = hAsyTypInfo(jAsy)%nPin
   
   DO ixPin = 1, 2 * nPin - 1
@@ -616,7 +628,19 @@ DO iAsy = 1, nhAsy
   
   IF (hLgc%lSngCel) CYCLE
   
+  ! Gap Pin, gCel
   jPin = hAsyTypInfo(jAsy)%gTyp
+  
+  IF (jPin.LT.1 .OR. jPin.GT.nGapPinType) CYCLE
+  
+  GapPin(jPin)%luse = TRUE
+  
+  DO iz = 1, nZ
+    gCel(GapPin(jPin)%iCel(iz))%luse = TRUE
+  END DO
+  
+  ! Cstt.
+  jPin = hAsyTypInfo(jAsy)%cstTyp
   
   IF (jPin.LT.1 .OR. jPin.GT.nGapPinType) CYCLE
   
