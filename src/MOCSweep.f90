@@ -196,17 +196,17 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. lscat1) THEN
                 IF (lAFSS) THEN
-                  CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
+                  CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv, lAFSS)
+                  CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
                 END IF
               ELSE
                 IF (lmgrid) THEN
                   CALL RayTraceP1GM_MGD(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nscttod, lJout)
                 ELSE IF (lAFSS) THEN
-                  CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv, lAFSS)
+                  CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
                 ELSE
-                  CALL RayTraceP1GM_OMP (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv, lAFSS)
+                  CALL RayTraceP1GM_OMP (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
                 END IF
               END IF
             ELSE

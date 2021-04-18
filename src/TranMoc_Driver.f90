@@ -15,7 +15,7 @@ USE TRANMOC_MOD,       ONLY : TrSrc,                   PrecSrc,                 
                               SetPrecParam,            SetTranMOCEnv,         &
                               PrecSrcUpdt,             SetTranSrc,           TranMocResidualError,  &
                               SetExpTrsfXs
-USE MOC_MOD,           ONLY : RayTraceGM_One,                SetRtMacXsGM_Cusping,   SetRtSrcGM_Cusping,      &
+USE MOC_MOD,           ONLY : RayTraceGM_OMP,                SetRtMacXsGM_Cusping,   SetRtSrcGM_Cusping,      &
                               RayTraceLS,              PsiUpdate,            CellPsiUpdate,         &
                               MocResidual,             PsiErr,               PseudoAbsorptionGM,      &
                               PowerUpdate,                                                          &
@@ -170,7 +170,7 @@ DO jsweep =1, nGroupInfo
           CALL AD_VA(TrSrc(1:nfsr), TrSrc(1:nfsr), tsrc(1:nfsr), nfsr)
         ENDIF
         
-        CALL RayTraceGM_One(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, trsrc, MocJout1g, iz, lJout)
+        CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, trsrc, MocJout1g, iz, lJout)
         IF (lssph) THEN
           IF (ig.ge.igresb.and.ig.le.igrese) phis1g=phis1g*ssphf(:,iz,ig)
         ENDIF
