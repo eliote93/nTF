@@ -17,9 +17,9 @@ INTEGER, PARAMETER :: pnGap = 2
 CONTAINS
 
 ! ------------------------------------------------------------------------------------------------------------
-!                                     01. HEX CnP : Geo
+!                                     01. HEX CnP : nT
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexCnPgeo()
+SUBROUTINE HexCnPnT()
 
 USE geom,    ONLY : Core, Asy, AsyInfo, AsyVol, PinInfo, CellInfo, Pin, nCellType, nPinType
 USE HexData, ONLY : nHexPin, RodPin
@@ -29,7 +29,7 @@ IMPLICIT NONE
 INTEGER :: iPin, ipTyp, iAsy
 ! ----------------------------------------------------
 
-CALL HexCnPCelinfo
+CALL HexCnPCelInfo
 
 DO iPin = 1, nHexPin
   CALL HexCnPPin(iPin)
@@ -58,11 +58,11 @@ Core%CellInfo => CellInfo
 Core%nCellType = nCellType
 ! ----------------------------------------------------
 
-END SUBROUTINE HexCnPgeo
+END SUBROUTINE HexCnPnT
 ! ------------------------------------------------------------------------------------------------------------
 !                                     02. HEX CnP : Cel Info
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexCnPCelinfo()
+SUBROUTINE HexCnPCelInfo()
 
 USE allocs
 USE TYPEDEF,      ONLY : cell_type
@@ -104,7 +104,7 @@ DO iCel = 1, ncTyp
   CellInfo(iCel)%luse = FALSE
 END DO
 ! ----------------------------------------------------
-!               01. Rod Cel
+!               01. SET : Rod Cel
 ! ----------------------------------------------------
 DO iCel = 1, nCellType
   IF (.NOT. hCel(iCel)%luse) CYCLE
@@ -114,7 +114,7 @@ DO iCel = 1, nCellType
   nSct = cBs_Loc%nSct
   nSub = cBs_Loc%nSub
   nFXR = cBs_Loc%nFXR
-  ! --------------------------------------------------
+  ! ----------------------------
   DO iDir = 1, pnRod
     IF (lSkip(iDir)) CYCLE
     
@@ -123,10 +123,13 @@ DO iCel = 1, nCellType
     Cel_Loc => CellInfo(jCel)
     
     nFSRinSub = nSct / rnFSRinSub(iDir)
-    
-    CALL dmalloc(Cel_Loc%nFSRinFXR, nSub)
-    CALL dmalloc0(Cel_Loc%Vol, 0, nSub- 1) ! Need to be changed into FSR unit
-    CALL dmalloc(Cel_Loc%iReg, nSub * nFSRinSub)
+    ! ----------------------------
+    !      1. Basic
+    ! ----------------------------
+    CALL dmalloc(Cel_Loc%nFSRinFXR,     nSub)
+    CALL dmalloc(Cel_Loc%matfxridx,     nSub)
+    CALL dmalloc0(Cel_Loc%Vol,          0, nSub- 1) ! Need to be changed into FSR unit
+    CALL dmalloc(Cel_Loc%iReg,          nSub * nFSRinSub)
     CALL dmalloc(Cel_Loc%MapFxr2FsrIdx, nFSRinSub, nSub)
     
     Cel_Loc%luse   = TRUE
@@ -150,7 +153,9 @@ DO iCel = 1, nCellType
     DO iSub = 1, Cel_Loc%Geom%nCircle
       Cel_Loc%geom%Circle(3, iSub) = cBs_Loc%sRad(iSub + 1)
     END DO
-    
+    ! ----------------------------
+    !      2. Iter
+    ! ----------------------------
     jFSR = 0
     jSub = 0
     
@@ -159,6 +164,8 @@ DO iCel = 1, nCellType
       
       DO iSub = 1, cBs_Loc%xDiv(iFXR)
         jSub = jSub + 1
+        
+        Cel_Loc%matfxridx(jSub) = hCel(iCel)%xMix(iFXR)
         
         DO iFSR = 1, nFSRinSub
           jFSR = jFSR + 1
@@ -169,11 +176,13 @@ DO iCel = 1, nCellType
         END DO
       END DO
     END DO
+    
+    Cel_Loc%matfxridx(1) = Cel_Loc%matfxridx(2) ! NOTICE
   END DO
-  ! --------------------------------------------------
+  ! ----------------------------
 END DO
 ! ----------------------------------------------------
-!               02. Gap Cel
+!               02. SET : Gap Cel
 ! ----------------------------------------------------
 DO iCel = 1, nGapType
   IF (.NOT. gCel(iCel)%luse) CYCLE
@@ -182,15 +191,17 @@ DO iCel = 1, nGapType
   
   nSub = gBs_Loc%nSub
   nFXR = gBs_Loc%nFXR
-  ! --------------------------------------------------
+  ! ----------------------------
   DO iDir = 1, pnGap
     jCel = nCellType * pnRod + (iCel - 1) * pnGap + iDir
     
     Cel_Loc => CellInfo(jCel)
     
-    nFSRinSub = (2 - iDir) * gBs_Loc%nVtxHor & ! Bndy Typ 1
-              + (iDir - 1) * gBs_Loc%nHor / 2  ! Bndy Typ 2
-    
+    nFSRinSub = (2 - iDir) * gBs_Loc%nVtxHor & ! Bndy Typ 01
+              + (iDir - 1) * gBs_Loc%nHor / 2  ! Bndy Typ 02
+    ! ----------------------------
+    !      1. Basic
+    ! ----------------------------
     CALL dmalloc(Cel_Loc%Vol,           nFSRinSub * nSub) ! FSR unit
     CALL dmalloc(Cel_Loc%iReg,          nFSRinSub * nSub)
     CALL dmalloc(Cel_Loc%nFSRinFXR,     nSub)
@@ -208,7 +219,9 @@ DO iCel = 1, nGapType
     
     Cel_Loc%nFSRinFXR    = nFSRinSub
     Cel_Loc%Geom%lCircle = FALSE
-    
+    ! ----------------------------
+    !      2. Iter
+    ! ----------------------------
     jFSR = 0
     jSub = 0
     
@@ -228,7 +241,7 @@ DO iCel = 1, nGapType
       END DO
     END DO
   END DO
-  ! --------------------------------------------------
+  ! ----------------------------
 END DO
 ! ----------------------------------------------------
 !               03. SET : LOGICAL
@@ -271,7 +284,7 @@ DO iCel = 1, nCellType
   nSct = cBs_Loc%nSct
   nSub = cBs_Loc%nSub
   nFXR = cBs_Loc%nFXR
-  ! --------------------------------------------------
+  ! ----------------------------
   DO iDir = 1, pnRod
     IF (lSkip(iDir)) CYCLE
     
@@ -293,7 +306,7 @@ DO iCel = 1, nCellType
       END DO
     END DO
   END DO
-  ! --------------------------------------------------
+  ! ----------------------------
 END DO
 
 NULLIFY (Cel_Loc)
@@ -301,7 +314,7 @@ NULLIFY (cBs_Loc)
 NULLIFY (gBs_Loc)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexCnPCelinfo
+END SUBROUTINE HexCnPCelInfo
 ! ------------------------------------------------------------------------------------------------------------
 !                                     03. HEX CALC : Cell SSPH
 ! ------------------------------------------------------------------------------------------------------------
@@ -309,7 +322,7 @@ SUBROUTINE HexCalcCellSSPH(icTyp)
 
 USE allocs
 USE TYPEDEF,      ONLY : cell_type
-USE param,        ONLY : ZERO, PI, INVPI, FALSE, TRUE
+USE param,        ONLY : ZERO, PI, INVPI, FALSE, TRUE, HALF
 USE GEOM,         ONLY : CellInfo
 USE cntl,         ONLY : nTracerCntl
 USE Material_Mod, ONLY : Mixture
@@ -317,11 +330,11 @@ USE BenchXs,      ONLY : MacXsBen
 
 USE HexType,      ONLY : Type_HexRodCelBss, Type_HexRodCel
 USE HexData,      ONLY : hCel, hCelBss, hLgc
-USE SPH_mod,      ONLY : calcCellSSPH,calcAICCellSSPH
+USE SPH_mod,      ONLY : SetSSPHBasicCellInfo
 
 IMPLICIT NONE
 
-INTEGER :: icTyp, jCel, iFXR, jFXR, iDir, iReg, i, j, k
+INTEGER :: icTyp, jCel, iFXR, jFXR, iDir, iReg, i, j, k, ist
 INTEGER :: nFXR, nmat, nreg, nFuelDiv, nfDiv, ibFuel, ieFuel
 INTEGER :: ndiv(0:300), iRg(0:300)
 INTEGER :: imat(100), idiv(100)
@@ -400,11 +413,18 @@ Cel_Loc%nmat = nmat
 
 CALL dmalloc(Cel_Loc%matidx, nmat)
 CALL dmalloc(Cel_Loc%matrad, nmat)
+CALL dmalloc(Cel_Loc%matvol, nmat)
 
 Cel_Loc%matidx(1:nmat) = imat(1:nmat)
 Cel_Loc%matrad(1:nmat) = irad(1:nmat)
 
 nreg = sum(idiv(1:nmat))
+
+Cel_Loc%matvol(1) = PI * irad(1) * irad(1)
+
+DO i = 2, nmat
+  Cel_Loc%matvol(i) = PI * (irad(i) * irad(i) - irad(i-1) * irad(i-1))
+END DO
 
 ! Sub-ring Data
 Cel_Loc%nreg_cp = nreg
@@ -509,38 +529,53 @@ IF (.NOT. nTracerCntl%lXsLib) THEN
   Cel_Loc%ieFuel = 1
 END IF
 ! ----------------------------------------------------
-!               04. CP : Cell Info
+!               04. CnP : Cell Info
 ! ----------------------------------------------------
-DO iDir = 2, pnRod
-  Cel_CP => CellInfo(pnRod * (icTyp - 1) + iDir)
+ist = pnRod * (icTyp - 1)
+
+IF (.NOT. hLgc%lSngCel) THEN
+  DO iDir = 2, pnRod
+    Cel_CP => CellInfo(ist + iDir)
+    
+    IF (.NOT. CeL_CP%luse) CYCLE
+    
+    CALL dmalloc(Cel_CP%matidx, nmat)
+    CALL dmalloc(Cel_CP%matrad, nmat)
+    CALL dmalloc(Cel_CP%matvol, nmat)
+    CALL dmalloc(Cel_CP%rad_cp, nreg)
+    CALL dmalloc(Cel_CP%fxrvol, nreg)
+    
+    Cel_CP%nmat     = Cel_Loc%nmat
+    Cel_CP%matidx   = Cel_Loc%matidx
+    Cel_CP%matrad   = Cel_Loc%matrad
+    Cel_CP%matvol   = Cel_Loc%matvol
+    Cel_CP%nreg_cp  = Cel_Loc%nreg_cp
+    Cel_CP%rad_cp   = Cel_Loc%rad_cp
+    Cel_CP%fxrvol   = Cel_Loc%fxrvol
+    
+    Cel_CP%fuelgapcldvol = Cel_Loc%fuelgapcldvol
+    Cel_CP%cldfxridx     = Cel_Loc%cldfxridx
+    Cel_CP%nmodfxr       = Cel_Loc%nmodfxr
+    Cel_CP%invnmodfxr    = Cel_Loc%invnmodfxr
+    
+    Cel_CP%FuelRad0 = Cel_Loc%FuelRad0
+    
+    Cel_CP%lHole  = Cel_Loc%lHole
+    Cel_CP%ibFuel = Cel_Loc%ibFuel
+    Cel_CP%ieFuel = Cel_Loc%ieFuel
+  END DO
   
-  IF (.NOT. CeL_CP%luse) CYCLE
+  ! Mat Vol
+  CellInfo(ist + 1)%matvol = CellInfo(ist + 1)%matvol / 6._8
+  CellInfo(ist + 2)%matvol = CellInfo(ist + 2)%matvol / 3._8
   
-  CALL dmalloc(Cel_CP%matidx, nmat)
-  CALL dmalloc(Cel_CP%matrad, nmat)
-  CALL dmalloc(Cel_CP%rad_cp, nreg)
-  CALL dmalloc(Cel_CP%fxrvol, nreg)
+  CellInfo(ist + 4)%matvol(nmat) = CellInfo(ist + 4)%matvol(nmat) - cBs_Loc%xvol(0, 1) + cBs_Loc%xvol(1, 1)
+  CellInfo(ist + 5)%matvol(nmat) = CellInfo(ist + 5)%matvol(nmat) - cBs_Loc%xvol(0, 1) + cBs_Loc%xvol(2, 1)
   
-  Cel_CP%nmat     = Cel_Loc%nmat
-  Cel_CP%matidx   = Cel_Loc%matidx
-  Cel_CP%matrad   = Cel_Loc%matrad
-  Cel_CP%nreg_cp  = Cel_Loc%nreg_cp
-  Cel_CP%rad_cp   = Cel_Loc%rad_cp
-  Cel_CP%fxrvol   = Cel_Loc%fxrvol
-  
-  Cel_CP%fuelgapcldvol = Cel_Loc%fuelgapcldvol
-  Cel_CP%cldfxridx     = Cel_Loc%cldfxridx
-  Cel_CP%nmodfxr       = Cel_Loc%nmodfxr
-  Cel_CP%invnmodfxr    = Cel_Loc%invnmodfxr
-  
-  Cel_CP%FuelRad0 = Cel_Loc%FuelRad0
-  
-  Cel_CP%lHole  = Cel_Loc%lHole
-  Cel_CP%ibFuel = Cel_Loc%ibFuel
-  Cel_CP%ieFuel = Cel_Loc%ieFuel
-END DO
+  CellInfo(ist + 6)%matvol = CellInfo(ist + 5)%matvol * HALF
+END IF
 ! ----------------------------------------------------
-!               05. CAL : SSPH
+!               05. CALC : SSPH
 ! ----------------------------------------------------
 IF (.NOT.(nTracerCntl%lXsLib .AND. nTracerCntl%lsSPH)) RETURN
 IF (.NOT. Cel_Loc%lFuel) RETURN
@@ -551,21 +586,22 @@ ibFuel = Cel_Loc%ibFuel
 nfueldiv = 0
 
 DO k = ibFuel, ieFuel, -1
-    nfueldiv = nfueldiv + ndiv(k)
+  nfueldiv = nfueldiv + ndiv(k)
 END DO
 
 DO iDir = 1, pnRod
-  jCel = pnRod * (icTyp - 1) + iDir
+  jCel = ist + iDir
   
   IF (.NOT. CellInfo(jCel)%luse) CYCLE
   
   nfDiv = nfueldiv
   
-  IF (CellInfo(jCel)%lAIC) THEN
-    CALL calcAICCellSSPH(CellInfo, jcel, nFXR - 1, iRg, rr, ndiv, iFXR - 1, nfDiv)
-  ELSE
-    CALL calcCellSSPH   (CellInfo, jcel, nFXR - 1, iRg, rr, ndiv, ibFuel, ieFuel, nfDiv, Cel_Loc%lhole)
-  END IF
+  CALL SetSSPHBasicCellInfo(CellInfo(jcel), nFXR - 1, iRg, ndiv, ibFuel, ieFuel, nfDiv, Cel_Loc%lhole, CellInfo(jCel)%lAIC)
+  !IF (CellInfo(jCel)%lAIC) THEN
+  !  CALL calcAICCellSSPH(CellInfo, jcel, nFXR - 1, iRg, rr, ndiv, iFXR - 1, nfDiv)
+  !ELSE
+  !  CALL calcCellSSPH   (CellInfo, jcel, nFXR - 1, iRg, rr, ndiv, ibFuel, ieFuel, nfDiv, Cel_Loc%lhole)
+  !END IF
 END DO
 
 NULLIFY (Cel_Loc)
@@ -588,7 +624,7 @@ USE HexData, ONLY : hPinInfo, RodPin, GapPin, hCel, hAsyTypInfo, hLgc
 IMPLICIT NONE
 
 INTEGER :: iz, iPin, ipTyp, ivTyp, iCel, iaTyp
-INTEGER :: ncRod
+INTEGER :: nC
 
 TYPE(pin_type),        POINTER :: Pin_Loc
 TYPE(Type_HexPinInfo), POINTER :: Inf_Loc
@@ -597,36 +633,44 @@ TYPE(Type_HexPinInfo), POINTER :: Inf_Loc
 Pin_Loc =>      Pin(iPin)
 Inf_Loc => hPinInfo(iPin)
 
-ncRod = pnRod * nCellType
+nC    = pnRod * nCellType
 ipTyp = Inf_Loc%PinTyp
 ivTyp = Inf_Loc%VtxTyp
-
-! Basic
+! ----------------------------------------------------
+!               01. SET : Basic
+! ----------------------------------------------------
 Pin_Loc%iAsy     = Inf_Loc%AsyIdx
 Pin_Loc%PinType  = Inf_Loc%PinTyp ! for DEBUG
 Pin_Loc%AsyType  = Inf_Loc%AsyTyp
 Pin_Loc%FsrIdxSt = Inf_Loc%FsrIdxSt
 Pin_Loc%FxrIdxSt = Inf_Loc%FxrIdxSt
-
-! Cel
+! ----------------------------------------------------
+!               02. SET : Cel
+! ----------------------------------------------------
 CALL dmalloc(Pin_Loc%Cell,    nZ)
 CALL dmalloc(Pin_Loc%hCelGeo, nZ)
 
 DO iz = 1, nZ
-  ! Case : Rod
+  ! ----------------------------
+  !      CASE : Rod
+  ! ----------------------------
   IF (Inf_Loc%lRod) THEN
+    Pin_Loc%hCelGeo(iz) = hCel(RodPin(ipTyp)%iCel(iz))%icBss
+    
     iCel = RodPin(ipTyp)%iCel(iz)
     
-    Pin_Loc%hCelGeo(iz) = hCel(iCel)%icBss
-    Pin_Loc%Cell   (iz) = pnRod * (iCel - 1) + ivTyp - ivTyp / 7
-  ! Case : Gap
+    Pin_Loc%Cell(iz) = pnRod * (iCel - 1) + ivTyp - ivTyp / 7
+  ! ----------------------------
+  !      CASE : Gap
+  ! ----------------------------
   ELSE
+    Pin_Loc%hCelGeo(iz) = hAsyTypInfo(Inf_Loc%AsyTyp)%iBss
+    
     iCel = GapPin(ipTyp)%iCel(iz)
     
     ! Bndy Typ 1 = ivTyp 8, 9
     ! Bndy Typ 2 = ivTyp 10
-    Pin_Loc%hCelGeo(iz) = hAsyTypInfo(Inf_Loc%AsyTyp)%iBss
-    Pin_Loc%Cell   (iz) = ncRod + pnGap * (iCel - 1) + 1 + ivTyp / 10
+    Pin_Loc%Cell(iz) = nC + pnGap * (iCel - 1) + 1 + ivTyp / 10
   END IF
 END DO
 
@@ -637,8 +681,9 @@ IF (hLgc%lSngCel) THEN
   
   Pin_Loc%Cell = (iCel - 1) * pnRod + 3 ! # of used hCel must be 1 for Sng Cel
 END IF
-
-! LOGICAL
+! ----------------------------------------------------
+!               03. SET : LOGICAL
+! ----------------------------------------------------
 CALL dmalloc(Pin(iPin)%lMOX, Core%nz)
 
 DO iz = 1, Core%nz
@@ -657,7 +702,6 @@ iaTyp = hPinInfo(iPin)%AsyTyp
 
 AsyInfo(iaTyp)%lFuel = AsyInfo(iaTyp)%lFuel .OR. Pin(iPin)%lfuel
 
-! FIN
 NULLIFY (Pin_Loc)
 NULLIFY (Inf_Loc)
 ! ----------------------------------------------------
@@ -684,7 +728,9 @@ INTEGER :: iAssy, iAssyType, iAssyDatID
 INTEGER :: nCoreRay, nMRay, nSeg, iSegSt, nPin, nhcPin, nhcSeg, nBndy
 ! ----------------------------------------------------
 
-! Ray Info
+! ----------------------------------------------------
+!                1. Ray Info
+! ----------------------------------------------------
 RayInfo%nModRay  = NumMRay(0)
 RayInfo%nCoreRay = ncRay
 RayInfo%nRotRay  = nRotRay
@@ -709,8 +755,9 @@ ELSE
     RayInfo%PhiAngOutSvIdx(iRotRay, 2) = 2*iRotRay + 1
   END DO
 END IF
-
-! Azm Angle
+! ----------------------------------------------------
+!                2. SET : Azi Anlge
+! ----------------------------------------------------
 RayInfo%nAziAngle = nAzmAng
 
 ALLOCATE (AziANgle (RayInfo%nAziAngle * 2))
@@ -734,20 +781,23 @@ DO iAzm = 1, RayInfo%nAziAngle
   AziAngle(jAzm)%tanv   = TAN(AziAngle(jAzm)%ang)
   AziAngle(jAzm)%Weight = AziAngle(iAzm)%Weight
 END DO
-
-! Polar Angle
+! ----------------------------------------------------
+!                3. SET : Polar Anlge
+! ----------------------------------------------------
 RayInfo%nPolarAngle     = nPolAng
 RayInfo%nPolarAngleHemi = nPolAng / 2
 
 CALL SetPolarRayAngle(PolarAngle, RayInfo)
-
-! RayInfo 4 CMFD - Rough
+! ----------------------------------------------------
+!                4. Ray Info % RayInfo 4 CMFD - Rough
+! ----------------------------------------------------
 ALLOCATE (RayInfo%RayInfo4CMFD)
 
 RayInfo%RayInfo4CMFD%nRotRay   = nRotRay
 RayInfo%RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
-
-! Pointing
+! ----------------------------------------------------
+!                5. Move to Ray Info
+! ----------------------------------------------------
 RayInfo%AziAngle => AziAngle
 RayInfo%RotRay   => RotRay
 RayInfo%CoreRay  => CoreRay

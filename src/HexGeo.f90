@@ -38,10 +38,9 @@ CALL HexSetAlbedo
 CALL HexSetCore
 
 ! Pin & Mesh
-CALL dmalloc(Core%lFuelPlane, nz)
-CALL dmalloc(Core%lCladPlane, nz)
-CALL dmalloc(Core% lAICPlane, nz)
-
+CALL dmalloc(Core%lFuelPlane,        nz)
+CALL dmalloc(Core%lCladPlane,        nz)
+CALL dmalloc(Core% lAICPlane,        nz)
 CALL dmalloc(Core%PinVol,   nHexPin, nZ)
 CALL dmalloc(Core%PinVolFm, nHexPin, nZ)
 

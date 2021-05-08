@@ -1035,7 +1035,8 @@ subroutine ReadSLB(indev,slbfile,scatord)
     integer :: nSubring0,nSubring,nSPHreg_srd,SPHreg_srd(0:19)
     integer :: idiso,jj,ii,k,j,xxx,z,nid
     INTEGER :: nSPHreg,nrestfxr,nsphdata_tot,nsphreg_tot
-    real(4) :: ndrat2u238
+    !real(4) :: ndrat2u238
+    real :: ndrat2u238  ! EDIT by JSU ('21 MAR)
     real :: r,dumr(100)
     type SPHINTER_temp
         integer :: idiso,nndrat2u238,idx
@@ -1069,6 +1070,7 @@ subroutine ReadSLB(indev,slbfile,scatord)
     svr%nSubring0=nSubring0
     svr%nSPHreg=nSPHreg
     svr%nSPHreg_srd=nSPHreg_srd
+    svr%ninter=ninter
     allocate(svr%SPHreg_srd(0:nSPHreg_srd))
     svr%SPHreg_srd=SPHreg_srd(0:nSPHreg_srd)
     IF (ng.ne.norghel) call terminate('ERROR in SPH library (Wrong # of Groups)')
@@ -1221,6 +1223,7 @@ subroutine ReadSLB(indev,slbfile,scatord)
         enddo
     enddo
     nullify(svr)
+    ! special SPH library like AIC
     do ispf=1,nspf
         svr=>SPHvar(ispf)
         read(indev) ng,nt,np,nm,nSPHreg,nSubring0,nSPHreg_srd

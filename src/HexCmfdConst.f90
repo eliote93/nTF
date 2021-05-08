@@ -515,7 +515,7 @@ DO ixy = 1, nxy
   sPin_Loc%ix = 0
   sPin_Loc%iy = 0
   
-  ! CP
+  ! CnP
   sPin_Loc%nxy = cPin_Loc%nmPin
   
   CALL dmalloc(sPin_Loc%pin,             3)
@@ -537,14 +537,12 @@ DO ixy = 1, nxy
   sPin_Loc%BdMPidx = cPin_Loc%BdMPidx ! MOC Pin
   sPin_Loc%BdMPsuf = cPin_Loc%BdMPsuf ! MOC Pin
   
-  ! CP
-  sPin_Loc%nNgh   = cPin_Loc%nNgh
-  sPin_Loc%NghBd  = cPin_Loc%NghBd
-  sPin_Loc%NghLgh = cPin_Loc%NghLgh
-  
-  sPin_Loc%NeighIdx(1:15) = cPin_Loc%NghPin(1:15)
-  
-  sPin_Loc%NeighSurfIdx(1:15) = cPin_Loc%NghSuf(1:15)
+  ! CnP
+  sPin_Loc%nNgh         = cPin_Loc%nNgh
+  sPin_Loc%NeighIdx     = cPin_Loc%NghPin
+  sPin_Loc%NeighSurfIdx = cPin_Loc%NghSuf
+  sPin_Loc%NghBd        = cPin_Loc%NghBd
+  sPin_Loc%NghLgh       = cPin_Loc%NghLgh
 END DO
 ! ----------------------------------------------------
 !               02. SET : Fuel Dat

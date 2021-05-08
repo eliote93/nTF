@@ -1,15 +1,15 @@
 SUBROUTINE HexChkInp()
 
-USE CNTL,         ONLY : nTracerCntl
-USE PARAM,        ONLY : TRUE, FALSE, HALF
-USE geom,         ONLY : nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp, nZ
-USE HexUtil,      ONLY : ChkSameVal, HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
-USE HexType,      ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexAsyTypInfo
-USE IOUTIL,       ONLY : terminate
+USE CNTL,    ONLY : nTracerCntl
+USE PARAM,   ONLY : TRUE, FALSE, HALF
+USE geom,    ONLY : nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp, nZ
+USE HexUtil, ONLY : ChkSameVal, HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
+USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexAsyTypInfo
+USE IOUTIL,  ONLY : terminate
+USE HexData
+
 USE Material_Mod, ONLY : nMixType
 USE BenchXs,      ONLY : nXslType
-
-USE HexData
 
 IMPLICIT NONE
 
@@ -78,6 +78,7 @@ DO iaTyp = 1, nAsyType0
     CALL HexChkEqual_REAL(aiF2F, gCel(iCel)%aiF2F, 1, "LENGTH OF GAP IN ASY & CEL ARE DIFFERENT")
   END DO
   
+  ! Cstt.
   IF (aInf_Loc%cstTyp .NE. 0) THEN
     CALL HexChkRange_INT(aInf_Loc%cstTyp, 1, nGapPinType, "CORNER STIFFENER Type")
     CALL HexChkRange_INT(aInf_Loc%cstNum, 1, nPin / 2,    "CORNER STIFFENER Number")

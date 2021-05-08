@@ -594,7 +594,7 @@ END IF
 #endif
 
 #ifdef __INTEL_MKL
-IF (PE%lMKL) THEN
+IF (PE%lMKL .AND. mklCntl%lEnter) THEN
   IF (.NOT. mklCntl%lDavidson) THEN
     CALL MKL_CmfdPower(Core, CmInfo, FmInfo, eigv)
   ELSE

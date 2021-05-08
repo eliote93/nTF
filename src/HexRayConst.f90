@@ -6,10 +6,11 @@ SUBROUTINE HexSetCoreRay()
 USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE geom,    ONLY : nZ
+USE ioutil,  ONLY : terminate
 USE Moc_Mod, ONLY : nMaxCellRay, nMaxRaySeg
 USE HexType, ONLY : Type_HexCoreRay, Type_HexAsyRay
-USE HexData, ONLY : nhAsy, ncRay, Asy2Dto1DMap, hAsy, haRay, hcRay, hAsyTypInfo, nAzmAng, NumMray, AngMray, hmRay, hPinInfo, RodPin, GapPin, hCel, gCel, gCelBss
-USE ioutil,  ONLY : terminate
+USE HexData, ONLY : nhAsy, ncRay, Asy2Dto1DMap, hAsy, haRay, hcRay, hAsyTypInfo, &
+                    nAzmAng, NumMray, AngMray, hmRay, hPinInfo, RodPin, GapPin, hCel, gCel, gCelBss
 
 IMPLICIT NONE
 
@@ -118,7 +119,7 @@ END DO
 
 ALLOCATE (hcRay (ncRay))
 ! ----------------------------------------------------
-!               03. CP : hcRay
+!               03. CnP : hcRay
 ! ----------------------------------------------------
 !$OMP PARALLEL PRIVATE(icRay, imRay)
 !$OMP DO SCHEDULE(GUIDED)
@@ -197,10 +198,10 @@ SUBROUTINE HexSetRotRay()
 
 USE allocs
 USE PARAM,   ONLY : ZERO, FALSE, TRUE
+USE ioutil,  ONLY : terminate
 USE HexData, ONLY : ncRay, nRotRay, hcRay, hAsy, hRotRay, hLgc, hmRay, Asy2Dto1Dmap, Asy1Dto2DMap
 USE HexUtil, ONLY : SetSgn_INT
 USE Moc_Mod, ONLY : nMaxCoreRay
-USE ioutil,  ONLY : terminate
 
 IMPLICIT NONE
 
@@ -343,7 +344,7 @@ ELSE
   END DO
 END IF
 ! ----------------------------------------------------
-!               03. CP : Rot Ray
+!               03. CnP : Rot Ray
 ! ----------------------------------------------------
 ALLOCATE (hRotRay (nRotRay))
 

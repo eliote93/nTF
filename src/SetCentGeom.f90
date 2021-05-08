@@ -9,7 +9,6 @@ SUBROUTINE SetCentCell(icel0, icel, iType)
 use geom,   only :  CellInfo,  CellPitch,    nCellType
 use BenchXs,only :  MacXsBen
 USE XSLIB_MOD ,ONLY : igresb,igrese
-use SPH_Mod, only :  calcCellSSPH
 IMPLICIT NONE
 
 INTEGER,INTENT(IN) :: icel0, icel, iType     !Cell Index
@@ -230,6 +229,10 @@ IF(.NOT. lRect) THEN
   CellInfo(icel)%matidx(1:nmat) = CellInfo(icel0)%matidx(1:nmat)
   allocate(CellInfo(icel)%matrad(nmat))
   CellInfo(icel)%matrad(1:nmat) = CellInfo(icel0)%matrad(1:nmat)
+  allocate(CellInfo(icel)%matvol(nmat))
+  CellInfo(icel)%matvol(1:nmat) = CellInfo(icel0)%matvol(1:nmat)
+  allocate(CellInfo(icel)%matfxridx(nFXR))
+  CellInfo(icel)%matfxridx(nFXR) = CellInfo(icel0)%matfxridx(nFXR)
   
   nreg = CellInfo(icel0)%nreg_cp
   CellInfo(icel)%nreg_cp = nreg
@@ -247,8 +250,8 @@ IF(.NOT. lRect) THEN
   
   IF (nTracerCntl%lSSPH) then
       IF (CellInfo(icel)%lfuel.or.CellInfo(icel)%lAIC) then
-          ALLOCATE(CellInfo(icel)%SPHfactor(1:CellInfo(icel0)%nFXR,igresb:igrese))
-          CellInfo(icel)%SPHfactor = CellInfo(icel0)%SPHfactor
+          !ALLOCATE(CellInfo(icel)%SPHfactor(1:CellInfo(icel0)%nFXR,igresb:igrese))
+          !CellInfo(icel)%SPHfactor = CellInfo(icel0)%SPHfactor
           CellInfo(icel)%ngapdiv = CellInfo(icel0)%ngapdiv
           CellInfo(icel)%ncladdiv = CellInfo(icel0)%ncladdiv
           CellInfo(icel)%FuelRad0 = CellInfo(icel0)%FuelRad0
@@ -299,7 +302,6 @@ SUBROUTINE SetCentCellBase(icel0, icel, iType)
 use geom,   only :  BaseCellInfo,  CellPitch,    nCellType
 use BenchXs,only :  MacXsBen
 USE XSLIB_MOD ,ONLY : igresb,igrese
-use SPH_Mod, only :  calcCellSSPH
 IMPLICIT NONE
 
 INTEGER,INTENT(IN) :: icel0, icel, iType     !Cell Index

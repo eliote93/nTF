@@ -28,6 +28,8 @@ TYPE TimeChk_Type
   REAL :: DeplBase1GTime = 0, DeplBaseMGTime = 0, DeplcuSysTime = 0
   REAL :: XSsubTime = 0!, XSefriTime = 0, XSefmcTime = 0, XSTime = 0
   REAL :: cuXSPreTime = 0, cuXSMainTime = 0, cuHomDevTime = 0, cuHomHostTime = 0
+  REAL :: SSPHTime(0:35) = 0.0
+  INTEGER :: SSPHCounter(0:20) = 0
 END TYPE
 TYPE(TimeChk_Type) :: TimeChk
 REAL,save :: tinit,tth,ttotal,txsec,tppr

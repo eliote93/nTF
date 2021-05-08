@@ -5,7 +5,7 @@ USE PARAM
 USE TYPEDEF,         ONLY : coreinfo_type,  Pin_Type,    Cell_Type,             &
                             Mixture_Type
 USE GEOM,            ONLY : Core,           Pin,         CellInfo,              &
-                            CellInfo,       ng
+                            ng,             nCellType0
 USE CORE_mod,        ONLY : Fxr,            GroupInfo,   FmInfo      
 USE Boron_mod,       ONLY : SetBoronCoolant
 USE XeDyn_Mod,       ONLY : InitXeDynInfo
@@ -19,6 +19,8 @@ USE ALLOCS
 USE BenchXs,         ONLY : MacXsBen
 USE XSLIB_MOD,       ONLY : ldiso, mapnucl, CoreResIsoUpdate, nreshel
 USE PointXSRT_MOD,         ONLY : SetMGnPWInfo, nPGrid, CorePXSIsoUpdate, CalcPSM_ISOPIN
+USE SPH_MOD,         ONLY : PreTabGeomSPH_FUEL, PreTabGeomSPH_AIC
+USE HexData,         ONLY : ncTyp
 IMPLICIT NONE
 
 TYPE(Mixture_Type), POINTER :: Mix       
@@ -260,6 +262,15 @@ END IF
 
 IF (nTRACERCntl%lPointRT) CALL SetMGnPWInfo
 IF (nTRACERCntl%lPSM) CALL CalcPSM_ISOPIN
+IF (nTRACERCntl%lssph) THEN
+  IF (nTracerCntl%lHex) THEN
+    CALL PreTabGeomSPH_FUEL(Core, ncTyp, PE)
+    CALL PreTabGeomSPH_AIC (Core, ncTyp, PE)
+  ELSE
+    CALL PreTabGeomSPH_FUEL(Core, nCellType0, PE)
+    CALL PreTabGeomSPH_AIC(Core, nCellType0, PE)
+  END IF
+END IF
 
 !CALL  Calnum(Core, FmInfo, PE)
 !CALL  ReadFxr(Core, FmInfo, PE)

@@ -309,12 +309,28 @@ DO iz = myzb, myze
       myFxr => Fxr(ifxr, iz)
       IF(lXsLib) Then
         CALL MacXsANf(xsA,xsNF,myFxr,1,ng,ng)
+        IF (.NOT.(SUM(xsA).GE.0.)) THEN
+          WRITE(*,'(A,47ES10.3)') 'NaN during MacXS(A) :', xsA(1:47)
+          STOP
+        END IF
+        IF (.NOT.(SUM(xsNF).GE.0.)) THEN
+          WRITE(*,'(A,47ES10.3)') 'NaN during MacXS(NF) :', xsNF(1:47)
+          STOP
+        END IF
         IF(myFxr%lres) THEN
           do ig = iResoGrpBeg,iResoGrpEnd
             xsA(ig) = xsA(ig) * myFxr%FresoA(ig)
             xsNF(ig) = xsNF(ig) * myFxr%FresoNF(ig)
           enddo
         ENDIF
+        IF (.NOT.(SUM(xsA).GE.0.)) THEN
+          WRITE(*,'(A,47ES10.3)') 'NaN during Freso(A) :', xsA(1:47)
+          STOP
+        END IF
+        IF (.NOT.(SUM(xsNF).GE.0.)) THEN
+          WRITE(*,'(A,47ES10.3)') 'NaN during Freso(NF) :', xsNF(1:47)
+          STOP
+        END IF
       ELSE
         !itype = CellInfo(icel)%iReg(ifsrlocal)
         itype = myFxr%imix
@@ -338,6 +354,10 @@ DO iz = myzb, myze
       ENDIF
       xlv(tid) = xlv(tid) + DotProduct(xsA(1:ng), PhiFxr(1:ng), ng) * hz(iz)
       xsv(tid) = xsv(tid) + DotProduct(xsNF(1:ng), PhiFxr(1:ng), ng) * hz(iz)
+      IF (.NOT.(SUM(xlv).GE.0.) .OR. .NOT.(SUM(xsv).GE.0)) THEN
+        WRITE(*,'(A,47ES10.3)') 'NaN during DotProd :', PhiFxr(1:47)
+        STOP
+      END IF
     ENDDO
   ENDDO
 !  !$OMP END DO

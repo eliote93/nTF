@@ -170,9 +170,9 @@ DO i = nProc+1, nProc0
   ExclProc(n) = i - 1
 ENDDO
 
-CALL MPI_COMM_GROUP(MPI_COMM_WORLD, MPI_GROUP, ierr)
+CALL MPI_COMM_GROUP(PE%MPI_COMM, MPI_GROUP, ierr)
 CALL MPI_GROUP_EXCL(MPI_Group, n, ExclProc, MPI_NTRACER_GROUP, ierr)
-CALL MPI_COMM_CREATE(MPI_COMM_WORLD, MPI_NTRACER_GROUP, MPI_NTRACER_COMM, ierr)
+CALL MPI_COMM_CREATE(PE%MPI_COMM, MPI_NTRACER_GROUP, MPI_NTRACER_COMM, ierr)
 PE%nproc0 = PE%nproc; PE%myrank0 = PE%myrank
 PE%nproc = 0;  PE%myrank = 0
 !Get New Communicator
@@ -424,13 +424,13 @@ CALL Dmalloc0(PE%Fsr_displs, 0, PE%nRTProc - 1)
 DO i = 0, PE%nRTProc - 1
   CALL GetRangeDecomp(1, Core%nxya, PE%nRTProc, i, AsyBeg, AsyEnd)
   PinBeg = Core%Asy(AsyBeg)%GlobalPinIdx(1)
-  
+
   IF (nTracerCntl%lHex) THEN
     PinEnd = hAsy(AsyEnd)%PinIdxSt + hAsy(AsyEnd)%nTotPin - 1
   ELSE
     PinEnd = Core%Asy(AsyEnd)%GlobalPinIdx(Core%AsyInfo(Core%Asy(AsyEnd)%AsyType)%nxy)
   END IF
-  
+
   FsrBeg = Core%Pin(PinBeg)%FsrIdxSt
   FsrEnd = Core%Pin(PinEnd)%FsrIdxSt + Core%PinInfo(Core%Pin(PinEnd)%PinType)%nFsrMax - 1
   PE%nAsy(i) = AsyEnd - AsyBeg + 1
@@ -476,7 +476,7 @@ INTEGER :: nRay(0:1000)
 ! nRotRay = RayInfo%nRotRay
 ! CALL GetRangeDecomp(1, nRotRay, PE%nRTProc, PE%myRTrank, ibeg, iend)
 ! PE%myRayBeg = ibeg; PE%myRayEnd = iEnd
-! 
+!
 ! ALLOCATE(segList(2, nRotRay))
 ! ALLOCATE(RayList(nRotRay, 0:PE%nRTproc))
 ! IF (nTracerCntl%lHex) THEN
@@ -509,7 +509,7 @@ INTEGER :: nRay(0:1000)
 !   PE%OmpRayList(0, irank) = PE%OmpRayList(0, irank) + 1
 !   PE%OmpRayList(PE%OmpRayList(0, irank), irank) = iray
 ! ENDDO
-! 
+!
 ! #else
 ! PE%myRayBeg = 1; PE%myRayEnd = RayInfo%nRotRay
 ! #endif

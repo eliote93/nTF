@@ -20,7 +20,7 @@ INTEGER :: mp(1:2) = (/-1, 1/)
 REAL :: dx, dy, rr, Ang
 REAL :: Cnt(2), Tmp(2)
 
-TYPE (Type_HexAsyTypInfo), POINTER :: aInf_Loc
+TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 ! ----------------------------------------------------
 
 aInf_Loc => hAsyTypInfo(iaTyp)
@@ -143,8 +143,8 @@ INTEGER :: iaTyp, iGeo, iPin, jPin, nRod, iBndy
 
 REAL :: gCnt(2), Cnt(2), gEqn(3)
 
-TYPE (Type_HexAsyTypInfo), POINTER :: aInf_Loc
-TYPE (Type_HexGeoTypInfo), POINTER :: gInf_Loc
+TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
+TYPE(Type_HexGeoTypInfo), POINTER :: gInf_Loc
 ! ----------------------------------------------------
 
 aInf_Loc => hAsyTypInfo(iaTyp)

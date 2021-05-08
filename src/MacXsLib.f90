@@ -268,6 +268,12 @@ DO iso = 1, niso
     IF (isodata%ifis.eq.0) CYCLE
     IsoXsMacf(iso, ig) = ND * (wt2 * isodata%sigf(ig, it2) + wt1 * isodata%sigf(ig, it1))
   ENDDO
+  IF (.NOT.(sum(IsoXsMacA(iso,:)).GE.0 ).OR. .NOT.(sum(IsoXsMacf(iso,:)).GE.0)) THEN
+    WRITE(*, '(A,I7,A,ES10.3)') 'NaN during MacXsANF at', idiso(iso), 'ND =', ND
+    WRITE(*, '(A,47ES10.3)') 'IsoXsMacA :', IsoXsMacA(iso,:)
+    WRITE(*, '(A,47ES10.3)') 'IsoXsMacF :', IsoXsMacf(iso,:)
+    STOP
+  END IF
 ENDDO !Isotopic sweeep
 END SUBROUTINE
 
@@ -302,6 +308,12 @@ DO iso = 1, niso
     IF (isodata%ifis.eq.0) CYCLE
     XsMacNF(ig) = XsMacNF(ig) + ND * (wt2 * isodata%signf(ig, it2) + wt1 * isodata%signf(ig, it1))
   ENDDO
+  IF (.NOT.(sum(XsMacA).GE.0 ).OR. .NOT.(sum(XsMacNF).GE.0)) THEN
+    WRITE(*, '(A,I7,A,ES10.3)') 'NaN during MacXsANF at', idiso(iso), 'ND =', ND
+    WRITE(*, '(A,47ES10.3)') 'MacA :', XsMacA(:)
+    WRITE(*, '(A,47ES10.3)') 'MacNF :', XsMacNF(:)
+    STOP
+  END IF
 ENDDO !Isotopic sweeep
 END SUBROUTINE
 
@@ -397,14 +409,14 @@ DO iso = 1, niso
       IsoXsMacS0(iso, ig) = pnum(iso)*isodata%sign2n(ig)
     END DO
   ELSE
-    IsoXsMacS0 = 0.;
+    IsoXsMacS0(iso,:) = 0.;
   END IF
   IF (idn3n.NE.0) THEN
     DO ig = 1, ng
       IsoXsMacTr(iso, ig) = pnum(iso)*isodata%sign3n(ig)
   ENDDO
   ELSE
-    IsoXsMacTr = 0.;
+    IsoXsMacTr(iso,:) = 0.;
   END IF
 ENDDO !Isotopic sweeep
 

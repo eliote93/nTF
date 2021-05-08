@@ -1057,12 +1057,12 @@ ENDIF
 END FUNCTION
 
 FUNCTION asumMulti4(x, n, comm, blasHandle, lMPI) RESULT(sum_asum)
-IMPLICIT NONE 
-INTEGER :: n, comm, ierr 
+IMPLICIT NONE
+INTEGER :: n, comm, ierr
 TYPE(cublasHandle) :: blasHandle
 INTEGER(KIND=cuda_stream_kind) :: stream
 REAL(4), DEVICE :: x(*)
-REAL(4) :: asum, sum_asum 
+REAL(4) :: asum, sum_asum
 LOGICAL :: lMPI
 
 ierr = cublasGetStream(blasHandle, stream)
@@ -1070,7 +1070,7 @@ ierr = cublasSasum_v2(blasHandle, n, x, 1, asum)
 ierr = cudaStreamSynchronize(stream)
 
 IF (lMPI) THEN
-  CALL MPI_ALLREDUCE(asum, sum_asum, 1, MPI_FLOAT, MPI_SUM, comm, ierr) 
+  CALL MPI_ALLREDUCE(asum, sum_asum, 1, MPI_FLOAT, MPI_SUM, comm, ierr)
 ELSE
   sum_asum = asum
 END IF
@@ -1131,12 +1131,12 @@ ENDIF
 END FUNCTION
 
 FUNCTION asumMulti8(x, n, comm, blasHandle, lMPI) RESULT(sum_asum)
-IMPLICIT NONE 
-INTEGER :: n, comm, ierr 
+IMPLICIT NONE
+INTEGER :: n, comm, ierr
 TYPE(cublasHandle) :: blasHandle
 INTEGER(KIND=cuda_stream_kind) :: stream
 REAL(8), DEVICE :: x(*)
-REAL(8) :: asum, sum_asum 
+REAL(8) :: asum, sum_asum
 LOGICAL :: lMPI
 
 ierr = cublasGetStream(blasHandle, stream)
@@ -1144,7 +1144,7 @@ ierr = cublasDasum_v2(blasHandle, n, x, 1, asum)
 ierr = cudaStreamSynchronize(stream)
 
 IF (lMPI) THEN
-  CALL MPI_ALLREDUCE(asum, sum_asum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr) 
+  CALL MPI_ALLREDUCE(asum, sum_asum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
 ELSE
   sum_asum = asum
 END IF
@@ -1653,7 +1653,7 @@ INTEGER :: ig, icel
 
 ncel = nxyc * nzCMFD
 
-ig = threadIdx%x 
+ig = threadIdx%x
 icel = threadIdx%y + (blockIdx%x - 1) * blockDim%y
 IF(icel .GT. ncel) RETURN
 
@@ -1685,7 +1685,7 @@ INTEGER :: ig, icel
 IF(threadIdx%x .EQ. 1 .AND. threadIdx%y .EQ. 1) Print*, 'compute transrc'
 ncel = nxyc * nzCMFD
 
-ig = threadIdx%x 
+ig = threadIdx%x
 icel = threadIdx%y + (blockIdx%x - 1) * blockDim%y
 IF(icel .GT. ncel) RETURN
 thetah = 1./ theta - 1.
@@ -1697,7 +1697,7 @@ prevSrc = thetah* prevSrc
 !prevSrc = prevSrc + volphid / (delt*theta)
 !prevSrc = prevSrc * Expo(ig,icel)
 trSrc(ig,icel) = prevSrc
-!trSrc(ig,icel) = chid(ig) * precSrc(icel) 
+!trSrc(ig,icel) = chid(ig) * precSrc(icel)
 !trSrc(ig,icel) = trSrc(ig,icel) + prevSrc
 
 IF(ig .EQ. 1 .AND. icel .EQ. 1) PRINT*, Trsrc(ig, icel)
@@ -1721,12 +1721,12 @@ INTEGER :: ig, icel
 IF(threadIdx%x .EQ. 1 .AND. threadIdx%y .EQ. 1) Print*, 'compute transrc'
 ncel = nxyc * nzCMFD
 
-ig = threadIdx%x 
+ig = threadIdx%x
 icel = threadIdx%y + (blockIdx%x - 1) * blockDim%y
 IF(icel .GT. ncel) RETURN
 thetah = 1./ theta - 1.
 
-trSrc(ig,icel) = ResSrc(ig,icel)  
+trSrc(ig,icel) = ResSrc(ig,icel)
 TrSrc(ig,icel) = TrSrc(ig,icel) * VolInvVel(ig,icel) * TranPhi(ig,icel)
 
 IF(ig .EQ. 1 .AND. icel .EQ. 1) PRINT*, Trsrc(ig, icel)

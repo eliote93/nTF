@@ -5,7 +5,7 @@
 		<Option title="nTRACER" />
 		<Option pch_mode="2" />
 		<Option compiler="pgifortran" />
-		<Option virtualFolders="Header Files\;Source Files\;Source Files\Axial Solver\;Source Files\Boron\;Source Files\CMFD\;Source Files\COMMON\;Source Files\Control Rod\;Source Files\Decoupled\;Source Files\Depletion\;Source Files\Geometry Treatment\;Source Files\Group Constant\;Source Files\Initialize\;Source Files\IO\;Source Files\Linear System Solver\;Source Files\LP_SHUFFLE\;Source Files\Main\;Source Files\MC\;Source Files\MCP\;Source Files\MOC\;Source Files\PE\;Source Files\Subgroup\;Source Files\TH\;Source Files\Transient\;Source Files\Util\;Source Files\Xenon Dynamics\;Source Files\XS\;Source Files\Axial Solver\P1\;Source Files\Axial Solver\SP3\;Source Files\CMFD\Group Condense\;Source Files\CMFD\Group Condense\2Group\;Source Files\CMFD\SetSystem\;Source Files\Decoupled\DcplCMFD\;Source Files\Decoupled\DcplMOC\;Source Files\Decoupled\DcplTH\;Source Files\Decoupled\PinXSOut\;Source Files\Depletion\Cooling\;Source Files\Depletion\Critical Spectrum\;Source Files\Depletion\Gd Depletion\;Source Files\Geometry Treatment\CADGeom\;Source Files\Geometry Treatment\Geom Init\;Source Files\Geometry Treatment\Geometry\;Source Files\Geometry Treatment\SetRay\;Source Files\Group Constant\Old\;Source Files\IO\OutputProcess\;Source Files\IO\ReadInput\;Source Files\Linear System Solver\RadDcmp\;Source Files\MC\LinearSolver\;Source Files\TH\SteamTbl\;Source Files\TH\Subchannel\;Source Files\Transient\CMFD\;Source Files\Transient\MOC\;Source Files\XS\BenchmarkXS\;Source Files\XS\LibXS\;Source Files\XS\VTK\;Source Files\CSRMATRIX\;Source Files\Parallel Computing\;Source Files\Parallel Computing\OpenCL\;Source Files\Gamma Transport\;Source Files\Gamma Transport\MOC\;Source Files\Gamma Transport\CMFD\;Source Files\Parallel Computing\CUDA\;Source Files\Parallel Computing\MKL\;Source Files\Parallel Computing\MKL\CMFD\;Source Files\Parallel Computing\MKL\Axial\;Source Files\Parallel Computing\Common\;Source Files\Parallel Computing\MKL\Depletion\;Source Files\Parallel Computing\CUDA\CMFD\;Source Files\Parallel Computing\CUDA\MOC\;Source Files\Parallel Computing\CUDA\Axial\;Source Files\Hex\;Source Files\Parallel Computing\Common\Depletion\;Source Files\Parallel Computing\CUDA\Depletion\;Source Files\Parallel Computing\CUDA\XS\;Source Files\Parallel Computing\CUDA\Transient\;" />
+		<Option virtualFolders="Header Files\;Source Files\;Source Files\Axial Solver\;Source Files\Boron\;Source Files\CMFD\;Source Files\COMMON\;Source Files\Control Rod\;Source Files\Decoupled\;Source Files\Depletion\;Source Files\Geometry Treatment\;Source Files\Group Constant\;Source Files\Initialize\;Source Files\IO\;Source Files\Linear System Solver\;Source Files\LP_SHUFFLE\;Source Files\Main\;Source Files\MC\;Source Files\MCP\;Source Files\MOC\;Source Files\PE\;Source Files\Subgroup\;Source Files\TH\;Source Files\Transient\;Source Files\Util\;Source Files\Xenon Dynamics\;Source Files\XS\;Source Files\Axial Solver\P1\;Source Files\Axial Solver\SP3\;Source Files\CMFD\Group Condense\;Source Files\CMFD\Group Condense\2Group\;Source Files\CMFD\SetSystem\;Source Files\Decoupled\DcplCMFD\;Source Files\Decoupled\DcplMOC\;Source Files\Decoupled\DcplTH\;Source Files\Decoupled\PinXSOut\;Source Files\Depletion\Cooling\;Source Files\Depletion\Critical Spectrum\;Source Files\Depletion\Gd Depletion\;Source Files\Geometry Treatment\CADGeom\;Source Files\Geometry Treatment\Geom Init\;Source Files\Geometry Treatment\Geometry\;Source Files\Geometry Treatment\SetRay\;Source Files\Group Constant\Old\;Source Files\IO\OutputProcess\;Source Files\IO\ReadInput\;Source Files\Linear System Solver\RadDcmp\;Source Files\MC\LinearSolver\;Source Files\TH\SteamTbl\;Source Files\TH\Subchannel\;Source Files\Transient\CMFD\;Source Files\Transient\MOC\;Source Files\XS\BenchmarkXS\;Source Files\XS\LibXS\;Source Files\XS\VTK\;Source Files\CSRMATRIX\;Source Files\Parallel Computing\;Source Files\Parallel Computing\OpenCL\;Source Files\Gamma Transport\;Source Files\Gamma Transport\MOC\;Source Files\Gamma Transport\CMFD\;Source Files\Parallel Computing\CUDA\;Source Files\Parallel Computing\MKL\;Source Files\Parallel Computing\MKL\CMFD\;Source Files\Parallel Computing\MKL\Axial\;Source Files\Parallel Computing\Common\;Source Files\Parallel Computing\MKL\Depletion\;Source Files\Parallel Computing\CUDA\CMFD\;Source Files\Parallel Computing\CUDA\MOC\;Source Files\Parallel Computing\CUDA\Axial\;Source Files\Hex\;Source Files\Parallel Computing\Common\Depletion\;Source Files\Parallel Computing\CUDA\Depletion\;Source Files\Parallel Computing\CUDA\XS\;Source Files\Parallel Computing\CUDA\Transient\;Source Files\Hex\Bridge\;Source Files\Hex\CMFD\;Source Files\Hex\Geo\;Source Files\Hex\IO\;Source Files\Hex\Ray\;Source Files\MOC\Common\;Source Files\MOC\Domain Dcmp\;Source Files\MOC\Group Major\;Source Files\MOC\Linear Src\;Source Files\MOC\Node Major\;" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/nTRACER" prefix_auto="1" extension_auto="1" />
@@ -38,9 +38,9 @@
 					<Add option="-ta=tesla,cuda10.1" />
 					<Add option="-Mcudalib=cusparse,cublas" />
 					<Add option="-stack=100000000" />
-					<Add library="C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpi.lib" />
-					<Add library="C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpifec.lib" />
-					<Add library="C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpifmc.lib" />
+					<Add library="C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpi.lib" />
+					<Add library="C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpifec.lib" />
+					<Add library="C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpifmc.lib" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -78,9 +78,9 @@
 					<Add option="-lblas" />
 					<Add option="-llapack" />
 					<Add option="-Mmpi=msmpi" />
-					<Add library="C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpi.lib" />
-					<Add library="C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpifec.lib" />
-					<Add library="C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpifmc.lib" />
+					<Add library="C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpi.lib" />
+					<Add library="C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpifec.lib" />
+					<Add library="C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpifmc.lib" />
 					<Add directory="C:/Program Files/PGI/win64/19.4/lib" />
 				</Linker>
 			</Target>
@@ -99,7 +99,7 @@
 		</Unit>
 		<Unit filename="../src/ApproxExp.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Common/" />
 		</Unit>
 		<Unit filename="../src/AuxiliaryCSR.f90">
 			<Option weight="1" />
@@ -225,11 +225,11 @@
 			<Option virtualFolder="Source Files/Parallel Computing/CUDA/Depletion/" />
 		</Unit>
 		<Unit filename="../src/CUDA_NNFSP.f90">
-			<Option weight="12" />
+			<Option weight="0" />
 			<Option virtualFolder="Source Files/Parallel Computing/CUDA/Transient/" />
 		</Unit>
 		<Unit filename="../src/CUDA_NN_DRIVER.f90">
-			<Option weight="14" />
+			<Option weight="0" />
 			<Option virtualFolder="Source Files/Parallel Computing/CUDA/Transient/" />
 		</Unit>
 		<Unit filename="../src/CUDA_NODAL.f90">
@@ -620,139 +620,143 @@
 		</Unit>
 		<Unit filename="../src/HexAsyConst.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexAsyRay.f90">
 			<Option weight="6" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Ray/" />
 		</Unit>
 		<Unit filename="../src/HexAsyRayConst.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Ray/" />
 		</Unit>
 		<Unit filename="../src/HexAsyRayIntSct.f90">
 			<Option weight="5" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Ray/" />
 		</Unit>
 		<Unit filename="../src/HexAsyRay_SngCel.f90">
 			<Option weight="6" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Ray/" />
 		</Unit>
 		<Unit filename="../src/HexAsyTypConst.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
-		</Unit>
-		<Unit filename="../src/HexCMFD.f90">
-			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
-		</Unit>
-		<Unit filename="../src/HexCP.f90">
-			<Option weight="10" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexCelBasis.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexCelBasis_Gap.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexCelBasis_Rod.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexChkInp.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
+		</Unit>
+		<Unit filename="../src/HexCmfd.f90">
+			<Option weight="4" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
 		</Unit>
 		<Unit filename="../src/HexCmfdConst.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
+		</Unit>
+		<Unit filename="../src/HexCnP.f90">
+			<Option weight="10" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
 		<Unit filename="../src/HexCorePowerCal.f90">
 			<Option weight="13" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexData.f90">
 			<Option weight="2" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
 		<Unit filename="../src/HexEffXsOut.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexGeo.f90">
-			<Option weight="6" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option weight="3" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexGeoConst.f90">
 			<Option weight="3" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexInit.f90">
 			<Option weight="5" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
-		<Unit filename="../src/HexInput.f90">
-			<Option weight="5" />
-			<Option virtualFolder="Source Files/Hex/" />
+		<Unit filename="../src/HexInpCard.f90">
+			<Option weight="4" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexMain.f90">
 			<Option weight="11" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
 		<Unit filename="../src/HexNgh.f90">
 			<Option weight="3" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
 		</Unit>
 		<Unit filename="../src/HexNgh_MP.f90">
 			<Option weight="3" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
 		</Unit>
 		<Unit filename="../src/HexNgh_SP.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
 		</Unit>
 		<Unit filename="../src/HexOutputEdit.f90">
 			<Option weight="12" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexPinConst.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexRayBasic.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Ray/" />
 		</Unit>
 		<Unit filename="../src/HexRayConst.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Ray/" />
+		</Unit>
+		<Unit filename="../src/HexReadInp.f90">
+			<Option weight="5" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexTLkg.f90">
 			<Option weight="3" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
 		</Unit>
 		<Unit filename="../src/HexThOut.f90">
 			<Option weight="3" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexTst.f90">
 			<Option weight="4" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
 		<Unit filename="../src/HexType.f90">
 			<Option weight="1" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
 		<Unit filename="../src/HexUtil.f90">
 			<Option weight="3" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
 		<Unit filename="../src/HexVtx.f90">
 			<Option weight="5" />
-			<Option virtualFolder="Source Files/Hex/" />
+			<Option virtualFolder="Source Files/Hex/CMFD/" />
 		</Unit>
 		<Unit filename="../src/HighOrderSC.f90">
 			<Option weight="3" />
@@ -912,7 +916,7 @@
 		</Unit>
 		<Unit filename="../src/MOCSweep.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Common/" />
 		</Unit>
 		<Unit filename="../src/MOC_COMMON.f90">
 			<Option weight="11" />
@@ -964,7 +968,7 @@
 		</Unit>
 		<Unit filename="../src/MocEtc.f90">
 			<Option weight="11" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Common/" />
 		</Unit>
 		<Unit filename="../src/MocSolUpdt.f90">
 			<Option weight="2" />
@@ -1042,29 +1046,29 @@
 			<Option weight="0" />
 			<Option virtualFolder="Source Files/MC/" />
 		</Unit>
-		<Unit filename="../src/RayTracing.f90">
+		<Unit filename="../src/RayTraceP1_GM.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Group Major/" />
 		</Unit>
-		<Unit filename="../src/RayTracingLinSrc.f90">
+		<Unit filename="../src/RayTraceP1_NM.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Node Major/" />
 		</Unit>
-		<Unit filename="../src/RayTracingP1.f90">
+		<Unit filename="../src/RayTrace_Dcmp.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Domain Dcmp/" />
 		</Unit>
-		<Unit filename="../src/RayTracingP1_OMP.f90">
+		<Unit filename="../src/RayTrace_GM.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Group Major/" />
 		</Unit>
-		<Unit filename="../src/RayTracing_Dcmp.f90">
+		<Unit filename="../src/RayTrace_Lin.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Linear Src/" />
 		</Unit>
-		<Unit filename="../src/RayTracing_OMP.f90">
+		<Unit filename="../src/RayTrace_NM.f90">
 			<Option weight="10" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Node Major/" />
 		</Unit>
 		<Unit filename="../src/ReadDeplFile.f90">
 			<Option weight="4" />
@@ -1145,9 +1149,25 @@
 			<Option weight="4" />
 			<Option virtualFolder="Source Files/Geometry Treatment/Geom Init/" />
 		</Unit>
-		<Unit filename="../src/SetRtLinSrc.f90">
+		<Unit filename="../src/SetRtSrc_GM.f90">
+			<Option weight="11" />
+			<Option virtualFolder="Source Files/MOC/Group Major/" />
+		</Unit>
+		<Unit filename="../src/SetRtSrc_Lin.f90">
 			<Option weight="9" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Linear Src/" />
+		</Unit>
+		<Unit filename="../src/SetRtSrc_NM.f90">
+			<Option weight="11" />
+			<Option virtualFolder="Source Files/MOC/Node Major/" />
+		</Unit>
+		<Unit filename="../src/SetRtXs_GM.f90">
+			<Option weight="11" />
+			<Option virtualFolder="Source Files/MOC/Group Major/" />
+		</Unit>
+		<Unit filename="../src/SetRtXs_NM.f90">
+			<Option weight="11" />
+			<Option virtualFolder="Source Files/MOC/Node Major/" />
 		</Unit>
 		<Unit filename="../src/SetThCell.f90">
 			<Option weight="6" />
@@ -1342,7 +1362,6 @@
 			<Option link="0" />
 			<Option weight="0" />
 			<Option virtualFolder="Source Files/Parallel Computing/OpenCL/" />
-			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="../src/cmfd_mod.f90">
 			<Option weight="1" />
@@ -1433,7 +1452,7 @@
 		</Unit>
 		<Unit filename="../src/moc_mod.f90">
 			<Option weight="9" />
-			<Option virtualFolder="Source Files/MOC/" />
+			<Option virtualFolder="Source Files/MOC/Common/" />
 		</Unit>
 		<Unit filename="../src/mod_AndersonAcc_SIMPLE.f90">
 			<Option weight="3" />
@@ -1494,14 +1513,6 @@
 		<Unit filename="../src/setCellrayBase.f90">
 			<Option weight="4" />
 			<Option virtualFolder="Source Files/Geometry Treatment/SetRay/" />
-		</Unit>
-		<Unit filename="../src/setRTxs.f90">
-			<Option weight="11" />
-			<Option virtualFolder="Source Files/MOC/" />
-		</Unit>
-		<Unit filename="../src/setRtSrc.f90">
-			<Option weight="11" />
-			<Option virtualFolder="Source Files/MOC/" />
 		</Unit>
 		<Unit filename="../src/setray_mod.f90">
 			<Option weight="1" />

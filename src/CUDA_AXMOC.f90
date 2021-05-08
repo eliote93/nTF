@@ -253,7 +253,7 @@ AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
 TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
 
 
-DO iter = 1, 10
+DO iter = 1, 5
   AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
   IF(iter .NE. 1) THEN
     CALL cuSetPsi(cuAxial, cuDevice, 0)

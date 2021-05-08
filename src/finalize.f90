@@ -111,12 +111,8 @@ IF(PE%MASTER) THEN
     CALL message(io8, FALSE, TRUE, MESG)
 #endif
 #ifdef DEPL_SUB_TCHK
-    Write(mesg, 111)  'Base 1G DEPL =', TimeChk%DeplBase1GTime, 'Sec'
-    CALL message(io8, FALSE, TRUE, MESG)
-    Write(mesg, 111)  'Base MG DEPL =', TimeChk%DeplBaseMGTime, 'Sec'
-    CALL message(io8, FALSE, TRUE, MESG)
     IF (.NOT. PE%lMKL) Write(mesg, 111)  'CUDA Copy DEPL =', TimeChk%DeplcuSysTime, 'Sec'
-    CALL message(io8, FALSE, TRUE, MESG)
+    IF (.NOT. PE%lMKL) CALL message(io8, FALSE, TRUE, MESG)
 #endif
   END IF
 #ifdef XS_TCHK
@@ -133,8 +129,14 @@ IF(PE%MASTER) THEN
 !  CALL message(io8, FALSE, TRUE, MESG)
 !  Write(mesg, 111)  'Mac Eff Gen =', TimeChk%XSefmcTime, 'Sec'
 !  CALL message(io8, FALSE, TRUE, MESG)
+  WRITE(mesg, 111)  'cuXS Hom Dev. =', TimeChk%cuHomDevTime, 'Sec'
+  CALL message(io8, FALSE, TRUE, MESG)
+  WRITE(mesg, 111)  'cuXS Hom Hst. =', TimeChk%cuHomHostTime, 'Sec'
+  CALL message(io8, FALSE, TRUE, MESG)
 #endif
 #endif
+  write(mesg, 111)  'Sub Eff Gen =', TimeChk%SubGrpGenEFFXSTime, 'Sec'
+  CALL message(io8, FALSE, TRUE, MESG)
   Write(mesg, 111)  'T-H =', TimeChk%ThTime, 'Sec'
   CALL message(io8, FALSE, TRUE, MESG)
   Write(mesg, 111)  'Comm  =', TimeChk%CommTime, 'Sec'

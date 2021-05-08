@@ -5,10 +5,11 @@ SUBROUTINE HexSetAlbedo()
 
 USE PARAM,   ONLY : FALSE, TRUE, VOIDCELL, REFCELL, ROTCELL, CBDCELL, ZERO
 USE geom,    ONLY : Core, lcbd, Albedo
-USE HexData, ONLY : hLgc
 USE ioutil,  ONLY : terminate
+USE HexData, ONLY : hLgc
 
 IMPLICIT NONE
+
 ! ----------------------------------------------------
 Core%RadSym = FALSE
 Core%RadBC  = VoidCell
@@ -233,8 +234,8 @@ END SUBROUTINE HexSetVyg
 SUBROUTINE HexSetThGeo(nach, rw, rgt, acf, xi)
 
 USE PARAM,   ONLY : PI, epsm4
-USE HexData, ONLY : hLgc, hGeoTypInfo, hAsyTypInfo
 USE ioutil,  ONLY : terminate
+USE HexData, ONLY : hLgc, hGeoTypInfo, hAsyTypInfo
 
 IMPLICIT NONE
 

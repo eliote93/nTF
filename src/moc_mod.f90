@@ -246,7 +246,6 @@ USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
 
@@ -265,7 +264,6 @@ USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
-
 
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo

@@ -19,7 +19,7 @@ data ncard/ 1,  2, 24, 31, 3,            & !CASEID    STATE      XSEC      OPTIO
            25, 25, 25, 12, 8,            & !GEOM      TH         TRAN      DEPL       BRANCH
            26,  7,  5, 2,  9,            & !EDIT      DECOUPLE   PARALLEL  VISUAL     LP_SHF  !--- BYS edit : # of EDIT card
            10,  4,  3, 5,  6,            & !CNTLROD   CUSPING    XEDYN     CONV       MCP_RESTART
-            6, 14, 14, 14, 3/              !SUBCH_OP  MKL        CUDA      GCGEN      NTIG_RESTART
+            6, 15, 14, 14, 3/              !SUBCH_OP  MKL        CUDA      GCGEN      NTIG_RESTART
 character(15):: blocks(nblock),cards(mxcard,nblock)
 
 data blocks /'CASEID'    ,'STATE'     ,'XSEC'      ,'OPTION'    ,'MATERIAL'        &
@@ -44,7 +44,7 @@ data cards/   'RESTART'   ,39*' '                                               
       ,'FRR'        ,'SCAT_ORDER','BCR_OPT'   ,'MOCUR'     ,'AXREF_FDM'            &
       ,'MC'         ,'MCCMFD'    ,'CMFDSET'   ,'DCMP'      ,'NODE_MAJOR'           &
       ,'AFSS'       ,'NODALOPT'  ,'MULTIGRID' ,'GRIDSTR'   ,'SUBPLN'               &
-      ,'POWERMODE'  , 9*''                                                         &  
+      ,'POWERMODE'  , 9*''                                                         &
 !  5  MATERIAL 3                                                                   &
       ,'MIXTURE'    ,'TRISO'    ,'INCLUDE'    ,37*''                               &
 !  6  GEOM    25                                                                   &
@@ -111,7 +111,8 @@ data cards/   'RESTART'   ,39*' '                                               
 ! 22  MKL       14                                                                 &
       ,'DAVIDSON'   ,'BILU'       ,'AXTYPE'     ,'DCPL'     ,'SHIFT'               &
       ,'PCMFD'      ,'DIRECT'     ,'CHEBYSHEV'  ,'POLAR_XS' ,'GCCMFD'              &
-      ,'GCSTR'      ,'SUPERPIN'   ,'SUBPLN'     ,'DEPL'     ,26*''                 &
+      ,'GCSTR'      ,'SUPERPIN'   ,'SUBPLN'     ,'DEPL'     ,'CMFD'                &
+      ,25*''                                                                       &
 !--- CNJ Edit : CUDA Options                                                       &
 ! 23  CUDA      14                                                                 &
       ,'CU_CMFD'    ,'CU_GCCMFD'  ,'CU_GCSTR'   ,'CU_DCPL'   ,'CU_RBSOR'           &

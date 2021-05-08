@@ -1,20 +1,20 @@
 #include <defines.h>
 SUBROUTINE initialize()
 
-USE Geom,          ONLY : Core
-USE Core_Mod,      ONLY : FmInfo, CmInfo, GroupInfo
-USE RAYS,          ONLY : RayInfo
-USE FILES,         ONLY : io8
-USE CNTL,          ONLY : nTracerCntl
-USE VTK_Mod,       ONLY : ProcessVTK2DPlnModel
-USE PE_MOD,        ONLY : PE
-USE MPIConfig_Mod, ONLY : SetMPIEnv
-USE LpShf_mod,     ONLY : LP_Shuffling
-USE CNTLROD_mod,   ONLY : InitCntlRodConf, SetCrBankPosition
-USE FXRVAR_MOD,    ONLY : lFXRVAR
-USE XS_COMMON,     ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
-USE MOC_COMMON,    ONLY : AllocCoreMacXs
-USE MPIComm_Mod,   ONLY : MPI_SYNC
+USE Geom,           ONLY : Core
+USE Core_Mod,       ONLY : FmInfo, CmInfo, GroupInfo
+USE RAYS,           ONLY : RayInfo
+USE FILES,          ONLY : io8
+USE CNTL,           ONLY : nTracerCntl
+USE VTK_Mod,        ONLY : ProcessVTK2DPlnModel
+USE PE_MOD,         ONLY : PE
+USE MPIConfig_Mod,  ONLY : SetMPIEnv
+USE LpShf_mod,      ONLY : LP_Shuffling
+USE CNTLROD_mod,    ONLY : InitCntlRodConf, SetCrBankPosition
+USE FXRVAR_MOD,     ONLY : lFXRVAR
+USE XS_COMMON,      ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
+USE MOC_COMMON,     ONLY : AllocCoreMacXs
+USE MPIComm_Mod,    ONLY : MPI_SYNC
 
 #ifdef __INTEL_MKL
 USE MKL_INIT
@@ -28,8 +28,7 @@ IF (nTracerCntl%lHex) CALL HexMain
 ! Parallel Enviorment
 #ifdef MPI_ENV
 CALL SetMPIEnv(PE)
-
-IF (PE%lidle) RETURN
+IF(PE%lidle) RETURN
 #endif
 
 ! Geo. & Ray
@@ -40,14 +39,14 @@ IF (nTracerCntl%lHex) THEN
   IF (PE%RTMASTER .AND. nTracerCntl%lCrInfo) CALL InitCntlRodConf(Core, FmInfo, CMInfo, GroupInfo, nTracerCntl, PE)
 ELSE
   IF (nTracerCntl%lnTIGRst) CALL CopyBaseCell
-  
-  CALL SetGeometries
-  
-  ! Control Rod Information
-  IF(PE%RTMASTER .AND. nTracerCntl%lCrInfo) CALL InitCntlRodConf(Core, FmInfo, CMInfo, GroupInfo, nTracerCntl, PE)
-  IF(nTracerCntl%lDcpl) CALL initDcpl
 
-  ! Modular Ray Information
+  CALL SetGeometries
+
+  ! Control Rod Information
+  IF (PE%RTMASTER .AND. nTracerCntl%lCrInfo) CALL InitCntlRodConf(Core, FmInfo, CMInfo, GroupInfo, nTracerCntl, PE)
+  IF (nTracerCntl%lDcpl) CALL initDcpl
+
+  ! Modular ray information
   CALL MakeRays
 END IF
 
@@ -55,7 +54,7 @@ END IF
 CALL AllocPDM
 
 ! Loading Patern
-IF (nTracerCntl%LPShf .OR. nTracerCntl%lCooling) CALL LP_Shuffling(Core, FmInfo, GroupInfo,  nTRACERCntl, PE)
+IF (nTracerCntl%LPShf .OR. nTracerCntl%lCooling) CALL LP_Shuffling(Core, FmInfo, GroupInfo, nTRACERCntl, PE)
 
 ! Caterogies Information of Resonanase Isotope and Eq. XS
 IF (nTracerCntl%lXsLib) THEN
@@ -68,7 +67,7 @@ END IF
 IF (PE%RTmaster .AND. nTracerCntl%lFeedBack .OR. lFXRVAR) CALL InitTH
 
 ! FXR Variation
-IF (lFXRVAR .AND. .NOT.nTracerCntl%lBranch) CALL FXRVARIATION(Core%ncorefxr, FmInfo, PE)
+IF (lFXRVAR .AND. .NOT.nTracerCntl%lBranch ) CALL FXRVARIATION(Core%ncorefxr, FmInfo, PE)
 
 ! Flux Variables
 IF (PE%RTmaster) CALL SetCorePower(Core, nTracerCntl)
@@ -79,7 +78,7 @@ IF (nTracerCntl%lMacro) CALL AllocCoreMacXs(Core)
 
 ! 3D Solver Employing Intel MKL
 #ifdef __INTEL_MKL
-IF (PE%lMKL) CALL SetMKLEnv(Core, FmInfo, RayInfo)
+IF (PE%lMKL.AND.mklCntl%lEnter) CALL SetMKLEnv(Core, FmInfo, RayInfo)
 #endif
 
 ! GPU Acceleration
@@ -101,7 +100,7 @@ IF (nTracerCntl%lGamma) CALL PrepareGamma(Core, RayInfo)
 #endif
 
 ! VTK
-IF (nTracerCntl%OutpCntl%VisMod .EQ. 4) THEN
+IF(nTracerCntl%OutpCntl%VisMod .EQ. 4) THEN
   CALL ProcessVTK2DPlnMOdel(Core, FmInfo, GroupInfo, nTracerCntl, PE)
   CALL MPI_SYNC(PE%MPI_CMFD_COMM)
   

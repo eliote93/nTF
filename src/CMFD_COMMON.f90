@@ -33,7 +33,7 @@ nCellType = CoreInfo%nCellType
 
 nFxrMax = 0
 
-IF (nTracerCntl%lHex) THEN
+IF(nTracerCntl%lHex) THEN
   DO icel = 1, ncTyp
     IF (.NOT. Cell(icel)%luse) CYCLE
 
@@ -997,10 +997,9 @@ IF (.NOT. lSuperpin) THEN
   DO ixy = 1, nxy
     ALLOCATE(superPin(ixy)%pin(1))
     ALLOCATE(superPin(ixy)%pin2D(1, 1))
-    
-    ALLOCATE(superPin(ixy)%NeighIDX(4))
+    ALLOCATE(superPin(ixy)%NeighIdx(4))
     ALLOCATE(superPin(ixy)%NeighSurfIdx(4))
-    ALLOCATE(superPin(ixy)%BDLength(4))
+    ALLOCATE(superPin(ixy)%BdLength(4))
     ALLOCATE(superPin(ixy)%Center2SurfaceL(4))
     
     superPin(ixy)%nx = 1
@@ -1074,6 +1073,7 @@ DO iAsy = 1, CoreInfo%nxya
         mySuperPin(ix, iy)%nx = nx
         mySuperPin(ix, iy)%ny = ny
         mySuperPin(ix, iy)%nxy = nx * ny
+        ALLOCATE(mySuperPin(ix, iy)%BdLength(4))
         mySuperPin(ix, iy)%BdLength = 0.0
         ALLOCATE(mySuperPin(ix, iy)%pin(nx * ny))
         ALLOCATE(mySuperPin(ix, iy)%pin2D(nx, ny))
@@ -1120,6 +1120,7 @@ DO iAsy = 1, CoreInfo%nxya
         mySuperPin(ix, iy)%nx = nx
         mySuperPin(ix, iy)%ny = ny
         mySuperPin(ix, iy)%nxy = nx * ny
+        ALLOCATE(mySuperPin(ix, iy)%BdLength(4))
         mySuperPin(ix, iy)%BdLength = 0.0
         ALLOCATE(mySuperPin(ix, iy)%pin(nx * ny))
         ALLOCATE(mySuperPin(ix, iy)%pin2D(nx, ny))
@@ -1164,6 +1165,7 @@ DO iAsy = 1, CoreInfo%nxya
         mySuperPin(ix, iy)%nx = nx
         mySuperPin(ix, iy)%ny = ny
         mySuperPin(ix, iy)%nxy = nx * ny
+        ALLOCATE(mySuperPin(ix, iy)%BdLength(4))
         mySuperPin(ix, iy)%BdLength = 0.0
         ALLOCATE(mySuperPin(ix, iy)%pin(nx * ny))
         ALLOCATE(mySuperPin(ix, iy)%pin2D(nx, ny))
@@ -1212,6 +1214,7 @@ DO iAsy = 1, CoreInfo%nxya
         mySuperPin(ix, iy)%nx = nx
         mySuperPin(ix, iy)%ny = ny
         mySuperPin(ix, iy)%nxy = nx * ny
+        ALLOCATE(mySuperPin(ix, iy)%BdLength(4))
         mySuperPin(ix, iy)%BdLength = 0.0
         ALLOCATE(mySuperPin(ix, iy)%pin(nx * ny))
         ALLOCATE(mySuperPin(ix, iy)%pin2D(nx, ny))
@@ -1305,6 +1308,7 @@ DO iya = 1, CoreInfo%nya
         superPin(ixy)%nxy = mySuperPin(ix, iy)%nxy
         ALLOCATE(superPin(ixy)%pin(mySuperPin(ix, iy)%nxy))
         ALLOCATE(superPin(ixy)%pin2D(mySuperPin(ix, iy)%nx, mySuperPin(ix, iy)%ny))
+        ALLOCATE(superPin(ixy)%BdLength(4))
         superPin(ixy)%pin = mySuperPin(ix, iy)%pin
         superPin(ixy)%pin2D = mySuperPin(ix, iy)%pin2D
         superPin(ixy)%BdLength = mySuperPin(ix, iy)%BdLength
@@ -1326,6 +1330,9 @@ DO iy = 1, ny
   DO ix = 1, nx
     ixy = node(ix, iy)
     IF (ixy .EQ. 0) CYCLE
+    ALLOCATE(superPin(ixy)%NeighIdx(4))
+    ALLOCATE(superPin(ixy)%NeighSurfIdx(4))
+    ALLOCATE(superPin(ixy)%Center2SurfaceL(4))
     superPin(ixy)%NeighIdx(SOUTH) = node(ix, iy + 1)
     superPin(ixy)%NeighIdx(WEST) = node(ix - 1, iy)
     superPin(ixy)%NeighIdx(NORTH) = node(ix, iy - 1)

@@ -22,7 +22,7 @@ MODULE HPDeplMod
   IMPLICIT NONE
   !TYPE(DeplFxrBundle_Type) :: DeplFxrBundle
   !TYPE(DeplLib_Type) :: DeplLib
-#if defined(__INTEL_MKL) || defined(__PGI)
+#if defined __INTEL_MKL || __PGI
   INTERFACE
   ! -------------------------------------- DeplInit.f90 --------------------------------------.
     SUBROUTINE DeplLibInit(libIO, Filename, DeplLib)                                          !
@@ -91,7 +91,7 @@ MODULE HPDeplMod
     LOGICAL :: lcsrT
     END SUBROUTINE
 
-    SUBROUTINE SetDeplSys_woCSRT(DeplLib, DeplFxrBundle, Nsys, ifxrbeg, DeplSysBundle, lGd, Nths, nSubStp)
+    SUBROUTINE SetDeplSys_woCSRT(DeplLib, DeplFxrBundle, Nsys, ifxrbeg, DeplSysBundle, lGd, lQuad, Nths, nSubStp)
     USE HPDeplType
     USE CSRMATRIX
     IMPLICIT NONE
@@ -99,7 +99,7 @@ MODULE HPDeplMod
     TYPE(DeplFxrBundle_Type) :: DeplFxrBundle
     INTEGER :: Nsys, ifxrbeg
     TYPE(DeplSysBundle_Type) :: DeplSysBundle
-    LOGICAL :: lGd
+    LOGICAL :: lGd, lQuad
     INTEGER :: Nths
     INTEGER, OPTIONAL :: nSubStp
     END SUBROUTINE
@@ -203,6 +203,12 @@ MODULE HPDeplMod
     INTEGER :: Nths, SolverTyp
     END SUBROUTINE
 #endif
+    SUBROUTINE SolveAnalyticGd(DeplLib, DeplFxrBundle, pnumbuf, Nths, nSubStep)
+    USE HPDeplType
+    TYPE(DeplLib_Type) :: DeplLib
+    TYPE(DeplFxrBundle_Type) :: DeplFxrBundle
+    REAL :: pnumbuf(:)
+    END SUBROUTINE
   ! ------------------------------------------------------------------------------------------'
   END INTERFACE
 #endif

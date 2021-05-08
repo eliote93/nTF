@@ -71,7 +71,7 @@ DO iAng = 2, nAzmAng_60
   IF (ChkSameVal(AzmAng(iAng), AzmAng(iAng+1))) CALL terminate("AZIMUTHAL ANGLE OVERLAP")
 END DO
 ! ----------------------------------------------------
-!               02. CP : Azm Ang & Del
+!               02. CnP : Azm Ang & Del
 ! ----------------------------------------------------
 DO iAng = 1, nAzmAng_60
   iAng1 = nAzmAng_60 + iAng

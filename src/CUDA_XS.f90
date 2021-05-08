@@ -575,19 +575,26 @@ ELSE IF (caseid.EQ.ConEff) THEN
       ALLOCATE(cuBlockFxr%FresoFIsoD(ntiso,ibres:ieres,nResD), cuBlockFxr%FresoF(ibres:ieres,nResD))
       ALLOCATE(cuBlockFxr%FresoNF(ibres:ieres,nResD))
       istat = cudaMemCpy(cuBlockFxr%mapR2GD,FxrD%mapR2G,nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoAIsoD,Fxrd%fresoAIso,ntiso*(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoFIsoD,Fxrd%fresoFIso,ntiso*(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoAD,Fxrd%fresoa,(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoF,Fxrd%fresokf,(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoNF,Fxrd%fresonf,(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoAIsoD,Fxrd%fresoAIso,ntiso*(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoFIsoD,Fxrd%fresoFIso,ntiso*(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoAD,Fxrd%fresoa,(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoF,Fxrd%fresokf,(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoNF,Fxrd%fresonf,(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoAIsoD,1._4,ntiso*(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoFIsoD,1._4,ntiso*(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoAD,1._4,(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoF,1._4,(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoNF,1._4,(ieres-ibres+1)*nResD)
     END IF
     IF (nResTri.GT.0) THEN
       ALLOCATE(cuBlockFxr%ACCNtR(nResTri+1), cuBlockFxr%mapR2GT(nResTri))
       ALLOCATE(cuBlockFxr%FresoAIsoT(NtRTri*(ieres-ibres+1)),cuBlockFxr%FresoAT(ibres:ieres,nResTri))
       istat = cudaMemCpy(cuBlockFxr%ACCNtR,FxrTri%AccNtR,nResTri+1)
       istat = cudaMemCpy(cuBlockFxr%mapR2GT,FxrTri%mapR2G,nResTri)
-      istat = cudaMemCpy(cuBlockFxr%FresoAIsoT,FxrTri%fresoAIso,NtRTri*(ieres-ibres+1))
-      istat = cudaMemCpy(cuBlockFxr%FresoAT,FxrTri%fresoa,(ieres-ibres+1)*nResTri)
+!      istat = cudaMemCpy(cuBlockFxr%FresoAIsoT,FxrTri%fresoAIso,NtRTri*(ieres-ibres+1))
+!      istat = cudaMemCpy(cuBlockFxr%FresoAT,FxrTri%fresoa,(ieres-ibres+1)*nResTri)
+      istat = cudaMemSet(cuBlockFxr%FresoAIsoT,1._4,NtRTri*(ieres-ibres+1))
+      istat = cudaMemSet(cuBlockFxr%FresoAT,1._4,(ieres-ibres+1)*nResTri)
     END IF
     IF (nGenD.GT.0) THEN
       ALLOCATE(cuBlockFxr%mapGR2GD(nGenD))
@@ -634,11 +641,16 @@ ELSE IF (caseid.EQ.ConEff) THEN
       ALLOCATE(cuBlockFxr%FresoFIsoD(ntiso,ibres:ieres,nResD), cuBlockFxr%FresoF(ibres:ieres,nResD))
       ALLOCATE(cuBlockFxr%FresoNF(ibres:ieres,nResD))
       istat = cudaMemCpy(cuBlockFxr%mapR2GD,FxrD%mapR2G,nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoAIsoD,Fxrd%fresoAIso,ntiso*(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoFIsoD,Fxrd%fresoFIso,ntiso*(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoAD,Fxrd%fresoa,(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoF,Fxrd%fresokf,(ieres-ibres+1)*nResD)
-      istat = cudaMemCpy(cuBlockFxr%FresoNF,Fxrd%fresonf,(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoAIsoD,Fxrd%fresoAIso,ntiso*(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoFIsoD,Fxrd%fresoFIso,ntiso*(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoAD,Fxrd%fresoa,(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoF,Fxrd%fresokf,(ieres-ibres+1)*nResD)
+!      istat = cudaMemCpy(cuBlockFxr%FresoNF,Fxrd%fresonf,(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoAIsoD,1._4,ntiso*(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoFIsoD,1._4,ntiso*(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoAD,1._4,(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoF,1._4,(ieres-ibres+1)*nResD)
+      istat = cudaMemSet(cuBlockFxr%FresoNF,1._4,(ieres-ibres+1)*nResD)
     END IF
     IF (nGenD.GT.0) THEN
       ALLOCATE(cuBlockFxr%mapGR2GD(nGenD))
@@ -706,8 +718,10 @@ ELSE IF (caseid.EQ.ConEff) THEN
       ALLOCATE(cuBlockFxr%FresoAIsoT(NtRTri*(ieres-ibres+1)),cuBlockFxr%FresoAT(ibres:ieres,nResTri))
       istat = cudaMemCpy(cuBlockFxr%ACCNtR,FxrTri%AccNtR,nResTri+1)
       istat = cudaMemCpy(cuBlockFxr%mapR2GT,FxrTri%mapR2G,nResTri)
-      istat = cudaMemCpy(cuBlockFxr%FresoAIsoT,FxrTri%fresoAIso,NtRTri*(ieres-ibres+1))
-      istat = cudaMemCpy(cuBlockFxr%FresoAT,FxrTri%fresoa,(ieres-ibres+1)*nResTri)
+!      istat = cudaMemCpy(cuBlockFxr%FresoAIsoT,FxrTri%fresoAIso,NtRTri*(ieres-ibres+1))
+!      istat = cudaMemCpy(cuBlockFxr%FresoAT,FxrTri%fresoa,(ieres-ibres+1)*nResTri)
+      istat = cudaMemSet(cuBlockFxr%FresoAIsoT,1._4,NtRTri*(ieres-ibres+1))
+      istat = cudaMemSet(cuBlockFxr%FresoAT,1._4,(ieres-ibres+1)*nResTri)
     END IF
     IF (nCldTri.GT.0) THEN
       ALLOCATE(cuBlockFxr%mapC2GT(nCldTri))
@@ -1767,58 +1781,66 @@ END IF
 
 END SUBROUTINE
 
-SUBROUTINE SetupCuMacXS(ScatOrder, lxst, iz, gb, ge, caseID)
+SUBROUTINE SetupCuMacXS(ScatOrder, lxst, iz, gb, ge, caseID, istream)
 USE Core_mod, ONLY : GroupInfo
 USE PE_Mod, ONLY : PE
 IMPLICIT NONE
 INTEGER :: ScatOrder, iz, gb, ge, caseID
+INTEGER(kind=cuda_stream_kind), OPTIONAL :: istream
 LOGICAL :: lxst
 INTEGER :: rgb, rge, ierr, isync, i, j, jz
 
 INTEGER :: istat
 !INTEGER :: printval(20)
+INTEGER(kind=cuda_stream_kind) :: stream_on
+
+IF (present(istream)) THEN
+  stream_on = istream
+ELSE
+  stream_on = cuDevice%myStream
+END IF
 
 jz = iz-PE%myzb+1
 rgb = GroupInfo%nofg + 1; rge = GroupInfo%norg+rgb-1
-CALL cuGetMacXS_D <<< blockXSD, trdXS, 0, cuDevice%myStream >>>(cuBlockFxr%nisoD,cuBlockFxr%pnumD,cuBlockFxr%mapglobalidD, &
+CALL cuGetMacXS_D <<< blockXSD, trdXS, 0, stream_on >>>(cuBlockFxr%nisoD,cuBlockFxr%pnumD,cuBlockFxr%mapglobalidD, &
       cuIsoData%siga,cuIsoData%sigkf,cuIsoData%signf,cuIsoData%sigs,cuIsoData%sigstr,&
       cuCoreMacXs%XSa,cuCoreMacXs%XSkf,cuCoreMacXs%XSnf,cuCoreMacXs%XSS,cuCoreMacXs%XSStr,&
       cuBlockFxr%itTempD,cuBlockFxr%wtTempD,gb,ge,jz,FxrD%nFxrD, caseID)
-isync = cudaDeviceSynchronize()
-ierr = cudaGetLastError()
-if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
+!isync = cudaDeviceSynchronize()
+!ierr = cudaGetLastError()
+!if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
 IF (caseID.NE.MacNF) THEN
-  CALL cuGetMacXS_T <<< blockXST, trdXS, 0, cuDevice%myStream >>>(cuBlockFxr%AccNT,cuBlockFxr%pnumT,cuBlockFxr%mapglobalidT,&
+  CALL cuGetMacXS_T <<< blockXST, trdXS, 0, stream_on >>>(cuBlockFxr%AccNT,cuBlockFxr%pnumT,cuBlockFxr%mapglobalidT,&
         cuIsoData%siga,cuIsoData%sigs,cuIsoData%sigstr,cuCoreMacXs%XSa,cuCoreMacXs%XSS,cuCoreMacXs%XSStr,cuBlockFxr%itTempT,cuBlockFxr%wtTempT,&
         gb,ge,jz,FxrTri%nFxrTri)
-  isync = cudaDeviceSynchronize()
-  ierr = cudaGetLastError()
-  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
-  CALL cuGetMacSm_D <<< blockSmD, trdSm, 0, cuDevice%myStream >>>(cuBlockFxr%nisoD,cuBlockFxr%pnumD,cuBlockFxr%mapglobalidD, &
+!  isync = cudaDeviceSynchronize()
+!  ierr = cudaGetLastError()
+!  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
+  CALL cuGetMacSm_D <<< blockSmD, trdSm, 0, stream_on >>>(cuBlockFxr%nisoD,cuBlockFxr%pnumD,cuBlockFxr%mapglobalidD, &
         cuIsoData%gidSmp0,cuIsoData%ptrSmp0,cuIsoData%smp0,cuCoreMacXs%XSsm,cuBlockFxr%itTempD,cuBlockFxr%wtTempD,&
         gb,ge,jz,IsoData%ng,FxrD%nFxrD)
-  isync = cudaDeviceSynchronize()
-  ierr = cudaGetLastError()
-  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
-  CALL cuGetMacSm_T <<< blockSmT, trdSm, 0, cuDevice%myStream >>>(cuBlockFxr%AccNT,cuBlockFxr%pnumT,cuBlockFxr%mapglobalidT,&
+!  isync = cudaDeviceSynchronize()
+!  ierr = cudaGetLastError()
+!  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
+  CALL cuGetMacSm_T <<< blockSmT, trdSm, 0, stream_on >>>(cuBlockFxr%AccNT,cuBlockFxr%pnumT,cuBlockFxr%mapglobalidT,&
         cuIsoData%gidSmp0,cuIsoData%ptrSmp0,cuIsoData%smp0,cuCoreMacXs%XSsm,cuBlockFxr%itTempT,cuBlockFxr%wtTempT,&
         gb,ge,jz,IsoData%ng,FxrTri%nFxrTri)
-  isync = cudaDeviceSynchronize()
-  ierr = cudaGetLastError()
-  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
+!  isync = cudaDeviceSynchronize()
+!  ierr = cudaGetLastError()
+!  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
 END IF
-CALL cuTreatMac_D <<< blockXSD, trdXS, 0, cuDevice%myStream >>>(cuBlockFxr%mapglobalidD,cuBlockFxr%mapfsrD,cuBlockFxr%mapG2RD,cuBlockFxr%FresoAD,cuBlockFxr%FresoNF,cuBlockFxr%FresoF,&
+CALL cuTreatMac_D <<< blockXSD, trdXS, 0, stream_on >>>(cuBlockFxr%mapglobalidD,cuBlockFxr%mapfsrD,cuBlockFxr%mapG2RD,cuBlockFxr%FresoAD,cuBlockFxr%FresoNF,cuBlockFxr%FresoF,&
       cuBlockFxr%fsrstD,cuBlockFxr%nfsrD,cuCoreMacXs%XSa,cuCoreMacXs%XSnf,cuCoreMacXs%XSkf,cuCoreMacXs%XSt,cuCoreMacXs%XStr,cuCoreMacXs%XSS, cuCoreMacXs%XSStr,&
       cuMOC%xst,rgb,rge,gb,ge,jz,FxrD%nFxrD,lrestrmt,lxst,caseID)
-isync = cudaDeviceSynchronize()
-ierr = cudaGetLastError()
-if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
+!isync = cudaDeviceSynchronize()
+!ierr = cudaGetLastError()
+!if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
 IF (caseID.NE.MacNF) THEN
-  CALL cuTreatMac_T <<< blockXST, trdXS, 0, cuDevice%myStream >>>(cuBlockFxr%mapglobalidT,cuBlockFxr%mapfsrT,cuBlockFxr%mapG2RT,cuBlockFxr%FresoAT,cuBlockFxr%fsrstT,cuBlockFxr%nfsrT,&
+  CALL cuTreatMac_T <<< blockXST, trdXS, 0, stream_on >>>(cuBlockFxr%mapglobalidT,cuBlockFxr%mapfsrT,cuBlockFxr%mapG2RT,cuBlockFxr%FresoAT,cuBlockFxr%fsrstT,cuBlockFxr%nfsrT,&
         cuCoreMacXs%XSa,cuCoreMacXs%XSt,cuCoreMacXs%XStr,cuCoreMacXs%XSS,cuCoreMacXs%XSStr,cuMOC%xst,rgb, rge, gb, ge, jz, FxrTri%nFxrTri,lrestrmt,lxst)
-  isync = cudaDeviceSynchronize()
-  ierr = cudaGetLastError()
-  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
+!  isync = cudaDeviceSynchronize()
+!  ierr = cudaGetLastError()
+!  if (ierr.NE.0) print*, __FILE__, __LINE__, cudaGetErrorString(ierr)
 END IF
 
 IF (ScatOrder<1) RETURN
@@ -5055,17 +5077,23 @@ DO igb = 1, ngBlock
   ALLOCATE(FresoF(gb:ge,nResD))
   ALLOCATE(FresoNF(gb:ge,nResD))
 
-  FresoAHost(gb:ge,:) = FxrD%fresoa(gb:ge,:)
-  FresoFHost(gb:ge,:) = FxrD%fresof(gb:ge,:)
-  FresoNFHost(gb:ge,:) = FxrD%fresonf(gb:ge,:)
-  FresoAIsoHost(:,gb:ge,:) = FxrD%fresoAIso(:,gb:ge,:)
-  FresoFIsoHost(:,gb:ge,:) = FxrD%fresoFIso(:,gb:ge,:)
+!  FresoAHost(gb:ge,:) = FxrD%fresoa(gb:ge,:)
+!  FresoFHost(gb:ge,:) = FxrD%fresof(gb:ge,:)
+!  FresoNFHost(gb:ge,:) = FxrD%fresonf(gb:ge,:)
+!  FresoAIsoHost(:,gb:ge,:) = FxrD%fresoAIso(:,gb:ge,:)
+!  FresoFIsoHost(:,gb:ge,:) = FxrD%fresoFIso(:,gb:ge,:)
+!
+!  istat = cudaMemcpy(FresoAIso, FresoAIsoHost, ntiso*mg*nResD, cudaMemcpyHostToDevice)
+!  istat = cudaMemcpy(FresoFIso, FresoFIsoHost, ntiso*mg*nResD, cudaMemcpyHostToDevice)
+!  istat = cudaMemcpy(FresoA, FresoAHost,mg*nResD, cudaMemcpyHostToDevice)
+!  istat = cudaMemcpy(FresoF, FresoFHost,mg*nResD, cudaMemcpyHostToDevice)
+!  istat = cudaMemcpy(FresoNF, FresoNFHost,mg*nResD, cudaMemcpyHostToDevice)
 
-  istat = cudaMemcpy(FresoAIso, FresoAIsoHost, ntiso*mg*nResD, cudaMemcpyHostToDevice)
-  istat = cudaMemcpy(FresoFIso, FresoFIsoHost, ntiso*mg*nResD, cudaMemcpyHostToDevice)
-  istat = cudaMemcpy(FresoA, FresoAHost,mg*nResD, cudaMemcpyHostToDevice)
-  istat = cudaMemcpy(FresoF, FresoFHost,mg*nResD, cudaMemcpyHostToDevice)
-  istat = cudaMemcpy(FresoNF, FresoNFHost,mg*nResD, cudaMemcpyHostToDevice)
+  istat = cudaMemSet(FresoAIso, 1.0_4, ntiso*mg*nResD)
+  istat = cudaMemSet(FresoFIso, 1.0_4, ntiso*mg*nResD)
+  istat = cudaMemSet(FresoA, 1.0_4, mg*nResD)
+  istat = cudaMemSet(FresoF, 1.0_4, mg*nResD)
+  istat = cudaMemSet(FresoNF, 1.0_4, mg*nResD)
 
   CALL cuEffIntegrated_GenD<<<blockRD,trdEffRes,0,cuDevice%myStream>>>(cuResIsoData%ityp,cuResIsoData%IsoG2R,&
                                   cuResIsoData%ptrRTemp,cuResIsoData%ptrNlv,cuResIsoData%ptrTempLv, &
@@ -5103,7 +5131,10 @@ END IF
 
 END SUBROUTINE
 
-SUBROUTINE EffMacIntegrated_GenD_RB(iz)
+SUBROUTINE EffMacIntegrated_GenD_RB(iz, TBmax_MB, FBmin_MB)
+USE PARAM
+USE ioutil,   ONLY : message
+USE FILES,    ONLY : io8
 USE Core_mod, ONLY : GroupInfo
 USE PE_Mod, ONLY : PE
 USE timer, ONLY : TimeChk, nTracer_dclock
@@ -5127,9 +5158,15 @@ INTEGER :: irb, nrBlock, mr0, mr, rbeg, rend, ireg
 LOGICAL :: lAsync = .TRUE.
 !LOGICAL :: lAsync = .FALSE.
 
-INTEGER :: istat
+INTEGER :: istat, ierr
+
+INTEGER(KIND = cuda_stream_kind) :: BlockStream(16)
+TYPE(cudaEvent) :: BlockEvent(16)
 
 REAL :: tbo, teo, telap
+
+INTEGER(8) :: TB, FB
+REAL(8) :: TB_MB, FB_MB, TBmax_MB, FBmin_MB
 
 jz = iz-PE%myzb+1
 rgb = GroupInfo%nofg+1; rge = GroupInfo%nofg+GroupInfo%norg
@@ -5161,9 +5198,22 @@ ALLOCATE(FresoFIso(ntiso,rgb:rge,mr0))
 ALLOCATE(FresoA(rgb:rge,mr0))
 ALLOCATE(FresoF(rgb:rge,mr0))
 ALLOCATE(FresoNF(rgb:rge,mr0))
+
+ierr = cudaMemGetInfo(FB,TB)
+FB_MB = FB; TB_MB = TB;
+FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+TB_MB = TB_MB - FB_MB;
+FBmin_MB = min(FBmin_MB,FB_MB); TBmax_MB = max(TBmax_MB,TB_MB)
+!CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_CUDA_COMM, ierr)
+!CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_CUDA_COMM, ierr)
+!WRITE(mesg, '(4x,a21,f8.2,a12,f8.2)') '[Max pt.] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+!IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
+
 IF (lAsync) THEN
   ALLOCATE(FresoHost(nrBlock))
   DO irb = 1, nrBlock
+    ierr = cudaEventCreate(BlockEvent(irb))
+    ierr = cudaStreamCreate(BlockStream(irb))
     ALLOCATE(FresoHost(irb)%FresoAIsoPIN(ntiso,rgb:rge,mr0))
     ALLOCATE(FresoHost(irb)%FresoFIsoPIN(ntiso,rgb:rge,mr0))
     ALLOCATE(FresoHost(irb)%FresoAPIN(rgb:rge,mr0))
@@ -5180,37 +5230,43 @@ DO irb = 1, nrBlock
   rbeg = (irb-1)*mr0+1; rend = min(nResD, irb*mr0)
   !gb = rgb; ge = rge
   mr = rend-rbeg+1
+  IF (irb.GT.1) istat = cudaStreamWaitEvent(BlockStream(irb),BlockEvent(irb-1),cudaStreamNonBlocking)
 
-  IF (lAsync) THEN
-    !$OMP PARALLEL DO SCHEDULE(GUIDED)
-    DO ireg = 1, mr
-    FresoHost(irb)%FresoAIsoPIN(:,:,ireg) = FxrD%fresoAIso(:,:,rbeg-1+ireg)
-    FresoHost(irb)%FresoFIsoPIN(:,:,ireg) = FxrD%fresoFIso(:,:,rbeg-1+ireg)
-    FresoHost(irb)%FresoAPIN(:,ireg) = FxrD%fresoa(:,rbeg-1+ireg)
-    FresoHost(irb)%FresoFPIN(:,ireg) = FxrD%fresof(:,rbeg-1+ireg)
-    FresoHost(irb)%FresoNFPIN(:,ireg) = FxrD%fresonf(:,rbeg-1+ireg)
-    END DO
-    !$OMP END PARALLEL DO
-!    teo = omp_get_wtime()
-!    print*, __FILE__, __LINE__, teo-tbo
+!  IF (lAsync) THEN
+!    !$OMP PARALLEL DO SCHEDULE(GUIDED)
+!    DO ireg = 1, mr
+!    FresoHost(irb)%FresoAIsoPIN(:,:,ireg) = FxrD%fresoAIso(:,:,rbeg-1+ireg)
+!    FresoHost(irb)%FresoFIsoPIN(:,:,ireg) = FxrD%fresoFIso(:,:,rbeg-1+ireg)
+!    FresoHost(irb)%FresoAPIN(:,ireg) = FxrD%fresoa(:,rbeg-1+ireg)
+!    FresoHost(irb)%FresoFPIN(:,ireg) = FxrD%fresof(:,rbeg-1+ireg)
+!    FresoHost(irb)%FresoNFPIN(:,ireg) = FxrD%fresonf(:,rbeg-1+ireg)
+!    END DO
+!    !$OMP END PARALLEL DO
+!!    teo = omp_get_wtime()
+!!    print*, __FILE__, __LINE__, teo-tbo
+!
+!    istat = cudaMemcpyAsync(FresoAIso, FresoHost(irb)%FresoAIsoPIN, ntiso*nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
+!    istat = cudaMemcpyAsync(FresoFIso, FresoHost(irb)%FresoFIsoPIN, ntiso*nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
+!    istat = cudaMemcpyAsync(FresoA, FresoHost(irb)%FresoAPIN,nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
+!    istat = cudaMemcpyAsync(FresoF, FresoHost(irb)%FresoFPIN,nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
+!    istat = cudaMemcpyAsync(FresoNF, FresoHost(irb)%FresoNFPIN,nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
+!  ELSE
+!    istat = cudaMemcpy(FresoAIso, FxrD%fresoAIso(1:,1:,rbeg:), ntiso*nrg*mr, cudaMemcpyHostToDevice)
+!    istat = cudaMemcpy(FresoFIso, FxrD%fresoFIso(1:,1:,rbeg:), ntiso*nrg*mr, cudaMemcpyHostToDevice)
+!    istat = cudaMemcpy(FresoA, FxrD%fresoa(1:,rbeg:),nrg*mr, cudaMemcpyHostToDevice)
+!    istat = cudaMemcpy(FresoF, FxrD%fresof(1:,rbeg:),nrg*mr, cudaMemcpyHostToDevice)
+!    istat = cudaMemcpy(FresoNF, FxrD%fresonf(1:,rbeg:),nrg*mr, cudaMemcpyHostToDevice)
+!!    teo = omp_get_wtime()
+!!    print*, __FILE__, __LINE__, teo-tbo
+!  END IF
 
-    istat = cudaMemcpyAsync(FresoAIso, FresoHost(irb)%FresoAIsoPIN, ntiso*nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoFIso, FresoHost(irb)%FresoFIsoPIN, ntiso*nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoA, FresoHost(irb)%FresoAPIN,nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoF, FresoHost(irb)%FresoFPIN,nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoNF, FresoHost(irb)%FresoNFPIN,nrg*mr, cudaMemcpyHostToDevice, cuDevice%myStream)
-  ELSE
-    istat = cudaMemcpy(FresoAIso, FxrD%fresoAIso(1:,1:,rbeg:), ntiso*nrg*mr, cudaMemcpyHostToDevice)
-    istat = cudaMemcpy(FresoFIso, FxrD%fresoFIso(1:,1:,rbeg:), ntiso*nrg*mr, cudaMemcpyHostToDevice)
-    istat = cudaMemcpy(FresoA, FxrD%fresoa(1:,rbeg:),nrg*mr, cudaMemcpyHostToDevice)
-    istat = cudaMemcpy(FresoF, FxrD%fresof(1:,rbeg:),nrg*mr, cudaMemcpyHostToDevice)
-    istat = cudaMemcpy(FresoNF, FxrD%fresonf(1:,rbeg:),nrg*mr, cudaMemcpyHostToDevice)
-!    teo = omp_get_wtime()
-!    print*, __FILE__, __LINE__, teo-tbo
-  END IF
+  istat = cudaMemSet(FresoAIso, 1.0_4, ntiso*nrg*mr)
+  istat = cudaMemSet(FresoFIso, 1.0_4, ntiso*nrg*mr)
+  istat = cudaMemSet(FresoA, 1.0_4, nrg*mr)
+  istat = cudaMemSet(FresoF, 1.0_4, nrg*mr)
+  istat = cudaMemSet(FresoNF, 1.0_4, nrg*mr)
 
-
-  CALL cuEffIntegrated_GenD<<<blockRD,trdEffRes,0,cuDevice%myStream>>>(cuResIsoData%ityp,cuResIsoData%IsoG2R,&
+  CALL cuEffIntegrated_GenD<<<blockRD,trdEffRes,0,BlockStream(irb)>>>(cuResIsoData%ityp,cuResIsoData%IsoG2R,&
                                   cuResIsoData%ptrRTemp,cuResIsoData%ptrNlv,cuResIsoData%ptrTempLv, &
                                   cuResIsoData%lamsigp,cuResIsoData%lvabs,cuResIsoData%lvfis,&
                                   cuResIsoData%wgtabs,cuResIsoData%wgtfis,cuMLGData%f_maclv_log,cuResIsoData%rtempsq, &
@@ -5225,11 +5281,13 @@ DO irb = 1, nrBlock
                                   cuBlockFxr%nisoD,cuBlockFxr%itTempD,&
                                   nGenD,(rgb-1),rgb,rge,rbeg,rend,MLGLib%f_nmaclv,jz)
   IF (lAsync) THEN
-    istat = cudaMemcpyAsync(FresoHost(irb)%FresoAIsoPIN,FresoAIso, ntiso*nrg*mr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoHost(irb)%FresoFIsoPIN,FresoFIso, ntiso*nrg*mr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoHost(irb)%FresoAPIN,FresoA, nrg*mr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoHost(irb)%FresoFPIN,FresoF, nrg*mr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-    istat = cudaMemcpyAsync(FresoHost(irb)%FresoNFPIN,FresoNF, nrg*mr, cudaMemcpyDeviceToHost, cuDevice%myStream)
+    istat = cudaMemcpyAsync(FresoHost(irb)%FresoAIsoPIN,FresoAIso, ntiso*nrg*mr, cudaMemcpyDeviceToHost, BlockStream(irb))
+    istat = cudaMemcpyAsync(FresoHost(irb)%FresoFIsoPIN,FresoFIso, ntiso*nrg*mr, cudaMemcpyDeviceToHost, BlockStream(irb))
+    istat = cudaMemcpyAsync(FresoHost(irb)%FresoAPIN,FresoA, nrg*mr, cudaMemcpyDeviceToHost, BlockStream(irb))
+    istat = cudaMemcpyAsync(FresoHost(irb)%FresoFPIN,FresoF, nrg*mr, cudaMemcpyDeviceToHost, BlockStream(irb))
+    istat = cudaMemcpyAsync(FresoHost(irb)%FresoNFPIN,FresoNF, nrg*mr, cudaMemcpyDeviceToHost, BlockStream(irb))
+
+    ierr = cudaEventRecord(BlockEvent(irb), BlockStream(irb))
   ELSE
     istat = cudaMemcpy(FxrD%fresoAIso(1:,1:,rbeg:),FresoAIso, ntiso*nrg*mr, cudaMemcpyDeviceToHost)
     istat = cudaMemcpy(FxrD%fresoFIso(1:,1:,rbeg:),FresoFIso, ntiso*nrg*mr, cudaMemcpyDeviceToHost)
@@ -5242,8 +5300,11 @@ DO irb = 1, nrBlock
 END DO
 
 IF (lAsync) THEN
-  istat = cudaStreamSynchronize(cuDevice%myStream)
+!  istat = cudaStreamSynchronize(cuDevice%myStream)
   DO irb = 1, nrBlock
+!    IF (irb .EQ. nrBlock) istat = cudaStreamSynchronize(cuDevice%myStream)
+    ierr = cudaStreamSynchronize(BlockStream(irb))
+!    ierr = cudaStreamWaitEvent(cuDevice%myStream,BlockEvent(irb),cudaStreamDefault)
     rbeg = (irb-1)*mr0+1; rend = min(nResD, irb*mr0)
     !gb = rgb; ge = rge
     mr = rend-rbeg+1
@@ -5256,6 +5317,8 @@ IF (lAsync) THEN
     FxrD%fresonf(:,rbeg-1+ireg) = FresoHost(irb)%FresoNFPIN(:,ireg)
     END DO
     !$OMP END PARALLEL DO
+    ierr = cudaStreamDestroy(BlockStream(irb))
+    ierr = cudaEventDestroy(BlockEvent(irb))
   END DO
 !  teo = omp_get_wtime()
 !  print*, __FILE__, __LINE__, teo-tbo
@@ -5487,6 +5550,8 @@ USE CUDA_XS,        ONLY : ConMac,  MacAll, cuCoreMacXs, &
                             DestroyCuBlockFxr, DestroyCuCoreMacXs, SetupCuSrc, &
                             SetupCuPsiNChi, &
                             BufCon, BufErs, BufHold, BufCnE
+USE ioutil,         ONLY : message
+USE FILES,          ONLY : io8
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -5509,6 +5574,11 @@ TYPE BlockCoreXS_TYPE
 END TYPE
 TYPE(BlockCoreXS_TYPE), ALLOCATABLE :: BlockCoreXS(:)
 !REAL(GPU_XS_PRECISION), ALLOCATABLE, DIMENSION(:,:) :: XSt, XStr, XSa, XSnf, XSkf, XSsm
+TYPE(cudaEvent) :: BlockEvent(16)
+INTEGER(KIND = cuda_stream_kind) :: BlockStream(16)
+
+INTEGER(8) :: FB, TB
+REAL(8) :: FB_MB, TB_MB, FBmin_MB, TBmax_MB
 
 REAL :: tbo, teo
 
@@ -5527,7 +5597,14 @@ END IF
 
 tbo = nTracer_dclock(.FALSE.,.FALSE.)
 
-!ierr = cudaMemGetInfo(FB,TB)
+ierr = cudaMemGetInfo(FB,TB)
+FB_MB = FB; TB_MB = TB;
+FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+TB_MB = TB_MB - FB_MB
+CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+WRITE(mesg, '(5x,a20,f8.2,a12,f8.2)') '[Entry] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
 !print*, (TB-FB)/1024/1024
 !print*, __FILE__, __LINE__
 CALL ConstructCuBlockFxr(ConMac,0)
@@ -5538,6 +5615,8 @@ DO iz = myzb, myze
     ngBlock = (ng-1)/XS_BLOCK_SIZE+1
     ALLOCATE(BlockCoreXS(ngBlock))
     DO igb = 1, ngBlock
+      ierr = cudaEventCreate(BlockEvent(igb))
+      ierr = cudaStreamCreate(BlockStream(igb))
       ALLOCATE(BlockCoreXS(igb)%XSt(XS_BLOCK_SIZE,nfxr))
       ALLOCATE(BlockCoreXS(igb)%XStr(XS_BLOCK_SIZE,nfxr))
       ALLOCATE(BlockCoreXS(igb)%XSa(XS_BLOCK_SIZE,nfxr))
@@ -5546,6 +5625,13 @@ DO iz = myzb, myze
       ALLOCATE(BlockCoreXS(igb)%XSsm(XS_BLOCK_SIZE*ng,nfxr))
     END DO
     CALL AllocCuCoreMacXs(XS_BLOCK_SIZE,nTracerCntl%ScatOd,MacAll)
+    ierr = cudaMemGetInfo(FB,TB)
+    FB_MB = FB; TB_MB = TB;
+    FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+    TB_MB = TB_MB - FB_MB
+    FB_MB = min(FB_MB,FBmin_MB); TB_MB = max(TB_MB,TBmax_MB)
+!    WRITE(mesg, '(4x,a21,f8.2,a12,f8.2,a,I3)') '[Mid Pt.] Total(MB)= ',TB_MB,', Free(MB)= ',FB_MB, ' in rank', PE%myrank
+!    CALL message(io8,.FALSE.,.TRUE., mesg)
     DO igb = 1, ngBlock
       gb = (igb-1)*XS_BLOCK_SIZE+1
       ge = min(igb*XS_BLOCK_SIZE,ng)
@@ -5553,6 +5639,8 @@ DO iz = myzb, myze
       gbs = cuInScatIdx(cuInScatRange(1,gb),gb)
       ges = cuInScatIdx(cuInScatRange(2,ge),ge)
       mgs = mg*ng
+
+      IF (igb.GT.1) ierr = cudaStreamWaitEvent(BlockStream(igb),BlockEvent(igb-1),cudaStreamNonBlocking)
 !      ALLOCATE(XSt(mg,nfxr))
 !      ALLOCATE(XStr(mg,nfxr))
 !      ALLOCATE(XSa(mg,nfxr))
@@ -5560,14 +5648,16 @@ DO iz = myzb, myze
 !      ALLOCATE(XSkf(mg,nfxr))
 !      ALLOCATE(XSsm(mgs,nfxr))
 !      CALL AllocCuCoreMacXs(mg, nTracerCntl%ScatOd, MacAll)
-      CALL SetupCuMacXS(nTracerCntl%ScatOd, .FALSE., iz, gb, ge, MacAll)
+      CALL SetupCuMacXS(nTracerCntl%ScatOd, .FALSE., iz, gb, ge, MacAll, BlockStream(igb))
 
-      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSt, cuCoreMacXs%XSt, mg*nfxr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XStr, cuCoreMacXs%XStr, mg*nfxr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSa, cuCoreMacXs%XSa, mg*nfxr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSnf, cuCoreMacXs%XSnf, mg*nfxr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSkf, cuCoreMacXs%XSkf, mg*nfxr, cudaMemcpyDeviceToHost, cuDevice%myStream)
-      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSsm, cuCoreMacXs%XSsm, mgs*nfxr, cudaMemcpyDeviceToHost, cuDevice%myStream)
+      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSt, cuCoreMacXs%XSt, mg*nfxr, cudaMemcpyDeviceToHost, BlockStream(igb))
+      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XStr, cuCoreMacXs%XStr, mg*nfxr, cudaMemcpyDeviceToHost, BlockStream(igb))
+      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSa, cuCoreMacXs%XSa, mg*nfxr, cudaMemcpyDeviceToHost, BlockStream(igb))
+      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSnf, cuCoreMacXs%XSnf, mg*nfxr, cudaMemcpyDeviceToHost, BlockStream(igb))
+      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSkf, cuCoreMacXs%XSkf, mg*nfxr, cudaMemcpyDeviceToHost, BlockStream(igb))
+      ierr = cudaMemcpyAsync(BlockCoreXS(igb)%XSsm, cuCoreMacXs%XSsm, mgs*nfxr, cudaMemcpyDeviceToHost, BlockStream(igb))
+
+      ierr = cudaEventRecord(BlockEvent(igb), BlockStream(igb))
     END DO
     DO igb = 1, ngBlock
       gb = (igb-1)*XS_BLOCK_SIZE+1
@@ -5576,7 +5666,9 @@ DO iz = myzb, myze
       gbs = cuInScatIdx(cuInScatRange(1,gb),gb)
       ges = cuInScatIdx(cuInScatRange(2,ge),ge)
       mgs = ges-gbs+1
-      IF (igb.EQ.1) ierr = cudaStreamSynchronize(cuDevice%myStream)
+      ierr = cudaStreamSynchronize(BlockStream(igb))
+!      ierr = cudaEventSynchronize(BlockEvent(igb))
+!      ierr = cudaStreamWaitEvent(cuDevice%myStream,BlockEvent(igb),cudaStreamDefault)
       !$OMP PARALLEL DO SCHEDULE(GUIDED)
       DO i = 1, nfxr
       CoreXsMacHost%XSt(gb:ge, (iz-myzb)*nfxr+i) = BlockCoreXS(igb)%XSt(1:mg, i)
@@ -5590,12 +5682,22 @@ DO iz = myzb, myze
 
       DEALLOCATE(BlockCoreXS(igb)%XSt,BlockCoreXS(igb)%XStr,BlockCoreXS(igb)%XSa)
       DEALLOCATE(BlockCoreXS(igb)%XSnf,BlockCoreXS(igb)%XSkf,BlockCoreXS(igb)%XSsm)
+      ierr = cudaEventDestroy(BlockEvent(igb))
+      ierr = cudaStreamDestroy(BlockStream(igb))
     END DO
     DEALLOCATE(BlockCoreXS)
     CALL DestroyCuCoreMacXs(MacAll, nTracerCntl%ScatOd)
   ELSE
     CALL AllocCuCoreMacXs(ng, nTracerCntl%ScatOd, MacAll)
     CALL SetupCuMacXS(nTracerCntl%ScatOd, .FALSE., iz, 1, ng, MacAll)
+    ierr = cudaMemGetInfo(FB,TB)
+    FB_MB = FB; TB_MB = TB;
+    FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+    TB_MB = TB_MB - FB_MB
+    FB_MB = min(FB_MB,FBmin_MB); TB_MB = max(TB_MB,TBmax_MB)
+!    WRITE(mesg, '(4x,a21,f8.2,a12,f8.2,a,I3)') '[Mid Pt.] Total(MB)= ',TB_MB,', Free(MB)= ',FB_MB, ' in rank', PE%myrank
+!    CALL message(io8,.FALSE.,.TRUE., mesg)
+
     ierr = cudaMemcpy(CoreXsMacHost%XSt(1:,(iz-myzb)*nfxr+1:), cuCoreMacXs%XSt, ng*nfxr, cudaMemcpyDeviceToHost)
     ierr = cudaMemcpy(CoreXsMacHost%XStr(1:,(iz-myzb)*nfxr+1:), cuCoreMacXs%XStr, ng*nfxr, cudaMemcpyDeviceToHost)
     ierr = cudaMemcpy(CoreXsMacHost%XSa(1:,(iz-myzb)*nfxr+1:), cuCoreMacXs%XSa, ng*nfxr, cudaMemcpyDeviceToHost)
@@ -5606,9 +5708,14 @@ DO iz = myzb, myze
   END IF
 END DO
 
+CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+WRITE(mesg, '(4x,a21,f8.2,a12,f8.2)') '[Max Pt.] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
+
 teo = nTracer_dclock(.FALSE.,.FALSE.)
 TimeChk%cuHomDevTime = TimeChk%cuHomDevTime+(teo-tbo)
-CALL MPI_MAX_REAL(TimeChk%cuHomDevTime,PE%MPI_NTRACER_COMM,.TRUE.)
+CALL MPI_MAX_REAL(TimeChk%cuHomDevTime,MPI_CUDA_COMM,.TRUE.)
 tbo = teo;
 
 !$ call omp_set_num_threads(PE%nCMFDThread)
@@ -5659,7 +5766,7 @@ ENDDO
 
 teo = nTracer_dclock(.FALSE.,.FALSE.)
 TimeChk%cuHomHostTime = TimeChk%cuHomHostTime+(teo-tbo)
-CALL MPI_MAX_REAL(TimeChk%cuHomHostTime,PE%MPI_NTRACER_COMM,.TRUE.)
+CALL MPI_MAX_REAL(TimeChk%cuHomHostTime,MPI_CUDA_COMM,.TRUE.)
 
 !print*, __FILE__, __LINE__
 CALL DestroyCuBlockFxr(ConMac,0)
@@ -5678,7 +5785,7 @@ SUBROUTINE CUDASubGrpEffXSGen(Core, Fxr, nTracerCntl, PE)
   USE IOUTIL,       ONLY : message
   USE files,        ONLY : io8
   USE XS_COMMON,    ONLY : UpdateResPinMapNucl!, FxrD
-  USE CUDA_MASTER,  ONLY : cuCntl
+  USE CUDA_MASTER
   USE CUDA_XS,      ONLY : EffMacGen_cuEff, ConEff, ConstructCuBlockFxr, ConstructCuResPin, &
                           DestroyCuBlockFxr, DestroyCuResPin, EffMacIntegrated_cuEff,&
                           EffMacIntegrated_RIP, EffMacIntegrated_CLDnAICT,&
@@ -5695,18 +5802,28 @@ SUBROUTINE CUDASubGrpEffXSGen(Core, Fxr, nTracerCntl, PE)
   INTEGER :: iz
   REAL :: tbo, teo
 
-  INTEGER(8) :: totalByte, freeByte
+  INTEGER(8) :: TB, FB
+  REAL(8) :: TB_MB, FB_MB, TBmax_MB, FBmin_MB
   INTEGER :: ierr
 
   LOGICAL, PARAMETER :: lRegionDcmp = .TRUE.
 !  LOGICAL, PARAMETER :: lRegionDcmp = .FALSE.
 
-  CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
+  CALL MPI_SYNC(MPI_CUDA_COMM)
 
   IF (.not.nTracerCntl%lrestrmt) RETURN
 
   WRITE(mesg, '(A)') 'Update Subgroup Effective XSs...'
   IF(PE%master) CALL message(io8, .TRUE., .TRUE., mesg)
+
+  ierr = cudaMemGetInfo(FB,TB)
+  FB_MB = FB; TB_MB = TB;
+  FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+  TB_MB = TB_MB - FB_MB
+  CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_CUDA_COMM, ierr)
+  WRITE(mesg, '(5x,a20,f8.2,a12,f8.2)') '[Entry] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+  IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
 
   tbo = nTracer_dclock(FALSE,FALSE)
 
@@ -5727,7 +5844,8 @@ SUBROUTINE CUDASubGrpEffXSGen(Core, Fxr, nTracerCntl, PE)
         CALL DestroyCuResPin(ConEff,EffRIP)
         CALL ConstructCuBlockFxr(ConEff,EffBlkD)
         IF (lRegionDcmp) THEN
-          CALL EffMacIntegrated_GenD_RB(iz)
+          CALL EffMacIntegrated_GenD_RB(iz, TBmax_MB, FBmin_MB)
+          TB_MB = TBmax_MB; FB_MB = FBmin_MB;
         ELSE
           CALL EffMacIntegrated_GenD_GB(iz)
         END IF
@@ -5744,11 +5862,23 @@ SUBROUTINE CUDASubGrpEffXSGen(Core, Fxr, nTracerCntl, PE)
         CALL ConstructCuBlockFxr(coneff,EffAll)
         CALL ConstructCuResPin(ConEff)
         CALL EffMacIntegrated_cuEff(iz)
+
+        ierr = cudaMemGetInfo(FB,TB)
+        FB_MB = FB; TB_MB = TB;
+        FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+        TB_MB = TB_MB - FB_MB
+        FB_MB = min(FBmin_MB,FB_MB); TB_MB = max(TBmax_MB,TB_MB)
+
         CALL DestroyCuBlockFxr(ConEff,EffAll)
         CALL DestroyCuResPin(ConEff,EffAll)
       END IF
     END DO
   END IF
+
+  CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+  WRITE(mesg, '(4x,a21,f8.2,a12,f8.2)') '[Max Pt.] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+  IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
 
 !  print*, __FILE__, __LINE__, PE%myzb
 
@@ -5757,13 +5887,14 @@ SUBROUTINE CUDASubGrpEffXSGen(Core, Fxr, nTracerCntl, PE)
 !  CALL DestroyCuResPin(ConEff,EffAll)
 !  print*, __FILE__, __LINE__, PE%myzb
 
-  CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
+  CALL MPI_SYNC(MPI_CUDA_COMM)
 
   teo = nTracer_dclock(FALSE,FALSE)
   TimeChk%XSsubTime = TimeChk%XSsubTime+(teo-tbo)
+  TimeChk%SubGrpGenEFFXSTime = TimeChk%XSsubTime
 
-  CALL MPI_MAX_REAL(TimeChk%cuXSPreTime, PE%MPI_NTRACER_COMM, .TRUE.)
-  CALL MPI_MAX_REAL(TimeChk%cuXSMainTime, PE%MPI_NTRACER_COMM, .TRUE.)
+  CALL MPI_MAX_REAL(TimeChk%cuXSPreTime, MPI_CUDA_COMM, .TRUE.)
+  CALL MPI_MAX_REAL(TimeChk%cuXSMainTime, MPI_CUDA_COMM, .TRUE.)
 END SUBROUTINE
 
 END MODULE

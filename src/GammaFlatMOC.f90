@@ -1,6 +1,7 @@
 #include <defines.h>
 !--- CNJ Edit : Solver Routine for Gamma Axial Calculation
-#if defined (__INTEL_MKL) && defined (__GAMMA_TRANSPORT)
+#ifdef __INTEL_MKL
+#ifdef __GAMMA_TRANSPORT
 
 MODULE GAMMA_FLATMOC
 
@@ -403,7 +404,7 @@ DO ipin = 1, nxy
 ENDDO
 !$OMP END DO
 !$OMP END PARALLEL
-  
+
 END SUBROUTINE
 
 SUBROUTINE SetProd(Axial)
@@ -961,4 +962,5 @@ END SUBROUTINE
 
 END MODULE
 
+#endif
 #endif

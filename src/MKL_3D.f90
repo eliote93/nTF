@@ -38,7 +38,9 @@ TYPE mklCMFD_Type
   TYPE(mklDavidson_Type), POINTER :: Davidson
   TYPE(mklJacobi_Type), POINTER :: Jacobi(:)
   TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+#ifdef __GAMMA_TRANSPORT
   TYPE(GPinXS_Type), POINTER :: GPinXS(:, :)
+#endif
   REAL, POINTER :: S(:, :, :), F(:, :), Chi(:, :)
   REAL, POINTER :: phis(:, :, :), phisd(:, :, :, :), phic(:, :, :), neighphis(:, :, :)
   REAL, POINTER :: src(:, :), psi(:, :), psid(:, :)
@@ -141,6 +143,7 @@ TYPE mklCntl_Type
   REAL :: outerConv = 0.1, innerConv = 0.01         !--- Convergence Criteria
   REAL :: Shift = 0.25                              !--- Wielandt Shift Value
   LOGICAL :: lDepl = .FALSE.
+  LOGICAL :: lEnter = .FALSE.                       !--- Enter MKL CMFD Driver
 END TYPE
 
 TYPE(mklCMFD_Type) :: mklCMFD, mklGcCMFD, mklGammaCMFD

@@ -1,0 +1,8 @@
+cd obj/
+cmake ..
+make 
+mv nTRACER ../bin/
+rm Makefile
+rm -r CMakeFiles
+rm CMakeCache.txt
+rm cmake_install.cmake

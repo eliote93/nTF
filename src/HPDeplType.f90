@@ -53,8 +53,8 @@ MODULE HPDeplType
     TYPE(CSR_DOUBLE), POINTER :: DeplMats(:)
     ! ----------- For cuDEPL Solvers --------------- !
 !    COMPLEX(8), POINTER :: Diag(:,:) ! (Nsys,NR)
-    REAL(8), POINTER :: Diag(:,:) ! (Nsys,NR)
-    REAL(8), POINTER :: OffDiag(:,:) ! (Nsys,NNZ-NR)
+    REAL(8), ALLOCATABLE :: Diag(:,:) ! (Nsys,NR)
+    REAL(8), ALLOCATABLE :: OffDiag(:,:) ! (Nsys,NNZ-NR)
     ! ---------------------------------------------- !
     REAL(8), POINTER :: pnums(:) ! (NofIso*Nsys)
     REAL(8), POINTER :: pnums1(:) ! (NofIso*Nsys)

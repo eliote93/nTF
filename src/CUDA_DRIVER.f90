@@ -245,7 +245,8 @@ REAL(8), DEVICE, POINTER :: Siglp(:,:)
 REAL(8), POINTER :: siglpH(:,:), xstH(:,:)
 LOGICAL :: lCLD, lAIC, lChkErr, lnskip
 
-!INTEGER(8) :: TB, FB
+INTEGER(8) :: TB, FB
+REAL(8) :: TB_MB, FB_MB, TBmax_MB, FBmin_MB
 
 IF (.NOT. nTracerCntl%lxslib) RETURN
 
@@ -288,6 +289,16 @@ CALL omp_set_num_threads(cuCntl%nMOCHelper)
 rtTime = 0.0
 err = 0.
 
+ierr = cudaMemGetInfo(FB, TB)
+FB_MB = FB; TB_MB = TB;
+FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+TB_MB = TB_MB - FB_MB
+CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+WRITE(mesg, '(5x,a20,f8.2,a12,f8.2)') '[Entry] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
+
+
 IF (lnskip) THEN
 !ierr = cudaMemGetInfo(FB,TB)
 !print*, (TB-FB)/1024/1024
@@ -324,6 +335,12 @@ DO iz = cuDevice%myzb, cuDevice%myze
     ALLOCATE(Siglp(ng,nFxr))
     IF (lChkErr) ALLOCATE(phisd(ng,nFsr))
   END IF
+
+  ierr = cudaMemGetInfo(FB, TB)
+  FB_MB = FB; TB_MB = TB;
+  FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+  TB_MB = TB_MB - FB_MB
+  FB_MB = min(FB_MB,FBmin_MB); TB_MB = max(TBmax_MB,TB_MB)
 
   IF (.NOT. cuDevice%lRayStatic) CALL CopyRayVar(cuGeometry%AxType(iz))
 
@@ -383,6 +400,11 @@ DO iz = cuDevice%myzb, cuDevice%myze
   IF (.NOT. cuDevice%lRayStatic) CALL DeleteRayVar(cuGeometry%AxType(iz))
 
 ENDDO
+
+CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+WRITE(mesg, '(4x,a21,f8.2,a12,f8.2)') '[Max Pt.] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
 
 CALL MPI_REDUCE(err, errmax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_CUDA_COMM, ierr)
 CALL MPI_REDUCE(iter, itersum, 1, MPI_INTEGER, MPI_SUM, 0, MPI_CUDA_COMM, ierr)
@@ -807,7 +829,12 @@ lTrCorrection = nTracerCntl%lTrCorrection
 
 psiconv = itrcntl%psiconv; eigconv = itrcntl%eigconv
 
-IF (lsSPHreg) CALL calcPinSSPH(Core, Fxr, PE)
+IF (lsSPHreg) THEN
+  WRITE(mesg, '(a24)') 'Calculating Pin SSPH...'
+  IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+  CALL calcPinSSPH(Core, Fxr, PE)
+END IF
+
 
 psid(:, myzb : myze) = psi(:, myzb : myze)
 IF (nTracerCntl%lMacro) THEN
@@ -1265,7 +1292,8 @@ INTEGER :: nFsr, nxy, nPhiAngSv, nPolarAngle, nGroupInfo, nMoment
 INTEGER :: GrpBeg, GrpEnd, gb, ge, ng, ngBlock, ngLocal
 LOGICAL :: lJout, lxslib, l3dim, lscat1, lTrCorrection, lRST, lsSPH, lsSPHreg
 LOGICAL :: lLkgSplit
-!INTEGER(8) :: FB, TB
+INTEGER(8) :: FB, TB
+REAL(8) :: FB_MB, TB_MB, FBmin_MB, TBmax_MB
 
 !--- CUDA Host Variables --------------------------------------------------------------------------
 
@@ -1303,7 +1331,11 @@ lTrCorrection = nTracerCntl%lTrCorrection
 
 psiconv = itrcntl%psiconv; eigconv = itrcntl%eigconv
 
-IF (lsSPHreg) CALL calcPinSSPH(Core, Fxr, PE)
+IF (lsSPHreg) THEN
+  WRITE(mesg, '(a24)') 'Calculating Pin SSPH...'
+  IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+  CALL calcPinSSPH(Core, Fxr, PE)
+END IF
 
 lLkgSplit = (nTracerCntl%LkgSplitLv.EQ.0)
 
@@ -1327,6 +1359,15 @@ TimeRtBeg = nTracer_dclock(.FALSE., .FALSE.)
 CALL acc_set_device_num(MPI_CUDA_SHARED_RANK, acc_device_nvidia)
 CALL omp_set_num_threads(cuCntl%nMOCHelper)
 
+ierr = cudaMemGetInfo(FB, TB)
+FB_MB = FB; TB_MB = TB;
+FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+TB_MB = TB_MB - FB_MB
+CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+WRITE(mesg, '(5x,a20,f8.2,a12,f8.2)') '[Entry] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
+
 CALL ConstructCuBlockFxr(ConMac,0)
 
 ! **** Main Solver *******
@@ -1340,6 +1381,16 @@ rtTime = 0.0
 IF (.NOT. cuCntl%lGrpBlock) THEN
   CALL AllocMOCVar(Core, RayInfo, cuMOC, cuDevice, ng, nTracerCntl%lScat1, .FALSE., .FALSE.)
   CALL AllocCuCoreMacXs(ng, nTracerCntl%ScatOd, MacAll)
+
+  ierr = cudaMemGetInfo(FB, TB)
+  FB_MB = FB; TB_MB = TB;
+  FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+  TB_MB = TB_MB - FB_MB
+  CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+  WRITE(mesg, '(4x,a21,f8.2,a12,f8.2)') '[Max Pt.] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+  IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
+
   DO iz = cuDevice%myzb, cuDevice%myze
     CALL SetupCuMacXS(nTracerCntl%ScatOd, .TRUE., iz, 1, ng, MacAll)
     IF (.NOT. cuDevice%lRayStatic) CALL CopyRayVar(cuGeometry%AxType(iz))
@@ -1414,6 +1465,13 @@ ELSE
 !    print*, __FILE__, __LINE__,MocTimeEnd-MocTimeBeg
 
     CALL AllocCuCoreMacXs(XS_BLOCK_SIZE,nTracerCntl%ScatOd,MacBase)
+
+    ierr = cudaMemGetInfo(FB, TB)
+    FB_MB = FB; TB_MB = TB;
+    FB_MB = FB_MB/1024./1024.; TB_MB = TB_MB/1024./1024.;
+    TB_MB = TB_MB - FB_MB
+    FB_MB = min(FB_MB,FBmin_MB); TB_MB = max(TB_MB, TBmax_MB)
+
     DO i = 1, nGroupInfo
       GrpBeg = 1; GrpEnd = ng
       IF (i .GT. 1) THEN
@@ -1472,6 +1530,11 @@ ELSE
     CALL DestroyCuCoreMacXs(MacBase,nTracerCntl%ScatOd)
   ENDDO
   CALL DestroyCuCoreMacXs(MacNF, nTracerCntl%ScatOd)
+
+  CALL MPI_ALLREDUCE(FB_MB, FBmin_MB, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(TB_MB, TBmax_MB, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
+  WRITE(mesg, '(4x,a21,f8.2,a12,f8.2)') '[Max Pt.] Total(MB)= ',TBmax_MB,', Free(MB)= ',FBmin_MB
+  IF (PE%MASTER) CALL message(io8,.FALSE.,.TRUE., mesg)
 END IF
 
 DEALLOCATE(phis)

@@ -2438,6 +2438,8 @@ DO while(TRUE)
       READ(oneline, *) astring, mklCntl%lSubplane, mklCntl%CMFDHeight
     CASE(14) ! DEPL
       READ(oneline, *) astring, mklCntl%lDepl, mklDepl%SysByte, mklDepl%Scale
+    CASE(15) ! CMFD
+      READ(oneline, *) astring, mklCntl%lEnter
   END SELECT
 ENDDO
 #endif
@@ -2460,6 +2462,8 @@ INTEGER           :: idcard
 INTEGER,parameter :: idblock = 23
 INTEGER           :: option = 1
 LOGICAL :: Master
+
+CHARACTER(8) :: strdum
 
 Master = PE%master
 PE%lCUDA = TRUE
@@ -2530,11 +2534,16 @@ DO while(TRUE)
     CASE(11) ! CU_DEPL
       READ(oneline, *) astring, PE%lCUDADepl, cuDepl%sysByte, cuDepl%Scale
     CASE(12) ! CU_XS
-      READ(oneline, *) astring, nTracerCntl%lXsAlign
+      READ(oneline, *) astring, nTracerCntl%lXsAlign, strdum
       IF (nTracerCntl%lXsAlign) THEN
         nTracerCntl%lMacro = FALSE
       ELSE
         nTracerCntl%lMacro = TRUE
+      END IF
+      IF (TRIM(strdum) .EQ. 'WG') THEN
+        cuCntl%lGrpBlock = .FALSE.
+      ELSE
+        cuCntl%lGrpBlock = .TRUE.
       END IF
     CASE(13) ! CU_SUPERPIN
       READ(oneline, *) astring, cuCntl%lsuperpin

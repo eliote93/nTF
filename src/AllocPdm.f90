@@ -86,10 +86,10 @@ CALL Dmalloc0(PHIS, 1, nFsr, myzb, myze, 1, ng)
 CALL Dmalloc0(ssphf, 1, nFsr, myzb, myze, igresb,igrese)
 ssphf=1._8
 
-!IF (nTracerCntl%lNodeMajor) THEN
+IF (nTracerCntl%lNodeMajor) THEN
   CALL Dmalloc0(ssphfnm, igresb, igrese, 1, nFsr, myzb, myze)
   ssphfnm = 1.0D0
-!ENDIF
+ENDIF
 
 !CALL Dmalloc0(Phis1g, 1, nFsr, myzb, myze)
 CALL Dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, myzb, myze, 1, ng)
@@ -252,7 +252,7 @@ ENDIF
 
 !--- CNJ Edit : Node Majors
 IF(nTracerCntl%lscat1) THEN
-  !IF(nTracerCntl%lNodeMajor) THEN
+  IF(nTracerCntl%lNodeMajor) THEN
     IF(nTracerCntl%ScatOd .EQ. 1) THEN
       CALL Dmalloc(srcmnm, 2, ng, nFsr)
     ELSEIF(nTracerCntl%ScatOd .EQ. 2) THEN
@@ -260,7 +260,7 @@ IF(nTracerCntl%lscat1) THEN
     ELSEIF(nTracerCntl%ScatOd .EQ. 3) THEN
       CALL Dmalloc(srcmnm, 9, ng, nFsr)
     ENDIF
-  !ENDIF
+  ENDIF
   IF(nTracerCntl%ScatOd .EQ. 1) THEN
     CALL Dmalloc(srcm, 2, nFsr)
     CALL Dmalloc(phim1g, 2, nFsr)
@@ -278,11 +278,10 @@ IF (nTracerCntl%lNodeMajor) THEN
   CALL Dmalloc(phisnm, ng, nFsr)
   CALL Dmalloc(PhiAngInnm, nPolar, ng, nPhiAngSv)
   CALL Dmalloc(MocJoutnm, 3, ng, nbd, nxy)
-  !CALL Dmalloc(xstnm, ng, nFsr)
+  CALL Dmalloc(xstnm, ng, nFsr)
   CALL Dmalloc(srcnm, ng, nFsr)
 ENDIF
 
-CALL Dmalloc(xstnm, ng, nFsr)
 
 !--- CNJ Edit : Domain Decomposition
 IF (nTracerCntl%lDomainDcmp) THEN

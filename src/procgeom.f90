@@ -9,13 +9,13 @@ use ioutil,       only :  toupper,   IFnumeric,    nfields,   fndchara,  fndchar
 use GeomTreatment, ONLY : AnnularFsrArea, AnnularRegionDivision
 use BenchXs,      only :  MacXsBen, DynMacXsBen
 use Material_Mod, ONLY : Mixture
-use SPH_mod,      ONLY : calcCellSSPH,calcAICCellSSPH
+use SPH_mod,      ONLY : SetSSPHBasicCellInfo
 use XSLIB_MOD,    ONLY : igresb, igrese,nofghel
 implicit none
 character(512),intent(in) :: dataline0
 LOGICAL :: LCAD, lGAP, lCellInit
 
-INTEGER :: ndiv(0:300) = 0, ndivx(0:100) = 0, ndivy(0:100) = 0, ipos(100) = 0, iReg(0:300) = 0
+INTEGER :: ndiv(0:300), ndivx(0:100), ndivy(0:100), ipos(100), iReg(0:300)
 INTEGER :: icel,item,imat(100),nmat,nreg,idiv(100)
 INTEGER :: ndatafield,ndata,ndatax,ndatay
 INTEGER :: nspt, nfueldiv
@@ -50,6 +50,7 @@ IF(LGAP) THEN
   RETURN
 ENDIF
 
+ndiv = 0; ndivx = 0; ndivy = 0; ipos = 0; ireg = 0
 
 Pitch = CellPitch;  HalfPitch = 0.5_8*CellPitch
 
@@ -279,6 +280,13 @@ IF(.not. cellInfo(icel)%lRect) then
   
   ! Calculate volume of each MATERIAL region (not each fxr)
   ALLOCATE(CellInfo(icel)%vol(0:ndata))
+  allocate(CellInfo(icel)%matvol(nmat))
+  CellInfo(icel)%matvol(1)=irad(1)*irad(1)*PI
+  vol = CellInfo(icel)%matvol(1)
+  DO i = 2, nmat
+    CellInfo(icel)%matvol(i)=irad(i)*irad(i)*PI - vol
+    vol = vol + CellInfo(icel)%matvol(i)
+  END DO
   vol=0._8
   DO j=ndata,1,-1
       IF (rr(j).gt.HalfPitch) THEN
@@ -339,17 +347,14 @@ IF(.not. cellInfo(icel)%lRect) then
       nfueldiv=nfueldiv+ndiv(k)
   ENDDO
   CellInfo(icel)%nfueldiv=nfueldiv
-  
-  !! SPH factor
+  !! SPH factor (adjusting # of Fuel FXR to use PSSL method)
   IF (nTracerCntl%lSSPH) THEN
-      IF (CellInfo(icel)%lAIC) THEN
-          call calcAICCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,j,nfueldiv)
-      ELSE
-          call calcCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,ibFuel,ieFuel,nfueldiv,CellInfo(icel)%lhole)
+      CALL SetSSPHBasicCellInfo(CellInfo(icel),ndata,iReg,ndiv,ibFuel, ieFuel, nfueldiv, CellInfo(icel)%lhole,CellInfo(iCel)%lAIC)
       ENDIF
-  ENDIF
+  
   
   !Allocation
+  CALL dmalloc(CellInfo(icel)%matfxridx,CellInfo(icel)%nFxr)
   CALL dmalloc(CellInfo(icel)%iReg, CellInfo(icel)%nFSR)
   CALL dmalloc(CellInfo(icel)%FxrIdxSt,CellInfo(icel)%nFxr)
   CALL dmalloc(CellInfo(icel)%nFsrInFxr,CellInfo(icel)%nFxr)
@@ -361,6 +366,7 @@ IF(.not. cellInfo(icel)%lRect) then
   tvol = PI * rr(1) * rr(1)
   CellInfo(icel)%FxrIdxSt(1) = 1
   CellInfo(icel)%nFsrInFxr(1) = nFsrInFxr
+  CellInfo(icel)%matfxridx(1) = ireg(1)
   DO j = 1, nFsrInFxr
     CellInfo(icel)%ireg(j) = ireg(0)
   ENDDO
@@ -375,6 +381,7 @@ IF(.not. cellInfo(icel)%lRect) then
     DO ir = 1, ndiv(j)
       Cellinfo(icel)%FxrIdxSt(irfr+ir) = (irfr+ir-1)*nFsrInFxr + 1   !Staring Index of local FSR index in a FXR
       Cellinfo(icel)%nFsrInFxr(irfr+ir) = nFsrinFxr                  !Number of FSRs which are beleong to a certain FXR
+      CellInfo(icel)%matfxridx(irfr+ir) = ireg(j)
       IF(HalfPitch .GT. rr(j)) THEN
         Cellinfo(icel)%geom%circle(3,irfr+ir-1) = sqrt(tvol*INVPI)        !Annularing 
         tvol = tvol - dvol
@@ -1414,7 +1421,6 @@ use ioutil,       only :  toupper,   IFnumeric,    nfields,   fndchara,  fndchar
 use GeomTreatment, ONLY : AnnularFsrArea, AnnularRegionDivision
 use BenchXs,      only :  MacXsBen
 use Material_Mod, ONLY : Mixture
-use SPH_mod,      ONLY : calcCellSSPH
 use XSLIB_MOD,    ONLY : igresb, igrese,nofghel
 implicit none
 character(512),intent(in) :: dataline0
@@ -1614,7 +1620,6 @@ use ioutil,       only :  toupper,   IFnumeric,    nfields,   fndchara,  fndchar
 use GeomTreatment, ONLY : AnnularFsrArea, AnnularRegionDivision
 use BenchXs,      only :  MacXsBen
 use Material_Mod, ONLY : Mixture
-use SPH_mod,      ONLY : calcCellSSPH
 use XSLIB_MOD,    ONLY : igresb, igrese,nofghel
 implicit none
 character(512),intent(in) :: dataline0
@@ -1790,8 +1795,6 @@ IF(.not. BaseCellInfo(icel)%lRect) then
       vol=vol+BaseCellInfo(icel)%vol(j)
   ENDDO
   BaseCellInfo(icel)%vol(0)=Pitch*Pitch-vol  
-  !! SPH factor
-!  IF (nTracerCntl%lSSPH) call calcCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv)          !!!!!!!!!!!!!!!!!!!
   
   !Allocation
   CALL dmalloc(BaseCellInfo(icel)%iReg, BaseCellInfo(icel)%nFSR)                                                                                       !!!!!!!!!!!!!!!!!!
@@ -2056,7 +2059,7 @@ USE CNTL,           ONLY : nTracerCntl
 use BenchXs,        only : MacXsBen
 use Material_Mod,   ONLY : Mixture
 USE PE_Mod,         ONLY : PE
-use SPH_mod,        ONLY : calcCellSSPH,calcAICCellSSPH
+use SPH_mod,        ONLY : SetSSPHBasicCellInfo
 USE OMP_LIB
 IMPLICIT NONE
 
@@ -2182,11 +2185,8 @@ DO icel = 1, nCellType
         nfueldiv=nfueldiv+ndiv(i)
       ENDDO
       CellInfo(icel)%nfueldiv=nfueldiv
-      IF (CellInfo(icel)%lAIC) THEN
-        CALL calcAICCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,j,nfueldiv)
-      ELSE
-        CALL calcCellSSPH(CellInfo,icel,ndata,iReg,rr,ndiv,CellInfo(icel)%ibFuel,CellInfo(icel)%ieFuel,nfueldiv, CellInfo(icel)%lhole)
-      ENDIF
+      
+      CALL SetSSPHBasicCellInfo(CellInfo(icel),ndata,iReg,ndiv,CellInfo(icel)%ibFuel, CellInfo(icel)%ieFuel, nfueldiv, CellInfo(icel)%lhole, CellInfo(icel)%lAIC)
     ENDIF
   ENDIF
   

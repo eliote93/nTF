@@ -33,6 +33,9 @@ MODULE CUDA_DEPL
   IF (lCallInitDepl) RETURN
   DeplSolTyp = DeplCntl%SOLVER; nDeplTh = PE%nDeplThread; PC_OPT = DeplCntl%PC_OPT
   nSubStep = cuDepl%nSubStep; SysByte = cuDepl%SysByte; Scale = cuDepl%Scale
+#ifdef GDQUAD_SIMPLE
+  nSubStep = nSubStep*2
+#endif
   CALL DeplLibInit(io_quick, FILENAME(deplFileIdx), DeplLib)
   lCallInitDepl = .TRUE.
   END SUBROUTINE
@@ -515,6 +518,7 @@ MODULE CUDA_DEPL
   USE PARAM
   USE CUDA_MASTER, ONLY : cuDevice
   USE CUDA_Workspace, ONLY : SetMatInfo, DeleteBatchMem, DeleteBlockMem
+  USE cuMatExponential, ONLY : IsNaNval
   USE Timer,            ONLY : nTracer_dclock, TimeChk
   IMPLICIT NONE
   LOGICAL :: lSavePre
@@ -537,6 +541,8 @@ MODULE CUDA_DEPL
   INTEGER :: Nsys0, ifxrbeg0
 
   REAL :: Tb, Te
+
+  LOGICAL :: IsNaNHost(16384)
 
   lCorrector = (.NOT. DeplCntl%lPredict)
   IsCRAM  = (DeplSolTyp .EQ. CRAMSolTyp)
@@ -561,7 +567,7 @@ MODULE CUDA_DEPL
     IF (i .EQ. NBun) NsysB = nfxr-NsysB*(NBun-1)
     IF (i .NE. 1) CALL DestroyVecs_wCopy(DeplFxrBundle, ifxrbeg0, Nsys0, NofIso, Nvec, Solvec, lCorrector, .FALSE., .FALSE., cuDevice%mystream)
     Tb = nTracer_dclock(FALSE, FALSE)
-    CALL SetDeplSys_woCSRT(DeplLib, DeplFxrBundle, NsysB, ifxrbeg, DeplSysBundle, lGd, nDeplTh)
+    CALL SetDeplSys_woCSRT(DeplLib, DeplFxrBundle, NsysB, ifxrbeg, DeplSysBundle, lGd, (lQuad.AND.lCorrector), nDeplTh)
     Te = nTracer_dclock(FALSE, FALSE)
     TimeChk%DeplSysTime = TimeChk%DeplSysTime + (Te-Tb)
     TimeChk%DeplSolTime = TimeChk%DeplSolTime - (Te-Tb)
@@ -572,11 +578,142 @@ MODULE CUDA_DEPL
     TimeChk%DeplSysTime = TimeChk%DeplSysTime + (Te-Tb)
     TimeChk%DeplSolTime = TimeChk%DeplSolTime - (Te-Tb)
     !CALL DestroySys(DeplSysBundle)
+    IsNaNHost = IsNaNval
+    IF (ANY(IsNaNHost)) THEN
+      DO j = 1, 16384
+        IF (IsNaNHost(j)) THEN
+          WRITE(*, '(A,I2,A,I6,A)') "NaN during CRAM at ", i, "th batch, and ", j,"th fxr"
+          STOP
+        END IF
+      END DO
+    END IF
     Nsys0 = NsysB; ifxrbeg0 = ifxrbeg
     ifxrbeg = ifxrbeg+NsysB
   END DO
   CALL DestroyVecs_wCopy(DeplFxrBundle, ifxrbeg0, Nsys0, NofIso, Nvec, Solvec, lCorrector, .FALSE., .FALSE., cuDevice%mystream)
 
+#ifdef GDQUAD_SIMPLE
+  IF (lQuad .AND. lCorrector .AND. (DeplFxrBundle%nTrueGd.GT.0)) THEN
+!    print*, "WOWOWOWOWOWOW"
+    lGd = .TRUE.
+    NofIso = DeplLib%NofIso; nIsoGd = DeplFxrBundle%nIsoGd; i155 = DeplFxrBundle%i155
+    IdIsoGd => DeplFxrBundle%IdIsoGd; IdTrueGd => DeplFxrBundle%IdTrueGd
+
+    nfxr = DeplFxrBundle%nTrueGd
+    ALLOCATE(pnums_RK(nfxr*7, 4)); pnums_RK = 0.;
+    ALLOCATE(pnums_Gd155(nfxr, 4)); pnums_Gd155 = 0.;
+    ALLOCATE(pnums(nfxr*7)); pnums = 0.;
+    GdFxrs => DeplFxrBundle%GdFxrBundle(:)
+    DO k = 1, nfxr
+      pnums(1+(k-1)*7:7*k) = GdFxrs(k)%aFxr%pnum_depl(IdIsoGd(:))
+    END DO
+    DO k = 1, 4
+      pnums_RK(:,k) = pnums
+    END DO
+    DO j = 1, nSubStep
+      DO k = 1, nfxr
+        pnums_Gd155(k,1) = pnums(7*(k-1)+3)
+      END DO
+      DO k = 1, nfxr
+        aFxr => GdFxrs(k)%aFxr
+        DO l = 1, nIsoGd
+          xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,1))
+          IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
+          f = xsabs
+          xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
+            aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
+          f = f/xsabs
+          aFxr%xs1g(RctIdCAP,IdIsoGd(l)) = aFxr%xs1g(RctIdCAP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdCAPm,IdIsoGd(l)) = aFxr%xs1g(RctIdCAPm,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNP,IdIsoGd(l)) = aFxr%xs1g(RctIdNP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNA,IdIsoGd(l)) = aFxr%xs1g(RctIdNA,IdIsoGd(l))*f
+        END DO
+      END DO
+      ! ------------------------------------------ 1st --------------------------------------------
+      CALL SolveAnalyticGd(DeplLib,DeplFxrBundle,pnums_RK(:,1),nDeplTh,nSubStep)
+      DO k = 1, nfxr
+        pnums_Gd155(k,2) = pnums_RK(7*(k-1)+3,1)
+        pnums_Gd155(k,2) = 0.5*(pnums_Gd155(k,2)+pnums_Gd155(k,1))
+      END DO
+
+       DO k = 1, nfxr
+        aFxr => GdFxrs(k)%aFxr
+        DO l = 1, nIsoGd
+          xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,2))
+          IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
+          f = xsabs
+          xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
+            aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
+          f = f/xsabs
+          !IF (.NOT.(f.LT.1.5 .AND. f.GT.0.5)) print*, xsabs, f*xsabs, GdFxrs(k)%GdRR(:,l), GdFxrs(k)%Gd155(:)
+          aFxr%xs1g(RctIdCAP,IdIsoGd(l))  = aFxr%xs1g(RctIdCAP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdCAPm,IdIsoGd(l)) = aFxr%xs1g(RctIdCAPm,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNP,IdIsoGd(l))   = aFxr%xs1g(RctIdNP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNA,IdIsoGd(l))   = aFxr%xs1g(RctIdNA,IdIsoGd(l))*f
+        END DO
+      END DO
+      ! ------------------------------------------ 2nd --------------------------------------------
+      CALL SolveAnalyticGd(DeplLib,DeplFxrBundle,pnums_RK(:,2),nDeplTh,nSubStep)
+      DO k = 1, nfxr
+        pnums_Gd155(k,3) = pnums_RK(7*(k-1)+3,2)
+        pnums_Gd155(k,3) = 0.5*(pnums_Gd155(k,3)+pnums_Gd155(k,1))
+      END DO
+
+      DO k = 1, nfxr
+        aFxr => GdFxrs(k)%aFxr
+        DO l = 1, nIsoGd
+          xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,3))
+          IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
+          f = xsabs
+          xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
+            aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
+          f = f/xsabs
+          !IF (.NOT.(f.LT.1.5 .AND. f.GT.0.5)) print*, xsabs, f*xsabs, GdFxrs(k)%GdRR(:,l), GdFxrs(k)%Gd155(:)
+          aFxr%xs1g(RctIdCAP,IdIsoGd(l)) = aFxr%xs1g(RctIdCAP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdCAPm,IdIsoGd(l)) = aFxr%xs1g(RctIdCAPm,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNP,IdIsoGd(l)) = aFxr%xs1g(RctIdNP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNA,IdIsoGd(l)) = aFxr%xs1g(RctIdNA,IdIsoGd(l))*f
+        END DO
+      END DO
+      ! ------------------------------------------ 3rd --------------------------------------------
+      CALL SolveAnalyticGd(DeplLib,DeplFxrBundle,pnums_RK(:,3),nDeplTh,nSubStep)
+      DO k = 1, nfxr
+        pnums_Gd155(k,4) = pnums_RK(7*(k-1)+3,3)
+      END DO
+
+      DO k = 1, nfxr
+        aFxr => GdFxrs(k)%aFxr
+        DO l = 1, nIsoGd
+          xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,4))
+          IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
+          f = xsabs
+          xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
+            aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
+          f = f/xsabs
+          !IF (.NOT.(f.LT.1.5 .AND. f.GT.0.5)) print*, xsabs, f*xsabs, GdFxrs(k)%GdRR(:,l), GdFxrs(k)%Gd155(:)
+          aFxr%xs1g(RctIdCAP,IdIsoGd(l)) = aFxr%xs1g(RctIdCAP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdCAPm,IdIsoGd(l)) = aFxr%xs1g(RctIdCAPm,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNP,IdIsoGd(l)) = aFxr%xs1g(RctIdNP,IdIsoGd(l))*f
+          aFxr%xs1g(RctIdNA,IdIsoGd(l)) = aFxr%xs1g(RctIdNA,IdIsoGd(l))*f
+        END DO
+      END DO
+      ! ------------------------------------------ 4th --------------------------------------------
+      CALL SolveAnalyticGd(DeplLib,DeplFxrBundle,pnums_RK(:,4),nDeplTh,nSubStep)
+      ! -------------------------------------------------------------------------------------------
+
+      pnums(:) = pnums_RK(:,1)+2.*pnums_RK(:,2)+2.*pnums_RK(:,3)+pnums_RK(:,4)
+      pnums(:) = pnums(:)/6.
+      DO k = 1, nfxr*7
+        IF (pnums(k) .LT. 1.e-30) pnums(k) = 0.
+      END DO
+    END DO
+    DO l = 1, nfxr
+      aFxr => GdFxrs(l)%aFxr
+      aFxr%pnum_cor(IdIsoGd(:)) = pnums((l-1)*7+1:l*7)
+    END DO
+    DEALLOCATE(pnums, pnums_Gd155, pnums_RK)
+  END IF
+#else
   IF (lQuad .AND. lCorrector .AND. (DeplFxrBundle%nTrueGd.GT.0)) THEN
 !    print*, "WOWOWOWOWOWOW"
     lGd = .TRUE.
@@ -600,23 +737,18 @@ MODULE CUDA_DEPL
       END DO
       DO j = 1, nSubStep
         Tb = nTracer_dclock(FALSE, FALSE)
-        !WRITE(601,*) pnums_RK(:,1)
         DO k = 1, NsysB
           pnums_Gd155(k,1) = pnums(NofIso*(k-1)+i155)
         END DO
-        !IF (j.eq.1) WRITE(798,'(10000E13.5)') pnums_gd155(:,1)
-        !IF (j.NE.1) THEN
           DO k = 1, NsysB
             aFxr => GdFxrs(k)%aFxr
             DO l = 1, nIsoGd
               xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,1))
-              IF (xsabs .LT. 1.e-40) CYCLE
+              IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
               f = xsabs
               xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
                 aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
               f = f/xsabs
-              !IF (.NOT.(f.LT.1.5 .AND. f.GT.0.5)) print*, xsabs, f*xsabs, GdFxrs(k)%GdRR(:,l), GdFxrs(k)%Gd155(:)
-              !print*, f, k, l, j
               aFxr%xs1g(RctIdCAP,IdIsoGd(l)) = aFxr%xs1g(RctIdCAP,IdIsoGd(l))*f
               aFxr%xs1g(RctIdCAPm,IdIsoGd(l)) = aFxr%xs1g(RctIdCAPm,IdIsoGd(l))*f
               aFxr%xs1g(RctIdNP,IdIsoGd(l)) = aFxr%xs1g(RctIdNP,IdIsoGd(l))*f
@@ -630,25 +762,20 @@ MODULE CUDA_DEPL
         TimeChk%DeplSysTime = TimeChk%DeplSysTime + (Te-Tb);
         TimeChk%DeplSolTime = TimeChk%DeplSolTime - (Te-Tb);
         DeplSysBundle%pnums = pnums
-!        print*, "BOWOWOWOWOWOW1", NsysB
         CALL cuSolveDeplSys(DeplSysBundle, DeplFxrBundle, lCorrector, lGd, deplsoltyp, nDeplTh)
-!        print*, "COWOWOWOWOWOW1"
         Tb = nTracer_dclock(FALSE, FALSE)
         CALL CopySolVec(DeplSysBundle, NofIso, pnums_RK(:,1), .FALSE., cuDevice%mystream)
-!        print*, "POWOWOWOWOWOW1"
-        !pnums_RK(:,1) = DeplSysBundle%pnums1(:)
         DO k = 1, NsysB
           pnums_Gd155(k,2) = pnums_RK(NofIso*(k-1)+i155,1)
           pnums_Gd155(k,2) = 0.5*(pnums_Gd155(k,2)+pnums_Gd155(k,1))
         END DO
         CALL DestroySysnVec(DeplSysBundle,.FALSE.)
-!        print*, "JOWOWOWOWOWOW1"
 
          DO k = 1, NsysB
           aFxr => GdFxrs(k)%aFxr
           DO l = 1, nIsoGd
             xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,2))
-            IF (xsabs .LT. 1.e-40) CYCLE
+            IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
             f = xsabs
             xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
               aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
@@ -682,7 +809,7 @@ MODULE CUDA_DEPL
           aFxr => GdFxrs(k)%aFxr
           DO l = 1, nIsoGd
             xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,3))
-            IF (xsabs .LT. 1.e-40) CYCLE
+            IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
             f = xsabs
             xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
               aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
@@ -714,7 +841,7 @@ MODULE CUDA_DEPL
           aFxr => GdFxrs(k)%aFxr
           DO l = 1, nIsoGd
             xsabs = QuadFunc(GdFxrs(k)%c_qd(:,l),pnums_Gd155(k,4))
-            IF (xsabs .LT. 1.e-40) CYCLE
+            IF (.NOT.(xsabs .GE. 1.e-40)) CYCLE
             f = xsabs
             xsabs = aFxr%xs1g(RctIdCAP,IdIsoGd(l))+aFxr%xs1g(RctIdCAPm,IdIsoGd(l))+&
               aFxr%xs1g(RctIdNP,IdIsoGd(l))+aFxr%xs1g(RctIdNA,IdIsoGd(l))
@@ -759,6 +886,7 @@ MODULE CUDA_DEPL
       DEALLOCATE(pnums, pnums_Gd155, pnums_RK)
     END DO
   END IF
+#endif
   CALL UpdatePnumDepl(DeplFxrBundle, lCorrector, lSavePre)
   IF (lQuad .AND. lCorrector) CALL UpdatePnumDeplGd(DeplFxrBundle, lCorrector)
   CALL UpdatePnumSS(DeplFxrBundle, lCorrector)
@@ -1261,6 +1389,10 @@ MODULE CUDA_DEPL
     Telapsed = Tend-Tbeg
     CALL MPI_MAX_REAL(Telapsed, PE%MPI_RTMASTER_COMM, TRUE)
     TimeChk%DeplTime = TimeChk%DeplTime + Telapsed
+    CALL MPI_MAX_REAL(TimeChk%DeplSetTime, PE%MPI_RTMASTER_COMM, TRUE)
+    CALL MPI_MAX_REAL(TimeChk%DeplSysTime, PE%MPI_RTMASTER_COMM, TRUE)
+    CALL MPI_MAX_REAL(TimeChk%DeplSolTime, PE%MPI_RTMASTER_COMM, TRUE)
+    CALL MPI_MAX_REAL(TimeChk%DeplPostTime, PE%MPI_RTMASTER_COMM, TRUE)
     IF (nTracerCntl%lXsAlign) THEN
       CALL UpdtCoreIsoInfo(Core, FmInfo%Fxr, PE)
       CALL UpdateBlockFxr(FmInfo%Fxr, GroupInfo, DEPLFeed)
@@ -1290,6 +1422,11 @@ MODULE CUDA_DEPL
     Telapsed = Tend-Tbeg
     CALL MPI_MAX_REAL(Telapsed, PE%MPI_RTMASTER_COMM, TRUE)
     TimeChk%DeplTime = TimeChk%DeplTime + Telapsed
+
+    CALL MPI_MAX_REAL(TimeChk%DeplSetTime, PE%MPI_RTMASTER_COMM, TRUE)
+    CALL MPI_MAX_REAL(TimeChk%DeplSysTime, PE%MPI_RTMASTER_COMM, TRUE)
+    CALL MPI_MAX_REAL(TimeChk%DeplSolTime, PE%MPI_RTMASTER_COMM, TRUE)
+    CALL MPI_MAX_REAL(TimeChk%DeplPostTime, PE%MPI_RTMASTER_COMM, TRUE)
     !Changhyun Test - Number Density Out for Each Fxr
     !CALL Write_ND_Debug(Core, FmInfo, DeplCntl, PE)
     !Effective Cross Section

@@ -1,6 +1,7 @@
 #include <defines.h>
 !--- CNJ Edit : Driver Routine for Gamma Axial Calculation
-#if defined (__INTEL_MKL) && defined (__GAMMA_TRANSPORT)
+#ifdef __INTEL_MKL
+#ifdef __GAMMA_TRANSPORT
 
 MODULE GAMMA_AXIAL
 
@@ -26,14 +27,14 @@ INTEGER :: ierr
 AxNTImeBeg = nTracer_dclock(.FALSE., .FALSE.)
 
 CALL omp_set_num_threads(PE%nAxThread)
-  
+
 WRITE(mesg, '(a)') 'Performing Axial Calculation :  Flat Source MOC'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 
 IF (lFirstAxial) CALL UpdateBoundaryFlux(mklGammaCMFD, mklGammaAxial)
 CALL FlatMOCDriver(mklGammaCMFD, mklAxial, mklGammaAxial)
 CALL SetAxialDhat(mklGammaCMFD, mklGammaAxial)
-      
+
 IF (lFirstAxial) lFirstAxial = FALSE
 
 CALL MPI_BARRIER(PE%MPI_CMFD_COMM, ierr)
@@ -57,7 +58,7 @@ REAL :: atil, myphi, neighphi, surfphifdm
 ng = CMFD%ng
 nxy = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
-  
+
 !$OMP PARALLEL PRIVATE(atil, myphi, neighphi, surfphifdm)
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO ig = 1, ng
@@ -270,4 +271,5 @@ END SUBROUTINE
 
 END MODULE
 
+#endif
 #endif

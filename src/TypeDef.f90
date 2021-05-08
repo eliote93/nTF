@@ -219,7 +219,8 @@ type cell_type
   INTEGER :: icel0
   INTEGER :: iReg0(0:300)
   INTEGER :: prcell
-  REAL :: rr(300) ! --- 180914 JSR
+   REAL :: rr(300) ! --- 180914 JSR
+  INTEGER :: iSSPHcell !--- 210414 JSU Added | Spectral SPH geom index
   !Volume & Geometry Index
 
   REAL,pointer :: vol(:)
@@ -239,9 +240,10 @@ type cell_type
   TYPE(CrCell_Type), POINTER :: CrCell             ! Control Rod Cell
   INTEGER :: basecellstr                           !--- BYS edit : Base Cell Structure
   !Spectral SPH Factor related
+  INTEGER :: icelSSPH
   REAL(4),POINTER :: SPHfactor(:,:)
-  INTEGER,POINTER :: matidx(:)
-  REAL,POINTER :: matrad(:),rad_cp(:),fxrvol(:),q_cp(:)
+  INTEGER,POINTER :: matidx(:),matfxridx(:)
+  REAL,POINTER :: matrad(:),rad_cp(:),fxrvol(:),q_cp(:),matvol(:)
   INTEGER :: nreg_cp,nmat,nmodfxr,cldfxridx,nfueldiv,ngapdiv,ncladdiv,srdidx
   REAL :: fuelgapcldvol,invnmodfxr,FuelRefTEMP0,FuelRad0,U238ND0,MODXSV0
   ! PSM

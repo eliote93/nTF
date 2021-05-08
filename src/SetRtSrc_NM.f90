@@ -12,8 +12,8 @@ USE TRAN_MOD,     ONLY : TranInfo
 
 IMPLICIT NONE
 
-TYPE (CoreInfo_Type) :: Core
-TYPE (GroupInfo_Type):: GroupInfo
+TYPE (CoreInfo_Type)  :: Core
+TYPE (GroupInfo_Type) :: GroupInfo
 TYPE (PE_TYPE)        :: PE
 
 TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
@@ -71,9 +71,8 @@ ELSE
   END DO
 END IF
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED)                                                                                      &
-!$OMP PRIVATE(i, j, k, ifsr, ifxr, ipin, icel, ifsrlocal, itype, ig, ig2, tid,                                      &
-!$OMP         FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, xsmacsm, chi)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(i, j, k, ifsr, ifxr, ipin, icel, ifsrlocal, itype, ig, ig2, tid, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, xsmacsm, chi)
 tid = omp_get_thread_num() + 1
 !$OMP DO SCHEDULE(GUIDED)
 DO ipin = xyb, xye

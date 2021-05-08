@@ -1,5 +1,6 @@
   !#include <KrylovDefines.h>
 #include <Depletion.h>
+#include <DefDBG.h>
 
 #ifdef CRAM_DIRECT
 !#pragma once
@@ -38,7 +39,11 @@ MODULE MatExponential
     (-6.2518392463207918892e1, -1.1190391094283228480e1), (4.1023136835410021273e-2, -1.5743466173455468191e-1)/);
   REAL(8), PARAMETER::Res0 = 2.1248537104952237488e-16
 #endif
-  INTEGER, PARAMETER :: iLU0 = 1, Diag = 2
+  INTEGER, PARAMETER :: iLU0 = 1, Diag = 2, GS = 3
+
+  INTEGER :: minGSIter=100, maxGSIter=0
+  INTEGER :: minCGIter=100, maxCGIter=0
+  INTEGER :: minHmRank=611, maxHmRank=0
 
   CONTAINS
 
@@ -223,13 +228,15 @@ MODULE MatExponential
       IF (ANY(ieee_is_NAN(x1)).OR.ANY(x1.LT.0.)) THEN
         O_Taylor = O_Taylor + 4
       ELSE
+        EXIT
+      END IF
 #else
       IF (ANY(ISNAN(x1)).OR.ANY(x1.LT.0.)) THEN
         O_Taylor = O_Taylor + 4
       ELSE
-#endif
         EXIT
       END IF
+#endif
       IF (O_Taylor .GT. m) THEN
         print*, 'Non Convergable Exponential Matrix with SnS'
         STOP
@@ -277,7 +284,9 @@ MODULE MatExponential
 
   ! Coeff = (Factorial of i), SqrA = A**i
   Coeff = 1._8; SaveSqrA(:,:) = SqrA(:,:)
-  IF (.NOT. lOutMat) x1(1:rank) = x0(1:rank); x_temp(:,2) = x0(1:rank)
+  IF (.NOT. lOutMat) THEN
+    x1(1:rank) = x0(1:rank); x_temp(:,2) = x0(1:rank)
+  END IF
   DO i = 1, order
     Coeff = 1/dble(i)
     IF (lOutMat) THEN
@@ -384,6 +393,11 @@ MODULE MatExponential
   CALL ArnoldiProcess_CSR(A_csr, x0, rank, v, h, m, beta)
 
   !print*, m
+
+#ifdef ITER_CHK
+  minHmRank = min(m,minHmRank)
+  maxHmRank = max(m,maxHmRank)
+#endif
 
   ALLOCATE(h_small(m,m), ExpH(m,m), yapprox(m), e1(m))
   h_small(:,:) = h(1:m,1:m)
@@ -544,16 +558,21 @@ MODULE MatExponential
       IF (ANY(ieee_IS_NAN(SqrdMat))) THEN
         O_Taylor = O_Taylor + 4
       ELSE
-#else
-      IF (ANY(ISNAN(SqrdMat))) THEN
-        O_Taylor = O_Taylor + 4
-      ELSE
-#endif
         CALL Full2CSR(SqrdMat, ExpA_csr)
         CALL mkl_dcsrgemv('N', rank, ExpA_csr%csrVal, ExpA_csr%csrRowPtr, ExpA_csr%csrColIdx, x0, x1)
         !print*, O_Taylor, m
         EXIT
       END IF
+#else
+      IF (ANY(ISNAN(SqrdMat))) THEN
+        O_Taylor = O_Taylor + 4
+      ELSE
+        CALL Full2CSR(SqrdMat, ExpA_csr)
+        CALL mkl_dcsrgemv('N', rank, ExpA_csr%csrVal, ExpA_csr%csrRowPtr, ExpA_csr%csrColIdx, x0, x1)
+        !print*, O_Taylor, m
+        EXIT
+      END IF
+#endif
       IF (O_Taylor .GT. rank) THEN
         print*, 'Non Convergable Exponential Matrix with SnS'
         STOP
@@ -568,13 +587,15 @@ MODULE MatExponential
       IF (ANY(ieee_IS_NAN(SqrdMat))) THEN
         O_Taylor = O_Taylor + 4
       ELSE
+        EXIT
+      END IF
 #else
       IF (ANY(ISNAN(SqrdMat))) THEN
         O_Taylor = O_Taylor + 4
       ELSE
-#endif
         EXIT
       END IF
+#endif
       IF (O_Taylor .GT. rank) THEN
         print*, 'Non Convergable Exponential Matrix with SnS'
         STOP
@@ -818,7 +839,7 @@ MODULE MatExponential
   INTEGER :: nr_bch
   COMPLEX(8), ALLOCATABLE :: r(:), p(:), phat(:), s(:), shat(:), t(:), v(:), rtilde(:), y(:)
   COMPLEX(8) :: rho0, rho1, rho2, a, b, w
-  REAL(8) :: IterNum
+  REAL(8) :: IterNum, relerr, norm, temp
 
   COMPLEX(8), ALLOCATABLE :: x_temp(:), x_temp_sol(:)
   COMPLEX(8) :: temp_pole
@@ -856,7 +877,11 @@ MODULE MatExponential
   ALLOCATE(valZ_batch(nnz*Half_Order), rowptr_batch(nr*Half_Order+1), colIdx_batch(nnz*Half_Order))  ! batched
 
   nr_bch = nr*Half_Order
-  ALLOCATE(r(nr_bch), rtilde(nr_bch), p(nr_bch), phat(nr_bch), s(nr_bch), shat(nr_bch), t(nr_bch), v(nr_bch), y(nr_bch))
+  IF (PreCond.EQ.GS) THEN
+    ALLOCATE(t(nr_bch))
+  ELSE
+    ALLOCATE(r(nr_bch), rtilde(nr_bch), p(nr_bch), phat(nr_bch), s(nr_bch), shat(nr_bch), t(nr_bch), v(nr_bch), y(nr_bch))
+  END IF
 
   x1(1:rank) = x0(1:rank)*Res0
 
@@ -866,9 +891,16 @@ MODULE MatExponential
     valZ_batch((i-1)*nnz+1:i*nnz) = valZ(:)
     x_temp((i-1)*rank+1:i*rank) = 2._8*Res(i)*x0(1:rank)
     temp_pole = Pole(i)!-1._8
-    DO j = 1, nr
-      valZ_batch((i-1)*nnz+eyeIdx(j)) = valZ(eyeIdx(j))-temp_pole
-    END DO
+    IF (PreCond.EQ.GS) THEN
+      DO j = 1, nr
+        valZ_batch((i-1)*nnz+eyeIdx(j)) = 0.;
+        t(j+(i-1)*nr:i*nr) = valZ(eyeIdx(j))-temp_pole
+      END DO
+    ELSE
+      DO j = 1, nr
+        valZ_batch((i-1)*nnz+eyeIdx(j)) = valZ(eyeIdx(j))-temp_pole
+      END DO
+    END IF
   END DO
   rowptr_batch(nr*Half_Order+1) = nnz*Half_Order+1
 
@@ -882,68 +914,100 @@ MODULE MatExponential
   IF (PreCond .EQ. iLU0) CALL DeplZcsr_Bilu0(A_csrZ, LU_csrZ, eyeidx, nr, Half_Order)
   !print*, '1', LU_csrZ%nnz, LU_csrZ%lAlloc
 
-  x_temp_sol = 0.; r = 0.
-  !CALL mkl_zcsrgemv('N', nr_bch, valZ_batch, rowptr_batch, colidx_batch, x_temp_sol, r)
-  r(:) = x_temp(:)-r(:)
-  rtilde = r
-
-  rho1 = DOT_PRODUCT(rtilde,r)
-  DO i = 1, 10
-    IF (i.EQ.1) THEN
-      p = r; rho0 = rho1
-    ELSE
-      b = (rho1/rho2)*(a/w)
-      p(:) = r(:) + b*(p(:)-w*v(:))
-    END IF
-    IF (PreCond .EQ. iLU0) THEN
-      CALL mkl_zcsrtrsv('L','n','u',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,p,y)
-      CALL mkl_zcsrtrsv('U','n','n',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,y,phat)
-    ELSE
-      DO j = 1, Half_Order
-        phat(nr*(j-1)+1:nr*j) = p(nr*(j-1)+1:nr*j)/valZ_batch((eyeidx(:)+nnz*(j-1)))
+  IF (PreCond .EQ. GS) THEN
+    x_temp_sol = 0.;
+    DO i = 1, 30
+      relerr = 0.; norm = 0.;
+      DO j = 1, nr_bch
+        b = x_temp(j)
+        w = b
+        DO k = rowptr_batch(j),rowptr_batch(j+1)-1
+          w = w-valZ_batch(k)*x_temp_sol(k)
+        END DO
+        w = w/t(j)
+        temp = ABS(x_temp_sol(j)-w)
+        relerr = relerr+temp*temp
+        temp = ABS(w)
+        norm = norm+temp*temp
+        x_temp_sol(j) = w
       END DO
-    END IF
-    CALL mkl_zcsrgemv('N', nr_bch, valZ_batch, rowptr_batch, colidx_batch, phat, v)
-    !print*, phat
-    a = rho1/(DOT_PRODUCT(rtilde,v))
-    s(:) = r(:) - a*v(:)
-    rho2 = DOT_PRODUCT(rtilde,s)
-    IF (.NOT.(CDABS(rho2) .LT. 0. .OR. CDABS(rho2) .GE. 0)) THEN
-      IterNum = i-1
-      EXIT
-    END IF
+      relerr = relerr/norm
+      IF (relerr.LT.1.e-16) THEN
+        EXIT
+      END IF
+    END DO
+#ifdef ITER_CHK
+    minGSIter = min(i,minGSIter); maxGSIter = max(i,maxGSIter)
+#endif
+  ELSE
+    x_temp_sol = 0.; r = 0.
+    !CALL mkl_zcsrgemv('N', nr_bch, valZ_batch, rowptr_batch, colidx_batch, x_temp_sol, r)
+    r(:) = x_temp(:)-r(:)
+    rtilde = r
 
-    x_temp_sol(:) = x_temp_sol(:)+a*phat(:)
-    IF (CDABS(rho2/rho0) < 1.e-30) THEN
-      IterNum = i-1+0.5
-      EXIT
-    END IF
-
-    IF (PreCond .EQ. iLU0) THEN
-      CALL mkl_zcsrtrsv('L','n','u',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,s,y)
-      CALL mkl_zcsrtrsv('U','n','n',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,y,shat)
-    ELSE
-      DO j = 1, Half_Order
-        shat(nr*(j-1)+1:nr*j) = s(nr*(j-1)+1:nr*j)/valZ_batch((eyeidx(:)+nnz*(j-1)))
-      END DO
-    END IF
-    CALL mkl_zcsrgemv('N', nr_bch, valZ_batch, rowptr_batch, colidx_batch, shat, t)
-
-    w = DOT_PRODUCT(t,s)/DOT_PRODUCT(t,t)
-    r(:) = s(:)-w*t(:)
     rho1 = DOT_PRODUCT(rtilde,r)
-    rho2 = rho1
-    IF (.NOT.(CDABS(rho2) .LT. 0. .OR. CDABS(rho2) .GE. 0)) THEN
-      IterNum = i-1+0.5
-      EXIT
-    END IF
+    DO i = 1, 10
+      IF (i.EQ.1) THEN
+        p = r; rho0 = rho1
+      ELSE
+        b = (rho1/rho2)*(a/w)
+        p(:) = r(:) + b*(p(:)-w*v(:))
+      END IF
+      IF (PreCond .EQ. iLU0) THEN
+        CALL mkl_zcsrtrsv('L','n','u',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,p,y)
+        CALL mkl_zcsrtrsv('U','n','n',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,y,phat)
+      ELSE
+        DO j = 1, Half_Order
+          phat(nr*(j-1)+1:nr*j) = p(nr*(j-1)+1:nr*j)/valZ_batch((eyeidx(:)+nnz*(j-1)))
+        END DO
+      END IF
+      CALL mkl_zcsrgemv('N', nr_bch, valZ_batch, rowptr_batch, colidx_batch, phat, v)
+      !print*, phat
+      a = rho1/(DOT_PRODUCT(rtilde,v))
+      s(:) = r(:) - a*v(:)
+      rho2 = DOT_PRODUCT(rtilde,s)
+      IF (.NOT.(CDABS(rho2) .LT. 0. .OR. CDABS(rho2) .GE. 0)) THEN
+        IterNum = i-1
+        EXIT
+      END IF
 
-    x_temp_sol(:) = x_temp_sol(:)+w*shat(:)
-    IF (CDABS(rho2/rho0) < 1.e-30) THEN
+      x_temp_sol(:) = x_temp_sol(:)+a*phat(:)
+      IF (CDABS(rho2/rho0) < 1.e-30) THEN
+        IterNum = i-1+0.5
+        EXIT
+      END IF
+
+      IF (PreCond .EQ. iLU0) THEN
+        CALL mkl_zcsrtrsv('L','n','u',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,s,y)
+        CALL mkl_zcsrtrsv('U','n','n',nr_bch,LU_csrZ%csrval,LU_csrZ%csrrowptr,LU_csrZ%csrcolidx,y,shat)
+      ELSE
+        DO j = 1, Half_Order
+          shat(nr*(j-1)+1:nr*j) = s(nr*(j-1)+1:nr*j)/valZ_batch((eyeidx(:)+nnz*(j-1)))
+        END DO
+      END IF
+      CALL mkl_zcsrgemv('N', nr_bch, valZ_batch, rowptr_batch, colidx_batch, shat, t)
+
+      w = DOT_PRODUCT(t,s)/DOT_PRODUCT(t,t)
+      r(:) = s(:)-w*t(:)
+      rho1 = DOT_PRODUCT(rtilde,r)
+      rho2 = rho1
+      IF (.NOT.(CDABS(rho2) .LT. 0. .OR. CDABS(rho2) .GE. 0)) THEN
+        IterNum = i-1+0.5
+        EXIT
+      END IF
+
+      x_temp_sol(:) = x_temp_sol(:)+w*shat(:)
+      IF (CDABS(rho2/rho0) < 1.e-30) THEN
+        IterNum = i
+        EXIT
+      END IF
       IterNum = i
-      EXIT
-    END IF
-  END DO
+    END DO
+#ifdef ITER_CHK
+    IF (PreCond.EQ.Diag) minCGIter = min(INT((IterNum+0.01)*2),minCGIter)
+    IF (PreCond.EQ.Diag) maxCGIter = max(INT((IterNum+0.01)*2),maxCGIter)
+#endif
+  END IF
   !WRITE(97,*) IterNum, CDABS(rho2), ANY(ISNAN(DBLE(x_temp_sol)))
   !WRITE(97,*) 'Iter : ', IterNum
   DO i = 1, Half_Order
@@ -951,7 +1015,11 @@ MODULE MatExponential
   END DO
 
   !DEALLOCATE(valZ, rowptr, colIdx)
-  DEALLOCATE(r, rtilde, p, phat, s, shat, t, v, y)
+  IF (PreCond.EQ.GS) THEN
+    DEALLOCATE(t)
+  ELSE
+    DEALLOCATE(r, rtilde, p, phat, s, shat, t, v, y)
+  END IF
   CALL destroycsr(LU_csrZ);
   !print*, '3', LU_csrZ%nnz, LU_csrZ%lAlloc
   DEALLOCATE(AZ, x_temp, x_temp_sol)

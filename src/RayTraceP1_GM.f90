@@ -268,7 +268,8 @@ END SUBROUTINE RayTraceP1GM_OMP
 SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
 USE PARAM
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type,                                                       &
+USE TYPEDEF, ONLY :   RayInfo_Type,      coreinfo_type,                                       &
+                      TrackingDat_Type,                                                       &
                       Pin_Type,          Cell_Type,                                           &
                       AziAngleInfo_Type, PolarAngle_Type
 USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay,      &

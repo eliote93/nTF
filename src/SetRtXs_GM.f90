@@ -132,7 +132,7 @@ DO ipin = 1, nxy
       
       xstr(ifsr) = xsmactr(ig)
       
-      IF (lsSPH .AND. ig.GE.igresb .AND. ig.LE.igrese .AND. CellInfo(icel)%lsSPH) ssphf(ifsr,iz,ig) = SPHfac(j)
+      IF (lsSPH .AND. ig.GE.igresb .AND. ig.LE.igrese .AND. CellInfo(icel)%lsSPH) ssphf(ifsr, iz, ig) = SPHfac(j)
     END DO
   END DO
 END DO

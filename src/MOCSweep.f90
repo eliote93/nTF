@@ -87,7 +87,14 @@ RTMaster = PE%RTMaster
 IF (nTracerCntl%lscat1)  phim        => FmInfo%phim
 IF (nTracerCntl%lLinSrc) LinSrcSlope => FmInfo%LinSrcSlope
 
-IF (nTracerCntl%lsSPHreg) CALL calcPinSSPH(Core, Fxr, PE)
+! sSPH
+IF (nTracerCntl%lsSPHreg) THEN
+  WRITE (mesg, '(a24)') 'Calculating Pin SSPH...'
+  
+  IF (Master) CALL message(io8, TRUE, TRUE, mesg)
+  
+  CALL calcPinSSPH(Core, Fxr, PE)
+END IF
 
 CALL omp_set_num_threads(PE%nThread)
 

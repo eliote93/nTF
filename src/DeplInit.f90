@@ -114,21 +114,29 @@ SUBROUTINE DeplLibInit(libIO, Filename, DeplLib)
     END IF
     delIdDec(:) = DeplLib%delIdDec(:)
     DO j = 1, NofRct
-      IF (mod(DelIdRct(j),10) .NE. 9) THEN
-        dum2 = (dum1/10)*10+DelIdRct(j)
+      IF (DelIdRct(j).EQ.0) THEN
+        dum2 = 0
       ELSE
-        dum2 = dum1 + delIdRct(j)
+        If (DelIdRct(j).EQ.-1) THEN
+          dum2 = (dum1/10)*10
+          IF (dum2.EQ.dum1) dum2 = 0
+        ELSE
+          dum2 = (dum1/10)*10+DelIdRct(j)
+        END IF
       END IF
-      IF (dum2 .EQ. dum1) dum2 = 0
       DeplLib%IdAftRct(j,i) = dum2
     END DO
     DO j = 1, NofDec
-      IF (mod(DelIdDec(j),10) .NE. 9) THEN
-        dum2 = (dum1/10)*10+delIdDec(j)
+      IF (DelIdDec(j).EQ.0) THEN
+        dum2 = 0
       ELSE
-        dum2 = dum1 + delIdDec(j)
+        If (DelIdDec(j).EQ.-1) THEN
+          dum2 = (dum1/10)*10
+          IF (dum2.EQ.dum1) dum2 = 0
+        ELSE
+          dum2 = (dum1/10)*10+DelIdDec(j)
+        END IF
       END IF
-      IF (dum2 .EQ. dum1) dum2 = 0
       DeplLib%IdAftDec(j,i) = dum2
     END DO
   END DO
@@ -222,6 +230,7 @@ SUBROUTINE DeplLibInit(libIO, Filename, DeplLib)
     END DO
   END DO
   DeplLib%YldMapRowPtr(NofIso+1) = dum1+1
+  print*, dum1
 
   DeplLib%IzDec=0; DeplLib%IzRct=0
   DeplLib%IzSYR=0; DeplLib%IzSYD=0; DeplLib%IzSYRAct=0
@@ -258,7 +267,7 @@ SUBROUTINE DeplLibInit(libIO, Filename, DeplLib)
       END IF
       IF (.NOT.DeplLib%lActinide(i)) THEN
         dum1 = DeplLib%SubYldRct(j)
-        IF (dum1.GT.0) THEN 
+        IF (dum1.GT.0) THEN
           DO dum2 = DeplLib%YldMapRowPtr(dum1), DeplLib%YldMapRowPtr(dum1+1)-1
             IF (DeplLib%YldMapColIdx(dum2) .NE. i) CYCLE
             DeplLib%IzSYR(j,i) = dum2
@@ -273,7 +282,7 @@ SUBROUTINE DeplLibInit(libIO, Filename, DeplLib)
             DeplLib%IzSYRAct(j,i) = dum2
             EXIT
           END DO
-        END IF 
+        END IF
       END IF
     END DO
   END DO
@@ -295,7 +304,8 @@ SUBROUTINE DeplLibInit(libIO, Filename, DeplLib)
   DEALLOCATE(YldMapIsNZ, IdAftDec, IdAftRct)
   NULLIFY(DecFrac, RctXs)
 END SUBROUTINE DeplLibInit
-  SUBROUTINE DefineDeplChainType(DeplLib)
+
+SUBROUTINE DefineDeplChainType(DeplLib)
   USE HPDeplType
   IMPLICIT NONE
   TYPE(DeplLib_Type) :: DeplLib

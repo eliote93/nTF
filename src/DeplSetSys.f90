@@ -293,7 +293,7 @@ SUBROUTINE DestroySys(DeplSysBundle)
 END SUBROUTINE
 
 #ifdef __PGI
-SUBROUTINE SetDeplSys_woCSRT(DeplLib, DeplFxrBundle, Nsys, ifxrbeg, DeplSysBundle, lGd, Nths, nSubStp)
+SUBROUTINE SetDeplSys_woCSRT(DeplLib, DeplFxrBundle, Nsys, ifxrbeg, DeplSysBundle, lGd, lQuad, Nths, nSubStp)
 USE HPDeplType
 USE CSRMATRIX
 IMPLICIT NONE
@@ -301,7 +301,7 @@ TYPE(DeplLib_Type) :: DeplLib
 TYPE(DeplFxrBundle_Type) :: DeplFxrBundle
 INTEGER :: Nsys, ifxrbeg
 TYPE(DeplSysBundle_Type) :: DeplSysBundle
-LOGICAL :: lGd
+LOGICAL :: lGd, lQuad
 INTEGER :: Nths
 INTEGER, OPTIONAL :: nSubStp
 
@@ -316,7 +316,7 @@ INTEGER, POINTER :: IdFis(:), IdYld(:)
 INTEGER, POINTER :: SubYldRct(:), SubYldRctAct(:), SubYldDec(:)
 LOGICAL, POINTER :: lActinide(:)
 
-INTEGER, POINTER :: IdTrue(:)
+INTEGER, POINTER :: IdTrue(:), IdIsoGd(:)
 
 INTEGER :: ifxr, i ,j, k, l, ir, ic, icbeg, icend
 INTEGER :: NofIso, NofFis, NofYld, NofDec, NofRct, FisRctId
@@ -328,6 +328,7 @@ REAL(8) :: LossRate, YldRate, phi, delT
 INTEGER :: nnz, nndz, nr, nc
 
 REAL(8) :: SubStep
+LOGICAL, PARAMETER :: lNZEM = .FALSE.
 
 SubStep = 1.
 IF (PRESENT(nSubStp)) SubStep = nSubStp
@@ -366,101 +367,74 @@ IF (lGD) THEN
 ELSE
   IdTrue => DeplFxrBundle%IdTrueDepl
 END IF
+IF (lQuad) IdIsoGd => DeplFxrBundle%IdIsoGd
 
 !ALLOCATE(FisXs(NofFis))
 CALL OMP_SET_NUM_THREADS(Nths)
-!$OMP PARALLEL DO PRIVATE(xs1g, phi, pnums0, j,k,l,icbeg,icend,ifxr,ir, ic, YldRate, LossRate, FisXs) SCHEDULE(GUIDED)
-DO i = 1, Nsys
-  ifxr = IdTrue(i-1+ifxrbeg)
-  ALLOCATE(FisXs(NofFis))
-  xs1g => Fxrs(ifxr)%xs1g
-  phi = Fxrs(ifxr)%NormFlux1g
-
-  pnums0=>Fxrs(ifxr)%pnum_depl
-  pnums(NofIso*(i-1)+1:NofIso*i) = pnums0(:)
-  NULLIFY(pnums0)
-!  CALL createCSR(DeplMats(i), nnz, nr, nc)
-!  csrColIdx(:) = DeplLib%YldMapColIdx(:)
-!  csrRowPtr(:) = DeplLib%YldMapRowPtr(:)
-
-  ! Decay
+IF (lNZEM) THEN
+  !$OMP PARALLEL DO PRIVATE(ifxr, pnums0) SCHEDULE(GUIDED)
+  DO i = 1, Nsys
+    ifxr = IdTrue(i-1+ifxrbeg)
+    pnums0 => Fxrs(ifxr)%pnum_depl
+    pnums(NofIso*(i-1)+1:NofIso*i) = pnums0
+  END DO
+  !$OMP END PARALLEL DO
   DO j = 1, NofIso
-    LossRate=0.
     ic = j
+    ! ========= Decay ===========
     DO k = 1, NofDec
       ir = IdAftDec(k,j)
       YldRate = DecFrac(k,j)*delT
-      LossRate = LossRate+YldRate
-      IF (ir .EQ. 0) CYCLE
+!      IF (ir.EQ.0) CYCLE
       l = DeplLib%IzDec(k,j)
-      IF (l .LE. 0) CYCLE
-      l = l-ir+(ir/ic)
-!      print*, 'DECAY', k*1000+j, l
-      DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
-!      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
-!      DO l = icbeg, icend
-!        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
-!          ir = l - ir + (ir/ic)
-!          DeplSysBundle%OffDiag(i,ir) = DeplSysBundle%OffDiag(i,ir)+YldRate
-!          EXIT
-!        END IF
-!      END DO
+!      IF (l.LE.0) CYCLE
+      IF (l.GT.0) l = l-ir+(ir/ic)
+      !$OMP PARALLEL DO SCHEDULE(GUIDED)
+      DO i = 1, Nsys
+        IF (ir.NE.0 .AND. l.GT.0) DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+        DeplSysBundle%Diag(i,j) = DeplSysBundle%Diag(i,j)-YldRate
+      END DO
+      !$OMP END PARALLEL DO
     END DO
-    DeplSysBundle%Diag(i,j) = DeplSysBundle%Diag(i,j)-LossRate
-  END DO
-
-  ! Reaction
-  DO j = 1, NofIso
-    LossRate = 0.
-    ic = j
+    ! ========= Reaction ========
     DO k = 1, NofRct
       ir = IdAftRct(k,j)
-      YldRate = xs1g(k,j)*phi*delT
-      LossRate = LossRate+YldRate
-      If (ir .EQ. 0) CYCLE
+!      IF (ir.EQ.0) CYCLE
       l = DeplLib%IzRct(k,j)
-      IF (l .LE. 0) CYCLE
-      l = l-ir+(ir/ic)
-!      print*, 'React', k*1000+j, l
-      DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
-!      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
-!      DO l = icbeg, icend
-!        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
-!          ir = l - ir + (ir/ic)
-!          DeplSysBundle%OffDiag(i,ir) = DeplSysBundle%OffDiag(i,ir)+YldRate
-!          EXIT
-!        END IF
-!      END DO
+!      If (l.LE.0) CYCLE
+      IF (l.GT.0) l = l-ir+(ir/ic)
+      !$OMP PARALLEL DO PRIVATE(xs1g, phi, ifxr, YldRate) SCHEDULE(GUIDED)
+      DO i = 1, Nsys
+        ifxr = IdTrue(i-1+ifxrbeg)
+        xs1g => Fxrs(ifxr)%xs1g; phi = Fxrs(ifxr)%NormFlux1g
+        YldRate = xs1g(k,j)*phi*delT
+        IF (ir.NE.0 .AND. l.GT.0) DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+        DeplSysBundle%Diag(i,j) = DeplSysBundle%Diag(i,j)-YldRate
+      END DO
+      !$OMP END PARALLEL DO
     END DO
-    DeplSysBundle%Diag(i,j) = DeplSysBundle%Diag(i,j)-LossRate
   END DO
-
-  ! Fission
-  DO j = 1, NofFis
-    FisXs(j) = xs1g(FisRctId, IdFis(j))
-  END DO
+  ! ======== Fission =======
   DO j = 1, NofYld
     ir = IdYld(j)
     DO k = 1, NofFis
-      YldRate = FisFrac(k,j)*FisXs(k)*phi*delT
       ic = IdFis(k)
       l = DeplLib%IzFY(k,j)
       IF (l.LE.0) CYCLE
       l = l-ir+(ir/ic)
-!      print*, 'Fission', k*1000+j, l
-      DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
-!      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
-!      DO l = icbeg, icend
-!        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
-!          ic = l - ir + (ir/ic)
-!          DeplSysBundle%OffDiag(i,ic) = DeplSysBundle%OffDiag(i,ic)+YldRate
-!          EXIT
-!        END IF
-!      END DO
+      !$OMP PARALLEL PRIVATE(YldRate, ifxr, xs1g, phi)
+      !$OMP DO SCHEDULE(GUIDED)
+      DO i = 1, Nsys
+        ifxr = IdTrue(i-1+ifxrbeg)
+        xs1g => Fxrs(ifxr)%xs1g; phi = Fxrs(ifxr)%NormFlux1g
+        YldRate = FisFrac(k,j)*xs1g(FisRctId,IdFis(k))*phi*delT
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+      END DO
+      !$OMP END DO
+      !$OMP END PARALLEL
     END DO
   END DO
-
-  ! SubYld
+  ! ======== Sub-Yield ========
   DO j = 1, NofRct
     DO k = 1, NofIso
       ic = k
@@ -468,53 +442,191 @@ DO i = 1, Nsys
         ir = SubYldRctAct(j)
         l = DeplLib%IzSYRAct(j,k)
       ELSE
-        ir = subYldRct(j)
+        ir = SubYldRct(j)
         l = DeplLib%IzSYR(j,k)
       END IF
       IF (l.LE.0) CYCLE
-      IF(ir .EQ. 0) CYCLE
-      l = l-ir+(ir/ic)
-!      print*, 'SubYld', j*1000+k, l
-      YldRate = xs1g(j,k)*phi*delT
-      DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
-!      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
-!      DO l = icbeg, icend
-!        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
-!          ic = l - ir + (ir/ic)
-!          DeplSysBundle%OffDiag(i,ic) = DeplSysBundle%OffDiag(i,ic)+YldRate
-!          EXIT
-!        END IF
-!      END DO
+      IF (ir.EQ.0) CYCLE
+      l  = l-ir+(ir/ic)
+      !$OMP PARALLEL DO PRIVATE(ifxr, xs1g, phi, YldRate) SCHEDULE(GUIDED)
+      DO i = 1, Nsys
+        ifxr = IdTrue(i-1+ifxrbeg)
+        xs1g => Fxrs(ifxr)%xs1g; phi = Fxrs(ifxr)%NormFlux1g
+        YldRate = xs1g(j,k)*phi*delT
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+      END DO
+      !$OMP END PARALLEL DO
     END DO
   END DO
   DO j = 1, NofDec
     ir = SubYldDec(j)
-    IF (ir .EQ. 0) CYCLE
+    IF  (ir.EQ.0) CYCLE
     DO k = 1, NofIso
       ic = k
       YldRate = DecFrac(j,k)*delT
       l = DeplLib%IzSYD(j,k)
-      IF (l.LE.0) CYCLE
-      l=l-ir+(ir/ic)
-!      print*, 'SYDec', j*1000+k, l
-      DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
-!      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
-!      DO l = icbeg, icend
-!        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
-!          ic = l - ir + (ir/ic)
-!          DeplSysBundle%OffDiag(i,ic) = DeplSysBundle%OffDiag(i,ic)+YldRate
-!          EXIT
-!        END IF
-!      END DO
+      IF (l.lE.0) CYCLE
+      l = l-ir+(ir/ic)
+      !$OMP PARALLEL DO SCHEDULE(GUIDED)
+      DO i = 1, Nsys
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+      END DO
+      !$OMP END PARALLEL DO
     END DO
-  ENDDO
-!  DeplMats(i)%nnz = nnz; DeplMats(i)%lFinalized = .TRUE.
-  !IF(i.EQ.9) CALL printCSR(DeplMats(i), 'CSROUT.txt',671)
-  !CALL finalizeCsr(DeplMats(i), .FALSE.)
-!  NULLIFY(xs1g, csrval, csrRowPtr, csrColIdx)
-  DEALLOCATE(FisXs)
-END DO
-!$OMP END PARALLEL DO
+  END DO
+ELSE
+  !$OMP PARALLEL DO PRIVATE(xs1g, phi, pnums0, j,k,l,icbeg,icend,ifxr,ir, ic, YldRate, LossRate, FisXs) SCHEDULE(GUIDED)
+  DO i = 1, Nsys
+    ifxr = IdTrue(i-1+ifxrbeg)
+    ALLOCATE(FisXs(NofFis))
+    xs1g => Fxrs(ifxr)%xs1g
+    phi = Fxrs(ifxr)%NormFlux1g
+
+    pnums0=>Fxrs(ifxr)%pnum_depl
+    pnums(NofIso*(i-1)+1:NofIso*i) = pnums0(:)
+  !  IF (lQuad) THEN
+  !    DO j = 1, 7
+  !      pnums(NofIso*(i-1)+IdIsoGd(j)) = 0.
+  !    END DO
+  !  END IF
+    NULLIFY(pnums0)
+  !  CALL createCSR(DeplMats(i), nnz, nr, nc)
+  !  csrColIdx(:) = DeplLib%YldMapColIdx(:)
+  !  csrRowPtr(:) = DeplLib%YldMapRowPtr(:)
+
+    ! Decay
+    DO j = 1, NofIso
+      LossRate=0.
+      ic = j
+      DO k = 1, NofDec
+        ir = IdAftDec(k,j)
+        YldRate = DecFrac(k,j)*delT
+        LossRate = LossRate+YldRate
+        IF (ir .EQ. 0) CYCLE
+        l = DeplLib%IzDec(k,j)
+        IF (l .LE. 0) CYCLE
+        l = l-ir+(ir/ic)
+  !      print*, 'DECAY', k*1000+j, l
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+  !      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
+  !      DO l = icbeg, icend
+  !        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
+  !          ir = l - ir + (ir/ic)
+  !          DeplSysBundle%OffDiag(i,ir) = DeplSysBundle%OffDiag(i,ir)+YldRate
+  !          EXIT
+  !        END IF
+  !      END DO
+      END DO
+      DeplSysBundle%Diag(i,j) = DeplSysBundle%Diag(i,j)-LossRate
+    END DO
+
+    ! Reaction
+    DO j = 1, NofIso
+      LossRate = 0.
+      ic = j
+      DO k = 1, NofRct
+        ir = IdAftRct(k,j)
+        YldRate = xs1g(k,j)*phi*delT
+        LossRate = LossRate+YldRate
+        If (ir .EQ. 0) CYCLE
+        l = DeplLib%IzRct(k,j)
+        IF (l .LE. 0) CYCLE
+        l = l-ir+(ir/ic)
+  !      print*, 'React', k*1000+j, l
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+  !      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
+  !      DO l = icbeg, icend
+  !        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
+  !          ir = l - ir + (ir/ic)
+  !          DeplSysBundle%OffDiag(i,ir) = DeplSysBundle%OffDiag(i,ir)+YldRate
+  !          EXIT
+  !        END IF
+  !      END DO
+      END DO
+      DeplSysBundle%Diag(i,j) = DeplSysBundle%Diag(i,j)-LossRate
+    END DO
+
+    ! Fission
+    DO j = 1, NofFis
+      FisXs(j) = xs1g(FisRctId, IdFis(j))
+    END DO
+    DO j = 1, NofYld
+      ir = IdYld(j)
+      DO k = 1, NofFis
+        YldRate = FisFrac(k,j)*FisXs(k)*phi*delT
+        ic = IdFis(k)
+        l = DeplLib%IzFY(k,j)
+        IF (l.LE.0) CYCLE
+        l = l-ir+(ir/ic)
+  !      print*, 'Fission', k*1000+j, l
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+  !      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
+  !      DO l = icbeg, icend
+  !        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
+  !          ic = l - ir + (ir/ic)
+  !          DeplSysBundle%OffDiag(i,ic) = DeplSysBundle%OffDiag(i,ic)+YldRate
+  !          EXIT
+  !        END IF
+  !      END DO
+      END DO
+    END DO
+
+    ! SubYld
+    DO j = 1, NofRct
+      DO k = 1, NofIso
+        ic = k
+        IF (lActinide(k)) THEN
+          ir = SubYldRctAct(j)
+          l = DeplLib%IzSYRAct(j,k)
+        ELSE
+          ir = subYldRct(j)
+          l = DeplLib%IzSYR(j,k)
+        END IF
+        IF (l.LE.0) CYCLE
+        IF(ir .EQ. 0) CYCLE
+        l = l-ir+(ir/ic)
+  !      print*, 'SubYld', j*1000+k, l
+        YldRate = xs1g(j,k)*phi*delT
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+  !      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
+  !      DO l = icbeg, icend
+  !        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
+  !          ic = l - ir + (ir/ic)
+  !          DeplSysBundle%OffDiag(i,ic) = DeplSysBundle%OffDiag(i,ic)+YldRate
+  !          EXIT
+  !        END IF
+  !      END DO
+      END DO
+    END DO
+    DO j = 1, NofDec
+      ir = SubYldDec(j)
+      IF (ir .EQ. 0) CYCLE
+      DO k = 1, NofIso
+        ic = k
+        YldRate = DecFrac(j,k)*delT
+        l = DeplLib%IzSYD(j,k)
+        IF (l.LE.0) CYCLE
+        l=l-ir+(ir/ic)
+  !      print*, 'SYDec', j*1000+k, l
+        DeplSysBundle%OffDiag(i,l) = DeplSysBundle%OffDiag(i,l)+YldRate
+  !      icbeg = DeplLib%YldMapRowPtr(ir); icend = DeplLib%YldMapRowPtr(ir+1)-1
+  !      DO l = icbeg, icend
+  !        IF (DeplLib%YldMapColIdx(l) .EQ. ic) THEN
+  !          ic = l - ir + (ir/ic)
+  !          DeplSysBundle%OffDiag(i,ic) = DeplSysBundle%OffDiag(i,ic)+YldRate
+  !          EXIT
+  !        END IF
+  !      END DO
+      END DO
+    ENDDO
+  !  DeplMats(i)%nnz = nnz; DeplMats(i)%lFinalized = .TRUE.
+    !IF(i.EQ.9) CALL printCSR(DeplMats(i), 'CSROUT.txt',671)
+    !CALL finalizeCsr(DeplMats(i), .FALSE.)
+  !  NULLIFY(xs1g, csrval, csrRowPtr, csrColIdx)
+    DEALLOCATE(FisXs)
+  END DO
+  !$OMP END PARALLEL DO
+END IF
 
 NULLIFY(lActinide, FisFrac, DecFrac, SubYldRct, SubYldRctAct, SubYldDec)
 NULLIFY(IdAftRct, IdAftDec, IdFis, IdYld)

@@ -13,6 +13,8 @@ MODULE cuMatExponential
   USE CUDA_MASTER
   IMPLICIT NONE
 
+  LOGICAL, DEVICE :: IsNaNval(16384)
+
   CONTAINS
 
   SUBROUTINE MatExpCRAM_Iter(x1,stream)
@@ -36,6 +38,7 @@ MODULE cuMatExponential
 !    trVec, vec1, vec2, NR, NNZ, Nsys)
 !  CALL cuCRAM_GS<<<Grid, Bloc, stream>>>(BatchDiagReal, BatchOffDiag, BatchVec, BatchSolVec, &
 !    trVec, vec1, vec2, NR, NNZ, Nsys)
+  IsNaNval = .FALSE.
   CALL cuCRAM_GS_LOW<<<Grid, Bloc, stream>>>(BatchDiagReal, BatchOffDiag, BatchVec, BatchSolVec, &
     trVec, vec1, NR, NNZ, Nsys)
 !  CALL cuCRAM_GS_ILP<<<Grid, Bloc, stream>>>(BatchDiagReal, BatchOffDiag, BatchVec, BatchSolVec, &
@@ -628,6 +631,11 @@ MODULE cuMatExponential
         END IF
       END DO
       DO i = 1, nr
+        temp = REAL(Vec1(tid,i))
+        IF (.NOT.(temp .GT. 0. .OR. temp .LE. 0.)) THEN
+          IsNaNval(tid) = .TRUE.
+          EXIT
+        END IF
         SolV(sysid+(i-1)*SizeSys) = SolV(sysid+(i-1)*SizeSys)+REAL(Vec1(tid,i))
       END DO
     END DO

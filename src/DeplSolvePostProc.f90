@@ -1,9 +1,10 @@
 #include <Depletion.h>
+#include <DefDBG.h>
 ! Solve System
 !   : Predictor/Corrector, Gd QD routines
 ! Post Process
 !   : Burnup for each fxr, Final ND afte PC, Gd Post-correction, [Xe,Sm] Eq/Tr
-#if defined(__INTEL_MKL) || defined(__PGI)
+#if defined __INTEL_MKL || __PGI
 #ifdef __INTEL_MKL
 SUBROUTINE SolveDeplSys(DeplSysBundle, DeplFxrBundle, lCorrector, lGd, SolverTyp, Nths)
 USE HPDeplType
@@ -45,6 +46,9 @@ pnums => DeplSysBundle%pnums; pnums1 => DeplSysBundle%pnums1
 DeplMats => DeplSysBundle%DeplMats; Fxrs => DeplFxrBundle%FxrBundle
 pnums1 = 0._8
 call OMP_SET_NUM_THREADS(Nths);
+#ifdef ITER_CHK
+call OMP_SET_NUM_THREADS(1);
+#endif
 !$OMP PARALLEL DO PRIVATE(pnum0, pnum1,j,k,l) SCHEDULE(GUIDED)
 DO i = 1, Nsys
   j = (i-1)*NofIso+1; k = i*NofIso; l = ifxrbeg+i-1
@@ -79,19 +83,25 @@ END SUBROUTINE
 
 SUBROUTINE SolveMatExp(DeplMat, pnum0, pnum1, SolverTyp)
 USE CSRMATRIX
-USE MatExponential, ONLY : MatExpKrylov_CSR, MatExpCRAM_CSR, MatExpCRAM_Iter, iLU0, Diag
+USE MatExponential, ONLY : MatExpKrylov_CSR, MatExpCRAM_CSR, MatExpCRAM_Iter, iLU0, Diag, GS
 IMPLICIT NONE
 TYPE(CSR_DOUBLE) :: DeplMat
 REAL(8),POINTER :: pnum0(:), pnum1(:)
 INTEGER :: SolverTyp
 TYPE(CSR_DOUBLE) :: Dummy
+#ifdef ITER_CHK
+  CALL MatExpKrylov_CSR(DeplMat, pnum0, pnum1, 1)
+  CALL MatExpCRAM_Iter(.FALSE., DeplMat, Dummy, pnum0, pnum1, GS, numthread=1)
+  CALL MatExpCRAM_Iter(.FALSE., DeplMat, Dummy, pnum0, pnum1, Diag, numthread=1)
+#endif
 IF(SolverTyp .EQ. 2) THEN
-  !CALL MatExpCRAM_CSR(.FALSE., DeplMat, Dummy, pnum0, pnum1, 1)
-  CALL MatExpCRAM_Iter(.FALSE., DeplMat, Dummy, pnum0, pnum1, iLU0, 1)
+  !CALL MatExpCRAM_CSR(.FALSE., DeplMat, Dummy, pnum0, pnum1, numthread=1)
+  CALL MatExpCRAM_Iter(.FALSE., DeplMat, Dummy, pnum0, pnum1, iLU0, numthread=1)
 ELSE
   CALL MatExpKrylov_CSR(DeplMat, pnum0, pnum1, 1)
 END IF
-  END SUBROUTINE SolveMatExp
+
+END SUBROUTINE SolveMatExp
 #endif
 
 SUBROUTINE UpdatePnumDepl(DeplFxrBundle, lCorrector, lSavePre)
@@ -313,5 +323,91 @@ DO i = 1, nTrueDepl
 END DO
 DEALLOCATE(FisXS, Fispnum)
 NULLIFY(Fxrs)
+END SUBROUTINE
+
+SUBROUTINE SolveAnalyticGd(DeplLib, DeplFxrBundle, pnumbuf, Nths, nSubStep)
+USE HPDeplType
+USE OMP_LIB
+IMPLICIT NONE
+TYPE(DeplLib_Type) :: DeplLib
+TYPE(DeplFxrBundle_Type) :: DeplFxrBundle
+REAL :: pnumbuf(:)
+INTEGER :: Nths, nSubStep
+
+REAL :: delT
+REAL :: yld(7), rem(7), expt(7), invDrem(7,6), pnum0(7), bufk, bufl, phi
+
+INTEGER :: ifxr, igd, nfxr
+INTEGER :: i, j, k, l
+INTEGER, POINTER :: IdIsoGd(:), IdTrueGd(:)
+
+nfxr = DeplFxrBundle%nTrueGd
+IdIsoGd => DeplFxrBundle%IdIsoGd
+IdTrueGd => DeplFxrBundle%IdTrueGd
+
+delT = DeplFxrBundle%delT / REAL(nSubStep)
+
+call OMP_SET_NUM_THREADS(Nths);
+
+!$OMP PARALLEL DO PRIVATE(igd, yld,rem,expt,invDrem,pnum0,i,j,k,l,bufk,bufl,phi) SCHEDULE (GUIDED)
+DO ifxr = 1, nfxr
+  igd = IdTrueGd(ifxr)
+  pnum0 = pnumbuf(1+(ifxr-1)*7:ifxr*7)
+  phi = DeplFxrBundle%FxrBundle(igd)%NormFlux1g
+  DO i = 1, 7
+    rem(i) = SUM(DeplFxrBundle%FxrBundle(igd)%xs1g(:, IdIsoGd(i)))*phi + &
+            SUM(DeplLib%DecFrac(:,IdIsoGd(i)))
+    expt(i) = exp(-rem(i)*delT)
+  END DO
+  DO i = 3, 6
+    yld(i) = DeplFxrBundle%FxrBundle(igd)%xs1g(RctIdCAP, IdIsoGd(i-1))*phi
+  END DO
+  DO i = 2, 5
+    DO j = i+1, 6
+      invDrem(j,i) = 1./(rem(j)-rem(i))
+    END DO
+  END DO
+
+  pnumbuf(1+(ifxr-1)*7) = pnum0(1)*expt(1); pnumbuf(7+(ifxr-1)*7) = pnum0(7)*expt(7);
+  DO i = 2, 6
+    pnumbuf(i+(ifxr-1)*7) = pnum0(i)*expt(i); bufk = 0.;
+    DO j = 2, i-1
+      bufk = 0.
+      DO k = j, i-1
+        bufl = yld(k+1)*(expt(k)-expt(i))*invDrem(i,k)
+        DO l = j, k-1
+          bufl = bufl*yld(l+1)*invDrem(k,l)
+        END DO
+        DO l = k+1, i-1
+          bufl = bufl*yld(l+1)*invDrem(l,k)
+        END DO
+      END DO
+      bufk = bufk+bufl*pnum0(j)
+    END DO
+    pnumbuf(i+(ifxr-1)*7) = pnumbuf(i+(ifxr-1)*7)+bufk
+  END DO
+  DO i = 1, 7
+    IF (.NOT.(pnumbuf(i+(ifxr-1)*7).GT.0 .OR. pnumbuf(i+(ifxr-1)*7).LE.0)) THEN
+      WRITE(*, '(A,I6,A,I6,A)') "NaN during GdQuad at ", ifxr,"th fxr, ",IdIsoGd(i)," isotope"
+      WRITE(*, '(A,ES12.5, A, 7ES12.5)') "delT =", delT, " pnum0 :", pnum0(1:7)
+      WRITE(*, '(A,7ES12.5)') "Yld :", yld(1:7)
+      WRITE(*, '(A,7ES12.5)') "Rem :", rem(1:7)
+      STOP
+    END IF
+  END DO
+!  IF (ifxr.EQ.1) THEN
+!    WRITE(*,'(3ES12.5)') delT, expt(1), rem(1)
+!    WRITE(*,'(A, 2ES12.5)') '152', pnum0(1), pnumbuf(1+(ifxr-1)*7)
+!    WRITE(*,'(A, 2ES12.5)') '154',pnum0(2), pnumbuf(2+(ifxr-1)*7)
+!    WRITE(*,'(A, 2ES12.5)') '155',pnum0(3), pnumbuf(3+(ifxr-1)*7)
+!    WRITE(*,'(A, 2ES12.5)') '156',pnum0(4), pnumbuf(4+(ifxr-1)*7)
+!    WRITE(*,'(A, 2ES12.5)') '157',pnum0(5), pnumbuf(5+(ifxr-1)*7)
+!    WRITE(*,'(A, 2ES12.5)') '158',pnum0(6), pnumbuf(6+(ifxr-1)*7)
+!    WRITE(*,'(A, 2ES12.5)') '160',pnum0(7), pnumbuf(7+(ifxr-1)*7)
+!  END IF
+END DO
+!$OMP END PARALLEL DO
+
+
 END SUBROUTINE
 #endif
