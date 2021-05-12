@@ -360,7 +360,7 @@ DEALLOCATE(PhiAngOut)
 
 END SUBROUTINE RayTraceLS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout)
 
 USE PARAM
 USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,           Asy_Type,               &
@@ -382,7 +382,7 @@ REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :)
 REAL, POINTER :: srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
 REAL, POINTER :: phisSlope(:, :, :, :), srcSlope(:, :, :, :)
 INTEGER :: iz, gb, ge
-LOGICAL :: ljout, lDomainDcmp
+LOGICAL :: ljout
 
 LOGICAL, SAVE :: lfirst
 DATA lfirst /.TRUE./
@@ -435,12 +435,12 @@ IF(lfirst) THEN
     CALL Dmalloc(TrackingDat(tid)%cmOptLen, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%cmOptLenInv, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%PhiAngOutnm, nPolarAng, ng, nMaxRaySeg + 2)
-    IF (.NOT. lDomainDcmp) CALL Dmalloc(TrackingDat(tid)%Joutnm, 3, ng, 4, nxy)
+    CALL Dmalloc(TrackingDat(tid)%Joutnm, 3, ng, 4, nxy)
     CALL Dmalloc(TrackingDat(tid)%q0, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%q1, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%phisnm, ng, nFsr)
-    IF (.NOT. lDomainDcmp) CALL Dmalloc(TrackingDat(tid)%phimx, 2, ng, nFsr)
-    IF (.NOT. lDomainDcmp) CALL Dmalloc(TrackingDat(tid)%phimy, 2, ng, nFsr)
+    CALL Dmalloc(TrackingDat(tid)%phimx, 2, ng, nFsr)
+    CALL Dmalloc(TrackingDat(tid)%phimy, 2, ng, nFsr)
     CALL Dmalloc(TrackingDat(tid)%E1, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%E3, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%R1, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
@@ -463,74 +463,46 @@ CALL omp_set_num_threads(nThread)
 phisnm(gb : ge, :) = zero
 IF(ljout) joutnm(:, gb : ge, :, :) = zero !--- BYS edit / 150612 Surface flux
 
-IF (.NOT. lDomainDcmp) THEN
-    
-  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irotray, tid, i, j)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irotray, tid, i, j)
+tid = omp_get_thread_num() + 1
+!$OMP MASTER
+DO j = 1, nThread
+  TrackingDat(j)%phisnm(:, :) = zero
+  TrackingDat(j)%phimx(:, :, :) = zero
+  TrackingDat(j)%phimy(:, :, :) = zero
+  TrackingDat(j)%joutnm(:, :, :, :) = zero
+ENDDO
+!$OMP END MASTER
+!$OMP BARRIER
 
-  tid = omp_get_thread_num() + 1
+!$OMP DO SCHEDULE(GUIDED)
+DO i = 1, nRotRay
+  CALL TrackRotRayLS_CASMO(RayInfo, CoreInfo, TrackingDat(tid), ljout, i, iz, gb, ge)
+ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
 
-  !$OMP MASTER
-  DO j = 1, nThread
-    TrackingDat(j)%phisnm(:, :) = zero
-    TrackingDat(j)%phimx(:, :, :) = zero
-    TrackingDat(j)%phimy(:, :, :) = zero
-    TrackingDat(j)%joutnm(:, :, :, :) = zero
-  ENDDO
-  !$OMP END MASTER
-
-  !$OMP BARRIER
-
-  !$OMP DO SCHEDULE(GUIDED)
-  DO i = 1, nRotRay
-    CALL TrackRotRayLS_CASMO(RayInfo, CoreInfo, TrackingDat(tid), ljout, i, iz, gb, ge)
-  ENDDO
-  !$OMP END DO
-
-  !$OMP END PARALLEL
-
-  DO j = 1, nThread
-    DO i = 1, nFsr
-      DO g = gb, ge
-        phisnm(g, i) = phisnm(g, i) + TrackingDat(j)%phisnm(g, i)
-        phimx(:, g, i) = phimx(:, g, i) + TrackingDat(j)%phimx(:, g, i)
-        phimy(:, g, i) = phimy(:, g, i) + TrackingDat(j)%phimy(:, g, i)
-      ENDDO
-    ENDDO
-  ENDDO
-
+DO j = 1, nThread
   DO i = 1, nFsr
     DO g = gb, ge
-      phimx(1, g, i) = phimx(1, g, i) / xstnm(g, i)
-      phimy(1, g, i) = phimy(1, g, i) / xstnm(g, i)
+      phisnm(g, i) = phisnm(g, i) + TrackingDat(j)%phisnm(g, i)
+      phimx(:, g, i) = phimx(:, g, i) + TrackingDat(j)%phimx(:, g, i)
+      phimy(:, g, i) = phimy(:, g, i) + TrackingDat(j)%phimy(:, g, i)
     ENDDO
   ENDDO
+ENDDO
 
-  IF(ljout) THEN
-    DO j = 1, nThread
-      joutnm(:, gb : ge, :, :) = joutnm(:, gb : ge, :, :) + TrackingDat(j)%joutnm(:, gb : ge, :, :)
-    ENDDO
-  ENDIF
-
-ELSE
-
-  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iAsyRay, iAsy, tid)
-  tid = omp_get_thread_num() + 1
-  DO iAsy = tid, nAsy, nThread
-    DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
-      CALL TrackRotRayLSDcmp_CASMO(RayInfo, CoreInfo, TrackingDat(tid), phisnm, phimx, phimy, joutnm,   &
-                                   DcmpAsyRay(iAsyRay, iAsy), ljout, iz, gb, ge)
-    ENDDO
+DO i = 1, nFsr
+  DO g = gb, ge
+    phimx(1, g, i) = phimx(1, g, i) / xstnm(g, i)
+    phimy(1, g, i) = phimy(1, g, i) / xstnm(g, i)
   ENDDO
-  !$OMP BARRIER
-  !$OMP END PARALLEL
-  
-  DO i = 1, nFsr
-    DO g = gb, ge
-      phimx(1, g, i) = phimx(1, g, i) / xstnm(g, i)
-      phimy(1, g, i) = phimy(1, g, i) / xstnm(g, i)
-    ENDDO
+ENDDO
+
+IF(ljout) THEN
+  DO j = 1, nThread
+    joutnm(:, gb : ge, :, :) = joutnm(:, gb : ge, :, :) + TrackingDat(j)%joutnm(:, gb : ge, :, :)
   ENDDO
-  
 ENDIF
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(l, j, FsrIdxSt, icel, ireg)

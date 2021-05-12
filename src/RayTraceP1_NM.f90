@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout)
 
 USE TIMER
 USE ALLOCS
@@ -19,7 +19,7 @@ TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
 INTEGER :: iz, gb, ge
-LOGICAL :: ljout, lDomainDcmp
+LOGICAL :: ljout
 
 REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
 REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
@@ -69,8 +69,7 @@ IF (lfirst) THEN
     
     CALL dmalloc(TrackingDat(ithr)%phisnm,      ng, nFsr)
     CALL dmalloc(TrackingDat(ithr)%phimnm, nod, ng, nFsr)
-    
-    IF (.NOT. lDomainDcmp) CALL dmalloc(TrackingDat(ithr)%Joutnm, 3, ng, nbd, nxy)
+    CALL dmalloc(TrackingDat(ithr)%Joutnm,   3, ng, nbd, nxy)
     
     TrackingDat(ithr)%lAllocNM = TRUE
   END DO

@@ -289,7 +289,7 @@ ELSE
         
         IF (lscat1) phimnm => phim(:, :, :, iz)
         
-        IF (ldcmp)  DcmpPhiAngIn => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
+        IF (ldcmp) DcmpPhiAngIn => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
         
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstnm, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
@@ -324,12 +324,12 @@ ELSE
           IF (.NOT. ldcmp) THEN
             IF (.NOT. lLSCASMO) THEN
               IF (lscat1) THEN
-                CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp)
+                CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout)
               ELSE
-                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, ldcmp, fmoclv)
+                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, fmoclv)
               END IF
             ELSE
-              CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout, ldcmp)
+              CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout)
             END IF
           ELSE
             CALL RayTrace_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, FALSE, lScat1, lLSCASMO, nTracerCntl%lHybrid)

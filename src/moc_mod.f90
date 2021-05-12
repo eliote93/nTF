@@ -172,7 +172,7 @@ LOGICAL, OPTIONAL :: lAFSS
 
 END SUBROUTINE RayTrace_Tran_OMP_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout, lDomainDcmp, FastMocLv)
+SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout, FastMocLv)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -184,12 +184,12 @@ TYPE(CoreInfo_Type) :: CoreInfo
 
 REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :), xstnm(:, :), srcnm(:, :), joutnm(:, :, :, :)
 INTEGER :: iz, gb, ge
-LOGICAL :: ljout, lDomainDcmp
+LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceNM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridInfo_Type
 
@@ -199,7 +199,7 @@ TYPE(RayInfo_Type)  :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
 
 INTEGER :: iz, gb, ge
-LOGICAL :: ljout, lDomainDcmp
+LOGICAL :: ljout
 
 REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
 REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
@@ -349,7 +349,7 @@ LOGICAL :: ljout
 
 END SUBROUTINE RayTraceLS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout, lDomainDcmp)
+SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -362,7 +362,7 @@ TYPE(CoreInfo_Type) :: CoreInfo
 REAL, POINTER :: phisnm(:, :), phisSlope(:, :, :, :), PhiAngInnm(:, :, :)
 REAL, POINTER :: srcnm(:, :), srcSlope(:, :, :, :), xstnm(:, :), joutnm(:, :, :, :)
 INTEGER :: iz, gb, ge
-LOGICAL :: ljout, lDomainDcmp
+LOGICAL :: ljout
 
 END SUBROUTINE RayTraceLS_CASMO
 ! ------------------------------------------------------------------------------------------------------------
