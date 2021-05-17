@@ -53,10 +53,10 @@ nxy  = CoreInfo%nxy
 nThread = PE%nThread
 
 nod = 2
-IF(ScatOd .EQ. 2) nod = 5
-IF(ScatOd .EQ. 3) nod = 9
+IF (ScatOd .EQ. 2) nod = 5
+IF (ScatOd .EQ. 3) nod = 9
 ! ----------------------------------------------------
-IF(lfirst) THEN
+IF (lfirst) THEN
   lFirst = FALSE
   
   CALL ApproxExp(RayInfo%PolarAngle, nPolarAng)

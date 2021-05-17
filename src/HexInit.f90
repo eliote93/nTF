@@ -18,13 +18,13 @@ INTEGER :: iAng, nAziAng, nRotRay, irRay, icRay, jcRay, iAzm, nRay
 ! Basic
 CALL SetGeomPEVariables(PE)
 
-IF(nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo()
+IF (nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo()
 
 CALL PrepFxr(nTracerCntl%lXsLib, nTracerCntl%lfxrlib)
 
 CALL SetDcmpPEVariables(PE)
 
-IF(nTracerCntl%lDcpl) CALL initDcpl()
+IF (nTracerCntl%lDcpl) CALL initDcpl()
 
 #ifdef MPI_ENV
 CALL SetRayPEVariables(PE, Core, RayInfo)

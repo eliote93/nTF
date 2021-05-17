@@ -6,13 +6,12 @@ USE TYPEDEF,     ONLY : CoreInfo_Type, RayInfo_Type, FmInfo_Type, PE_TYPE, FxrIn
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
-USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTraceGM_OMP, RayTraceP1GM_OMP, RayTraceP1GM_AFSS, RayTraceP1GM_MGD, RayTraceLS, &
-                        LinPsiUpdate, PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
-                        phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, PhiAngin1g, srcm, &
-                        RayTraceLS_CASMO, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, &
-                        SetRtMacXsNM, SetRtSrcNM, AddBucklingNM, SetRtP1SrcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP,    &
-                        phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, phimnm, srcmnm, &
-                        DcmpPhiAngIn, DcmpPhiAngOut, DcmpScatterXS, DcmpScatterBoundaryFlux, DcmpScatterSource, DcmpGatherBoundaryFlux, DcmpGatherFlux, DcmpGatherCurrent, DcmpLinkBoundaryFlux
+USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTraceGM_OMP, RayTraceP1GM_OMP, RayTraceP1GM_AFSS, RayTraceP1GM_MGD, &
+                        PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
+                        phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
+                        LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
+                        SetRtMacXsNM, SetRtSrcNM, AddBucklingNM, SetRtP1SrcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, phimnm, srcmnm, &
+                        DcmpPhiAngIn, DcmpGatherCurrent
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk

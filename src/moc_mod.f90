@@ -102,17 +102,17 @@ END SUBROUTINE RayTrace_Tran
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTrace_Dcmp(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, lJout, lLinSrcCASMO, lHybrid)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :)
-REAL, POINTER :: srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
-REAL, POINTER :: phisSlope(:, :, :, :), srcSlope(:, :, :, :)
+REAL, POINTER, DIMENSION(:,:)     :: phisnm, srcnm, xstnm
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm, phisSlope, srcSlope
+
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout, lLinSrcCASMO, lHybrid
 
@@ -120,33 +120,40 @@ END SUBROUTINE RayTrace_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceGM_OMP(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: phis(:), PhiAngIn(:, :), xst(:), src(:), jout(:, :, :)
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+
+REAL, POINTER, DIMENSION(:)     :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:) :: jout
+
 INTEGER :: iz
 LOGICAL :: ljout
+
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceGM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceGM_AFSS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phis(:), PhiAngIn(:, :), xst(:), src(:), jout(:, :, :)
+REAL, POINTER, DIMENSION(:)     :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:) :: jout
+
 INTEGER :: iz
 LOGICAL :: ljout
+
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceGM_AFSS
@@ -174,17 +181,20 @@ END SUBROUTINE RayTrace_Tran_OMP_AFSS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout, FastMocLv)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type) :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :), xstnm(:, :), srcnm(:, :), joutnm(:, :, :, :)
+REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
+
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceNM_OMP
@@ -195,8 +205,8 @@ USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridI
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type)  :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
@@ -209,70 +219,93 @@ END SUBROUTINE RayTraceP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, iasy, gb, ge, ljout)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :), xstnm(:, :), srcnm(:, :), joutnm(:, :, :, :)
+REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+
 INTEGER :: iz, iasy, gb, ge
 LOGICAL :: ljout
 
 END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE TrackRotRayNM_Dcmp(RayInfo, CoreInfo, TrackingDat, phis, jout, ljout, DcmpAsyRay, iz, gb, ge)
+SUBROUTINE RecTrackRotRayNM_Dcmp(RayInfo, CoreInfo, TrackingDat, phis, jout, ljout, DcmpAsyRay, iz, gb, ge, krot)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(TrackingDat_Type) :: TrackingDat
-TYPE(DcmpAsyRayInfo_Type) :: DcmpAsyRay
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-REAL, POINTER :: phis(:, :), jout(:, :, :, :)
+REAL, POINTER, DIMENSION(:,:)     :: phis
+REAL, POINTER, DIMENSION(:,:,:,:) :: jout
+
 LOGICAL :: ljout
-INTEGER :: iz, gb, ge
+INTEGER :: iz, gb, ge, krot
 
-END SUBROUTINE TrackRotRayNM_Dcmp
+END SUBROUTINE RecTrackRotRayNM_Dcmp
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexTrackRotRayNM_Dcmp(RayInfo, CoreInfo, TrackingDat, phis, jout, ljout, DcmpAsyRay, iz, gb, ge, krot)
+
+USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
+
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
+
+REAL, POINTER, DIMENSION(:,:)     :: phis
+REAL, POINTER, DIMENSION(:,:,:,:) :: jout
+
+LOGICAL :: ljout
+INTEGER :: iz, gb, ge, krot
+
+END SUBROUTINE HexTrackRotRayNM_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1GM_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type) :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phis(:), PhiAngIn(:, :), xst(:), src(:), jout(:, :, :), srcm(:, :)
-REAL, POINTER :: phim(:, :)
+REAL, POINTER, DIMENSION(:)     :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn, srcm, phim
+REAL, POINTER, DIMENSION(:,:,:) :: jout
+
 INTEGER :: iz
 LOGICAL :: ljout
 INTEGER :: ScatOd
+
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type) :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phis(:), PhiAngIn(:, :), xst(:), src(:), jout(:, :, :)
-REAL, POINTER :: phim(:, :), srcm(:, :)
-INTEGER :: iz
+REAL, POINTER, DIMENSION(:)     :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn, srcm, phim
+REAL, POINTER, DIMENSION(:,:,:) :: jout
+
+INTEGER :: iz, ScatOd
 LOGICAL :: ljout
-INTEGER :: ScatOd
+
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
@@ -297,35 +330,34 @@ END SUBROUTINE RayTraceP1GM_MGD
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_Pn(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type) :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :), phimnm(:, :, :), PhiAngInnm(:, :, :), xstnm(:, :)
-REAL, POINTER :: srcnm(:, :), srcmnm(:, :, :), joutnm(:, :, :, :)
-INTEGER :: iz, iAsy, gb, ge
+REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
+REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+
+INTEGER :: iz, iAsy, gb, ge, ScatOd
 LOGICAL :: ljout
-INTEGER :: ScatOd
 
 END SUBROUTINE RayTraceDcmp_Pn
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE TrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, Jout, ljout, iz, gb, ge)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(TrackingDat_Type) :: TrackingDat
-TYPE(DcmpAsyRayInfo_Type) :: DcmpAsyRay
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-REAL, POINTER :: Jout(:, :, :, :)
+REAL, POINTER, DIMENSION(:, :, :, :) :: Jout
 LOGICAL :: lJout
 INTEGER :: iz, gb, ge, ScatOd
 
@@ -404,16 +436,17 @@ END SUBROUTINE TrackRotRayLSDcmp_CASMO
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtMacXsGM(core, Fxr, xstr, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE
 USE BenchXs, ONLY : GetXstrBen
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: Core
-TYPE(Fxrinfo_type) :: Fxr(:)
-TYPE(PE_type) :: PE
-REAL, POINTER :: xstr(:)
+TYPE (coreinfo_type) :: Core
+TYPE (PE_type) :: PE
+
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:) :: xstr
 
 INTEGER :: myzb, myze, ig, iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
@@ -422,7 +455,6 @@ END SUBROUTINE SetRtMacXsGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtMacXsGM_Cusping(core, FmInfo, Fxr, xstr, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE, FmInfo_Type
 USE BenchXs, ONLY : GetXstrBen
 
@@ -430,11 +462,12 @@ IMPLICIT NONE
 
 TYPE(coreinfo_type) :: Core
 TYPE(FmInfo_Type) :: FmInfo
-TYPE(Fxrinfo_type) :: Fxr(:)
 TYPE(PE_type) :: PE
 
-REAL, POINTER :: xstr(:)
-REAL, POINTER :: phis(:, :, :)
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:)     :: xstr
+REAL, POINTER, DIMENSION(:,:,:) :: phis
 
 INTEGER :: myzb, myze, ig, iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
@@ -443,16 +476,17 @@ END SUBROUTINE SetRtMacXsGM_Cusping
 ! ------------------------------------------------------------------------------------------------------------ 
 SUBROUTINE SetRtMacXsNM(core, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE
 
 IMPLICIT NONE
 
 TYPE(coreinfo_type) :: Core
-TYPE(Fxrinfo_type) :: Fxr(:)
 TYPE(PE_TYPE) :: PE
 
-REAL, POINTER :: xstnm(:, :)
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:) :: xstnm
+
 INTEGER :: iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 
@@ -478,21 +512,23 @@ END SUBROUTINE SetRtMacXsNM_Cusping
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcGM(Core, Fxr, src, phis, psi, axsrc, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type) :: GroupInfo
+TYPE (CoreInfo_Type)  :: Core
+TYPE (GroupInfo_Type) :: GroupInfo
+TYPE(PE_TYPE)         :: PE
 
-REAL, POINTER :: src(:), phis(:, :, :), psi(:, :), AxSrc(:), xstr1g(:)
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:)     :: src, AxSrc, xstr1g
+REAL, POINTER, DIMENSION(:,:)   :: psi
+REAL, POINTER, DIMENSION(:,:,:) :: phis
+
 REAL :: eigv
 INTEGER :: myzb, myze, ig, ng, iz, ifsr, ifxr
-LOGICAL :: lxslib, lscat1, l3dim
-LOGICAL :: lNegFix
-TYPE(PE_TYPE) :: PE
+LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 
 END SUBROUTINE SetRtSrcGM
 ! ------------------------------------------------------------------------------------------------------------
@@ -519,21 +555,23 @@ END SUBROUTINE SetRtSrcGM_Cusping
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcNM(Core, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type,  PE_TYPE
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
-TYPE(PE_TYPE) :: PE
+TYPE (CoreInfo_Type)  :: Core
+TYPE (GroupInfo_Type) :: GroupInfo
+TYPE (PE_TYPE)        :: PE
 
-REAL, POINTER :: srcnm(:, :), phisnm(:, :), psi(:, :), AxSrc(:, :, :), xstnm(:, :)
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)   :: srcnm, phisnm, psi, xstnm
+REAL, POINTER, DIMENSION(:,:,:) :: AxSrc
+
 REAL :: eigv
 INTEGER :: gb, ge, ng, iz, ifsr, ifxr
-LOGICAL :: lxslib, lscat1, l3dim
-LOGICAL :: lNegFix
+LOGICAL :: lxslib, lscat1, l3dim, lNegFix
+
 INTEGER, OPTIONAL :: Offset
 
 END SUBROUTINE SetRtSrcNM
@@ -603,59 +641,61 @@ END SUBROUTINE SetRtLinSrc_CASMO
 ! ------------------------------------------------------------------------------------------------------------                             
 SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm, phim, xstr1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type, PE_Type
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
+TYPE (CoreInfo_Type)  :: Core
+TYPE (GroupInfo_Type) :: GroupInfo
+TYPE (PE_Type)        :: PE
 
-REAL, POINTER :: srcm(:, :), phim(:, :, :, :), xstr1g(:)
-INTEGER :: myzb, myze, ig, ng, iz
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:)       :: xstr1g
+REAL, POINTER, DIMENSION(:,:)     :: srcm
+REAL, POINTER, DIMENSION(:,:,:,:) :: phim
+
+INTEGER :: myzb, myze, ig, ng, iz, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim
-INTEGER :: ScatOd
-TYPE(PE_Type) :: PE
 
 END SUBROUTINE SetRtP1SrcGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimnm, xstnm, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_Type
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
+TYPE (CoreInfo_Type)  :: Core
+TYPE (GroupInfo_Type) :: GroupInfo
+TYPE (PE_Type)        :: PE
 
-REAL, POINTER :: srcmnm(:, :, :)
-REAL, POINTER :: phimnm(:, :, :)
-REAL, POINTER :: xstnm(:, :)
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)   :: xstnm
+REAL, POINTER, DIMENSION(:,:,:) :: srcmnm, phimnm
+
 REAL :: eigv
-INTEGER :: gb, ge, ng, iz, ifsr, ifxr
+INTEGER :: gb, ge, ng, iz, ifsr, ifxr, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim
-INTEGER :: ScatOd
-TYPE(PE_Type) :: PE
+
 INTEGER, OPTIONAL :: Offset
 
 END SUBROUTINE SetRtP1SrcNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PseudoAbsorptionGM(Core, Fxr, src, phis1g, AxPXS, xstr1g, iz, ig, ng, GroupInfo, l3dim)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type
 
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(GroupInfo_Type) :: GroupInfo
 
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
 REAL :: phis1g(:), AxPXS(:)
-REAL, POINTER :: src(:), xstr1g(:)
+REAL, POINTER, DIMENSION(:) :: src, xstr1g
 INTEGER :: ig, ng, iz
 LOGICAL :: l3dim
 
@@ -663,7 +703,6 @@ END SUBROUTINE PseudoAbsorptionGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
 
-USE PARAM
 USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
 USE BenchXs,        ONLY : GetChiBen, xssben
 USE MacXsLib_mod,   ONLY : MacXsScatMatrix
@@ -671,11 +710,14 @@ USE BasicOperation, ONLY : CP_CA
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type) :: Fxr(:)
-TYPE(GroupInfo_Type):: GroupInfo
+TYPE(CoreInfo_Type)  :: Core
+TYPE(GroupInfo_Type) :: GroupInfo
 
-REAL, POINTER :: AxPXS(:, :, :), xstnm(:, :)
+TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)   :: xstnm
+REAL, POINTER, DIMENSION(:,:,:) :: AxPXS
+
 REAL :: eigv
 INTEGER :: iz, ng
 LOGICAL :: l3dim
@@ -684,16 +726,18 @@ END SUBROUTINE PseudoAbsorptionNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: CORE
-TYPE(Fxrinfo_type), POINTER :: Fxr(:, :)
-TYPE(GroupInfo_Type) :: GroupInfo
+TYPE (coreinfo_type)  :: CORE
+TYPE (GroupInfo_Type) :: GroupInfo
 
-REAL, POINTER :: phis(:, :, :), Psi(:, :)
+TYPE (Fxrinfo_type), DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)   :: Psi
+REAL, POINTER, DIMENSION(:,:,:) :: phis
+
 INTEGER :: myzb, myze, ng
 LOGICAL :: lXsLib
 
@@ -701,17 +745,19 @@ END SUBROUTINE PsiUpdate
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PowerUpdate(Core, Fxr, phis, Power, myzb, myze, ng, lxslib, GroupInfo, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: CORE
-TYPE(Fxrinfo_type), POINTER :: Fxr(:, :)
-TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(PE_TYPE) :: PE
+TYPE (coreinfo_type)  :: CORE
+TYPE (GroupInfo_Type) :: GroupInfo
+TYPE (PE_TYPE)        :: PE
 
-REAL, POINTER :: phis(:, :, :), Power(:, :)
+TYPE (Fxrinfo_type), DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:)   :: Power
+REAL, POINTER, DIMENSION(:,:,:) :: phis
+
 INTEGER :: myzb, myze, ng
 LOGICAL :: lXsLib
 
@@ -755,44 +801,44 @@ END SUBROUTINE LinPsiUpdate_CASMO
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CellPsiUpdate(CORE, psi, psic, myzb, myze)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: CORE
+TYPE (coreinfo_type) :: CORE
 
-REAL, POINTER :: Psi(:, :), psiC(:, :)
+REAL, POINTER, DIMENSION(:,:) :: Psi, psiC
 INTEGER :: myzb, myze
 
 END SUBROUTINE CellPsiUpdate
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE UpdateEigv(Core, psi, psid, eigv, peigv, myzb, myze, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, PE_TYPE
 USE BenchXs, ONLY : xsnfBen
+
 USE BasicOperation, ONLY : CP_CA
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: CORE
+TYPE (coreinfo_type) :: CORE
 
-REAL, POINTER :: Psi(:, :), psid(:, :)
+REAL, POINTER, DIMENSION(:,:) :: Psi, psid
+
 INTEGER :: myzb, myze, ng
 REAL :: eigv, peigv
+
 TYPE(PE_TYPE), OPTIONAL :: PE
 
 END SUBROUTINE UpdateEigv
 ! ------------------------------------------------------------------------------------------------------------
 Subroutine ApproxExp(PolarAng, npr)
 
-USE PARAM
 USE TYPEDEF, ONLY : PolarAngle_Type
 
 IMPLICIT NONE
 
-TYPE(PolarAngle_Type) :: PolarAng(npr)
+TYPE (PolarAngle_Type) :: PolarAng(npr)
 
 INTEGER :: npr
 
@@ -800,17 +846,16 @@ END SUBROUTINE ApproxExp
 ! ------------------------------------------------------------------------------------------------------------
 Function PsiErr(Core, psi, psid, myzb, myze, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, PE_TYPE
 
 IMPLICIT NONE
 
-TYPE(coreinfo_type) :: CORE
+TYPE (coreinfo_type) :: CORE
+TYPE (PE_TYPE)       :: PE
 
 REAL :: PsiErr
-REAL, POINTER :: Psi(:, :), psid(:, :)
+REAL, POINTER, DIMENSION(:,:) :: Psi, psid
 INTEGER :: myzb, myze
-TYPE(PE_TYPE) :: PE
 
 END FUNCTION PsiErr
 ! ------------------------------------------------------------------------------------------------------------
@@ -822,27 +867,26 @@ USE PE_MOD,   ONLY : PE_TYPE
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FmInfo_Type) :: FmInfo
+TYPE (CoreInfo_Type)    :: Core
+TYPE (FmInfo_Type)      :: FmInfo
+TYPE (GroupInfo_Type)   :: GroupInfo
+TYPE (PE_TYPE)          :: PE
+TYPE (nTracerCntl_Type) :: nTracerCntl
 
-REAL :: eigv
-TYPE(GroupInfo_Type) :: GroupInfo
+REAL :: eigv, MocResidual
 INTEGER :: ng
-TYPE(PE_TYPE) :: PE
-TYPE(nTracerCntl_Type) :: nTracerCntl
-REAL :: MocResidual
 
 END FUNCTION MocResidual
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddBucklingGM(Core, Fxr, xstr1g, bsq, iz, ig, ng, lxslib, lRST)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
+TYPE (CoreInfo_Type) :: Core
+
+TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
 
 REAL :: xstr1g(:)
 INTEGER :: iz, ig, ng
@@ -853,15 +897,16 @@ END SUBROUTINE AddBucklingGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddBucklingNM(Core, Fxr, xstnm, bsq, iz, ng, lxslib, lRST)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
+TYPE (CoreInfo_Type) :: Core
 
-REAL, POINTER :: xstnm(:, :)
+TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:,:) :: xstnm
+
 INTEGER :: iz, ng
 REAL :: Bsq
 LOGICAL :: lxslib, lRST
@@ -870,15 +915,16 @@ END SUBROUTINE AddBucklingNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddConstSrc(Core, Fxr, Src, xstr1g, ConstSrc, iz, ig, ng)
 
-USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, Fxrinfo_type, Cell_Type, pin_Type
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: COre
-TYPE(FxrInfo_Type) :: Fxr(:)
+TYPE (CoreInfo_Type) :: Core
 
-REAL, POINTER :: Src(:), xstr1g(:)
+TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
+
+REAL, POINTER, DIMENSION(:) :: Src, xstr1g
+
 REAL :: ConstSrc
 INTEGER :: iz, ig, ng
 
@@ -902,99 +948,56 @@ END FUNCTION FxrAvgPhi
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
 
-USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(RayInfo_Type) :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
 
-REAL, POINTER :: PhiAngIn(:, :, :)
-REAL, POINTER :: DcmpPhiAngIn(:, :, :, :, :), DcmpPhiAngOut(:, :, :, :, :)
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+
 INTEGER :: gb, ge
 INTEGER, OPTIONAL :: color
 
 END SUBROUTINE DcmpLinkBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterXS(CoreInfo, xst)
-
-USE PARAM
-USE TYPEDEF, ONLY : CoreInfo_Type
-
-IMPLICIT NONE
-
-TYPE(CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER :: xst(:, :)
-
-END SUBROUTINE DcmpScatterXS
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterSource(CoreInfo, src, srcm)
-
-USE PARAM
-USE TYPEDEF, ONLY : CoreInfo_Type
-
-IMPLICIT NONE
-
-TYPE(CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER :: src(:, :)
-REAL, POINTER, OPTIONAL :: srcm(:, :, :)
-
-END SUBROUTINE DcmpScatterSource
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngIn, DcmpPhiAngIn)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
+TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER :: PhiAngIn(:, :, :), DcmpPhiAngIn(:, :, :, :, :)
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn
 
 END SUBROUTINE DcmpScatterBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherFlux(CoreInfo, phis, phim)
-
-USE PARAM
-USE TYPEDEF, ONLY : CoreInfo_Type
-
-IMPLICIT NONE
-
-TYPE(CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER :: phis(:, :)
-REAL, POINTER, OPTIONAL :: phim(:, :, :)
-
-END SUBROUTINE DcmpGatherFlux
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherCurrent(CoreInfo, jout)
 
-USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: CoreInfo
+TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: jout(:, :, :, :)
+REAL, POINTER, DIMENSION(:,:,:,:) :: jout
 
 END SUBROUTINE DcmpGatherCurrent
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type
 
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
+TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER :: DcmpPhiAngOut(:, :, :, :, :)
+REAL, POINTER, DIMENSION(:,:,:,:,:)  :: DcmpPhiAngOut
 
 END SUBROUTINE DcmpGatherBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------

@@ -25,7 +25,7 @@ INTEGER, POINTER, DIMENSION(:)       :: DcmpAsyRayIdx, AsyRayList, DirList, AziL
 INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
-INTEGER :: i, j, k, l
+INTEGER :: j, k, l
 INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nPinRay, nRaySeg, nRaySeg0, nAziAngle
 INTEGER :: iRotRay, iCoreRay, iAsyRay, iRay, iceray, iAzi, iDir, iz, iasy, icel, ibcel, ipin
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prevAsy, prevRay, Reflection
@@ -60,9 +60,8 @@ nMaxDcmpRaySeg  = 0
 nMaxDcmpCellRay = 0
 nMaxDcmpAsyRay  = 0
 
-DO i = 1, nRotRay
-  iRotRay  = i
-  nCoreRay = RotRay(i)%nRay
+DO iRotRay = 1, nRotRay
+  nCoreRay = RotRay(iRotRay)%nRay
   iRay     = 0
   nAsyRay  = 0
   prevAsy  = 0
@@ -72,7 +71,7 @@ DO i = 1, nRotRay
     iCoreRay  = RotRay(iRotRay)%RayIdx(j)
     nAsyRay   = CoreRay(iCoreRay)%nRay
     nDummyRay = 0
-    iDir      = RotRay(i)%Dir(j)
+    iDir      = RotRay(iRotRay)%Dir(j)
     
     IF (iDir .EQ. BACKWARD) THEN
       AsyRayBeg = nAsyRay; AsyRayEnd = 1; AsyRayInc = -1
@@ -110,7 +109,7 @@ DO i = 1, nRotRay
           nRaySeg = nRaySeg + nRaySeg0
         END DO
         
-        nMaxRaySeg      = max(nMaxRaySeg,      nRaySeg)
+        nMaxRaySeg      = max(nMaxRaySeg,      nRaySeg) ! # of Seg. in Asy. Ray
         nMaxDcmpRaySeg  = max(nMaxDcmpRaySeg,  nMaxRaySeg)
         nMaxCellRay     = max(nMaxCellRay,     AsyRay(iAsyRay)%nCellRay)
         nMaxDcmpCellRay = max(nMaxDcmpCellRay, nMaxCellRay)
@@ -223,6 +222,7 @@ DO iAsy = 1, nAsy
         DcmpAsyAziList(0, iAzi, iAsy) = DcmpAsyAziList(0, iAzi, iAsy) + 1
         
         DcmpAsyAziList(DcmpAsyAziList(0, iAzi, iAsy), iAzi, iAsy) = iAsyRay
+        
         EXIT
       END IF
     END DO

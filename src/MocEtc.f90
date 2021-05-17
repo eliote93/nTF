@@ -852,289 +852,176 @@ END SUBROUTINE MOCUnderRelaxationFactor
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
 
-USE PARAM
-USE TYPEDEF,    ONLY : CoreInfo_Type,   RayInfo_Type,    DcmpAsyRayInfo_Type
-USE PE_Mod,     ONLY : PE
+USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
+USE PE_Mod,  ONLY : PE
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(RayInfo_Type) :: RayInfo
-REAL, POINTER :: PhiAngIn(:, :, :)
-REAL, POINTER :: DcmpPhiAngIn(:, :, :, :, :), DcmpPhiAngOut(:, :, :, :, :)
+TYPE (CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+
 INTEGER :: gb, ge
+
 INTEGER, OPTIONAL :: color
+! ----------------------------------------------------
+TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
-TYPE(DcmpAsyRayInfo_Type), POINTER :: DcmpAsyRay(:, :)
-INTEGER, POINTER :: DcmpAsyLinkInfo(:, :, :, :)
-INTEGER, POINTER :: DcmpAsyRayCount(:)
-INTEGER :: iAsy, iRay, irot
-INTEGER :: nextAsy, nextRay
+INTEGER, POINTER, DIMENSION(:)       :: DcmpAsyRayCount
+INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
-DcmpAsyRay => RayInfo%DcmpAsyRay
+INTEGER :: iAsy, iRay, irot, nextAsy, nextRay
+! ----------------------------------------------------
+
+DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyLinkInfo => RayInfo%DcmpAsyLinkInfo
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
 DO iAsy = 1, CoreInfo%nxya
   IF (PRESENT(color)) THEN
     IF (CoreInfo%Asy(iAsy)%color .NE. color) CYCLE
-  ENDIF
+  END IF
+  
   DO iRay = 1, DcmpAsyRayCount(iAsy)
     DO irot = 1, 2
       nextAsy = DcmpAsyLinkInfo(1, irot, iRay, iAsy)
       nextRay = DcmpAsyLinkInfo(2, irot, iRay, iAsy)
+      
       IF (nextAsy .EQ. 0) THEN
-        PhiAngIn(:, gb : ge, nextRay) = DcmpPhiAngOut(:, gb : ge, irot, iRay, iAsy)  
+        PhiAngIn(:, gb:ge, nextRay) = DcmpPhiAngOut(:, gb:ge, irot, iRay, iAsy)  
       ELSE
-        DcmpPhiAngIn(:, gb : ge, irot, nextRay, nextAsy) = DcmpPhiAngOut(:, gb : ge, irot, iRay, iAsy)
-      ENDIF
-    ENDDO
-  ENDDO
-ENDDO
+        DcmpPhiAngIn(:, gb:ge, irot, nextRay, nextAsy) = DcmpPhiAngOut(:, gb:ge, irot, iRay, iAsy)
+      END IF
+    END DO
+  END DO
+END DO
+! ----------------------------------------------------
 
 END SUBROUTINE DcmpLinkBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterXS(CoreInfo, xst)
-
-USE PARAM
-USE TYPEDEF,    ONLY : CoreInfo_Type
-USE GEOM,       ONLY : ng
-USE PE_MOD,     ONLY : PE
-USE CNTL,       ONLY : nTracerCntl
-USE ALLOCS
-IMPLICIT NONE
-
-INCLUDE 'mpif.h'
-
-TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: xst(:, :)
-REAL, POINTER :: buf_xst(:, :)
-
-INTEGER :: nFsr, nMoment, nDat
-INTEGER :: myPinBeg, myPinEnd, myFsrBeg, myFsrEnd
-INTEGER :: sendcounts(0 : PE%nRTProc - 1), displs(0 : PE%nRTProc - 1)
-INTEGER :: ierr
-
-nFsr = PE%nFsr(PE%myRTRank)
-IF (nTracerCntl%ScatOd .EQ. 1) nMoment = 2
-IF (nTracerCntl%ScatOd .EQ. 2) nMoment = 5
-IF (nTracerCntl%ScatOd .EQ. 3) nMoment = 9
-
-CALL Dmalloc(buf_xst, ng, nFsr)
-sendcounts = ng * PE%nFsr
-displs = ng * PE%Fsr_displs
-nDat = sendcounts(PE%myRTRank)
-CALL MPI_SCATTERV(xst, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_xst, nDat,                                     &
-                  MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-xst(:, PE%myFsrBeg : PE%myFsrEnd) = buf_xst
-DEALLOCATE(buf_xst)
-
-END SUBROUTINE DcmpScatterXS
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterSource(CoreInfo, src, srcm)
-
-USE PARAM
-USE TYPEDEF,    ONLY : CoreInfo_Type
-USE GEOM,       ONLY : ng
-USE PE_MOD,     ONLY : PE
-USE CNTL,       ONLY : nTracerCntl
-USE ALLOCS
-IMPLICIT NONE
-
-INCLUDE 'mpif.h'
-
-TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: src(:, :)
-REAL, POINTER, OPTIONAL :: srcm(:, :, :)
-REAL, POINTER :: buf_src(:, :), buf_srcm(:, :, :)
-
-INTEGER :: nFsr, nMoment, nDat
-INTEGER :: myPinBeg, myPinEnd, myFsrBeg, myFsrEnd
-INTEGER :: sendcounts(0 : PE%nRTProc - 1), displs(0 : PE%nRTProc - 1)
-INTEGER :: ierr
-
-nFsr = PE%nFsr(PE%myRTRank)
-IF (nTracerCntl%ScatOd .EQ. 1) nMoment = 2
-IF (nTracerCntl%ScatOd .EQ. 2) nMoment = 5
-IF (nTracerCntl%ScatOd .EQ. 3) nMoment = 9
-
-CALL Dmalloc(buf_src, ng, nFsr)
-sendcounts = ng * PE%nFsr
-displs = ng * PE%Fsr_displs
-nDat = sendcounts(PE%myRTRank)
-CALL MPI_SCATTERV(src, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_src, nDat,                                     &
-                  MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-src(:, PE%myFsrBeg : PE%myFsrEnd) = buf_src
-DEALLOCATE(buf_src)
-
-IF (PRESENT(srcm)) THEN
-  IF (nTracerCntl%lScat1) THEN 
-    CALL Dmalloc(buf_srcm, nMoment, ng, nFsr)
-    sendcounts = nMoment * ng * PE%nFsr
-    displs = nMoment * ng * PE%Fsr_displs
-    nDat = sendcounts(PE%myRTRank)
-    CALL MPI_SCATTERV(srcm, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_srcm, nDat,                               &
-                      MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-    srcm(:, :, PE%myFsrBeg : PE%myFsrEnd) = buf_srcm
-    DEALLOCATE(buf_srcm)
-  ENDIF
-ENDIF
-    
-END SUBROUTINE DcmpScatterSource
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngIn, DcmpPhiAngIn)
 
-USE PARAM
-USE TYPEDEF,    ONLY : RayInfo_Type
-USE GEOM,       ONLY : ng
-USE PE_MOD,     ONLY : PE
-USE CNTL,       ONLY : nTracerCntl
 USE ALLOCS
+USE TYPEDEF, ONLY : RayInfo_Type
+USE GEOM,    ONLY : ng
+USE PE_MOD,  ONLY : PE
+USE CNTL,    ONLY : nTracerCntl
+
 IMPLICIT NONE
 
 INCLUDE 'mpif.h'
 
-TYPE(RayInfo_Type) :: RayInfo
-REAL, POINTER :: PhiAngIn(:, :, :), DcmpPhiAngIn(:, :, :, :, :)
-REAL, POINTER :: buf_DcmpPhiAngIn(:, :, :, :, :)
+TYPE (RayInfo_Type) :: RayInfo
 
-INTEGER :: nPolarAngle, nModRay, nPhiAngSv, nAsy, nDat
-INTEGER :: sendcounts(0 : PE%nRTProc - 1), displs(0 : PE%nRTProc - 1)
-INTEGER :: ierr
+REAL, POINTER, DIMENSION(:,:,:) :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, buf_DcmpPhiAngIn
+
+INTEGER :: nPolarAngle, nModRay, nPhiAngSv, nAsy, nDat, ierr
+INTEGER :: sendcounts(0:PE%nRTProc-1), displs(0:PE%nRTProc-1)
+! ----------------------------------------------------
 
 nPolarAngle = RayInfo%nPolarAngle
-nModRay = RayInfo%nModRay
-nPhiAngSv = RayInfo%nPhiAngSv
-nAsy = PE%nAsy(PE%myRTRank)
+nModRay     = RayInfo%nModRay
+nPhiAngSv   = RayInfo%nPhiAngSv
 
+nAsy = PE%nAsy(PE%myRTRank)
 nDat = nPolarAngle * ng * nPhiAngSv
+
 CALL MPI_BCAST(PhiAngIn, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
 CALL Dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy)
+
 sendcounts = nPolarAngle * ng * 2 * nModRay * PE%nAsy
-displs = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs
+displs     = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs
+
 nDat = sendcounts(PE%myRTRank)
-CALL MPI_SCATTERV(DcmpPhiAngIn, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_DcmpPhiAngIn, nDat,                   &
-                  MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-DcmpPhiAngIn(:, :, :, :, PE%myAsyBeg : PE%myAsyEnd) = buf_DcmpPhiAngIn
-DEALLOCATE(buf_DcmpPhiAngIn)
+
+CALL MPI_SCATTERV(DcmpPhiAngIn, sendcounts, displs, MPI_DOUBLE_PRECISION, buf_DcmpPhiAngIn, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+
+DcmpPhiAngIn(:, :, :, :, PE%myAsyBeg:PE%myAsyEnd) = buf_DcmpPhiAngIn
+
+DEALLOCATE (buf_DcmpPhiAngIn)
+! ----------------------------------------------------
 
 END SUBROUTINE DcmpScatterBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherFlux(CoreInfo, phis, phim)
-
-USE PARAM
-USE TYPEDEF,    ONLY : CoreInfo_Type
-USE GEOM,       ONLY : ng
-USE PE_MOD,     ONLY : PE
-USE CNTL,       ONLY : nTracerCntl
-USE ALLOCS
-IMPLICIT NONE
-
-INCLUDE 'mpif.h'
-
-TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: phis(:, :)
-REAL, POINTER, OPTIONAL :: phim(:, :, :)
-REAL, POINTER :: buf_phis(:, :), buf_phim(:, :, :)
-
-INTEGER :: nFsr, nMoment, nDat
-INTEGER :: recvcounts(0 : PE%nRTProc - 1), displs(0 : PE%nRTProc - 1)
-INTEGER :: ierr
-
-nFsr = PE%nFsr(PE%myRTRank)
-IF (nTracerCntl%ScatOd .EQ. 1) nMoment = 2
-IF (nTracerCntl%ScatOd .EQ. 2) nMoment = 5
-IF (nTracerCntl%ScatOd .EQ. 3) nMoment = 9
-
-CALL Dmalloc(buf_phis, ng, nFsr)
-recvcounts = ng * PE%nFsr
-displs = ng * PE%Fsr_displs
-nDat = recvcounts(PE%myRTRank)
-buf_phis = phis(:, PE%myFsrBeg : PE%myFsrEnd)
-CALL MPI_GATHERV(buf_phis, nDat, MPI_DOUBLE_PRECISION, phis, recvcounts, displs,                                    &
-                 MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-DEALLOCATE(buf_phis)
-
-IF (PRESENT(phim)) THEN
-  IF (nTracerCntl%lScat1) THEN 
-    CALL Dmalloc(buf_phim, nMoment, ng, nFsr)
-    recvcounts = nMoment * ng * PE%nFsr
-    displs = nMoment * ng * PE%Fsr_displs
-    nDat = recvcounts(PE%myRTRank)
-    buf_phim = phim(:, :, PE%myFsrBeg : PE%myFsrEnd)
-    CALL MPI_GATHERV(buf_phim, nDat, MPI_DOUBLE_PRECISION, phim, recvcounts, displs,                                &
-                     MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-    DEALLOCATE(buf_phim)
-  ENDIF
-ENDIF
-
-END SUBROUTINE DcmpGatherFlux
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherCurrent(CoreInfo, jout)
 
-USE PARAM
-USE TYPEDEF,    ONLY : CoreInfo_Type
-USE GEOM,       ONLY : ng
-USE PE_MOD,     ONLY : PE
-USE CNTL,       ONLY : nTracerCntl
 USE ALLOCS
+USE TYPEDEF, ONLY : CoreInfo_Type
+USE GEOM,    ONLY : ng
+USE PE_MOD,  ONLY : PE
+USE CNTL,    ONLY : nTracerCntl
+
 IMPLICIT NONE
 
 INCLUDE 'mpif.h'
 
-TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: jout(:, :, :, :)
-REAL, POINTER :: buf_jout(:, :, :, :)
+TYPE (CoreInfo_Type) :: CoreInfo
 
-INTEGER :: nPin, nDat
-INTEGER :: recvcounts(0 : PE%nRTProc - 1), displs(0 : PE%nRTProc - 1)
-INTEGER :: ierr
+REAL, POINTER, DIMENSION(:,:,:,:) :: jout, buf_jout
+
+INTEGER :: nPin, nDat, ierr
+INTEGER :: recvcounts(0:PE%nRTProc-1), displs(0:PE%nRTProc-1)
+! ----------------------------------------------------
 
 nPin = PE%nPin(PE%myRTRank)
 
 CALL Dmalloc(buf_jout, 3, ng, 4, nPin)
+
 recvcounts = 3 * ng * 4 * PE%nPin
-displs = 3 * ng * 4 * PE%Pin_displs
+displs     = 3 * ng * 4 * PE%Pin_displs
+
 nDat = recvcounts(PE%myRTRank)
-buf_jout = jout(:, :, :, PE%myPinBeg : PE%myPinEnd)
-CALL MPI_GATHERV(buf_jout, nDat, MPI_DOUBLE_PRECISION, jout, recvcounts, displs,                                    &
-                 MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-DEALLOCATE(buf_jout)
+
+buf_jout = jout(:, :, :, PE%myPinBeg:PE%myPinEnd)
+
+CALL MPI_GATHERV(buf_jout, nDat, MPI_DOUBLE_PRECISION, jout, recvcounts, displs, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+
+DEALLOCATE (buf_jout)
+! ----------------------------------------------------
 
 END SUBROUTINE DcmpGatherCurrent
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 
-USE PARAM
-USE TYPEDEF,    ONLY : RayInfo_Type
-USE GEOM,       ONLY : ng
-USE PE_MOD,     ONLY : PE
-USE CNTL,       ONLY : nTracerCntl
 USE ALLOCS
+USE TYPEDEF, ONLY : RayInfo_Type
+USE GEOM,    ONLY : ng
+USE PE_MOD,  ONLY : PE
+USE CNTL,    ONLY : nTracerCntl
+
 IMPLICIT NONE
 
 INCLUDE 'mpif.h'
 
-TYPE(RayInfo_Type) :: RayInfo
-REAL, POINTER :: DcmpPhiAngOut(:, :, :, :, :)
-REAL, POINTER :: buf_DcmpPhiAngOut(:, :, :, :, :)
+TYPE (RayInfo_Type) :: RayInfo
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngOut, buf_DcmpPhiAngOut
 
-INTEGER :: nPolarAngle, nModRay, nAsy, nDat
-INTEGER :: recvcounts(0 : PE%nRTProc - 1), displs(0 : PE%nRTProc - 1)
-INTEGER :: ierr
+INTEGER :: nPolarAngle, nModRay, nAsy, nDat, ierr
+INTEGER :: recvcounts(0:PE%nRTProc-1), displs(0:PE%nRTProc-1)
+! ----------------------------------------------------
 
 nPolarAngle = RayInfo%nPolarAngle
-nModRay = RayInfo%nModRay
+nModRay     = RayInfo%nModRay
+
 nAsy = PE%nAsy(PE%myRTRank)
 
 CALL Dmalloc(buf_DcmpPhiAngOut, nPolarAngle, ng, 2, nModRay, nAsy)
+
 recvcounts = nPolarAngle * ng * 2 * nModRay * PE%nAsy
-displs = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs
+displs     = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs
+
 nDat = recvcounts(PE%myRTRank)
-buf_DcmpPhiAngOut = DcmpPhiAngOut(:, :, :, :, PE%myAsyBeg : PE%myAsyEnd)
-CALL MPI_GATHERV(buf_DcmpPhiAngOut, nDat, MPI_DOUBLE_PRECISION, DcmpPhiAngOut, recvcounts, displs,                  &
-                 MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
-DEALLOCATE(buf_DcmpPhiAngOut)
+
+buf_DcmpPhiAngOut = DcmpPhiAngOut(:, :, :, :, PE%myAsyBeg:PE%myAsyEnd)
+
+CALL MPI_GATHERV(buf_DcmpPhiAngOut, nDat, MPI_DOUBLE_PRECISION, DcmpPhiAngOut, recvcounts, displs, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+
+DEALLOCATE (buf_DcmpPhiAngOut)
+! ----------------------------------------------------
 
 END SUBROUTINE DcmpGatherBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
