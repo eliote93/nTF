@@ -88,8 +88,8 @@ CALL SetPseudoAbsorption(GammaAxial)
 CALL SetCrossSection(GammaAxial, GPinXS)
 CALL SetConstant(GammaAxial)
 
-PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phis .LT. 0.0)
-PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(GammaAxial%PhiAngIn .LT. 0.0)
+!PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phis .LT. 0.0)
+!PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(GammaAxial%PhiAngIn .LT. 0.0)
 
 DO iter = 1, itermax
   AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
@@ -124,9 +124,9 @@ DO iz = 1, nzMOC
   nNeg(iz) = COUNT(phis(:, iz, :) .LT. 0.0)
 ENDDO
 
-PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze
-PRINT *, nNeg(1 : nzMOC)
-PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(GammaAxial%PhiAngOut .LT. 0.0)
+!PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze
+!PRINT *, nNeg(1 : nzMOC)
+!PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(GammaAxial%PhiAngOut .LT. 0.0)
 
 lFirst = .FALSE.
 

@@ -250,7 +250,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
           CALL MPI_MAX_REAL(tdel, PE%MPI_RTMASTER_COMM, TRUE)
           
           IF (master) THEN
-            write(mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tdel, 'Sec'
+            WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tdel, 'Sec'
             CALL message(io8, FALSE, TRUE, mesg)
           END IF
           

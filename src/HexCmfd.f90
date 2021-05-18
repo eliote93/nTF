@@ -12,11 +12,12 @@ USE TYPEDEF_COMMON, ONLY : superPin_Type
 
 IMPLICIT NONE
 
-TYPE(superPin_Type), POINTER :: Pin(:)
-REAL, POINTER :: Jout(:, :, :, :, :), superJout(:, :, :, :, :)
+TYPE(superPin_Type), POINTER, DIMENSION(:) :: Pin
+
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout, superJout
+
 INTEGER :: ig, ix, iy, iz, ixy, jxy, ipin, iNgh, iBndy, jBndy
-INTEGER :: ng, nxy
-INTEGER :: myzb, myze
+INTEGER :: ng, nxy, myzb, myze
 REAL    :: ratio
 ! ----------------------------------------------------
 
@@ -52,10 +53,10 @@ END SUBROUTINE HexSuperPinCurrent
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexRayInfo4CmfdGen(RayInfo, RayInfo4Cmfd)
 
+USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_type, RayInfo4Cmfd_Type
 USE HexData, ONLY : hRotRay, hcRay, hAsy, hAsyTypInfo, haRay
 USE HexUtil, ONLY : SetSgn_INT
-USE ALLOCS
 
 IMPLICIT NONE
 

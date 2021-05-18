@@ -6,8 +6,12 @@ USE ioutil,     ONLY : toupper, ifnumeric, icolfield
 USE RAYS,       ONLY : RayInfo
 USE inputcards, ONLY : oneline, probe, FindCardId
 USE PE_MOD,     ONLY : PE
-USE HexData,    ONLY : aoF2F, aoPch, nAzmAng, nPolAng, Del_Inp, Sq3Inv
+
 USE HexInpCard
+USE HexChk
+USE HexData,      ONLY : aoF2F, aoPch, nAzmAng, nPolAng, Del_Inp, Sq3Inv
+USE HexCelBssGap, ONLY : HexSetGapCelBss
+USE HexCelBssRod, ONLY : HexSetRodCelBss
 
 IMPLICIT NONE
 

@@ -2,10 +2,13 @@
 SUBROUTINE HexInit
 
 USE ALLOCS
+USE PARAM,         ONLY : mesg, TRUE
 USE Geom,          ONLY : Core
-USE RAYS,          ONLY : RayInfo, RayInfo4Cmfd
+USE RAYS,          ONLY : RayInfo, RayInfo4Cmfd, DcmpAsyRay
 USE CNTL,          ONLY : nTracerCntl
 USE PE_MOD,        ONLY : PE
+USE files,         ONLY : io8
+USE ioutil,        ONLY : message
 USE MPIConfig_Mod, ONLY : SetGeomPEVariables, SetRayPEVariables, SetDcmpPEVariables
 USE HexCmfd,       ONLY : HexRayInfo4CmfdGen
 USE HexData,       ONLY : hRotRay, hcRay
@@ -29,6 +32,14 @@ IF (nTracerCntl%lDcpl) CALL initDcpl()
 #ifdef MPI_ENV
 CALL SetRayPEVariables(PE, Core, RayInfo)
 #endif
+
+IF (nTracerCntl%lDomainDcmp) THEN
+#ifdef DetailedIO
+  mesg = '  Generating Decomposed Assembly Rays...'
+  IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
+#endif
+  CALL HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
+ENDIF
 
 CALL HexRayInfo4CmfdGen(RayInfo, RayInfo4Cmfd)
 

@@ -1,4 +1,9 @@
 #include <defines.h>
+MODULE HexEdit
+
+IMPLICIT NONE
+
+CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX : Output Edit
 ! ------------------------------------------------------------------------------------------------------------
@@ -19,8 +24,9 @@ USE GamCMFD_mod, ONLY : GammaCMFD
 USE CNTL,        ONLY : nTracerCntl
 USE SUBGRP_MOD,  ONLY : FxrChiGen
 
-USE HexTst,  ONLY : HexChkEffXs
-USE HexData, ONLY : hLgc
+USE HexTst,   ONLY : HexChkEffXs
+USE HexData,  ONLY : hLgc
+USE HexThOut, ONLY : HexPrintFuelAvgTemp, HexPrintFuelCentTemp, HexPrintFuelSurfTemp, HexPrintCoolantTemp
 
 #ifdef MPI_ENV
 USE MpiComm_mod, ONLY : BCAST, MPI_SYNC
@@ -893,3 +899,5 @@ ENDIF
 
 END SUBROUTINE HexFreePowerDist
 ! ------------------------------------------------------------------------------------------------------------
+
+END MODULE HexEdit

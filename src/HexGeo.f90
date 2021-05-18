@@ -1,9 +1,15 @@
 SUBROUTINE HexSetGeo()
 
 USE allocs
-USE PARAM,   ONLY : ZERO, FALSE
-USE geom,    ONLY : Core, Pin, nZ, nAsyType0
-USE HexData, ONLY : nHexPin, nhAsy, nHexPin, hAsyTypInfo
+USE PARAM,          ONLY : ZERO, FALSE
+USE geom,           ONLY : Core, Pin, nZ, nAsyType0
+USE HexData,        ONLY : nHexPin, nhAsy, nHexPin, hAsyTypInfo
+USE HexNgh,         ONLY : HexSetAsyNgh, HexSetAsyRotNgh, HexSetAsyTypPinNgh
+USE HexVtx,         ONLY : HexSetAsyTypVtxTyp, HexSetAsyTypPinVtx
+USE HexAsyConst,    ONLY : HexSetAsyBndy, HexSetGeoTyp, HexSetAsyLoc, HexSetAsyPinNum
+USE HexGeoConst,    ONLY : HexSetAlbedo, HexSetCore
+USE HexPinConst,    ONLY : HexSetPinTyp, HexSetPinVol, HexSetPinFSR
+USE HexAsyTypConst, ONLY : HexSetAsyTypPinMap, HexSetAsyTypPinLocIdx, HexSetAsyTypCstMap
 
 IMPLICIT NONE
 

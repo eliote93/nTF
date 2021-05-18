@@ -30,6 +30,7 @@ USE BenchXs,           ONLY : SetBoronCoolant_NEACRP, DnpLambdaBen, ChidBen
 USE TRAN_MOD,          ONLY : TranInfo
 USE MacXsLib_Mod,      ONLY : PSMEffXSGen, GetfresoFXR
 USE TranMacXsLib_Mod,  ONLY : InitChidLib, InitLambdaLib, initchidklib
+USE HexEdit,           ONLY : HexOutputEdit
 
 #ifdef inflow
 USE Inflow_mod,  ONLY : InflowTrXS

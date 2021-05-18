@@ -1,3 +1,9 @@
+MODULE HexChk
+  
+IMPLICIT NONE
+
+CONTAINS
+! ------------------------------------------------------------------------------------------------------------  
 SUBROUTINE HexChkInp()
 
 USE CNTL,    ONLY : nTracerCntl
@@ -222,3 +228,5 @@ END DO
 
 END SUBROUTINE HexChkCelBss
 ! ------------------------------------------------------------------------------------------------------------
+
+END MODULE HexChk

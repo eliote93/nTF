@@ -1,4 +1,5 @@
 #include <defines.h>
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCorePowerCal(Core, CmInfo, PowerDist, ng, nTracerCntl, PE)
 
 USE allocs
@@ -414,7 +415,7 @@ NULLIFY (PhiC, PinXs, AsyInfo, Asy, hz, AsyVol)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexCorePowerCal
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexCalExplicitPower(Core, CmInfo, FmInfo, PhotonPower, NeutronPower, TotalExpPower, ng, ngg, nTracerCntl, PE)
 USE PARAM
 USE TYPEDEF,        ONLY : coreinfo_type, PowerDist_Type, PE_TYPE, ASYINFO_TYPE,  &
@@ -989,6 +990,5 @@ SUBROUTINE GenHomoKERMA(Core, FXR, Phis, GPhis, PinXS, myzb, myze, ng, ngg, lXsL
     END DO
     
     END SUBROUTINE 
-
-
 END SUBROUTINE
+! ------------------------------------------------------------------------------------------------------------

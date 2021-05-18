@@ -89,6 +89,10 @@ DO iz = myzb, myze
     CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
     CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, ng)
   ENDDO
+  
+  WRITE (mesg, '(2X, A, I3, A, I5,1P, E13.3)') '[Fuel] Pln', iz, '  In_itr', iter, errmax
+  IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+  
   itersum = itersum + iter
 
   DEALLOCATE(phis, phisd, PhiAngIn)
@@ -101,8 +105,8 @@ CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 #endif
 
-WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Fuel) ', iter, errmax
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+!WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Fuel) ', iter, errmax
+!IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
 itersum = 0; errmax = 0.0
 
@@ -130,6 +134,10 @@ DO iz = myzb, myze
     IF (errmax .LT. epsm3) EXIT
     IF (iter .EQ. itermax) EXIT
   ENDDO
+  
+  WRITE (mesg, '(2X, A, I3, A, I5,1P, E13.3)') '[Clad] Pln', iz, '  In_itr', iter, errmax
+  IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+  
   itersum = itersum + iter
   CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, ng, lCLD, lAIC)
 
@@ -143,8 +151,8 @@ CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 #endif
 
-WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Clad) ', iter, errmax
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+!WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Clad) ', iter, errmax
+!IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
 itersum = 0; errmax = 0.0
 
@@ -172,6 +180,10 @@ DO iz = myzb, myze
     IF (errmax .LT. epsm3) EXIT
     IF (iter .EQ. itermax) EXIT
   ENDDO
+  
+  WRITE (mesg, '(2X, A, I3, A, I5,1P, E13.3)') '[AIC] Pln', iz, '  In_itr', iter, errmax
+  IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+  
   itersum = itersum + iter
   CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, ng, lCLD, lAIC)
 
@@ -185,8 +197,8 @@ CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 #endif
 
-WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (AIC)  ', iter, errmax
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+!WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (AIC)  ', iter, errmax
+!IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
 nTracerCntl%lSubGrpSweep = TRUE
 #ifdef MPI_ENV

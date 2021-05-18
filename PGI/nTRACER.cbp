@@ -678,12 +678,15 @@
 			<Option weight="2" />
 			<Option virtualFolder="Source Files/Hex/Bridge/" />
 		</Unit>
+		<Unit filename="../src/HexDcmpRayGen.f90">
+			<Option weight="10" />
+		</Unit>
 		<Unit filename="../src/HexEffXsOut.f90">
 			<Option weight="10" />
 			<Option virtualFolder="Source Files/Hex/IO/" />
 		</Unit>
 		<Unit filename="../src/HexGeo.f90">
-			<Option weight="3" />
+			<Option weight="6" />
 			<Option virtualFolder="Source Files/Hex/Geo/" />
 		</Unit>
 		<Unit filename="../src/HexGeoConst.f90">

@@ -9,11 +9,14 @@ USE IOUTIL, ONLY : message, terminate
 USE FILES,  ONLY : io8
 
 USE HexRayBasic
+USE HexRayConst
 USE HexCmfdConst
 USE HexCnP
 USE HexTst
 
-USE HexData, ONLY : hLgc, ncBss, ngBss, NumMray, haRay, nGeoTyp
+USE HexData,     ONLY : hLgc, ncBss, ngBss, NumMray, haRay, nGeoTyp
+USE HexGeoConst, ONLY : HexSetVyg
+USE HexPinConst, ONLY : HexSetVss
 
 IMPLICIT NONE
 

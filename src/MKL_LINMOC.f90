@@ -90,8 +90,8 @@ CALL SetPseudoAbsorption()
 CALL SetCrossSection(PinXS)
 CALL SetLinearRTCoeff(PinXS, TRUE)
 
-PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phisCoeff(:, :, :, 0) .LT. 0.0)
-PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngIn .LT. 0.0)
+!PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phisCoeff(:, :, :, 0) .LT. 0.0)
+!PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngIn .LT. 0.0)
 
 DO iter = 1, itermax
   CALL SetPsi(1)
@@ -119,8 +119,8 @@ CALL SetBoundaryFlux()
 CALL SetFluxMoment()
 CALL SetFluxShape()
 
-PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze, COUNT(phisCoeff(:, :, :, 0) .LT. 0.0)
-PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngOut .LT. 0.0)
+!PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze, COUNT(phisCoeff(:, :, :, 0) .LT. 0.0)
+!PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngOut .LT. 0.0)
 
 END SUBROUTINE
 

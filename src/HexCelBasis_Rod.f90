@@ -1,3 +1,8 @@
+MODULE HexCelBssRod
+
+IMPLICIT NONE
+
+CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX SET : Rod Cel Bss
 ! ------------------------------------------------------------------------------------------------------------
@@ -11,7 +16,7 @@ USE HexData, ONLY : hCel, hCelBss, ncBss, RodPin, Sq3, Sq3Inv
 IMPLICIT NONE
 
 INTEGER :: iCel, jCel, kCel, iPin, iz
-LOGICAL :: lNewBss, HexCompNewRodBss
+LOGICAL :: lNewBss
 ! ----------------------------------------------------
 
 ALLOCATE (hCelBss (nCellType))
@@ -354,3 +359,5 @@ NULLIFY (hBss_Loc)
 
 END SUBROUTINE HexSetRodBssSubRng_Bndy
 ! ------------------------------------------------------------------------------------------------------------
+
+END MODULE HexCelBssRod

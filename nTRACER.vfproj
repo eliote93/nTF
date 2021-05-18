@@ -222,6 +222,7 @@
 		<File RelativePath=".\src\HexAsyRay_SngCel.f90"/>
 		<File RelativePath=".\src\HexAsyRayConst.f90"/>
 		<File RelativePath=".\src\HexAsyRayIntSct.f90"/>
+		<File RelativePath=".\src\HexDcmpRayGen.f90"/>
 		<File RelativePath=".\src\HexRayBasic.f90"/>
 		<File RelativePath=".\src\HexRayConst.f90"/></Filter></Filter>
 		<Filter Name="Initialize">

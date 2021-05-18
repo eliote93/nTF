@@ -19,7 +19,8 @@ use SubChCoupling_mod,      only: is_coupled
 USE MPIComm_Mod,  ONLY : MPIWaitTurn
 #endif
 
-USE HexData, ONLY : ncTyp
+USE HexData,     ONLY : ncTyp
+USE HexGeoConst, ONLY : HexSetThGeo
 
 IMPLICIT NONE
 
