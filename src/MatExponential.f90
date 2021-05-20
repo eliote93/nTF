@@ -15,6 +15,7 @@ MODULE MatExponential
   USE IEEE_ARITHMETIC   !--- CNJ Edit : F2003 Standard
 #endif
   IMPLICIT NONE
+  INCLUDE 'mkl_blas.fi'
 #ifdef CRAM_14
   INTEGER, PARAMETER::CRAM_Order = 14;
   COMPLEX(8), PARAMETER::Pole(7) = (/ (-8.897773186468888, 16.630982619902085), (-3.703275049423448, 13.656371871483268), &
@@ -65,9 +66,10 @@ MODULE MatExponential
   INTEGER :: live_nt
 
   IF (PRESENT(numthread)) THEN
-    live_nt = min(omp_get_max_threads(), numthread)
+  !  live_nt = min(omp_get_max_threads(), numthread)
+    live_nt = numthread
   ELSE
-    live_nt = omp_get_max_threads()
+  !  live_nt = omp_get_max_threads()
   END IF
 
   CALL omp_set_num_threads(live_nt)
@@ -75,7 +77,7 @@ MODULE MatExponential
   n = rank
   ALLOCATE(v(n,n), h(n,n))
 
-  CALL ArnoldiProcess(m)
+  CALL ArnoldiProcess(x0, v, h, A, n, m, beta)
 
   ALLOCATE(ExpH(m,m), yapprox(m), e1(m))
 
@@ -89,14 +91,16 @@ MODULE MatExponential
     x1(1:n) = x1(1:n)+v(:,i)*yapprox(i)
   END DO
   DEALLOCATE(v, h, ExpH, yapprox)
-  CONTAINS
+  !CONTAINS
+  END SUBROUTINE
 
-  SUBROUTINE ArnoldiProcess(reduced_rank)
+  SUBROUTINE ArnoldiProcess(x0, v, h, A, n, reduced_rank, beta)
   IMPLICIT NONE
-  INTEGER, INTENT(INOUT) :: reduced_rank
+  REAL(8) :: x0(:), v(:,:), h(:,:), A(:,:)
+  INTEGER, INTENT(INOUT) :: n, reduced_rank
   REAL(8), ALLOCATABLE :: p(:)
   INTEGER :: i, j, icount
-  REAL(8) :: HmOut
+  REAL(8) :: HmOut, beta
 
   ALLOCATE(p(n))
 
@@ -129,9 +133,9 @@ MODULE MatExponential
   IF(reduced_rank .EQ. 0) reduced_rank = n-1
 
   DEALLOCATE(p)
-  END SUBROUTINE
+  END SUBROUTINE ArnoldiProcess
 
-  END SUBROUTINE
+  !END SUBROUTINE MatExpKrylov_full
 
   SUBROUTINE MatExpSns_full(lOutMat, A, ExpA, x0, x1, rank, numthreads)
   IMPLICIT NONE
@@ -150,9 +154,10 @@ MODULE MatExponential
   INTEGER :: live_nt
 
   IF (present(numthreads)) THEN
-    live_nt = min(omp_get_max_threads(), numthreads)
+    live_nt = numthreads
+!live_nt = min(omp_get_max_threads(), numthreads)
   ELSE
-    live_nt = omp_get_max_threads()
+    !live_nt = omp_get_max_threads()
   END IF
 
   CALL omp_set_num_threads(live_nt)
@@ -247,7 +252,7 @@ MODULE MatExponential
   DEALLOCATE(ExpMat, Ahat, SqrdMat, SaveSqrdMat)
   IF (.NOT. lOutMat) DEALLOCATE(x_temp)
 
-  END SUBROUTINE
+  END SUBROUTINE MatExpSns_full
 
   SUBROUTINE MatExpTaylor_full(lOutMat, A, ExpA, x0, x1, order, rank, numthreads)
   IMPLICIT NONE
@@ -263,9 +268,10 @@ MODULE MatExponential
   INTEGER :: live_nt
 
   IF (present(numthreads)) THEN
-    live_nt = min(omp_get_max_threads(), numthreads)
+    live_nt = numthreads
+    !live_nt = min(omp_get_max_threads(), numthreads)
   ELSE
-    live_nt = omp_get_max_threads()
+    !live_nt = omp_get_max_threads()
   END IF
 
   CALL omp_set_num_threads(live_nt)
@@ -310,7 +316,7 @@ MODULE MatExponential
 
   IF (lOutMat) DEALLOCATE(SqrA, SaveSqrA)
   IF (.NOT. lOutMat) DEALLOCATE(x_temp)
-  END SUBROUTINE
+  END SUBROUTINE MatExpTaylor_full
 
   SUBROUTINE MatExpCRAM_full(lOutMat, A, ExpA, x0, x1, rank)
   LOGICAL, INTENT(IN) :: lOutMat
@@ -358,11 +364,11 @@ MODULE MatExponential
   END IF
   DEALLOCATE(A_inv, ipiv)
 
-  END SUBROUTINE
+  END SUBROUTINE MatExpCRAM_full
 
   SUBROUTINE MatExpKrylov_CSR(A_csr, x0, x1, numthreads)
   IMPLICIT NONE
-  INCLUDE 'mkl_blas.fi'
+  !INCLUDE 'mkl_blas.fi'
   TYPE(CSR_DOUBLE),INTENT(IN) :: A_csr
   REAL(8), POINTER :: x0(:)
   REAL(8), POINTER :: x1(:)
@@ -381,9 +387,10 @@ MODULE MatExponential
   LOGICAL, PARAMETER :: lOutMat = .TRUE.
   IF (.NOT. A_csr%lFinalized) RETURN
   IF (present(numthreads)) THEN
-    live_nt = min(omp_get_max_threads(), numthreads)
+    live_nt = numthreads
+    !live_nt = min(omp_get_max_threads(), numthreads)
   ELSE
-    live_nt = omp_get_max_threads()
+    !live_nt = omp_get_max_threads()
   END IF
 
   rank = A_Csr%nr;
@@ -421,11 +428,11 @@ MODULE MatExponential
   yapprox(1:m) = beta*yapprox(1:m)
   CALL dgemv('N', n, m, 1._8, v(:,1:m), n, yapprox, 1, 0._8, x1, 1)
   DEALLOCATE(v, h_small, ExpH, yapprox, e1)
-  END SUBROUTINE
+  END SUBROUTINE MatExpKrylov_CSR
 
   SUBROUTINE ArnoldiProcess_CSR(A_Csr, x0, rank, v, h, reduced_rank, beta)
   IMPLICIT NONE
-  INCLUDE 'mkl_blas.fi'
+  !INCLUDE 'mkl_blas.fi'
   TYPE(CSR_DOUBLE),INTENT(IN) :: A_csr
   INTEGER :: rank
   REAL(8) :: v(:,:), h(:,:)
@@ -477,7 +484,7 @@ MODULE MatExponential
   IF(reduced_rank .EQ. 0) reduced_rank = n-1
 
   DEALLOCATE(p); NULLIFY(val, rowptr, colIdx)
-  END SUBROUTINE
+  END SUBROUTINE ArnoldiProcess_CSR
 
   SUBROUTINE MatExpSns_CSR(lOutMat, A_csr, ExpA_csr, x0, x1, numthread)
   USE AuxilCSR
@@ -501,9 +508,10 @@ MODULE MatExponential
   REAL(8) :: MaxInA
   IF (.NOT. A_csr%lFinalized) RETURN
   IF (.NOT. present(numthread)) THEN
-    live_nt = omp_get_max_threads()
+    !live_nt = omp_get_max_threads()
   ELSE
-    live_nt = min(omp_get_max_threads(), numthread)
+    live_nt = numthread
+    !live_nt = min(omp_get_max_threads(), numthread)
   END IF
   CALL omp_set_num_threads(live_nt)
 
@@ -609,7 +617,7 @@ MODULE MatExponential
   DEALLOCATE(SqrdMat, SaveSqrdMat)
   IF (.NOT. lOutMat) DEALLOCATE(x_temp)
 
-  END SUBROUTINE
+  END SUBROUTINE MatExpSns_CSR
 
   SUBROUTINE MatExpTaylor_CSR(lOutMat, A_Csr, ExpA_Csr, x0, x1, order, numthread)
   USE AuxilCSR
@@ -631,9 +639,10 @@ MODULE MatExponential
   REAL(8) :: Coeff
   IF (.NOT. A_csr%lFinalized) RETURN
   IF (.NOT. present(numthread)) THEN
-    live_nt = omp_get_max_threads()
+    !live_nt = omp_get_max_threads()
   ELSE
-    live_nt = min(omp_get_max_threads(), numthread)
+    live_nt = numthread
+    !live_nt = min(omp_get_max_threads(), numthread)
   END IF
   CALL omp_set_num_threads(live_nt)
   nnz = A_Csr%nnz; nr = A_Csr%nr; nc = A_Csr%nc
@@ -679,7 +688,7 @@ MODULE MatExponential
   END IF
 
   DEALLOCATE(A_val, A_rowptr, A_colIdx)
-  END SUBROUTINE
+  END SUBROUTINE MatExpTaylor_CSR
 
   SUBROUTINE MatExpCRAM_CSR(lOutMat, A_Csr, ExpA_Csr, x0, x1, numthread)
   USE AuxilCSR
@@ -717,9 +726,10 @@ MODULE MatExponential
   END IF
 
   IF (PRESENT(numthread)) THEN
-    live_nt = min(omp_get_max_threads(), numthread)
+    !live_nt = min(omp_get_max_threads(), numthread)
   ELSE
-    live_nt = omp_get_max_threads()
+    live_nt = numthread
+    !live_nt = omp_get_max_threads()
   END IF
   CALL omp_set_num_threads(live_nt)
 
@@ -810,7 +820,7 @@ MODULE MatExponential
   DEALLOCATE(valZ_batch, rowptr_batch, colIdx_batch)
   CALL destroycsr(A_csrZ);
 
-  END SUBROUTINE
+  END SUBROUTINE MatExpCRAM_CSR
 
   SUBROUTINE MatExpCRAM_Iter(lOutMat, A_Csr, ExpA_Csr, x0, x1, PreCond, numthread)
   USE AuxilCSR
@@ -851,9 +861,10 @@ MODULE MatExponential
   END IF
 
   IF (PRESENT(numthread)) THEN
-    live_nt = min(omp_get_max_threads(), numthread)
+    !live_nt = min(omp_get_max_threads(), numthread)
   ELSE
-    live_nt = omp_get_max_threads()
+    live_nt = numthread
+    !live_nt = omp_get_max_threads()
   END IF
   CALL omp_set_num_threads(live_nt)
 
@@ -1027,7 +1038,7 @@ MODULE MatExponential
   DEALLOCATE(valZ_batch, rowptr_batch, colIdx_batch)
   CALL destroycsr(A_csrZ);
 
-  END SUBROUTINE
+  END SUBROUTINE MatExpCRAM_Iter
 ! ***************************** Reference Page ****************************.
 ! https://www.cfd-online.com/Wiki/Incomplete_LU_factorization_-_ILU        |
 ! https://www.cc.gatech.edu/~echow/pubs/parilu-sisc.pdf                    |
@@ -1085,7 +1096,7 @@ MODULE MatExponential
   END DO
 
   DEALLOCATE(colptr, rowidx)
-  END SUBROUTINE
+  END SUBROUTINE DeplZcsr_Bilu0
 
   SUBROUTINE zcsr_ilu0(val, colidx, rowptr, eyeidx, colptr, rowidx, nnz, nr)
   IMPLICIT NONE
@@ -1125,7 +1136,7 @@ MODULE MatExponential
     END DO
   END DO
 
-  END SUBROUTINE
+  END SUBROUTINE zcsr_ilu0
 
-END MODULE
+END MODULE MatExponential
 #endif

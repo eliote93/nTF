@@ -100,7 +100,7 @@ DO iPin = 1, nPinType
   END DO
 END DO
 
-DO iPin = 1, nGapType
+DO iPin = 1, nGapPinType
   IF (.NOT. GapPin(iPin)%luse) CYCLE
   
   DO iz = 1, nZ
@@ -182,7 +182,7 @@ END SUBROUTINE HexChkInp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexChkCelBss()
 
-USE geom,    ONLY : nAsyType0, nPinType, nGapType, nZ
+USE geom,    ONLY : nAsyType0, nPinType, nGapPinType, nZ
 USE CNTL,    ONLY : nTracerCntl
 USE ioutil,  ONLY : terminate
 USE HexData, ONLY : ncBss, hCelBss, ngBss, gCelBss, hCel, gCel, RodPin, GapPin
@@ -215,7 +215,7 @@ DO iPin = 1, nPinType
   END DO
 END DO
 
-DO iPin = 1, nGapType
+DO iPin = 1, nGapPinType
   iCB = gCel(GapPin(iPin)%iCel(1))%igBss
   
   DO iZ = 2, nZ

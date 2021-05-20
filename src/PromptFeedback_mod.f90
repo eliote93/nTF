@@ -184,9 +184,9 @@ REAL, POINTER, PRIVATE :: fvolratio(:,:)
     END DO
   END DO
 #ifdef MPI_ENV
-  CALL MPI_ALLREDUCE(tfavg, tmpavg, 1, MPI_DOUBLE, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+  CALL MPI_ALLREDUCE(tfavg, tmpavg, 1, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
   tfavg = tmpavg
-  CALL MPI_ALLREDUCE(tfmax, tmpmax, 1, MPI_DOUBLE, MPI_MAX, PE%MPI_CMFD_COMM, ierr)
+  CALL MPI_ALLREDUCE(tfmax, tmpmax, 1, MPI_DOUBLE_PRECISION,, MPI_MAX, PE%MPI_CMFD_COMM, ierr)
   tfmax = tmpmax
 #endif
   tfavg = tfavg / TranInfo%nfuelcell

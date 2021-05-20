@@ -617,7 +617,7 @@ SUBROUTINE HexCnPPin(iPin)
 
 USE allocs
 USE TYPEDEF, ONLY : pin_type
-USE GEOM,    ONLY : Core, Pin, nZ, nCellType, nGapType, CellInfo, AsyInfo
+USE GEOM,    ONLY : Core, Pin, nZ, nCellType, CellInfo, AsyInfo
 USE HexType, ONLY : Type_HexPinInfo
 USE HexData, ONLY : hPinInfo, RodPin, GapPin, hCel, hAsyTypInfo, hLgc
 
