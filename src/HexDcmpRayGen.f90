@@ -2,10 +2,13 @@
 SUBROUTINE HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
 
 USE ALLOCS
-USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK
-USE TYPEDEF, ONLY : RayInfo_type, RotRayInfo_type, CoreRayInfo_type, AsyRayInfo_Type, CoreInfo_type, DcmpAsyRayInfo_Type, Asy_Type, Pin_Type, Cell_Type
+USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, BLUE
+USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
 USE PE_Mod,  ONLY : PE
 USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay
+USE HexData, ONLY : hAsy
+USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
+USE HexData, ONLY : haRay, hcRay, hRotRay, hAsyTypInfo
 
 IMPLICIT NONE
 
@@ -14,32 +17,26 @@ TYPE (RayInfo_type)  :: RayInfo
 
 TYPE (DcmpAsyRayInfo_type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
-TYPE (RotRayInfo_Type),  POINTER, DIMENSION(:) :: RotRay
-TYPE (CoreRayInfo_Type), POINTER, DIMENSION(:) :: CoreRay
-TYPE (AsyRayInfo_Type),  POINTER, DIMENSION(:) :: AsyRay
-TYPE (Asy_Type),         POINTER, DIMENSION(:) :: Asy
-TYPE (Pin_Type),         POINTER, DIMENSION(:) :: Pin
-TYPE (Cell_Type),        POINTER, DIMENSION(:) :: Cell
-
 INTEGER, POINTER, DIMENSION(:)       :: DcmpAsyRayCount, AsyRayList, DirList, AziList
 INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
-INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nPinRay, nRaySeg, nRaySeg0, nAziAngle
-INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, iRay, icelray, jcelray, iAzi, iDir, iz, iasy, icel, ibcel, ipin, iCnt
+INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nRaySeg, nRaySeg0, nAziAngle
+INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, iAzi, iz, iasy, ipin, iCnt, iAsyTyp, iGeoTyp, icBss, jcBss, iDir, itmp
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prvAsy, prvCnt, nRef
+
+TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
+
+TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
+TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
+TYPE (Type_HexRotRay), POINTER :: hRotRay_Loc
 ! ----------------------------------------------------
 
-nAsy  = Core%nxya
-Asy  => Core%Asy
-Pin  => Core%Pin
-Cell => Core%CellInfo
+nAsy = Core%nxya
+Pin => Core%Pin
 
 nModRay   = RayInfo%nModRay
 nRotRay   = RayInfo%nRotRay
-RotRay   => RayInfo%RotRay
-CoreRay  => RayInfo%CoreRay
-AsyRay   => RayInfo%AsyRay
 nAziAngle = RayInfo%nAziAngle
 
 myzb = PE%myzb
@@ -60,28 +57,26 @@ nMaxDcmpCellRay = 0
 nMaxDcmpAsyRay  = 0
 ! ----------------------------------------------------
 DO iRotRay = 1, nRotRay
-  nCoreRay = RotRay(iRotRay)%nRay
-  iRay     = 0
-  nAsyRay  = 0
-  prvAsy   = 0
-  prvCnt   = 0
+  hRotRay_Loc => hRotRay(iRotRay)
+  nCoreRay     = hRotRay_Loc%ncRay
+  
+  prvAsy = 0
+  prvCnt = 0
   
   DO iCoreRay = 1, nCoreRay
-    jCoreRay  = RotRay(iRotRay)%RayIdx(iCoreRay)
-    nAsyRay   = CoreRay(jCoreRay)%nRay
+    jCoreRay  = hRotRay_Loc%cRayIdx(iCoreRay)
+    nAsyRay   = hcRay(abs(jCoreRay))%nmRay
     nDummyRay = 0
-    iDir      = RotRay(iRotRay)%Dir(iCoreRay)
     
-    IF (iDir .EQ. BACKWARD) THEN
-      AsyRayBeg = nAsyRay; AsyRayEnd = 1; AsyRayInc = -1
+    IF (jCoreRay .LT. 0) THEN
+      AsyRayBeg = nAsyRay; AsyRayEnd = 1; AsyRayInc = -1; iDir = BACKWARD
     ELSE
-      AsyRayBeg = 1; AsyRayEnd = nAsyRay; AsyRayInc = 1
+      AsyRayBeg = 1; AsyRayEnd = nAsyRay; AsyRayInc = 1;  iDir = FORWARD
     END IF
     
     DO iAsyRay = AsyRayBeg, AsyRayEnd, AsyRayInc
-      iRay    = iRay + 1
-      jAsyRay = CoreRay(jCoreRay)%AsyRayIdx(iAsyRay)
-      iAsy    = CoreRay(jCoreRay)%AsyIdx(iAsyRay)
+      jAsyRay = hcRay(abs(jCoreRay))%mRayIdx(iAsyRay)
+      iAsy    = hcRay(abs(jCoreRay))%AsyIdx (iAsyRay)
       
       IF (iAsy .EQ. 0) THEN
         nDummyRay = nDummyRay + AsyRayInc
@@ -89,29 +84,35 @@ DO iRotRay = 1, nRotRay
         CYCLE
       END IF
       
-      iCnt = DcmpAsyRayCount(iAsy)
+      iAsyTyp = hAsy(iAsy)%AsyTyp
+      iGeoTyp = hAsy(iAsy)%GeoTyp
+      icBss   = hAsyTypInfo(iAsyTyp)%iBss
+      iCnt    = DcmpAsyRayCount(iAsy)
+      
+      haRay_Loc => haRay(iGeoTyp, icBss, jAsyRay)
       
       IF (iAsy .EQ. prvAsy) THEN
         nRef    = nRef + 1
         nRaySeg = 0
         
-        DO icelray = 1, AsyRay(jAsyRay)%nCellRay
-          ipin     = AsyRay(jAsyRay)%PinIdx(icelray)
-          jcelray  = AsyRay(jAsyRay)%PinRayIdx(icelray)
-          ipin     = Asy(iAsy)%GlobalPinIdx(ipin)
-          nRaySeg0 = 0
+        DO icelray = 1, haRay_Loc%nhpRay
+          iPin = haRay_Loc%CelRay(icelray)%hPinIdx
+          iPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, iPin) - 1
           
+          nRaySeg0 = 0
           DO iz = myzb, myze
-            icel     = Pin(ipin)%cell(iz)
-            ibcel    = Cell(iCel)%basecellstr
-            nRaySeg0 = max(nRaySeg0, Cell(ibcel)%Cellray(jcelray)%nSeg)
+            jcBss = Pin(iPin)%hCelGeo(iz)
+            
+            CelRay_Loc => haRay(iGeoTyp, jcBss, jAsyRay)%CelRay(icelRay)
+            
+            nRaySeg0 = max(nRaySeg0, CelRay_Loc%nSegRay)
           END DO
           
           nRaySeg = nRaySeg + nRaySeg0
         END DO
         
         nMaxRaySeg  = max(nMaxRaySeg,  nRaySeg) ! # of Seg. in Asy. Ray
-        nMaxCellRay = max(nMaxCellRay, AsyRay(jAsyRay)%nCellRay)
+        nMaxCellRay = max(nMaxCellRay, haRay_Loc%nhpRay)
         
         AsyRayList => DcmpAsyRay(iCnt, iAsy)%AsyRayList
         DirList    => DcmpAsyRay(iCnt, iAsy)%DirList
@@ -138,24 +139,25 @@ DO iRotRay = 1, nRotRay
         DcmpAsyRayCount(iAsy) = DcmpAsyRayCount(iAsy) + 1
         
         iCnt = iCnt + 1
-                
-        DO icelray = 1, AsyRay(jAsyRay)%nCellRay
-          ipin     = AsyRay(jAsyRay)%PinIdx(icelray)
-          jcelray  = AsyRay(jAsyRay)%PinRayIdx(icelray)
-          ipin     = Asy(iAsy)%GlobalPinIdx(ipin)
-          nRaySeg0 = 0
+        
+        DO icelray = 1, haRay_Loc%nhpRay
+          iPin = haRay_Loc%CelRay(icelray)%hPinIdx
+          iPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, iPin) - 1
           
+          nRaySeg0 = 0
           DO iz = myzb, myze
-            icel     = Pin(ipin)%cell(iz)
-            ibcel    = Cell(iCel)%basecellstr
-            nRaySeg0 = max(nRaySeg0, Cell(ibcel)%Cellray(jcelray)%nSeg)
+            jcBss = Pin(iPin)%hCelGeo(iz)
+            
+            CelRay_Loc => haRay(iGeoTyp, jcBss, jAsyRay)%CelRay(icelRay)
+            
+            nRaySeg0 = max(nRaySeg0, CelRay_Loc%nSegRay)
           END DO
           
           nRaySeg = nRaySeg + nRaySeg0
         END DO
         
         nMaxRaySeg  = nRaySeg
-        nMaxCellRay = AsyRay(jAsyRay)%nCellRay
+        nMaxCellRay = haRay_Loc%nhpRay
         
         CALL dmalloc(DcmpAsyRay(iCnt, iAsy)%AsyRayList, nRef)
         CALL dmalloc(DcmpAsyRay(iCnt, iAsy)%DirList,    nRef)
@@ -183,7 +185,7 @@ DO iRotRay = 1, nRotRay
       DcmpAsyRay(iCnt, iAsy)%iRay    = iCnt
       
       DcmpAsyRay(iCnt, iAsy)%AsyRayList(nRef) = jAsyRay
-      DcmpAsyRay(iCnt, iAsy)%AziList   (nRef) = CoreRay(jCoreRay)%iAng
+      DcmpAsyRay(iCnt, iAsy)%AziList   (nRef) = hcRay(abs(jCoreRay))%AzmIdx
       DcmpAsyRay(iCnt, iAsy)%DirList   (nRef) = iDir
       
       IF (iCoreRay.EQ.1 .AND. iAsyRay.EQ.(AsyRayBeg + nDummyRay)) THEN
@@ -206,22 +208,27 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
+! Hex Color
 DO iAsy = 1, nAsy
-  IF (mod(Asy(iAsy)%ixa, 2) .EQ. mod(Asy(iAsy)%iya, 2)) THEN
-    Asy(iAsy)%color = RED
-  ELSE
-    Asy(iAsy)%color = BLACK
-  END IF
+  itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
   
+  SELECT CASE (itmp)
+    CASE (1); Core%Asy(iAsy)%color = RED
+    CASE (2); Core%Asy(iAsy)%color = BLACK
+    CASE (0); Core%Asy(iAsy)%color = BLUE
+  END SELECT
+END DO
+! ----------------------------------------------------
+DO iAsy = 1, nAsy
   DO iCnt = 1, DcmpAsyRayCount(iAsy)
     DO iAzi = 1, nAziAngle / 2
-      IF (ANY(DcmpAsyRay(iCnt, iAsy)%AziList.EQ.iAzi .OR. DcmpAsyRay(iCnt, iAsy)%AziList.EQ.nAziAngle - iAzi + 1)) THEN
-        DcmpAsyAziList(0, iAzi, iAsy) = DcmpAsyAziList(0, iAzi, iAsy) + 1
-        
-        DcmpAsyAziList(DcmpAsyAziList(0, iAzi, iAsy), iAzi, iAsy) = iCnt
-        
-        EXIT
-      END IF
+      IF (ANY(DcmpAsyRay(iCnt, iAsy)%AziList.NE.iAzi .AND. DcmpAsyRay(iCnt, iAsy)%AziList.NE.nAziAngle - iAzi + 1)) CYCLE
+      
+      DcmpAsyAziList(0, iAzi, iAsy) = DcmpAsyAziList(0, iAzi, iAsy) + 1
+      
+      DcmpAsyAziList(DcmpAsyAziList(0, iAzi, iAsy), iAzi, iAsy) = iCnt
+      
+      EXIT
     END DO
   END DO
 END DO

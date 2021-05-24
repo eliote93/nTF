@@ -385,7 +385,6 @@ TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(PolarAngle_Type), POINTER :: PolarAngle(:)
 REAL, POINTER :: PHIC(:, : , :), PhiFm(:, :, :)
 
-
 INTEGER, POINTER :: RotRayInOutCell(:, :)
 INTEGER, POINTER :: PhiangInSvIdx(:, :)
 INTEGER, POINTER :: DcmpAsyRayCount(:)

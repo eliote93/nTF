@@ -69,8 +69,7 @@ END SUBROUTINE HexSetAlbedo
 SUBROUTINE HexSetCore()
 
 USE allocs
-USE geom,    ONLY : nxy, nZ, nAsyType0, nPinType, Core, Asy, AsyInfo, AsyVol, PinInfo, &
-                    hz, hzInv, nzFm, hzFm, hzFmInv, nSubPlane, SubPlaneMap, SubPlaneRange
+USE geom,    ONLY : nxy, nZ, nAsyType0, nPinType, Core, Asy, AsyInfo, AsyVol, PinInfo, hz, hzInv, nzFm, hzFm, hzFmInv, nSubPlane, SubPlaneMap, SubPlaneRange
 USE PE_MOD,  ONLY : PE
 USE HexData, ONLY : nhAsy, nHexPin, hAsy, hAsyTypInfo, Asy1Dto2DMap, hPinInfo, hGeoTypInfo
 

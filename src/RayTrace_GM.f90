@@ -1124,8 +1124,8 @@ LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: irotray, iz, krot
 INTEGER, INTENT(IN) :: FastMocLv
 ! ----------------------------------------------------
-INTEGER :: iazi, ipol, iAsyRay, iAsy, iSurf, PhiAnginSvIdx, PhiAngOutSvIdx, ifsr, irsegidx, icellrayidx
-INTEGER :: icRay, imRay, jbeg, jend, jinc, ihpRay, iRaySeg, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, jcRay, iReg, iCel, iRaySeg1
+INTEGER :: iazi, ipol, iaRay, jaRay, iAsy, iSurf, PhiAnginSvIdx, PhiAngOutSvIdx, ifsr, irsegidx, icellrayidx
+INTEGER :: icRay, jbeg, jend, jinc, ihpRay, iRaySeg, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, jcRay, iReg, iCel, iRaySeg1
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, nRaySeg
 
 INTEGER :: CellRayIdxSt(nMaxCellRay, nMaxCoreRay, 2)
@@ -1181,14 +1181,14 @@ DO icRay = 1, nCoreRay
   irSegIdx    = 0
   iCellRayIdx = 0
   
-  DO imRay = 1, nAsyRay
-    iAsyRay = hcRay(jcRay)%mRayIdx(imRay)
-    iAsy    = hcRay(jcRay)%AsyIdx(imRay)
+  DO iaRay = 1, nAsyRay
+    jaRay   = hcRay(jcRay)%mRayIdx(iaRay)
+    iAsy    = hcRay(jcRay)%AsyIdx (iaRay)
     iAsyTyp = hAsy(iAsy)%AsyTyp
     iGeoTyp = hAsy(iAsy)%GeoTyp
     icBss   = hAsyTypInfo(iAsyTyp)%iBss
     
-    haRay_Loc => haRay(iGeoTyp, icBss, iAsyRay)
+    haRay_Loc => haRay(iGeoTyp, icBss, jaRay)
     
     DO ihpRay = 1, haRay_Loc%nhpRay
       iCellRayIdx = iCellRayIdx + 1
@@ -1197,7 +1197,7 @@ DO icRay = 1, nCoreRay
       jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
       jcBss = Pin(jhPin)%hCelGeo(iz)
       
-      CelRay_Loc => haRay(iGeoTyp, jcBss, iAsyRay)%CelRay(ihpRay)
+      CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
       
       ! Start of Cell
       CellRayIdxSt(iCellRayIdx, icRay, 2) = irSegIdx + 1

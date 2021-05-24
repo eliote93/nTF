@@ -122,6 +122,18 @@ TYPE(RayInfo_type) :: RayInfo
 TYPE(DcmpAsyRayInfo_type), POINTER  :: DcmpAsyRay(:, :)
 END SUBROUTINE
 
+SUBROUTINE HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
+
+USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type
+
+IMPLICIT NONE
+
+TYPE(CoreInfo_type) :: Core
+TYPE(RayInfo_type) :: RayInfo
+TYPE(DcmpAsyRayInfo_type), POINTER, DIMENSION(:,:)  :: DcmpAsyRay
+
+END SUBROUTINE
+
 SUBROUTINE RayInfo4CmfdGen(RayInfo, RayInfo4Cmfd, Core)
 USE PARAM
 USE TYPEDEF,        ONLY : RayInfo_type,      RayInfo4Cmfd_Type,  CoreInfo_type

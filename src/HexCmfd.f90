@@ -54,8 +54,11 @@ END SUBROUTINE HexSuperPinCurrent
 SUBROUTINE HexRayInfo4CmfdGen(RayInfo, RayInfo4Cmfd)
 
 USE ALLOCS
-USE TYPEDEF, ONLY : RayInfo_type, RayInfo4Cmfd_Type
-USE HexData, ONLY : hRotRay, hcRay, hAsy, hAsyTypInfo, haRay
+USE PARAM,   ONLY : FORWARD
+USE TYPEDEF, ONLY : RayInfo_type, RayInfo4Cmfd_Type, DcmpAsyRayInfo_Type
+USE CNTL,    ONLY : nTracerCntl
+USE HexType, ONLY : Type_HexAsyRay
+USE HexData, ONLY : hRotRay, hcRay, hAsy, hAsyTypInfo, haRay, nhAsy
 USE HexUtil, ONLY : SetSgn_INT
 
 IMPLICIT NONE
@@ -63,8 +66,12 @@ IMPLICIT NONE
 TYPE(RayInfo_type) :: RayInfo
 TYPE(RayInfo4Cmfd_type), POINTER :: RayInfo4Cmfd
 
+TYPE(DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
+
 INTEGER :: iRotRay, tDir, kDir, isv, icNum, imNum, ipNum, nRotRay, ncRay, nmRay, npRay
-INTEGER :: jcRay, jmRay, jAsy, jaTyp, jGeo, jcBss, jPin1, jPin2, jPin3
+INTEGER :: jcRay, jmRay, jAsy, jaTyp, jGeo, jcBss, jPin, jPin1, jPin2, jPin3, iCnt, iAsy, iAsyTyp, iGeoTyp, icBss, iAsyRayBeg, iAsyRayEnd
+
+TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 ! ----------------------------------------------------
 
 nRotRay = RayInfo%nRotRay
@@ -109,6 +116,56 @@ DO iRotRay = 1, nRotRay
     RayInfo4CMfd%RotRayInOutCell(iRotRay, tDir) = jPin3
   END DO
 END DO
+
+IF (nTracerCntl%lDomainDcmp) THEN
+  DcmpAsyRay => RayInfo%DcmpAsyRay
+  
+  CALL dmalloc(RayInfo4CMFD%DcmpAsyRayInCell, 2, RayInfo%nModRay, nhAsy)
+  CALL dmalloc(RayInfo4CMFD%DcmpAsyRayInSurf, 2, RayInfo%nModRay, nhAsy)
+  
+  RayInfo4CMFD%DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
+  
+  DO iAsy = 1, nhAsy
+    iAsyTyp = hAsy(iAsy)%AsyTyp
+    iGeoTyp = hAsy(iAsy)%GeoTyp
+    icBss   = hAsyTypInfo(iAsyTyp)%iBss
+    
+    DO iCnt = 1, RayInfo%DcmpAsyRayCount(iAsy)
+      iAsyRayBeg = DcmpAsyRay(iCnt, iAsy)%AsyRayList(1)
+      iAsyRayEnd = DcmpAsyRay(iCnt, iAsy)%AsyRayList(DcmpAsyRay(iCnt, iAsy)%nAsyRay)
+      
+      haRay_Loc => haRay(iGeoTyp, icBss, iAsyRayBeg)
+      npRay      = haRay_Loc%nhpRay
+      
+      IF (DcmpAsyRay(iCnt, iAsy)%DirList(1) .EQ. FORWARD) THEN
+        jPin = haRay_Loc%CelRay(1)%hPinIdx
+        
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%SurfIdx(1)
+        RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
+      ELSE
+        jPin = haRay_Loc%CelRay(npRay)%hPinIdx
+        
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%SurfIdx(2)
+        RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
+      END IF
+      
+      haRay_Loc => haRay(iGeoTyp, icBss, iAsyRayEnd)
+      npRay     = haRay_Loc%nhpRay
+      
+      IF (DcmpAsyRay(iCnt, iAsy)%DirList(DcmpAsyRay(iCnt, iAsy)%nAsyRay) .EQ. 1) THEN
+        jPin = haRay_Loc%CelRay(npRay)%hPinIdx
+        
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%SurfIdx(2)
+        RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
+      ELSE
+        jPin = haRay_Loc%CelRay(1)%hPinIdx
+        
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%SurfIdx(1)
+        RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
+      END IF
+    END DO
+  END DO
+END IF
 
 RayInfo%RayInfo4Cmfd       => RayInfo4CMfd
 RayInfo4CMFD%PhiAngInSvIdx => RayInfo%PhiAngInSvIdx

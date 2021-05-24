@@ -490,7 +490,7 @@ TYPE (TrackingDat_Type) :: TrackingDat
 LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: irotray, iz, ilv, krot, gb, ge, ScatOd
 ! ----------------------------------------------------
-INTEGER :: iAzi, iPol, icRay, jcRay, iAsyRay, iRaySeg, imRay, ihpRay, iAsy, ifsr, iSurf, jbeg, jend, jinc, ig, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, iod
+INTEGER :: iAzi, iPol, icRay, jcRay, iaRay, jaRay, iRaySeg, ihpRay, iAsy, ifsr, iSurf, jbeg, jend, jinc, ig, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, iod
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, PhiAnginSvIdx, PhiAngOutSvIdx, ExpAppIdx, nod
 
 REAL :: phid, tau, ExpApp
@@ -558,9 +558,9 @@ DO icRay = jbeg, jend, jinc
   END DO
   ! --------------------------------------------------
   IF(jcRay > 0) THEN
-    DO imRay = 1, nAsyRay
-      iAsyRay = hcRay(abs(jcRay))%mRayIdx(imRay)
-      iAsy    = hcRay(abs(jcRay))%AsyIdx(imRay)
+    DO iaRay = 1, nAsyRay
+      jaRay = hcRay(abs(jcRay))%mRayIdx(iaRay)
+      iAsy  = hcRay(abs(jcRay))%AsyIdx (iaRay)
       
       IF (iAsy .EQ. 0) CYCLE
       
@@ -568,14 +568,14 @@ DO icRay = jbeg, jend, jinc
       iGeoTyp = hAsy(iAsy)%GeoTyp
       icBss   = hAsyTypInfo(iAsyTyp)%iBss
       
-      haRay_Loc => haRay(iGeoTyp, icBss, iAsyRay)
+      haRay_Loc => haRay(iGeoTyp, icBss, jaRay)
       
       DO ihpRay = 1, haRay_Loc%nhpRay
         jhPin = haRay_Loc%CelRay(ihpRay)%hPinIdx
         jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
         jcBss = Pin(jhPin)%hCelGeo(iz)
         
-        CelRay_Loc => haRay(iGeoTyp, jcBss, iAsyRay)%CelRay(ihpRay)
+        CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
         
         IF (lJout) THEN
           iSurf = CelRay_Loc%SurfIdx(1) ! y : small
@@ -628,9 +628,9 @@ DO icRay = jbeg, jend, jinc
     END DO
   ! --------------------------------------------------
   ELSE
-    DO imRay = nAsyRay, 1, -1
-      iAsyRay = hcRay(abs(jcRay))%mRayIdx(imRay)
-      iAsy    = hcRay(abs(jcRay))%AsyIdx(imRay)
+    DO iaRay = nAsyRay, 1, -1
+      jaRay = hcRay(abs(jcRay))%mRayIdx(iaRay)
+      iAsy  = hcRay(abs(jcRay))%AsyIdx (iaRay)
       
       IF (iAsy .EQ. 0) CYCLE
       
@@ -638,14 +638,14 @@ DO icRay = jbeg, jend, jinc
       iGeoTyp = hAsy(iAsy)%GeoTyp
       icBss   = hAsyTypInfo(iAsyTyp)%iBss
       
-      haRay_Loc => haRay(iGeoTyp, icBss, iAsyRay)
+      haRay_Loc => haRay(iGeoTyp, icBss, jaRay)
       
       DO ihpRay = haRay_Loc%nhpRay, 1, -1
         jhPin = haRay_Loc%CelRay(ihpRay)%hPinIdx
         jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
         jcBss = Pin(jhPin)%hCelGeo(iz)
         
-        CelRay_Loc => haRay(iGeoTyp, jcBss, iAsyRay)%CelRay(ihpRay)
+        CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
         
         IF (lJout) THEN
           iSurf = CelRay_Loc%SurfIdx(2) ! y : Big

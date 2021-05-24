@@ -725,9 +725,7 @@ IMPLICIT NONE
 
 INTEGER :: iAzm, jAzm, iRotRay, iCoreRay, imRay, iPin
 INTEGER :: iAssy, iAssyType, iAssyDatID
-INTEGER :: nCoreRay, nMRay, nSeg, iSegSt, nPin, nhcPin, nhcSeg, nBndy
-! ----------------------------------------------------
-
+INTEGER :: nCoreRay, nMRay, nSeg, iSegSt, nPin, nhcPin, nhcSeg, nBndy, nRay
 ! ----------------------------------------------------
 !                1. Ray Info
 ! ----------------------------------------------------
@@ -802,6 +800,26 @@ RayInfo%AziAngle => AziAngle
 RayInfo%RotRay   => RotRay
 RayInfo%CoreRay  => CoreRay
 RayInfo%AsyRay   => AsyRay
+! ----------------------------------------------------
+!                6. Rot Ray Azi List
+! ----------------------------------------------------
+CALL dmalloc0(RayInfo%RotRayAziList, 0, nRotRay, 1, nAzmAng / 2)
+
+nRay = nRotRay / (nAzmAng / 2)
+
+DO iAzm = 1, nAzmAng / 2 - 1
+  RayInfo%RotRayAziList(0, iAzm) = nRay
+  
+  DO iRotRay = 1, nRay
+    RayInfo%RotRayAziList(iRotRay, iAzm) = nRay*(iAzm-1) + iRotRay
+  END DO
+END DO
+
+RayInfo%RotRayAziList(0, nAzmAng / 2) = nRotRay - RayInfo%RotRayAziList(nRay, nAzmAng / 2 - 1)
+
+DO iRotRay = 1, RayInfo%RotRayAziList(0, nAzmAng / 2)
+  RayInfo%RotRayAziList(iRotRay, iAzm) = RayInfo%RotRayAziList(nRay, nAzmAng / 2 - 1) + iRotRay
+END DO
 ! ----------------------------------------------------
 
 END SUBROUTINE ConvertRay

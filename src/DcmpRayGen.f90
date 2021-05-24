@@ -26,7 +26,7 @@ INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
 INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nPinRay, nRaySeg, nRaySeg0, nAziAngle
-INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, iRay, icelray, jcelray, iAzi, iDir, iz, iasy, icel, ibcel, ipin, iCnt
+INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, jcelray, iAzi, iDir, iz, iasy, icel, ibcel, ipin, iCnt
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prvAsy, prvCnt, nRef
 ! ----------------------------------------------------
 
@@ -61,8 +61,6 @@ nMaxDcmpAsyRay  = 0
 ! ----------------------------------------------------
 DO iRotRay = 1, nRotRay
   nCoreRay = RotRay(iRotRay)%nRay
-  iRay     = 0
-  nAsyRay  = 0
   prvAsy   = 0
   prvCnt   = 0
   
@@ -79,7 +77,6 @@ DO iRotRay = 1, nRotRay
     END IF
     
     DO iAsyRay = AsyRayBeg, AsyRayEnd, AsyRayInc
-      iRay    = iRay + 1
       jAsyRay = CoreRay(jCoreRay)%AsyRayIdx(iAsyRay)
       iAsy    = CoreRay(jCoreRay)%AsyIdx(iAsyRay)
       
@@ -99,8 +96,8 @@ DO iRotRay = 1, nRotRay
           ipin     = AsyRay(jAsyRay)%PinIdx(icelray)
           jcelray  = AsyRay(jAsyRay)%PinRayIdx(icelray)
           ipin     = Asy(iAsy)%GlobalPinIdx(ipin)
-          nRaySeg0 = 0
           
+          nRaySeg0 = 0
           DO iz = myzb, myze
             icel     = Pin(ipin)%cell(iz)
             ibcel    = Cell(iCel)%basecellstr
@@ -138,13 +135,13 @@ DO iRotRay = 1, nRotRay
         DcmpAsyRayCount(iAsy) = DcmpAsyRayCount(iAsy) + 1
         
         iCnt = iCnt + 1
-                
+        
         DO icelray = 1, AsyRay(jAsyRay)%nCellRay
           ipin     = AsyRay(jAsyRay)%PinIdx(icelray)
           jcelray  = AsyRay(jAsyRay)%PinRayIdx(icelray)
           ipin     = Asy(iAsy)%GlobalPinIdx(ipin)
-          nRaySeg0 = 0
           
+          nRaySeg0 = 0
           DO iz = myzb, myze
             icel     = Pin(ipin)%cell(iz)
             ibcel    = Cell(iCel)%basecellstr
@@ -215,13 +212,13 @@ DO iAsy = 1, nAsy
   
   DO iCnt = 1, DcmpAsyRayCount(iAsy)
     DO iAzi = 1, nAziAngle / 2
-      IF (ANY(DcmpAsyRay(iCnt, iAsy)%AziList.EQ.iAzi .OR. DcmpAsyRay(iCnt, iAsy)%AziList.EQ.nAziAngle - iAzi + 1)) THEN
-        DcmpAsyAziList(0, iAzi, iAsy) = DcmpAsyAziList(0, iAzi, iAsy) + 1
-        
-        DcmpAsyAziList(DcmpAsyAziList(0, iAzi, iAsy), iAzi, iAsy) = iCnt
-        
-        EXIT
-      END IF
+      IF (ANY(DcmpAsyRay(iCnt, iAsy)%AziList.NE.iAzi .OR. DcmpAsyRay(iCnt, iAsy)%AziList.NE.nAziAngle - iAzi + 1)) CYCLE
+      
+      DcmpAsyAziList(0, iAzi, iAsy) = DcmpAsyAziList(0, iAzi, iAsy) + 1
+      
+      DcmpAsyAziList(DcmpAsyAziList(0, iAzi, iAsy), iAzi, iAsy) = iCnt
+      
+      EXIT
     END DO
   END DO
 END DO
