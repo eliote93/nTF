@@ -1,20 +1,20 @@
 #include <defines.h>
 SUBROUTINE initialize()
 
-USE Geom,           ONLY : Core
-USE Core_Mod,       ONLY : FmInfo, CmInfo, GroupInfo
-USE RAYS,           ONLY : RayInfo
-USE FILES,          ONLY : io8
-USE CNTL,           ONLY : nTracerCntl
-USE VTK_Mod,        ONLY : ProcessVTK2DPlnModel
-USE PE_MOD,         ONLY : PE
-USE MPIConfig_Mod,  ONLY : SetMPIEnv
-USE LpShf_mod,      ONLY : LP_Shuffling
-USE CNTLROD_mod,    ONLY : InitCntlRodConf, SetCrBankPosition
-USE FXRVAR_MOD,     ONLY : lFXRVAR
-USE XS_COMMON,      ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
-USE MOC_COMMON,     ONLY : AllocCoreMacXs
-USE MPIComm_Mod,    ONLY : MPI_SYNC
+USE Geom,          ONLY : Core
+USE Core_Mod,      ONLY : FmInfo, CmInfo, GroupInfo
+USE RAYS,          ONLY : RayInfo
+USE FILES,         ONLY : io8
+USE CNTL,          ONLY : nTracerCntl
+USE VTK_Mod,       ONLY : ProcessVTK2DPlnModel
+USE PE_MOD,        ONLY : PE
+USE MPIConfig_Mod, ONLY : SetMPIEnv
+USE LpShf_mod,     ONLY : LP_Shuffling
+USE CNTLROD_mod,   ONLY : InitCntlRodConf, SetCrBankPosition
+USE FXRVAR_MOD,    ONLY : lFXRVAR
+USE XS_COMMON,     ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
+USE MOC_COMMON,    ONLY : AllocCoreMacXs
+USE MPIComm_Mod,   ONLY : MPI_SYNC
 
 #ifdef __INTEL_MKL
 USE MKL_INIT
@@ -28,7 +28,7 @@ IF (nTracerCntl%lHex) CALL HexMain
 ! Parallel Enviorment
 #ifdef MPI_ENV
 CALL SetMPIEnv(PE)
-IF(PE%lidle) RETURN
+IF (PE%lidle) RETURN
 #endif
 
 ! Geo. & Ray

@@ -219,7 +219,7 @@ USE Moc_mod,      ONLY : phis1g,     MocJout1g,   Xst1g,       tSrc,       &
                          phisnm,     PhiAngInnm,  MocJoutnm,   xstnm,      &
                          srcnm,      srcmnm,      phimnm,                  &
                          !--- CNJ Edit : Domain Decomposition
-                         DcmpPhiAngIn,    DcmpPhiAngOut
+                         DcmpPhiAngOut
 USE rays,         ONLY : RayInfo
 USE Setray,       ONLY : RayInfoMaxSize
 USE CNTL,         ONLY : nTracerCntl

@@ -411,7 +411,7 @@ reserr = errdat(3)
 #endif
 
 IF (MASTER) THEN
-  WRITE(mesg ,'(A5,I7,F15.6, 3(1pE12.3))') 'RT',itrcntl%mocit, eigv, eigerr, fiserr, reserr
+  WRITE (mesg ,'(A5,I7,F15.6, 3(1pE12.3))') 'RT', itrcntl%mocit, eigv, eigerr, fiserr, reserr
   CALL message(io8, TRUE, TRUE, mesg)
 END IF
 
@@ -442,4 +442,5 @@ NULLIFY (phim)
 NULLIFY (RadJout)
 NULLIFY (axsrc)
 ! ----------------------------------------------------
+
 END SUBROUTINE MOCSweep

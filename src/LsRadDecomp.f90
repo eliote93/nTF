@@ -14,7 +14,7 @@ CONTAINS
 SUBROUTINE SetRadDcmp(Core, PE)
 USE TYPEDEF,        ONLY : CoreInfo_Type,        Pin_Type,        Asy_Type,         PE_TYPE
 USE BasicOperation, ONLY : CP_CA
-USE UtilFunction,   ONLY : GetRangeDecomp,       GetRadDecomp_SA
+USE UtilFunction,   ONLY : GetDcmpRange,       GetRadDecomp_SA
 USE ALLOCS
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
@@ -62,10 +62,10 @@ ENDDO
 
 ndivx = 1; ndivy = PE%nCmfdThread
 DO i = 1, ndivx
-  CALL GetRangeDecomp(1, Core%nx, ndivx, i-1, XdomRange(1, i), XdomRange(2, i))
+  CALL GetDcmpRange(1, Core%nx, ndivx, i-1, XdomRange(1, i), XdomRange(2, i))
 ENDDO
 DO i = 1, ndivy
-  CALL GetRangeDecomp(1, Core%ny, ndivy, i-1, YdomRange(1, i), YdomRange(2, i))
+  CALL GetDcmpRange(1, Core%ny, ndivy, i-1, YdomRange(1, i), YdomRange(2, i))
 ENDDO
 nxylocal = 0
 

@@ -5,14 +5,10 @@ SUBROUTINE HexCorePowerCal(Core, CmInfo, PowerDist, ng, nTracerCntl, PE)
 USE allocs
 USE PARAM,          ONLY : ZERO, lTransient, FALSE, TRUE
 USE ioutil,         ONLY : terminate
-USE TYPEDEF,        ONLY : CoreInfo_Type,   CMInfo_Type,   PowerDist_Type,     PE_TYPE,   &
-                           AsyInfo_Type,    Asy_Type,      PinXs_Type,         FxrInfo_Type, &
-                           Cell_Type,       Pin_Type
+USE TYPEDEF,        ONLY : CoreInfo_Type, CMInfo_Type, PowerDist_Type, PE_TYPE, AsyInfo_Type, Asy_Type, PinXs_Type, FxrInfo_Type, Cell_Type, Pin_Type
 USE Files,          ONLY : io8
 USE BasicOperation, ONLY : DotProduct
 USE CNTL,           ONLY : nTracerCntl_Type
-USE ALLOCS
-
 USE Core_mod,       ONLY : FmInfo
 USE HexData,        ONLY : hAsy, hPinInfo
 !USE HexTst,         ONLY : HexPrtPhiC, HexPrtXsKF
@@ -20,7 +16,6 @@ USE HexData,        ONLY : hAsy, hPinInfo
 #ifdef MPI_ENV
 USE MPIComm_mod,    ONLY : SENDRECV
 #endif
-
 #ifdef __INTEL_MKL
 USE MKL_3D
 USE CMFD_COMMON,    ONLY : HomogenizeXS, AllocHomoXSVar
@@ -28,59 +23,58 @@ USE CMFD_COMMON,    ONLY : HomogenizeXS, AllocHomoXSVar
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type)    :: Core
-TYPE(CmInfo_Type)      :: CMInfo
-TYPE(PowerDist_Type)   :: PowerDist
-TYPE(nTracerCntl_Type) :: nTracerCntl
-TYPE(PE_Type)          :: PE
+TYPE (CoreInfo_Type)    :: Core
+TYPE (CmInfo_Type)      :: CMInfo
+TYPE (PowerDist_Type)   :: PowerDist
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_Type)          :: PE
 
 INTEGER :: ng
 
-TYPE(AsyInfo_Type), POINTER :: AsyInfo(:)
-TYPE(Asy_Type),     POINTER :: Asy(:)
-TYPE(PinXS_Type),   POINTER :: PinXs(:, :)
-TYPE(cell_type),    POINTER :: Cell(:)
-TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
-TYPE(Pin_Type),     POINTER :: Pin(:)
+TYPE (AsyInfo_Type), POINTER, DIMENSION(:) :: AsyInfo
+TYPE (Asy_Type),     POINTER, DIMENSION(:) :: Asy
+TYPE (cell_type),    POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),     POINTER, DIMENSION(:) :: Pin
 
-REAL, POINTER :: PhiC(:, :, :), PhiS(:,:,:)
-REAL, POINTER :: AsyVol(:, :)
-REAL, POINTER :: hz(:)
+TYPE (PinXS_Type),   POINTER, DIMENSION(:,:) :: PinXs
+TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
+
+REAL, POINTER, DIMENSION(:)     :: hz
+REAL, POINTER, DIMENSION(:,:)   :: AsyVol
+REAL, POINTER, DIMENSION(:,:,:) :: PhiC, PhiS
 
 INTEGER :: j, ig, ixy, jxy, kxy, iz, iz1, iz2, iasy, ipin, iCel, ifsr, jfsr
-INTEGER :: nxymax, nz, nxya, myzb, myze
-INTEGER :: nAsyType, AsyType, nFxrMax, FsrIdxSt, nLocalFsr
+INTEGER :: nxymax, nz, nxya, myzb, myze, nAsyType, AsyType, nFxrMax, FsrIdxSt, nLocalFsr
 
-REAL :: localpinpw, LocalAsyPw, pwsum, hactive
-REAL :: fuelvol, vol, FuelAsyVol, phisum, volsum
-REAL :: Pin3DNormalizer, Pin2DNormalizer, Asy3DNormalizer, Asy2DNolmalizer, Axial1Dnormalizer
-REAL :: Fm3DNormalizer, Fm2DNormalizer
+REAL :: localpinpw, LocalAsyPw, pwsum, hactive, fuelvol, vol, FuelAsyVol, phisum, volsum
+REAL :: Pin3DNormalizer, Pin2DNormalizer, Asy3DNormalizer, Asy2DNolmalizer, Axial1Dnormalizer, Fm3DNormalizer, Fm2DNormalizer
 
 LOGICAL :: master, slave, lCMFD, lxslib, lscat1
 ! ----------------------------------------------------
 
-master   = PE%Cmfdmaster
-slave    = PE%Cmfdslave
+master = PE%Cmfdmaster
+slave  = PE%Cmfdslave
+myzb   = PE%myzb
+myze   = PE%myze
+
 AsyInfo => Core%AsyInfo
 Cell    => Core%CellInfo
 Pin     => Core%Pin
 Asy     => Core%Asy
 hz      => Core%hz
 AsyVol  => Core%AsyVol
-phis    => FmInfo%phis
-Fxr     => FmInfo%Fxr
-
 nAsyType = Core%nAsyType
 nxya     = Core%nxya
 nz       = Core%nz
-myzb     = PE%myzb
-myze     = PE%myze
+
+phis => FmInfo%phis
+Fxr  => FmInfo%Fxr
+
 lCMFD    = nTracerCntl%lCMFD
 lxslib   = nTracerCntl%lxslib
 lscat1   = nTracerCntl%lscat1
 
 nxymax = 0 ! Max Number of Fuel Pin
-
 DO iAsy = 1, nAsyType
   nxymax = max(AsyInfo(iAsy)%nxy, nxymax)
 END DO
@@ -98,7 +92,7 @@ END IF
 !               01. SET : Cm Info % Pin XS
 ! ----------------------------------------------------
 #ifdef __INTEL_MKL
-IF (PE%lMKL .AND. .NOT. lCMFD) THEN
+IF (PE%lMKL .AND. .NOT.lCMFD) THEN
   CALL AllocCMFD(TRUE)
   CALL AllocHomoXSVar(Core, mklGeom%ng)
   CALL HomogenizeXS(Core, mklGeom%superPin, Fxr, mklCMFD%PinXS, phis, ng, mklGeom%nxy, mklGeom%myzb, mklGeom%myze, lxslib, lscat1, FALSE)
@@ -106,7 +100,7 @@ END IF
 
 IF (PE%lMKL) CALL MKL_ReorderPinXS(Core, CmInfo)
 
-IF (PE%lMKL .AND. .NOT. lCMFD) THEN
+IF (PE%lMKL .AND. .NOT.lCMFD) THEN
   DO ig = 1, ng
     DO iz = myzb, myze
       DO ixy = 1, mklGeom%nxy
@@ -153,12 +147,12 @@ pwsum = ZERO
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO iz = myzb, myze   !Axial Sweep
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  DO iz = myzb, myze
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
     
-    DO ixy = 1, hAsy(iAsy)%nTotPin  !Pin Sweep
+    DO ixy = 1, hAsy(iAsy)%nTotPin
       jxy  = hAsy(iAsy)%PinIdxSt - 1 + ixy
       iPin = hPinInfo(jxy)%OrdInAsy01
       
@@ -170,7 +164,6 @@ DO iasy = 1, nxya
       PowerDist%PinPower3D(iPin, iasy, iz) = LocalPinPw
       
       pwsum = pwsum + LocalPinPw
-      vol   = vol   + hPinInfo(jxy)%Vol(iz)
     END DO
   END DO
 END DO
@@ -178,7 +171,7 @@ END DO
 !               03. MERGE in MPI
 ! ----------------------------------------------------
 #ifdef MPI_ENV 
-IF(Master) THEN
+IF (Master) THEN
   DO j = 1, PE%nCmfdProc - 1
     iz1 = PE%AxDomRange(1, j)
     iz2 = PE%AxDomRange(2, j)
@@ -191,32 +184,30 @@ ELSE
     CALL SendRecv(PowerDist%PinPower3D(1:nxymax, 1:nxya, iz1:iz2), nxymax, nxya, iz2 - iz1 + 1, 0, TRUE, PE%MPI_CMFD_COMM )
 END IF
 
-IF(slave) THEN
+IF (slave) THEN
   NULLIFY (PhiC, PinXs, AsyInfo, Asy, hz, AsyVol)
   
   RETURN
 END IF
 
-IF(Master) THEN
+IF (Master) THEN
   pwsum = ZERO
-  vol   = ZERO
   
   DO iasy = 1, nxya
     AsyType = Asy(iasy)%AsyType
     
-    IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+    IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
     
-    DO iz = 1, nz   !Axial Sweep
-      IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+    DO iz = 1, nz
+      IF (.NOT. Core%lFuelPlane(iz)) CYCLE
       
-      DO ixy = 1, hAsy(iAsy)%nRodPin  !Cell Sweep
+      DO ixy = 1, hAsy(iAsy)%nRodPin
         jxy  = hAsy(iAsy)%PinIdxSt - 1 + ixy
         iPin = hPinInfo(jxy)%OrdInAsy01
         
         LocalPinPw = PowerDist%PinPower3D(iPin, iAsy, iz)
         
         pwsum = pwsum + LocalPinPw
-        vol   = vol + hPinInfo(jxy)%Vol(iz)
       END DO
     END DO
   END DO
@@ -228,12 +219,12 @@ END IF
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO iz = 1, nz   !Axial Sweep
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  DO iz = 1, nz
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
     
-    DO iPin = 1, AsyInfo(AsyType)%nxy  !Pin Sweep
+    DO iPin = 1, AsyInfo(AsyType)%nxy
       PowerDist%PinPower2D(iPin, iasy) = PowerDist%PinPower2D(iPin, iasy) + PowerDist%PinPower3D(iPin, iasy, iz)
     END DO
   END DO
@@ -244,14 +235,14 @@ END DO
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO iz = 1, nz   !Axial Sweep
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  DO iz = 1, nz
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
     
     LocalAsyPw = ZERO
     
-    DO iPin = 1, AsyInfo(AsyType)%nxy  !Pin Sweep
+    DO iPin = 1, AsyInfo(AsyType)%nxy
       LocalAsyPw = LocalAsyPw + PowerDist%PinPower3D(iPin, iasy, iz)
     END DO
     
@@ -266,10 +257,11 @@ END DO
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO iz = 1, nz   !Axial Sweep
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  DO iz = 1, nz
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
+    
     PowerDist%Axial1DPower(iz) = PowerDist%Axial1DPower(iz) + PowerDist%AsyPower3D(iz, iasy)
   END DO
 END DO
@@ -281,18 +273,18 @@ FuelVol = ZERO
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO iz = 1, nz   !Axial Sweep
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  DO iz = 1, nz
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
     
-    DO ixy = 1, hAsy(iAsy)%nRodPin  !Cell Sweep
+    DO ixy = 1, hAsy(iAsy)%nRodPin
       jxy  = hAsy(iAsy)%PinIdxSt - 1 + ixy
       iPin = hPinInfo(jxy)%OrdInAsy01
       
       LocalPinPw = PowerDist%PinPower3D(iPin, iasy, iz)
       
-      IF(LocalPinPw .GT. 1E-15) THEN
+      IF (LocalPinPw .GT. 1E-15) THEN
         FuelVol = FuelVol + hPinInfo(jxy)%Vol(iz)
       END IF
     END DO
@@ -305,7 +297,7 @@ FuelAsyVol = ZERO
 
 DO iz =1, nz
   DO iasy = 1, nxya
-    IF(PowerDist%AsyPower3D(iz, iasy) .gt. 1E-15) FuelAsyVol = FuelAsyVol + AsyVol(iasy, iz)
+    IF (PowerDist%AsyPower3D(iz, iasy) .gt. 1E-15) FuelAsyVol = FuelAsyVol + AsyVol(iasy, iz)
   END DO
 END DO
 ! ----------------------------------------------------
@@ -314,9 +306,11 @@ END DO
 hActive = ZERO
 
 DO iz = 1, nz
-  IF(Core%lFuelPlane(iz)) hactive = hactive + hz(iz)
+  IF (Core%lFuelPlane(iz)) hactive = hactive + hz(iz)
 END DO
-
+! ----------------------------------------------------
+!               10. CAL : Normalizer
+! ----------------------------------------------------
 Pin3DNormalizer   = FuelVol         / pwsum
 Fm3DNormalizer    = Core%FuelVolFM  / pwsum
 Pin2DNormalizer   = Pin3DNormalizer / hactive
@@ -325,83 +319,81 @@ Asy3DNormalizer   = FuelAsyVol      / pwsum
 Asy2DNolmalizer   = Asy3DNormalizer / hactive
 Axial1Dnormalizer = hactive         / pwsum
 
-IF(nTracerCntl%lProblem .EQ. lTransient) THEN
-  Pin3DNormalizer   = Pin3DNormalizer   * nTracerCntl%PowerLevel
-  Fm3DNormalizer    = Fm3DNormalizer    * nTracerCntl%PowerLevel
-  Pin2DNormalizer   = Pin2DNormalizer   * nTracerCntl%PowerLevel
-  Fm2DNormalizer    = Fm2DNormalizer    * nTracerCntl%PowerLevel
-  Asy3DNormalizer   = Asy3DNormalizer   * nTracerCntl%PowerLevel
-  Asy2DNolmalizer   = Asy2DNolmalizer   * nTracerCntl%PowerLevel
-  Axial1Dnormalizer = Axial1Dnormalizer * nTracerCntl%PowerLevel
-END IF
+!IF (nTracerCntl%lProblem .EQ. lTransient) THEN
+!  Pin3DNormalizer   = Pin3DNormalizer   * nTracerCntl%PowerLevel
+!  Fm3DNormalizer    = Fm3DNormalizer    * nTracerCntl%PowerLevel
+!  Pin2DNormalizer   = Pin2DNormalizer   * nTracerCntl%PowerLevel
+!  Fm2DNormalizer    = Fm2DNormalizer    * nTracerCntl%PowerLevel
+!  Asy3DNormalizer   = Asy3DNormalizer   * nTracerCntl%PowerLevel
+!  Asy2DNolmalizer   = Asy2DNolmalizer   * nTracerCntl%PowerLevel
+!  Axial1Dnormalizer = Axial1Dnormalizer * nTracerCntl%PowerLevel
+!END IF
 ! ----------------------------------------------------
-!               10. NORM : 3D Pin Power
+!               11. NORM : 3D Pin Power
 ! ----------------------------------------------------
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO iz = 1, nz   !Axial Sweep
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  DO iz = 1, nz
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
     
-    DO ixy = 1, hAsy(iAsy)%nRodPin  !Pin Sweep
+    DO ixy = 1, hAsy(iAsy)%nRodPin
       jxy  = hAsy(iAsy)%PinIdxSt - 1 + ixy
       iPin = hPinInfo(jxy)%OrdInAsy01
       
-      PowerDist%PinPower3D(iPin, iasy, iz) = PowerDist%PinPower3D(iPin, iasy, iz) * Pin3DNormalizer &
-                                           / hPinInfo(jxy)%Vol(iz)
+      PowerDist%PinPower3D(iPin, iasy, iz) = PowerDist%PinPower3D(iPin, iasy, iz) * Pin3DNormalizer / hPinInfo(jxy)%Vol(iz)
     END DO
   END DO
 END DO
 ! ----------------------------------------------------
-!               11. NORM : 2D Pin Power
+!               12. NORM : 2D Pin Power
 ! ----------------------------------------------------
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
-  DO ixy = 1, hAsy(iAsy)%nRodPin  !Cell Sweep
+  DO ixy = 1, hAsy(iAsy)%nRodPin
     jxy  = hAsy(iAsy)%PinIdxSt - 1 + ixy
     iPin = hPinInfo(jxy)%OrdInAsy01
 
-    PowerDist%PinPower2D(iPin, iasy) = PowerDist%PinPower2D(iPin, iasy) * Pin2DNormalizer &
-                                     / (hPinInfo(jxy)%Vol(1) / hz(1))
+    PowerDist%PinPower2D(iPin, iasy) = PowerDist%PinPower2D(iPin, iasy) * Pin2DNormalizer / (hPinInfo(jxy)%Vol(1) / hz(1))
   END DO
 END DO 
-
-CONTINUE
 ! ----------------------------------------------------
-!               12. NORM : 3D Assy Power
+!               13. NORM : 3D Asy. Power
 ! ----------------------------------------------------
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
   DO iz = 1, nz
-    IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+    IF (.NOT. Core%lFuelPlane(iz)) CYCLE
     
     PowerDist%AsyPower3D(iz, iasy) = PowerDist%AsyPower3D(iz, iasy) * Asy3DNormalizer / (AsyVol(iasy, 1))
   END DO
 END DO
 ! ----------------------------------------------------
-!               13. NORM : 2D Assy Power 
+!               14. NORM : 2D Asy. Power 
 ! ----------------------------------------------------
 DO iasy = 1, nxya
   AsyType = Asy(iasy)%AsyType
   
-  IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+  IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
   
   PowerDist%AsyPower2D(iasy) = PowerDist%AsyPower2D(iasy) * Asy2DNolmalizer * (hz(1)/AsyVol(iasy, 1))
 END DO
-
+! ----------------------------------------------------
+!               15. NORM : 1D Pln. Power 
+! ----------------------------------------------------
 DO iz = 1, nz
   PowerDist%Axial1DPower(iz) = PowerDist%Axial1DPower(iz) * Axial1Dnormalizer/ hz(iz)
 END DO
 ! ----------------------------------------------------
-!               14. Move
+!               16. CnP
 ! ----------------------------------------------------
 PowerDist%Pin3DNormalizer   = Pin3DNormalizer
 PowerDist%Pin2DNormalizer   = Pin2DNormalizer
@@ -411,7 +403,12 @@ PowerDist%Asy3DNormalizer   = Asy3DNormalizer
 PowerDist%Asy2DNormalizer   = Asy2DNolmalizer
 PowerDist%Axial1Dnormalizer = Axial1Dnormalizer
 
-NULLIFY (PhiC, PinXs, AsyInfo, Asy, hz, AsyVol)
+NULLIFY (PhiC)
+NULLIFY (PinXs)
+NULLIFY (AsyInfo)
+NULLIFY (Asy)
+NULLIFY (hz)
+NULLIFY (AsyVol)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexCorePowerCal
@@ -480,7 +477,7 @@ nxy = nxymax
 
 CALL UpdateNGPHIC(PinHeatXS, NPhiC, GPhiC, myzb, myze, Core%nxy, ng, ngg)
 
-IF(master) THEN 
+IF (master) THEN 
   ALLOCATE(PhotonPower%PinPower2D(nxy, nxya))
   ALLOCATE(PhotonPower%PinPower3D(nxy, nxya, nz))
   ALLOCATE(PhotonPower%AsyPower2D(nxya))
@@ -533,7 +530,7 @@ DO iasy = 1, nxya
 END DO 
 
 #ifdef MPI_ENV 
-IF(Master) THEN
+IF (Master) THEN
   DO i = 1, PE%nCmfdProc - 1
     iz1 = PE%AxDomRange(1, i); iz2 = PE%AxDomRange(2, i)
     CALL SendRecv(NeutronPower%PinPower3D(1:nxymax, 1:nxya, iz1:iz2), nxymax, nxya,    &
@@ -553,9 +550,9 @@ ELSE
                   iz2 - iz1 + 1, 0, .TRUE., PE%MPI_CMFD_COMM )
 ENDIF
 
-IF(slave) RETURN
+IF (slave) RETURN
 
-IF(master) THEN
+IF (master) THEN
   pwsum = 0; vol = 0
   Gpwsum = 0.; Npwsum = 0.
   DO iasy = 1, nxya
@@ -675,7 +672,7 @@ SUBROUTINE NormPowerDist(Core, PowerDist, CmInfo, ng, ngg, nxy, nTracerCntl, PE)
   fuelarea = 0
   DO iasy = 1, nxya
     AsyType = Asy(iasy)%AsyType
-    IF(.NOT. AsyInfo(AsyType)%lFuel) CYCLE
+    IF (.NOT. AsyInfo(AsyType)%lFuel) CYCLE
     DO ixy = 1, hasy(iasy)%nTotPin  !Cell Sweep
       jxy = hAsy(iasy)%PinIdxSt - 1 + ixy
       ipin = hPinInfo(jxy)%OrdInAsy01
@@ -688,20 +685,20 @@ SUBROUTINE NormPowerDist(Core, PowerDist, CmInfo, ng, ngg, nxy, nTracerCntl, PE)
   FuelAsyVol = 0
   DO iz =1, nz
     DO iasy = 1, nxya
-      IF(PowerDist%AsyPower3D(iz, iasy) .gt. 0._8) FuelAsyVol = FuelAsyVol + AsyVol(iasy, iz)
+      IF (PowerDist%AsyPower3D(iz, iasy) .gt. 0._8) FuelAsyVol = FuelAsyVol + AsyVol(iasy, iz)
     ENDDO
   ENDDO
   
   !Fuel Asy Area
   FuelAsyArea = 0
   DO iasy = 1, nxya
-    IF(PowerDist%AsyPower2D(iasy) .gt. 0._8) FuelAsyArea = FuelAsyArea + AsyVol(iasy, 1) / hz(1)
+    IF (PowerDist%AsyPower2D(iasy) .gt. 0._8) FuelAsyArea = FuelAsyArea + AsyVol(iasy, 1) / hz(1)
   ENDDO
   
   !Active Core Height
   hactive = 0
   DO iz = 1, nz
-    !IF(Core%lFuelPlane(iz)) hactive = hactive + hz(iz)
+    !IF (Core%lFuelPlane(iz)) hactive = hactive + hz(iz)
      hactive = hactive + hz(iz)
   ENDDO
   
@@ -713,7 +710,7 @@ SUBROUTINE NormPowerDist(Core, PowerDist, CmInfo, ng, ngg, nxy, nTracerCntl, PE)
   Asy2DNolmalizer = Asy3DNormalizer / hactive
   Axial1Dnormalizer = hactive / pwsum
   
-  IF(nTracerCntl%lProblem .EQ. lTransient) THEN
+  IF (nTracerCntl%lProblem .EQ. lTransient) THEN
     Pin3DNormalizer = Pin3DNormalizer * nTracerCntl%PowerLevel
     Fm3DNormalizer = Fm3DNormalizer * nTracerCntl%PowerLevel
     Pin2DNormalizer = Pin2DNormalizer * nTracerCntl%PowerLevel
@@ -760,8 +757,7 @@ SUBROUTINE NormPowerDist(Core, PowerDist, CmInfo, ng, ngg, nxy, nTracerCntl, PE)
       PowerDist%PinPower2D(ipin, iasy) = PowerDist%PinPower2D(ipin, iasy) * Pin2DNormalizer/(hPinInfo(jxy)%vol(1)/hz(1))
     ENDDO
   ENDDO 
-  CONTINUE
-  
+    
   !3D Assembly Power Normalization
   DO iasy = 1, nxya
     AsyType= Asy(iasy)%AsyType
@@ -825,7 +821,7 @@ SUBROUTINE GenHomoKERMA(Core, FXR, Phis, GPhis, PinXS, myzb, myze, ng, ngg, lXsL
   nxy = Core%nxy
   nCoreFxr = Core%nCoreFxr; nCoreFsr = Core%nCoreFsr
   
-  IF(lxslib) THEN
+  IF (lxslib) THEN
     norg = GroupInfo%norg; nChi = GroupInfo%nChi
     iResoGrpBeg = GroupInfo%nofg + 1
     iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
@@ -849,7 +845,7 @@ SUBROUTINE GenHomoKERMA(Core, FXR, Phis, GPhis, PinXS, myzb, myze, ng, ngg, lXsL
           CALL MacXsBase(XsMac(j), myFxr, 1, ng, ng, 1._8, FALSE, TRUE, TRUE)  ! CrCSPFtn On        
           CALL GetLocalQMat(XSMac(j), myFxr, 1, ng, ng, TRUE)
           !Self-Sheilding Effect
-          IF(myFxr%lres) THEN
+          IF (myFxr%lres) THEN
              DO ig = iResoGrpBeg, iResoGrpEnd
                XsMac(j)%XsMacKf(ig) = XsMac(j)%XsMacKf(ig) * myFxr%FresokF(ig)  
              END DO
@@ -877,7 +873,7 @@ SUBROUTINE GenHomoKERMA(Core, FXR, Phis, GPhis, PinXS, myzb, myze, ng, ngg, lXsL
   DO iz = myzb, myze
     DO ixy = 1, nxy
       PinXS(ixy,iz)%PinTemp = GetPinTemp(Core, Fxr, iz, ixy)
-      IF(Core%lFuelPlane(iz) .AND. Pin(ixy)%lFuel) THEN
+      IF (Core%lFuelPlane(iz) .AND. Pin(ixy)%lFuel) THEN
         PinXS(ixy,iz)%FuelTemp = GetPinFuelTemp(Core, Fxr, iz, ixy)
         PinXS(ixy,iz)%ModTemp = GetPinModTemp(Core, Fxr, iz, ixy)
       ENDIF

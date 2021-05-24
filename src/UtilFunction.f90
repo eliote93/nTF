@@ -598,17 +598,22 @@ END SUBROUTINE
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE GetRangeDecomp(n1, n2, nproc, myrank, ibeg, iend)
+SUBROUTINE GetDcmpRange(n1, n2, nproc, myrank, ibeg, iend)
+
 IMPLICIT NONE
+
 INTEGER :: n1, n2, nproc, myrank, ibeg, iend
 INTEGER :: iwork1, iwork2
-iwork1 = ( n2 - n1 + 1 ) / nproc
-iwork2 = MOD( n2 - n1 + 1 , nproc)
-ibeg = myrank * iwork1 + n1 + MIN( myrank , iwork2 )
+
+iwork1 = (n2 - n1 + 1) / nproc
+iwork2 = MOD(n2 - n1 + 1 , nproc)
+ibeg = myrank * iwork1 + n1 + MIN(myrank, iwork2)
 iend = ibeg + iwork1 - 1
-IF(iwork2 .gt. myrank) iend=iend+1
-IF(ibeg .gt. iend) iend=ibeg
-END SUBROUTINE
+
+IF (iwork2 .gt. myrank) iend=iend+1
+IF (ibeg .gt. iend) iend=ibeg
+
+END SUBROUTINE GetDcmpRange
 
 !!!!!!!!!!!!!!!!!!Radial Domain Decomposition with Simulated Annealing!!!!!!!!!!!!!!!!!!!
 

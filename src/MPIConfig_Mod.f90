@@ -4,7 +4,7 @@ USE PARAM
 USE TypeDef,      ONLY : PE_TYPE
 USE MPICOMM_MOD,  ONLY : MPIWaitTurn, REDUCE, BCAST, MPI_SYNC
 USE IOUTIL,       ONLY : Terminate
-USE UtilFunction, ONLY : GetRangeDecomp
+USE UtilFunction, ONLY : GetDcmpRange
 IMPLICIT NONE
 
 #ifdef MPI_ENV
@@ -254,7 +254,7 @@ ENDIF
 
 PE%nzfm = PE%nz * nSubPlane
 
-!GetRangeDecomp
+!GetDcmpRange
 IF (nTracerCntl%lHex) THEN ! KSC
   nxy = Core%nxy
 ELSE
@@ -268,7 +268,7 @@ END IF
 PE%nxy = nxy
 
 PE%AxDomRange(1:2, 0) = (/1, PE%nz/); PE%RadDomRange(1:2, 0) = (/1, nxy/)
-CALL GetRangeDecomp(1, nxy, PE%nCMFDproc, CMFDGrp, PE%myNxyBeg, PE%myNxyEnd)
+CALL GetDcmpRange(1, nxy, PE%nCMFDproc, CMFDGrp, PE%myNxyBeg, PE%myNxyEnd)
 IF(PE%lCmfdGrp) THEN
   PE%AxDomRange(1:2, 0:PE%nCMFDproc) = 0; PE%AxDomRange(1:2, 0:PE%nCMFDproc) = 0
   Buf(1:2, 0:PE%nCMFDproc) = 0;   Buf(1:2, PE%myCMFDrank) = (/PE%myzb, PE%myze/)
@@ -343,7 +343,7 @@ ENDIF
 !PE%nzfm = PE%nz * nSubPlane
 PE%nzfm = nzfm
 
-!GetRangeDecomp
+!GetDcmpRange
 IF (nTracerCntl%lHex) THEN ! KSC
   nxy = nHexPin
 ELSE
@@ -366,7 +366,7 @@ END IF
 PE%nxy = nxy
 
 PE%AxDomRange(1:2, 0) = (/1, PE%nz/); PE%RadDomRange(1:2, 0) = (/1, nxy/)
-CALL GetRangeDecomp(1, nxy, PE%nCMFDproc, CMFDGrp, PE%myNxyBeg, PE%myNxyEnd)
+CALL GetDcmpRange(1, nxy, PE%nCMFDproc, CMFDGrp, PE%myNxyBeg, PE%myNxyEnd)
 IF(PE%lCmfdGrp) THEN
   PE%AxDomRange(1:2, 0:PE%nCMFDproc) = 0; PE%AxDomRange(1:2, 0:PE%nCMFDproc) = 0
   Buf(1:2, 0:PE%nCMFDproc) = 0;   Buf(1:2, PE%myCMFDrank) = (/PE%myzb, PE%myze/)
@@ -404,25 +404,32 @@ END SUBROUTINE
 
 !--- CNJ Edit : Domain Decomposition + MPI
 SUBROUTINE SetDcmpPEVariables(PE)
-USE PARAM
+
+USE ALLOCS
 USE TYPEDEF, ONLY : PE_TYPE
 USE GEOM,    ONLY : Core
 USE CNTL,    ONLY : nTracerCntl
-USE ALLOCS
 USE HexData, ONLY : RodPin, hAsy
-IMPLICIT NONE
-TYPE(PE_TYPE) :: PE
-INTEGER :: AsyBeg, AsyEnd, PinBeg, PinEnd, FsrBeg, FsrEnd
-INTEGER :: i, j
 
-CALL Dmalloc0(PE%nAsy, 0, PE%nRTProc - 1)
-CALL Dmalloc0(PE%nPin, 0, PE%nRTProc - 1)
-CALL Dmalloc0(PE%nFsr, 0, PE%nRTProc - 1)
-CALL Dmalloc0(PE%Asy_displs, 0, PE%nRTProc - 1)
-CALL Dmalloc0(PE%Pin_displs, 0, PE%nRTProc - 1)
-CALL Dmalloc0(PE%Fsr_displs, 0, PE%nRTProc - 1)
-DO i = 0, PE%nRTProc - 1
-  CALL GetRangeDecomp(1, Core%nxya, PE%nRTProc, i, AsyBeg, AsyEnd)
+IMPLICIT NONE
+
+TYPE (PE_TYPE) :: PE
+
+INTEGER :: AsyBeg, AsyEnd, PinBeg, PinEnd, FsrBeg, FsrEnd
+INTEGER :: iprc
+! ----------------------------------------------------
+
+CALL dmalloc0(PE%nAsy, 0, PE%nRTProc - 1)
+CALL dmalloc0(PE%nPin, 0, PE%nRTProc - 1)
+CALL dmalloc0(PE%nFsr, 0, PE%nRTProc - 1)
+
+CALL dmalloc0(PE%Asy_displs, 0, PE%nRTProc - 1)
+CALL dmalloc0(PE%Pin_displs, 0, PE%nRTProc - 1)
+CALL dmalloc0(PE%Fsr_displs, 0, PE%nRTProc - 1)
+
+DO iprc = 0, PE%nRTProc - 1
+  CALL GetDcmpRange(1, Core%nxya, PE%nRTProc, iprc, AsyBeg, AsyEnd)
+  
   PinBeg = Core%Asy(AsyBeg)%GlobalPinIdx(1)
 
   IF (nTracerCntl%lHex) THEN
@@ -430,25 +437,29 @@ DO i = 0, PE%nRTProc - 1
   ELSE
     PinEnd = Core%Asy(AsyEnd)%GlobalPinIdx(Core%AsyInfo(Core%Asy(AsyEnd)%AsyType)%nxy)
   END IF
-
+  
   FsrBeg = Core%Pin(PinBeg)%FsrIdxSt
   FsrEnd = Core%Pin(PinEnd)%FsrIdxSt + Core%PinInfo(Core%Pin(PinEnd)%PinType)%nFsrMax - 1
-  PE%nAsy(i) = AsyEnd - AsyBeg + 1
-  PE%nPin(i) = PinEnd - PinBeg + 1
-  PE%nFsr(i) = FsrEnd - FsrBeg + 1
-  IF (i .EQ. PE%myRTRank) THEN
+  
+  PE%nAsy(iprc) = AsyEnd - AsyBeg + 1
+  PE%nPin(iprc) = PinEnd - PinBeg + 1
+  PE%nFsr(iprc) = FsrEnd - FsrBeg + 1
+  
+  IF (iprc .EQ. PE%myRTRank) THEN
     PE%myAsyBeg = AsyBeg; PE%myAsyEnd = AsyEnd
     PE%myPinBeg = PinBeg; PE%myPinEnd = PinEnd
     PE%myFsrBeg = FsrBeg; PE%myFsrEnd = FsrEnd
   ENDIF
-  IF (i .NE. 0) THEN
-    PE%Asy_displs(i) = PE%Asy_displs(i - 1) + PE%nAsy(i - 1)
-    PE%Pin_displs(i) = PE%Pin_displs(i - 1) + PE%nPin(i - 1)
-    PE%Fsr_displs(i) = PE%Fsr_displs(i - 1) + PE%nFsr(i - 1)
-  ENDIF
-ENDDO
-
-END SUBROUTINE
+  
+  IF (iprc .NE. 0) THEN
+    PE%Asy_displs(iprc) = PE%Asy_displs(iprc - 1) + PE%nAsy(iprc - 1)
+    PE%Pin_displs(iprc) = PE%Pin_displs(iprc - 1) + PE%nPin(iprc - 1)
+    PE%Fsr_displs(iprc) = PE%Fsr_displs(iprc - 1) + PE%nFsr(iprc - 1)
+  END IF
+END DO
+! ----------------------------------------------------
+  
+END SUBROUTINE SetDcmpPEVariables
 
 SUBROUTINE SetRayPEVariables(PE, Core, RayInfo)
 USE PARAM
@@ -474,7 +485,7 @@ INTEGER :: nRay(0:1000)
 
 ! #ifdef MPI_ENV
 ! nRotRay = RayInfo%nRotRay
-! CALL GetRangeDecomp(1, nRotRay, PE%nRTProc, PE%myRTrank, ibeg, iend)
+! CALL GetDcmpRange(1, nRotRay, PE%nRTProc, PE%myRTrank, ibeg, iend)
 ! PE%myRayBeg = ibeg; PE%myRayEnd = iEnd
 !
 ! ALLOCATE(segList(2, nRotRay))
@@ -519,7 +530,7 @@ IF(Core%nCoreFsr .LT. PE%nThread) THEN
   PE%myOmpFsrBeg(2:100) = 1; PE%myOmpFsrEnd(2:100) = -1
 ELSE
   DO i = 1, PE%nThread
-    CALL GetRangeDecomp(1, Core%nCoreFsr, PE%nThread, i-1, PE%myOmpFsrBeg(i), PE%myOmpFsrEnd(i))
+    CALL GetDcmpRange(1, Core%nCoreFsr, PE%nThread, i-1, PE%myOmpFsrBeg(i), PE%myOmpFsrEnd(i))
   ENDDO
 ENDIF
 IF(Core%nxy .LT. PE%nThread) THEN
@@ -527,7 +538,7 @@ IF(Core%nxy .LT. PE%nThread) THEN
   PE%myOmpNxyBeg(2:100) = 1; PE%myOmpNxyEnd(2:100) = -1
 ELSE
   DO i = 1, PE%nThread
-    CALL GetRangeDecomp(1, Core%nxy, PE%nThread, i-1, PE%myOmpNxyBeg(i), PE%myOmpNxyEnd(i))
+    CALL GetDcmpRange(1, Core%nxy, PE%nThread, i-1, PE%myOmpNxyBeg(i), PE%myOmpNxyEnd(i))
   ENDDO
 
 ENDIF

@@ -931,7 +931,7 @@ nDat = nPolarAngle * ng * nPhiAngSv
 
 CALL MPI_BCAST(PhiAngIn, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
-CALL Dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy)
+CALL dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy)
 
 sendcounts = nPolarAngle * ng * 2 * nModRay * PE%nAsy
 displs     = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs

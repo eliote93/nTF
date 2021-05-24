@@ -353,8 +353,10 @@ END TYPE
 
 !--- CNJ Edit : Domain Decomposition
 TYPE DcmpAsyRayInfo_Type
-  INTEGER :: iRotRay, iRay, iAsy
-  INTEGER :: nMaxRaySeg, nMaxCellRay, nAsyRay
+  INTEGER :: iRotRay, iAsy
+  INTEGER :: iRay ! # of Counts
+  INTEGER :: nMaxRaySeg, nMaxCellRay
+  INTEGER :: nAsyRay ! # of Reflections
   INTEGER, POINTER :: AsyRayList(:)
   INTEGER, POINTER :: AziList(:)
   INTEGER, POINTER :: DirList(:)

@@ -6,7 +6,6 @@ IMPLICIT NONE
 Include 'mpif.h'
 INTEGER :: MPI_RT_COMM, MPI_CMFD_COMM
 INTEGER, PARAMETER, PRIVATE :: nmax = 5000000
-REAL, PRIVATE :: TimeComm
 REAL,POINTER, SAVE :: SendBuf(:, :), RecvBuf(:, :), SendBuf2D(:, :, :), RecvBuf2D(:, :, :)
 INTEGER :: ierr
 
