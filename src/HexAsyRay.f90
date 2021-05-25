@@ -39,7 +39,7 @@ IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 ! ----------------------------------------------------
 ALLOCATE (RayPinInfo (hAsyTypInfo(hCelBss(icBss)%iaTyp)%nTotPin(1)))
 
-CALL HexSetRayPinDat (RayPinInfo, icBss)
+CALL HexSetRayPinDat(RayPinInfo, icBss)
 
 ALLOCATE (RayCel (2))
 
@@ -74,7 +74,7 @@ DO imRay = 1, NumMray(0)
       CelRay_Loc => haRay_Loc%CelRay(ihpRay)
       
       CelRay_Loc%hPinIdx      = hpRay(ihpRay)%PinIdx
-      CelRay_Loc%SurfIdx(1:2) = hpRay(ihpRay)%SufIdx(1:2)
+      CelRay_Loc%hSufIdx(1:2) = hpRay(ihpRay)%SurfIdx(1:2)
       
       CALL HexSetRayIntSct_Msh(CelRay_Loc, RayEqn, iGeo, CelRay_Loc%hPinIdx, hpRay(ihpRay)%PinPt)
     END DO

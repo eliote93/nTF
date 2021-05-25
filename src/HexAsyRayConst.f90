@@ -44,8 +44,7 @@ DO iPin = 1, aInf_Loc%nTotPin(1)
     nBndy = mpTypNumNgh(ivTyp)
     
     DO iBndy = 1, nBndy
-      rPin_Loc%Eqn(1:3, iBndy, iGeo) = SetEqn(rPin_Loc%Vtx(1:2, iBndy, iGeo), rPin_Loc%Vtx(1:2, iBndy+1, iGeo), &
-                                              rPin_Loc%Cnt(1:2))
+      rPin_Loc%Eqn(1:3, iBndy, iGeo) = SetEqn(rPin_Loc%Vtx(1:2, iBndy, iGeo), rPin_Loc%Vtx(1:2, iBndy+1, iGeo), rPin_Loc%Cnt(1:2))
     END DO
     
     rPin_Loc%nBndy (iGeo) = nBndy

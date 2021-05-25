@@ -363,11 +363,11 @@ END TYPE Type_HexRayPinInfo
 ! ----------------------------------------------------
 !               01. Pin Ray
 ! ----------------------------------------------------
-TYPE Type_HexPinRay
+TYPE Type_HexPinRay ! Temporary
   SEQUENCE
   
   INTEGER :: PinIdx      = 0
-  INTEGER :: SufIdx(2)   = 0    ! (y¢Ö)
+  INTEGER :: SurfIdx(2)  = 0    ! (y¢Ö)
   REAL    :: PinPt(2, 2) = ZERO ! (x/y, y¢Ö)
   
 END TYPE Type_HexPinRay
@@ -378,11 +378,14 @@ TYPE Type_HexCelRay
   SEQUENCE
   
   INTEGER :: hPinIdx    = 0
-  INTEGER :: SurfIdx(2) = 0 ! y¢Ö
+  INTEGER :: hSufIdx(2) = 0 ! y¢Ö
   INTEGER :: nSegRay    = 0
   
   REAL,    POINTER :: SegLgh(:) ! (ihsRay)
   INTEGER, POINTER :: MshIdx(:) ! (ihsRay)
+  
+  REAL :: hsn(2) = ZERO ! sinv
+  REAL :: hcs(2) = ZERO ! cosv
   
   !REAL, POINTER :: SegPts(:, :) ! (x/y, ihsRay), for DEBUG
   

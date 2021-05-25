@@ -333,7 +333,7 @@ Lgh = (Pt02(1) - Pt01(1))**2 + &
       (Pt02(2) - Pt01(2))**2
 Lgh = sqrt(Lgh)
 
-IF (Lgh < hEps) CALL terminate("SAME PTS")
+IF (Lgh .LT. hEps) CALL terminate("SAME PTS")
 
 sinv = (Pt02(2) - Pt01(2)) / Lgh
 cosv = (Pt02(1) - Pt01(1)) / Lgh
@@ -349,9 +349,7 @@ CALL ChkArrayZero(SetEqn, 1, 3)
 Val = SetEqn(3) - SetEqn(1) * Cnt(1) &
                 - SetEqn(2) * Cnt(2)
 
-IF(Val < 0) THEN
-  SetEqn(1:3) = - SetEqn(1:3)
-END IF
+IF (Val < 0) SetEqn(1:3) = -SetEqn(1:3)
 ! ----------------------------------------------------
 
 END FUNCTION SetEqn

@@ -1,404 +1,9 @@
 #include <defines.h>
-!--- CNJ Edit : 3D CMFD Acceleration Modules with Intel MKL
 #ifdef __INTEL_MKL
-
-MODULE MKL_HOMOXS
-
-USE MKL_3D
-IMPLICIT NONE
-
-CONTAINS
-
-SUBROUTINE HomogenizePnXS(CoreInfo, FmInfo, GroupInfo)
-USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        GroupInfo_Type,     FxrInfo_Type,               &
-                           Pin_Type,            XsMac_Type
-USE MacXsLib_Mod,   ONLY : MacP1XsScatMatrix,   MacP2XsScatMatrix,  MacP3XsScatMatrix
-IMPLICIT NONE
-
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(FmInfo_Type) :: FmInfo
-TYPE(GroupInfo_Type) :: GroupInfo
-
-TYPE(superPin_Type), POINTER :: superPin(:)
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
-TYPE(XsMac_Type) :: XsMac
-INTEGER :: ig, ifxr, ixy, ixy_map, ipin, iz, izf
-INTEGER :: ng, nxy, nzCMFD
-INTEGER, POINTER :: pinMap(:), planeMap(:)
-
-LOGICAL :: lFreeSth
-Pin => CoreInfo%Pin
-Fxr => FmInfo%Fxr
-superPin => mklGeom%superPin
-ng = mklGeom%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-planeMap => mklGeom%planeMap
-pinMap => mklGeom%pinMap
-
-lFreeSth = .FALSE.
-DO izf = 1, nzCMFD
-  iz = planeMap(izf)
-  DO ixy = 1, nxy
-    IF (.NOT. mklGeom%lH2OCell(izf, ixy)) CYCLE
-    lFreeSth = .TRUE.
-    ixy_map = pinMap(ixy)
-    ipin = superPin(ixy_map)%pin(1)
-    ifxr = Pin(ipin)%FxrIdxSt
-    CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
-!    CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
-!    CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
-    mklAxial%SmP1(:, :, izf, ixy) = XsMac%XsMacP1Sm
-!    mklAxial%SmP2(:, :, izf, ixy) = XsMac%XsMacP2Sm
-!    mklAxial%SmP3(:, :, izf, ixy) = XsMac%XsMacP3Sm
-  ENDDO
-ENDDO
-
-IF (lFreeSth) THEN
-DEALLOCATE(XsMac%xsmaca,XsMac%xsmacf,XsMac%xsmackf,XsMac%xsmacnf)
-DEALLOCATE(XsMac%xsmacp1sm,XsMac%xsmacp2sm,XsMac%xsmacp3sm)
-DEALLOCATE(XsMac%xsmacs,XsMac%xsmacstr,XsMac%xsmacsm)
-DEALLOCATE(XsMac%xsmact,XsMac%xsmactr)
-END IF
-
-END SUBROUTINE
-
-SUBROUTINE HomogenizeGcXS(CoreInfo, PinXS, GcPinXS)
-USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       PinXS_Type
-IMPLICIT NONE
-
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(PinXS_Type), POINTER :: PinXS(:, :), GcPinXS(:, :)
-
-REAL :: localphis(mklGeom%ng)
-INTEGER :: nxy, nzCMFD
-INTEGER :: ipin, ipin_map, iz, izf
-INTEGER, POINTER :: pinMap(:), planeMap(:)
-
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-pinMap => mklGeom%pinMap
-planeMap => mklGeom%planeMap
-
-DO izf = 1, nzCMFD
-  iz = planeMap(izf)
-  !$OMP PARALLEL PRIVATE(localphis, ipin_map)
-  !$OMP DO SCHEDULE(GUIDED)
-  DO ipin = 1, nxy
-    ipin_map = pinMap(ipin)
-    localphis = mklCMFD%phis(ipin, izf, :)
-    CALL HomogenizeCellGcXS(PinXS(ipin_map, iz), GcPinXS(ipin_map, izf), localphis)
-  ENDDO
-  !$OMP END DO
-  !$OMP END PARALLEL
-ENDDO
-
-END SUBROUTINE
-
-SUBROUTINE HomogenizeCellGcXS(PinXS, GcPinXS, phis)
-USE PARAM
-USE TYPEDEF,        ONLY : PinXS_Type
-IMPLICIT NONE
-
-TYPE(PinXS_Type) :: PinXS, GcPinXS
-REAL :: phis(:)
-
-REAL :: RR(3), RRS(mklGeom%ngc, mklGeom%ngc)
-REAL :: phisum, chisum
-INTEGER :: ng, ngc
-INTEGER :: igc, ig, igb, ige
-INTEGER :: igs, igsb, igse, ig0
-
-ng = mklGeom%ng
-ngc = mklGeom%ngc
-
-DO igc = 1, ngc
-  igb = mklGeom%GcStruct(1, igc); ige = mklGeom%GcStruct(2, igc)
-  RR = 0; phisum = 0; chisum = 0
-  DO ig = igb, ige
-    RR(1) = RR(1) + PinXS%XStr(ig) * phis(ig)
-    RR(2) = RR(2) + PinXS%XSnf(ig) * phis(ig)
-    RR(3) = RR(3) + PinXS%XSD(ig) * phis(ig)
-    phisum = phisum + phis(ig)
-    chisum = chisum + PinXS%Chi(ig)
-  ENDDO
-  RR = RR / phisum
-  GcPinXS%XStr(igc) = RR(1)
-  GcPinXS%XSnf(igc) = RR(2)
-  GcPinXS%XSD(igc) = RR(3)
-  GcPinXS%Chi(igc) = chisum
-  GcPinXS%Phi(igc) = phisum
-ENDDO
-
-RRS = 0
-DO ig = 1, ng
-  igc = mklGeom%GcStructInv(ig)
-  igsb = PinXS%XSs(ig)%ib; igse = PinXS%XSs(ig)%ie
-  ig0 = igc
-  RRS(ig0, igc) = RRS(ig0, igc) + PinXS%XSs(ig)%WithInGroupScat * phis(ig)
-  DO igs = igsb, igse
-    ig0 = mklGeom%GcStructInv(igs)
-    RRS(ig0, igc) = RRS(ig0, igc) + PinXS%XSs(ig)%from(igs) * phis(igs)
-  ENDDO
-ENDDO
-
-DO igc = 1, ngc
-  RRS(igc, :) = RRS(igc, :) / GcPinXS%Phi(igc)
-ENDDO
-
-DO ig = 1, ngc
-  igsb = GcPinXS%XSs(ig)%ib; igse = GcPinXS%XSs(ig)%ie
-  DO igs = igsb, igse
-    GcPinXS%XSs(ig)%from(igs) = RRS(igs, ig)
-  ENDDO
-  GcPinXS%XSs(ig)%WithInGroupScat = GcPinXS%XSs(ig)%from(ig)
-  GcPinXS%XSs(ig)%from(ig) = 0.0
-ENDDO
-
-DO ig = 1, ngc
-  GcPinXS%XSr(ig) = GcPinXS%XStr(ig) - GcPinXS%XSs(ig)%WithInGroupScat
-ENDDO
-
-END SUBROUTINE
-
-SUBROUTINE SetRadialGcCoupling(PinXS, GcPinXS)
-USE PARAM
-USE TYPEDEF,        ONLY : PinXS_Type
-USE CNTL,           ONLY : nTracerCntl
-IMPLICIT NONE
-
-TYPE(PinXS_Type), POINTER :: PinXS(:, :), GcPinXS(:, :)
-
-TYPE(superPin_Type), POINTER :: Pin(:)
-INTEGER, POINTER :: pinMap(:), pinMapRev(:), planeMap(:)
-INTEGER :: ng, ngc, nxy, nzCMFD
-INTEGER :: ig, igc, ipin, ipin_map, ineighpin, iz, izf, ibd, inbd
-REAL :: Dtil, Dhat, pDhat(2), atil, myphi, neighphi, mybeta, neighbeta, albedo, jfdm, surfphifdm, smy
-REAL, POINTER :: Jnet(:, :, :, :), Jpart(:, :, :, :, :)
-
-IF (nTracerCntl%lHex) THEN
-  CALL HexSetRadialGcCoupling(PinXs, GcPinXs)
-  
-  RETURN
-END IF
-
-Pin => mklGeom%superPin
-ng = mklGeom%ng
-ngc = mklGeom%ngc
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-pinMap => mklGeom%pinMap
-pinMapRev => mklGeom%pinMapRev
-planeMap => mklGeom%planeMap
-
-ALLOCATE(Jnet(4, nxy, nzCMFD, ngc)); Jnet = 0.0
-
-!--- Condense Currents
-
-DO igc = 1, ngc
-  DO ig = mklGeom%GcStruct(1, igc), mklGeom%GcStruct(2, igc)
-    DO izf = 1, nzCMFD
-      iz = planeMap(izf)
-      !$OMP PARALLEL PRIVATE(ipin_map, ineighpin, myphi, neighphi, Dtil, Dhat, pDhat, jfdm)
-      !$OMP DO SCHEDULE(GUIDED)
-      DO ipin = 1, nxy
-        ipin_map = pinMap(ipin)
-        myphi = mklCMFD%phis(ipin, izf, ig)
-        DO ibd = 1, 4
-          ineighpin = Pin(ipin_map)%Neighidx(ibd)
-          ineighpin = pinMapRev(ineighpin)
-          IF (ineighpin .LE. 0) THEN
-            neighphi = 0.0
-          ELSE
-            neighphi = mklCMFD%phis(ineighpin, izf, ig)
-          ENDIF
-          Dtil = PinXS(ipin_map, iz)%Dtil(ibd, ig)
-          Dhat = PinXS(ipin_map, iz)%Dhat(ibd, ig)
-          jfdm = - Dtil * (neighphi - myphi) - Dhat * (neighphi + myphi)
-          Jnet(ibd, ipin, izf, igc) = Jnet(ibd, ipin, izf, igc) + jfdm
-        ENDDO
-      ENDDO
-      !$OMP END DO
-      !$OMP END PARALLEL
-    ENDDO
-  ENDDO
-ENDDO
-
-!--- Compute Coupling Coefficients
-
-!$OMP PARALLEL PRIVATE(ipin_map, ineighpin, inbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, pDhat, jfdm, albedo, smy)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
-DO igc = 1, ngc
-  DO izf = 1, nzCMFD
-    DO ipin = 1, nxy
-      ipin_map = pinMap(ipin)
-      DO ibd = 1, 4
-        ineighpin = Pin(ipin_map)%NeighIdx(ibd)
-        smy = Pin(ipin_map)%BdLength(ibd)
-        myphi = GcPinXS(ipin_map, izf)%Phi(igc)
-        mybeta = GcPinXS(ipin_map, izf)%XSD(igc) / Pin(ipin_map)%Center2SurfaceL(ibd)
-        IF (ineighpin .GT. 0) THEN
-          inbd = Pin(ineighpin)%NeighSurfIdx(ibd)
-          neighphi = GcPinXS(ineighpin, izf)%Phi(igc)
-          neighbeta = GcPinXS(ineighpin, izf)%XSD(igc) / Pin(ineighpin)%Center2SurfaceL(inbd)
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          Dhat = - (Jnet(ibd, ipin, izf, igc) - jfdm) / (myphi + neighphi)
-        ELSE
-          IF (ineighpin .EQ. VoidCell) THEN
-            neighbeta = 0.5; neighphi = 0.0; albedo = 0.5
-          ELSEIF (ineighpin .EQ. RefCell) THEN
-            neighbeta = 0.0; neighphi = myphi; albedo = 0.0
-          ENDIF
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          Dhat = - (Jnet(ibd, ipin, izf, igc) - jfdm) / (myphi + neighphi)
-        ENDIF
-        GcPinXS(ipin_map, izf)%Dtil(ibd, igc) = Dtil
-        GcPinXS(ipin_map, izf)%Dhat(ibd, igc) = Dhat
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-DEALLOCATE(Jnet)
-
-END SUBROUTINE
-
-SUBROUTINE HexSetRadialGcCoupling(PinXS, GcPinXS)
-
-USE PARAM
-USE allocs
-USE geom,    ONLY : ncbd
-USE TYPEDEF, ONLY : PinXS_Type
-
-IMPLICIT NONE
-
-TYPE(PinXS_Type),    POINTER :: PinXS(:, :), GcPinXS(:, :)
-TYPE(superPin_Type), POINTER :: Pin(:)
-
-INTEGER, POINTER :: pinMap(:), pinMapRev(:), planeMap(:)
-INTEGER :: ng, ngc, nxy, nzCMFD
-INTEGER :: ig, igc, ipin, ipin_map, ineighpin, iz, izf, ibd, jbd, iNgh, jNgh
-REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, albedo, jfdm, smy
-REAL, POINTER :: Jnet(:, :, :, :)
-! ----------------------------------------------------
-
-ng     = mklGeom%ng
-ngc    = mklGeom%ngc
-nxy    = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-
-Pin       => mklGeom%superPin
-pinMap    => mklGeom%pinMap
-pinMapRev => mklGeom%pinMapRev
-planeMap  => mklGeom%planeMap
-
-CALL dmalloc(Jnet, ncbd, nxy, nzCMFD, ngc)
-! ----------------------------------------------------
-!               01. CONDENSE : current
-! ----------------------------------------------------
-DO igc = 1, ngc
-  DO ig = mklGeom%GcStruct(1, igc), mklGeom%GcStruct(2, igc)
-    DO izf = 1, nzCMFD
-      iz = planeMap(izf)
-      !$OMP PARALLEL PRIVATE(ipin_map, ineighpin, myphi, neighphi, Dtil, Dhat, jfdm, iNgh)
-      !$OMP DO SCHEDULE(GUIDED)
-      DO ipin = 1, nxy
-        ipin_map = pinMap(ipin)
-        myphi    = mklCMFD%phis(ipin, izf, ig)
-        
-        DO iNgh = 1, Pin(ipin_map)%nNgh
-          ineighpin = Pin(ipin_map)%Neighidx(iNgh)
-          ineighpin = pinMapRev(ineighpin)
-          
-          IF (ineighpin .LE. 0) THEN
-            neighphi = ZERO
-          ELSE
-            neighphi = mklCMFD%phis(ineighpin, izf, ig)
-          END IF
-          
-          Dtil = PinXS(ipin_map, iz)%Dtil(iNgh, ig)
-          Dhat = PinXS(ipin_map, iz)%Dhat(iNgh, ig)
-          jfdm = - Dtil * (neighphi - myphi) - Dhat * (neighphi + myphi)
-          
-          Jnet(iNgh, ipin, izf, igc) = Jnet(iNgh, ipin, izf, igc) + jfdm
-        END DO
-      END DO
-      !$OMP END DO
-      !$OMP END PARALLEL
-    END DO
-  END DO
-END DO
-! ----------------------------------------------------
-!               02. CAL : dhat, dtil
-! ----------------------------------------------------
-!$OMP PARALLEL PRIVATE(ipin_map, ineighpin, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jfdm, albedo, smy, iNgh, jNgh)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
-DO igc = 1, ngc
-  DO izf = 1, nzCMFD
-    DO ipin = 1, nxy
-      ipin_map = pinMap(ipin)
-      
-      DO iNgh = 1, Pin(ipin_map)%nNgh
-        ibd       = Pin(ipin_map)%NghBd(iNgh)
-        ineighpin = Pin(ipin_map)%NeighIdx(iNgh)
-        jNgh      = Pin(ipin_map)%NeighSurfIdx(iNgh)
-        smy       = Pin(ipin_map)%BdLength(iNgh)
-        
-        myphi  = GcPinXS(ipin_map, izf)%Phi(igc)
-        mybeta = GcPinXS(ipin_map, izf)%XSD(igc) / Pin(ipin_map)%Center2SurfaceL(ibd)
-        
-        IF (ineighpin .GT. 0) THEN
-          jbd = Pin(ineighpin)%NghBd(jNgh)
-          
-          neighphi  = GcPinXS(ineighpin, izf)%Phi(igc)
-          neighbeta = GcPinXS(ineighpin, izf)%XSD(igc) / Pin(ineighpin)%Center2SurfaceL(jbd)
-          
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          Dhat = - (Jnet(iNgh, ipin, izf, igc) - jfdm) / (myphi + neighphi)
-        ELSE
-          IF (ineighpin .EQ. VoidCell) THEN
-            neighbeta = HALF
-            neighphi  = ZERO
-            albedo    = HALF
-          ELSE IF (ineighpin .EQ. RefCell) THEN
-            neighbeta = ZERO
-            neighphi  = myphi
-            albedo    = ZERO
-          END IF
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          Dhat = - (Jnet(iNgh, ipin, izf, igc) - jfdm) / (myphi + neighphi)
-        END IF
-        
-        GcPinXS(ipin_map, izf)%Dtil(iNgh, igc) = Dtil
-        GcPinXS(ipin_map, izf)%Dhat(iNgh, igc) = Dhat
-      END DO
-    END DO
-  END DO
-END DO
-!$OMP END DO
-!$OMP END PARALLEL
-
-DEALLOCATE(Jnet)
-! ----------------------------------------------------
-
-END SUBROUTINE HexSetRadialGcCoupling
-
-END MODULE
-
-!--- Driver & General Routines --------------------------------------------------------------------
-
 MODULE MKL_CMFD
 
 USE MKL_3D
+
 IMPLICIT NONE
 
 LOGICAL :: lFirstCMFD = TRUE
@@ -407,107 +12,118 @@ PRIVATE
 PUBLIC :: MKL_CmfdPower, MKL_CmfdDavidson
 
 CONTAINS
-
-!--- Public Routines ------------------------------------------------------------------------------
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MKL_CmfdPower(CoreInfo, CmInfo, FmInfo, eigv)
-USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       CmInfo_Type,        FmInfo_Type,                                    &
-                           FxrInfo_Type,        PinXs_Type
-USE CORE_MOD,       ONLY : GroupInfo
-USE PE_MOD,         ONLY : PE
-USE SUBGRP_MOD,     ONLY : FxrChiGen
-USE IOUTIL,         ONLY : message
-USE FILES,          ONLY : io8
-USE CNTL,           ONLY : nTracerCntl
-USE ITRCNTL_MOD,    ONLY : ItrCntl
-USE TIMER,          ONLY : nTracer_dclock,      TimeChk
-USE CMFD_COMMON,    ONLY : HomogenizeXS,        SetRadialCoupling
-USE MKL_HOMOXS,     ONLY : HomogenizePnXS
-USE MKL_AXIAL,      ONLY : MKL_AxialSolver,     SetAxialDtil
+
 USE MKL_POWER
 USE MKL_CHEBYSHEV
+USE PARAM,       ONLY : TRUE, FALSE, mesg
+USE TYPEDEF,     ONLY : CoreInfo_Type, CmInfo_Type, FmInfo_Type, FxrInfo_Type, PinXs_Type
+USE CORE_MOD,    ONLY : GroupInfo
+USE PE_MOD,      ONLY : PE
+USE SUBGRP_MOD,  ONLY : FxrChiGen
+USE IOUTIL,      ONLY : message
+USE FILES,       ONLY : io8
+USE CNTL,        ONLY : nTracerCntl
+USE ITRCNTL_MOD, ONLY : ItrCntl
+USE TIMER,       ONLY : nTracer_dclock, TimeChk
+USE CMFD_COMMON, ONLY : HomogenizeXS, SetRadialCoupling
+USE MKL_HOMOXS,  ONLY : HomogenizePnXS
+USE MKL_AXIAL,   ONLY : MKL_AxialSolver, SetAxialDtil
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(CmInfo_Type) :: CmInfo
-TYPE(FmInfo_Type) :: FmInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+TYPE (CmInfo_Type)   :: CmInfo
+TYPE (FmInfo_Type)   :: FmInfo
+
 REAL :: eigv
 
-TYPE(FxrInfo_type), POINTER :: Fxr(:, :)
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
-REAL, POINTER :: phis(:, :, :), phim(:, :, :, :), phic(:, :, :)
-REAL, POINTER :: Jout(:, :, :, :, :), AxSrc(:, :, :), AxPXS(:, :, :)
-REAL :: CmfdTimeBeg, CmfdTimeEnd, CmfdInitBeg, CmfdInitEnd
-REAL :: outTol, outErr, outRes, outRes0
-INTEGER :: outIter, outMin, outMax
-INTEGER :: ig, iter, InIter
-INTEGER :: GrpBeg, GrpEnd, nGroupInfo = 2
-INTEGER :: ng, nxy, nInIter
-INTEGER :: myzb, myze
+TYPE (FxrInfo_type), POINTER, DIMENSION(:,:) :: Fxr
+TYPE (PinXS_Type),   POINTER, DIMENSION(:,:) :: PinXS
+
+REAL, POINTER, DIMENSION(:,:,:)     :: phis, phic, AxSrc, AxPXS
+REAL, POINTER, DIMENSION(:,:,:,:)   :: phim
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout
+
+REAL :: CmfdTimeBeg, CmfdTimeEnd, CmfdInitBeg, CmfdInitEnd, outTol, outErr, outRes, outRes0
+
+INTEGER :: outIter, outMin, outMax, ig, iter, InIter, GrpBeg, GrpEnd, ng, nxy, nInIter, myzb, myze
+INTEGER :: nGroupInfo = 2
 LOGICAL :: lxslib, lscat1, lDhat, lAxRefFDM, l3dim, lGcCMFD, loutConv
 LOGICAL, SAVE :: lChebyshev
+! ----------------------------------------------------
 
 CmfdTImeBeg = nTracer_dclock(FALSE, FALSE)
 
 CALL omp_set_num_threads(PE%nCMFDThread)
 
-Fxr => FmInfo%Fxr
-phis => FmInfo%phis
-phim => FmInfo%phim
-phic => CmInfo%phic
-Jout => Cminfo%RadJout
+Fxr   => FmInfo%Fxr
+phis  => FmInfo%phis
+phim  => FmInfo%phim
 AxSrc => FmInfo%AxSrc
 AxPXS => FmInfo%AxPXS
-PinXS => mklCMFD%PinXS
 
-outTol = mklCntl%outerConv
-outMin = mklCntl%minOuter
-outMax = mklCntl%maxOuter
-lGcCmfd = mklCntl%lGcCMFD
+phic => CmInfo%phic
+Jout => Cminfo%RadJout
+
+PinXS    => mklCMFD%PinXS
+outTol    = mklCntl%outerConv
+outMin    = mklCntl%minOuter
+outMax    = mklCntl%maxOuter
+lGcCmfd   = mklCntl%lGcCMFD
 lAxRefFDM = mklCntl%lAxRefFDM
 
-myzb = mklGeom%myzb; myze = mklGeom%myze
-ng = mklGeom%ng; nxy = mklGeom%nxy; nInIter = 1
-lxslib = nTracerCntl%lxslib; lscat1 = nTracerCntl%lScat1; l3dim = nTracerCntl%l3dim
-loutConv = FALSE; outIter = 0
+myzb = mklGeom%myzb
+myze = mklGeom%myze
+ng   = mklGeom%ng
+nxy  = mklGeom%nxy
+
+lxslib = nTracerCntl%lxslib
+lscat1 = nTracerCntl%lScat1
+l3dim  = nTracerCntl%l3dim
+
+nInIter  = 1
+loutConv = FALSE
+outIter  = 0
 
 lDhat = TRUE
 IF (ItrCntl%CMFDIt .EQ. ItrCntl%CMFDIt0) lDhat = FALSE
 
 IF (lFirstCMFD) lChebyshev = mklCntl%lChebyshev
 mklCntl%lChebyshev = lChebyshev .AND. .NOT. lFirstCMFD
+
 mklCntl%lPardiso = mklCntl%lDirect .AND. (mklCntl%lDcpl .OR. PE%nCMFDproc .EQ. 1)
+! ----------------------------------------------------
+CmfdInitBeg = nTracer_dclock(FALSE, FALSE)
 
-CmfdInitBeg = nTracer_dclock(.FALSE., .FALSE.)
-
-WRITE(mesg,'(a)') 'Cell Homogenization...'
+WRITE (mesg, '(A)') 'Cell Homogenization...'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+
 CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
 CALL HomogenizeXS(CoreInfo, mklGeom%superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, FALSE)
 CALL SetRadialCoupling(mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
+
 IF (lAxRefFDM) CALL SetReflectorDhatZero(PinXS)
 IF (l3dim) CALL SetAxialDtil(mklCMFD, mklAxial)
 IF (l3dim .AND. lxslib) CALL HomogenizePnXS(CoreInfo, FmInfo, GroupInfo)
 
 CALL SetCMFDPhis(mklCMFD, PinXS, lFirstCMFD)
 
-CmfdInitEnd = nTracer_dclock(.FALSE., .FALSE.)
+CmfdInitEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%CmfdInitTime = TimeChk%CmfdInitTime + (CmfdInitEnd - CmfdInitBeg)
+! ----------------------------------------------------
+IF (mklCntl%lAxial .AND. l3dim .AND. .NOT.lFirstCMFD) THEN
+  CALL GetNeighborFlux(mklCMFD)
+  CALL MKL_AxialSolver(CoreInfo, CmInfo, PinXS, eigv)
+END IF
+! ----------------------------------------------------
+CmfdInitBeg = nTracer_dclock(FALSE, FALSE)
 
-IF (mklCntl%lAxial) THEN
-  IF (l3dim .AND. .NOT. lFirstCMFD) THEN
-    CALL GetNeighborFlux(mklCMFD)
-    CALL MKL_AxialSolver(CoreInfo, CmInfo, PinXS, eigv)
-  ENDIF
-ENDIF
+WRITE (mesg, '(A)') 'Linear System Construction...'
+IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 
-CmfdInitBeg = nTracer_dclock(.FALSE., .FALSE.)
-
-WRITE(mesg, '(a)') 'Linear System Construction...'
-IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
-
-IF (mklCntl%lChebyshev) CALL ChebyshevReset()
+IF (mklCntl%lChebyshev) CALL ChebyshevReset
 
 CALL SetSourceOperator(mklCMFD, PinXS)
 
@@ -515,29 +131,32 @@ IF (mklCntl%lJacobi) THEN
   CALL SetCsrJacobiSystem(mklCMFD, PInXS, l3dim, 0.0)
 ELSE
   CALL SetCsrBiCGSystem(mklCMFD, PinXS, l3dim, lFirstCMFD, 0.0)
-ENDIF
+END IF
 
-CmfdInitEnd = nTracer_dclock(.FALSE., .FALSE.)
+CmfdInitEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%CmfdInitTime = TimeChk%CmfdInitTime + (CmfdInitEnd - CmfdInitBeg)
-
-WRITE(mesg, '(a)') 'Performing CMFD Calculation...'
-IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+! ----------------------------------------------------
+WRITE (mesg, '(a)') 'Performing CMFD Calculation...'
+IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 
 CALL CMFDPsiUpdt(mklCMFD)
-
+! ----------------------------------------------------
 DO WHILE (.NOT. loutConv)
   DO iter = 1, nGroupInfo
-    GrpBeg = 1; GrpEnd = ng
     IF (iter .GT. 1) THEN
       GrpBeg = GroupInfo%UpScatRange(1); GrpEnd = GroupInfo%UpScatRange(2)
-    ENDIF
+    ELSE
+      GrpBeg = 1; GrpEnd = ng
+    END IF
+    
     DO InIter = 1, nInIter
       IF (mklCntl%lDcpl) CALL GetNeighborFlux(mklCMFD)
+      
       IF (mklCntl%lPardiso) THEN
         DO ig = GrpBeg, GrpEnd
           CALL CMFDSrcUpdt(mklCMFD, ig, eigv)
           CALL pardisoSolve(mklCMFD%M(ig), mklCMFD%phis(:, :, ig), mklCMFD%src(:, ig))
-        ENDDO
+        END DO
       ELSE
         DO ig = GrpBeg, GrpEnd
           CALL CMFDSrcUpdt(mklCMFD, ig, eigv)
@@ -545,74 +164,87 @@ DO WHILE (.NOT. loutConv)
             CALL AAJ(mklCMFD, mklCMFD%Jacobi(ig), mklCMFD%phis(:, :, ig), mklCMFD%src(:, ig))
           ELSE
             CALL BiCGSTAB(mklCMFD, ig)
-          ENDIF
-        ENDDO
-      ENDIF
-    ENDDO
-  ENDDO
+          END IF
+        END DO
+      END IF
+    END DO
+  END DO
+  
   CALL CMFDPsiUpdt(mklCMFD)
   CALL CMFDEigUpdt(mklCMFD, eigv)
+  
   IF (mklCntl%lDcpl) CALL GetNeighborFlux(mklCMFD)
-!  outRes = CMFDPsiErr(mklCMFD)
+  
   outRes = CMFDResidual(mklCMFD, eigv)
+  
   IF (outIter .EQ. 0) outRes0 = outRes
-  outErr = outRes / outRes0
-  outIter = outIter + 1
+  
+  outErr   = outRes / outRes0
+  outIter  = outIter + 1
   loutConv = (outErr .LE. outTol) .AND. (outIter .GE. outMin)
   loutConv = loutConv .OR. (outIter .GE. outMax)
+  
   ItrCntl%CMFDIt = ItrCntl%CMFDIt + 1
-  WRITE(mesg, '(a9, i9, f22.6, 3x, f10.5, 1p, e15.3)') 'MGOUTER', ItrCntl%CMFDIt, eigv, outErr, outRes
+  
+  WRITE (mesg, '(a9, i9, f22.6, 3x, f10.5, 1p, e15.3)') 'MGOUTER', ItrCntl%CMFDIt, eigv, outErr, outRes
   IF (PE%MASTER) CALL message(io8, FALSE, TRUE, mesg)
+  
   IF (lChebyshev) THEN
     CALL ChebyshevAcc(mklCMFD, mklCntl%lChebyshev)
+    
     IF (mklCntl%lChebyshev) CALL CMFDPsiUpdt(mklCMFD)
-  ENDIF
+  END IF
+  
   IF (mod(outIter, 5) .NE. 0) CYCLE
-  IF (mklCntl%lAxial .AND. .NOT. lFirstCMFD) THEN
-    IF (l3dim) THEN
-      CALL GetNeighborFlux(mklCMFD)
-      CALL MKL_AxialSolver(CoreInfo, CmInfo, PinXS, eigv)
-      CmfdInitBeg = nTracer_dclock(.FALSE., .FALSE.)
-      WRITE(mesg, '(a)') 'Linear System Construction...'
-      IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
-      CALL SetCsrBiCGSystem(mklCMFD, PinXS, l3dim, FALSE, 0.0)
-      CmfdInitEnd = nTracer_dclock(.FALSE., .FALSE.)
-      TimeChk%CmfdInitTime = TimeChk%CmfdInitTime + (CmfdInitEnd - CmfdInitBeg)
-    ENDIF
-  ENDIF
+  
+  IF (mklCntl%lAxial .AND. l3dim .AND. .NOT.lFirstCMFD) THEN
+    CALL GetNeighborFlux(mklCMFD)
+    CALL MKL_AxialSolver(CoreInfo, CmInfo, PinXS, eigv)
+    
+    CmfdInitBeg = nTracer_dclock(FALSE, FALSE)
+    
+    WRITE (mesg, '(a)') 'Linear System Construction...'
+    IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+    
+    CALL SetCsrBiCGSystem(mklCMFD, PinXS, l3dim, FALSE, 0.0)
+    
+    CmfdInitEnd = nTracer_dclock(FALSE, FALSE)
+    TimeChk%CmfdInitTime = TimeChk%CmfdInitTime + (CmfdInitEnd - CmfdInitBeg)
+  END IF
+  
   IF (lGcCMFD) THEN
-    IF (mklCntl%lChebyshev) CALL ChebyshevReset()
+    IF (mklCntl%lChebyshev) CALL ChebyshevReset
+    
     CALL GetNeighborFlux(mklCMFD)
     CALL MKL_GcCmfdPower(CoreInfo, CmInfo, eigv)
-!    CALL CMFDPsiUpdt(mklCMFD)
-  ENDIF
-ENDDO
-
+  END IF
+END DO
+! ----------------------------------------------------
 IF (mklCntl%lPardiso) THEN
   DO ig = 1, ng
     CALL pardisoDelete(mklCMFD%M(ig))
-  ENDDO
-ENDIF
+  END DO
+END IF
 
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
 
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)
   CALL SetAxialSrc(AxSrc, AxPXS, phic)
-ENDIF
+END IF
 
 IF (lFirstCMFD) lFirstCMFD = FALSE
 
 CmfdTImeEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%CmfdTime = TimeChk%CmfdTime + (CmfdTimeEnd - CmfdTimeBeg)
 
-END SUBROUTINE
-
+END SUBROUTINE MKL_CmfdPower
+! ------------------------------------------------------------------------------------------------------------
 ! ======================================================================= !
 !        CMFD Acceleration Employing Generalized Davidson's Method        !
 !  http://www.netlib.org/utk/people/JackDongarra/etemplates/node138.html  !
 ! ======================================================================= !
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MKL_CmfdDavidson(CoreInfo, CmInfo, FmInfo, eigv)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       CmInfo_Type,        FmInfo_Type,                                    &
@@ -676,9 +308,9 @@ IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
 CALL HomogenizeXS(CoreInfo, mklGeom%superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, FALSE)
 #ifdef Buckling
-IF(nTracerCntl%lBsq) THEN
+IF (nTracerCntl%lBsq) THEN
   CALL HomBuckling(CoreInfo, Fxr, phis, PinXS, myzb, myze, ng, nTracerCntl%bsq, lxsLib)
-ENDIF
+END IF
 #endif
 CALL SetRadialCoupling(mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
 IF (l3dim) CALL SetAxialDtil(mklCMFD, mklAxial)
@@ -696,8 +328,8 @@ IF (mklCntl%lAxial) THEN
   IF (l3dim .AND. .NOT. lFirstCMFD) THEN
     CALL GetNeighborFlux(mklCMFD)
     CALL MKL_AxialSolver(CoreInfo, CmInfo, PinXS, eigv)
-  ENDIF
-ENDIF
+  END IF
+END IF
 
 DO WHILE (.NOT. loutConv)
   outIter = outIter + 1
@@ -710,9 +342,9 @@ DO WHILE (.NOT. loutConv)
   IF (mod(outIter, 5) .EQ. 0 .OR. loutConv) THEN
     WRITE(mesg, '(a10, i8, i8, f14.6, 3x, f10.5, 1p, e15.3)') 'DAVIDSON', ItrCntl%CMFDIt, outIter, eigv, outErr, outRes
     IF (PE%MASTER) CALL message(io8, FALSE, TRUE, mesg)
-  ENDIF
+  END IF
   CALL SolveDavidsonEq(Davidson, eigv)
-ENDDO
+END DO
 
 CALL ReorderFlux(2)
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
@@ -721,17 +353,15 @@ CALL SetMOCPhim(CoreInfo, PinXS, phim)
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)
   CALL SetAxialSrc(AxSrc, AxPXS, phic)
-ENDIF
+END IF
 
 IF (lFirstCMFD) lFirstCMFD = FALSE
 
 CmfdTImeEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%CmfdTime = TimeChk%CmfdTime + (CmfdTimeEnd - CmfdTimeBeg)
 
-END SUBROUTINE
-
-!--- Private Routines -----------------------------------------------------------------------------
-
+END SUBROUTINE MKL_CmfdDavidson
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MKL_GcCmfdPower(CoreInfo, CmInfo, Keff)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       CmInfo_Type,        PinXs_Type
@@ -776,15 +406,15 @@ WRITE(mesg, '(a)') 'Group Condensing...'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 
 IF (mklCntl%lShift) THEN
-  mklCntl%lDcpl = .FALSE.
+  mklCntl%lDcpl = FALSE
   seigv = 1.0 / (Keff + mklCntl%Shift)
   eigv = 1.0 / (1.0 / Keff - seigv)
   WRITE(mesg, '(a27, f4.2)') 'Wielandt Shift Parameter : ', mklCntl%Shift
-  IF(PE%Master) CALL message(io8, TRUE, TRUE, mesg)
+  IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 ELSE
   seigv = 0.0
   eigv = Keff
-ENDIF
+END IF
 
 CALL HomogenizeGcXS(CoreInfo, PinXS, GcPinXS)
 CALL SetCMFDPhis(mklGcCMFD, GcPinXS, TRUE)
@@ -794,7 +424,7 @@ IF (l3dim) THEN
   CALL GetNeighborFlux(mklGcCMFD)
   CALL SetAxialGcDtil(GcPinXS)
   CALL SetAxialGcDhat()
-ENDIF
+END IF
 
 CALL SetSourceOperator(mklGcCMFD, GcPinXS)
 
@@ -802,7 +432,7 @@ IF (mklCntl%lJacobi) THEN
   CALL SetCsrJacobiSystem(mklGcCMFD, GcPInXS, l3dim, seigv)
 ELSE
   CALL SetCsrBiCGSystem(mklGcCMFD, GcPinXS, l3dim, TRUE, seigv)
-ENDIF
+END IF
 
 CALL CMFDPsiUpdt(mklGcCMFD)
 
@@ -811,13 +441,13 @@ DO WHILE (.NOT. loutConv)
     GrpBeg = 1; GrpEnd = ngc
     IF (iter .GT. 1) THEN
       GrpBeg = GcGroupInfo%UpScatRange(1); GrpEnd = GcGroupInfo%UpScatRange(2)
-    ENDIF
+    END IF
     IF (mklCntl%lDcpl) CALL GetNeighborFlux(mklGcCMFD)
     IF (mklCntl%lPardiso) THEN
       DO ig = 1, ngc
         CALL CMFDSrcUpdt(mklGcCMFD, ig, eigv)
         CALL pardisoSolve(mklGcCMFD%M(ig), mklGcCMFD%phis(:, :, ig), mklGcCMFD%src(:, ig))
-      ENDDO
+      END DO
     ELSE
       DO ig = 1, ngc
         CALL CMFDSrcUpdt(mklGcCMFD, ig, eigv)
@@ -825,10 +455,10 @@ DO WHILE (.NOT. loutConv)
           CALL AAJ(mklGcCMFD, mklGcCMFD%Jacobi(ig), mklGcCMFD%phis(:, :, ig), mklGcCMFD%src(:, ig))
         ELSE
           CALL BiCGSTAB(mklGcCMFD, ig)
-        ENDIF
-      ENDDO
-    ENDIF
-  ENDDO
+        END IF
+      END DO
+    END IF
+  END DO
   CALL CMFDPsiUpdt(mklGcCMFD)
   CALL CMFDEigUpdt(mklGcCMFD, eigv)
   IF (mklCntl%lDcpl) CALL GetNeighborFlux(mklGcCMFD)
@@ -843,7 +473,7 @@ DO WHILE (.NOT. loutConv)
   Keff = 1.0 / (1.0 / eigv + seigv)
   WRITE(mesg, '(a9, i9, f22.6, 3x, f10.5, 1p, e15.3)') 'CGOUTER', ItrCntl%GcCMFDIt, Keff, outErr, outRes
   IF (PE%MASTER) CALL message(io8, FALSE, TRUE, mesg)
-ENDDO
+END DO
 
 WRITE(mesg, '(a)') 'Group Reconstruction...'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
@@ -851,8 +481,8 @@ CALL GcReconstruction(GcPinXS)
 
 mklCntl%lDcpl = lDcpl
 
-END SUBROUTINE
-
+END SUBROUTINE MKL_GcCmfdPower
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetReflectorDhatZero(PinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
@@ -869,11 +499,11 @@ DO iz = myzb, myze
   IF (.NOT. mklGeom%lRefPlane(iz)) CYCLE
   DO ipin = 1, nxy
     PinXS(ipin, iz)%Dhat = 0.0
-  ENDDO
-ENDDO
+  END DO
+END DO
 
-END SUBROUTINE
-
+END SUBROUTINE SetReflectorDhatZero
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetSourceOperator(CMFD, PinXS)
 USE PARAM
 USE TYPEDEF,        ONLY : PinXS_Type
@@ -913,12 +543,12 @@ DO igt = 1, ng
           val = PinXS(ipin_map, iz)%XSs(igt)%self * PinVolFm(ipin, izf)
         ELSE
           val = PinXS(ipin_map, iz)%XSs(igt)%from(igf) * PinVolFm(ipin, izf)
-        ENDIF
+        END IF
         CMFD%S(ir, igf, igt) = val
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
+      END DO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -933,9 +563,9 @@ DO ig = 1, ng
       ir = ipin + (izf - 1) * nxy
       ipin_map = pinMap(ipin)
       CMFD%F(ir, ig) = PinXS(ipin_map, iz)%XSnf(ig) * PinVolFm(ipin, izf)
-    ENDDO
-  ENDDO
-ENDDO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -950,14 +580,14 @@ DO ig = 1, ng
       ir = ipin + (izf - 1) * nxy
       ipin_map = pinMap(ipin)
       CMFD%Chi(ir, ig) = PinXS(ipin_map, iz)%Chi(ig)
-    ENDDO
-  ENDDO
-ENDDO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-END SUBROUTINE
-
+END SUBROUTINE SetSourceOperator
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetCMFDPhis(CMFD, PinXS, lCopy)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
@@ -993,9 +623,9 @@ IF (lCopy) THEN
       DO ipin = 1, nxy
         ipin_map = pinMap(ipin)
         CMFD%phis(ipin, izf, ig) = PinXS(ipin_map, iz)%Phi(ig)
-      ENDDO
-    ENDDO
-  ENDDO
+      END DO
+    END DO
+  END DO
   !$OMP END DO
   !$OMP END PARALLEL
 ELSE
@@ -1008,16 +638,16 @@ ELSE
         fmult = PinXS(ipin_map, iz)%Phi(ig) / CMFD%phic(ipin, iz, ig)
         DO izf = fmRange(iz, 1), fmRange(iz, 2)
           CMFD%phis(ipin, izf, ig) = CMFD%phis(ipin, izf, ig) * fmult
-        ENDDO
-      ENDDO
-    ENDDO
-  ENDDO
+        END DO
+      END DO
+    END DO
+  END DO
   !$OMP END DO
   !$OMP END PARALLEL
-ENDIF
+END IF
 
-END SUBROUTINE
-
+END SUBROUTINE SetCMFDPhis
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE GcReconstruction(GcPinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
@@ -1044,16 +674,16 @@ DO ig = 1, ng
       igc = mklGeom%GcStructInv(ig)
       fmult = mklGcCMFD%phis(ipin, iz, igc) / GcPinXS(ipin_map, iz)%Phi(igc)
       mklCMFD%phis(ipin, iz, ig) = mklCMFD%phis(ipin, iz, ig) * fmult
-    ENDDO
-  ENDDO
-ENDDO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
 CALL dcopy(nxy * nzCMFD, mklGcCMFD%psi, 1, mklCMFD%psi, 1)
 
-END SUBROUTINE
-
+END SUBROUTINE GcReconstruction
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetMOCPhis(CoreInfo, PinXS, phis, phic)
 USE TYPEDEF,        ONLY : CoreInfo_Type,       PinXS_Type,         Pin_Type,       Cell_Type
 IMPLICIT NONE
@@ -1095,7 +725,7 @@ DO ig = 1, ng
       ixy_map = pinMap(ixy)
       DO izf = fmRange(iz, 1), fmRange(iz, 2)
         phisum = phisum + mklCMFD%phis(ixy, izf, ig) * (hzfm(izf) / hz(iz))
-      ENDDO
+      END DO
       fmult = phisum / PinXS(ixy_map, iz)%Phi(ig)
       DO j = 1, superPin(ixy_map)%nxy
         ipin = superPin(ixy_map)%pin(j)
@@ -1105,17 +735,17 @@ DO ig = 1, ng
         DO i = 1, nLocalFsr
           ifsr = FsrIdxSt + i - 1
           phis(ifsr, iz, ig) = phis(ifsr, iz, ig) * fmult
-        ENDDO
+        END DO
         phic(ipin, iz, ig) = phisum
-      ENDDO
+      END DO
       mklCMFD%phic(ixy, iz, ig) = phisum
-    ENDDO
-  ENDDO
-ENDDO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-END SUBROUTINE
+END SUBROUTINE SetMOCPhis
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetMOCPhim(CoreInfo, PinXS, phim)
 
@@ -1219,14 +849,14 @@ DO ig = 1, ng
         neighphi = mklCMFD%neighphis(ixy, ig, bottom)
       ELSE
         neighphi = mklCMFD%phis(ixy, izf - 1, ig)
-      ENDIF
+      END IF
       Dtil = mklCMFD%AxDtil(bottom, ixy, izf, ig)
       Dhat = mklCMFD%AxDhat(bottom, ixy, izf, ig)
       Jnet = - Dtil * (neighphi - myphi) - Dhat * (neighphi + myphi)
       DO i = 1, Pin(ixy_map)%nxy
         ipin = Pin(ixy_map)%pin(i)
         AxSrc(ipin, iz, ig) = Jnet
-      ENDDO
+      END DO
       !--- Axial Source from Top
       izf = fmRange(iz, top)
       myphi = mklCMFD%phis(ixy, izf, ig)
@@ -1234,17 +864,17 @@ DO ig = 1, ng
         neighphi = mklCMFD%neighphis(ixy, ig, top)
       ELSE
         neighphi = mklCMFD%phis(ixy, izf + 1, ig)
-      ENDIF
+      END IF
       Dtil = mklCMFD%AxDtil(top, ixy, izf, ig)
       Dhat = mklCMFD%AxDhat(top, ixy, izf, ig)
       Jnet = - Dtil * (neighphi - myphi) - Dhat * (neighphi + myphi)
       DO i = 1, Pin(ixy_map)%nxy
         ipin = Pin(ixy_map)%pin(i)
         AxSrc(ipin, iz, ig) = AxSrc(ipin, iz, ig) + Jnet
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
+      END DO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -1256,10 +886,10 @@ DO ig = 1, ng
       DO i = 1, Pin(ixy)%nxy
         ipin = Pin(ixy)%pin(i)
         AxSrc(ipin, iz, ig) = AxSrc(ipin, iz, ig) / hz(iz)
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
+      END DO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -1276,16 +906,16 @@ IF (nTracerCntl%LkgSplitLv .EQ. 0) THEN
           IF (AxSrc(ipin, iz, ig) .LT. 0.0) CYCLE
           IF (phic(ipin, iz, ig) .LT. 0.0) CYCLE
           AxPXS(ipin, iz, ig) = AxSrc(ipin, iz, ig) / phic(ipin, iz, ig)
-        ENDDO
-      ENDDO
-    ENDDO
-  ENDDO
+        END DO
+      END DO
+    END DO
+  END DO
   !$OMP END DO
   !$OMP END PARALLEL
-ENDIF
+END IF
 
-END SUBROUTINE
-
+END SUBROUTINE SetAxialSrc
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE GetNeighborFlux(CMFD)
 
 IMPLICIT NONE
@@ -1304,7 +934,7 @@ neighphis => CMFD%neighphis
 DO ig = 1, ng
   CALL dcopy(nxy, CMFD%phis(:, 1, ig), 1, myphis(:, ig, bottom), 1)
   CALL dcopy(nxy, CMFD%phis(:, nzCMFD, ig), 1, myphis(:, ig, top) , 1)
-ENDDO
+END DO
 
 CALL InitFastComm()
 CALL GetNeighborFast(ng * nxy, myphis(:, :, bottom), neighphis(:, :, top), bottom)
@@ -1314,19 +944,20 @@ CALL FinalizeFastComm()
 IF (mklGeom%lBottom) THEN
   IF (mklGeom%AxBC(bottom) .EQ. VoidCell) neighphis(:, :, bottom) = 0.0
   IF (mklGeom%AxBC(bottom) .EQ. RefCell) CALL dcopy(ng * nxy, myphis(:, :, bottom), 1, neighphis(:, :, bottom), 1)
-ENDIF
+END IF
 
 IF (mklGeom%lTop) THEN
   IF (mklGeom%AxBC(top) .EQ. VoidCell) neighphis(:, :, top) = 0.0
   IF (mklGeom%AxBC(top) .EQ. RefCell) CALL dcopy(ng * nxy, myphis(:, :, top), 1, neighphis(:, :, top), 1)
-ENDIF
+END IF
 
 DEALLOCATE(myphis)
 
-END SUBROUTINE
+END SUBROUTINE GetNeighborFlux
+! ------------------------------------------------------------------------------------------------------------
 
-END MODULE
-
+END MODULE MKL_CMFD
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MKL_ReorderPinXS(CoreInfo, CmInfo)
 USE TYPEDEF,        ONLY : CoreInfo_Type,       CmInfo_Type,         PinXS_Type
 USE CMFD_COMMON
@@ -1355,9 +986,9 @@ DO iz = myzb, myze
     DO i = 1, Pin(ixy)%nxy
       ipin = Pin(ixy)%pin(i)
       CALL CopyPinXS(mklCMFD%PinXS(ixy, iz), PinXS(ipin, iz), ng)
-    ENDDO
-  ENDDO
-ENDDO
+    END DO
+  END DO
+END DO
 
 DO iz = myzb, myze
   DO ixy = 1, nxy
@@ -1370,12 +1001,11 @@ DO iz = myzb, myze
       PinXS(iFuelPin, iz)%XSnf = PinXS(iFuelPin, iz)%XSnf + PinXS(ipin, iz)%XSnf * PinVol(ipin, iz)
       PinXS(iFuelPin, iz)%XSkf = PinXS(iFuelPin, iz)%XSkf + PinXS(ipin, iz)%XSkf * PinVol(ipin, iz)
       PinXS(ipin, iz)%XSnf = 0.0; PinXS(ipin, iz)%XSkf = 0.0
-    ENDDO
+    END DO
     PinXS(iFuelPin, iz)%XSnf = PinXS(iFuelPin, iz)%XSnf / PinVol(iFuelPin, iz)
     PinXS(iFuelPin, iz)%XSkf = PinXS(iFuelPin, iz)%XSkf / PinVol(iFuelPin, iz)
-  ENDDO
-ENDDO
+  END DO
+END DO
 
-END SUBROUTINE
-
+END SUBROUTINE MKL_ReorderPinXS
 #endif

@@ -317,7 +317,7 @@ USE HexType, ONLY : Type_HexPinRay
 IMPLICIT NONE
 
 INTEGER, POINTER :: tPinIdx(:)
-INTEGER, POINTER :: tSufIdx(:, :)
+INTEGER, POINTER :: tSurfIdx(:, :)
 REAL,    POINTER :: tPinPt (:, :, :)
 
 INTEGER :: nPin, iPin
@@ -327,16 +327,16 @@ TYPE(Type_HexPinRay) :: hpRay(:)
 ! ----------------------------------------------------
 
 ALLOCATE (tPinIdx      (nPin))
-ALLOCATE (tSufIdx   (2, nPin))
+ALLOCATE (tSurfIdx  (2, nPin))
 ALLOCATE (tPinPt (2, 2, nPin))
 
 DO iPin = 1, nPin
   tPinIdx          (iPin) = hpRay(iPin)%PinIdx
-  tSufIdx     (1:2, iPin) = hpRay(iPin)%SufIdx(1:2)
+  tSurfIdx    (1:2, iPin) = hpRay(iPin)%SurfIdx(1:2)
   tPinPt (1:2, 1:2, iPin) = hpRay(iPin)%PinPt (1:2, 1:2)
 END DO
 
-NULLIFY (tPinIdx, tSufIdx, tPinPt)
+NULLIFY (tPinIdx, tSurfIdx, tPinPt)
 
 CALL terminate("END OF TEST = HPRAY")
 ! ----------------------------------------------------

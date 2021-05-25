@@ -1985,7 +1985,7 @@ DO icRay = 1, nCoreRay
       
       ! Start of Cell
       CellRayIdxSt(iCellRayIdx, icRay, 2) = irSegIdx + 1
-      SurfIdx     (iCellRayIdx, icRay, 2) = CelRay_Loc%SurfIdx(1) ! y : Small
+      SurfIdx     (iCellRayIdx, icRay, 2) = CelRay_Loc%hSufIdx(1) ! y : Small
       
       DO iRaySeg = 1, CelRay_Loc%nSegRay
         irSegIdx = irSegIdx + 1
@@ -2000,7 +2000,7 @@ DO icRay = 1, nCoreRay
       
       ! End of Cel
       CellRayIdxSt(iCellRayIdx, icRay, 1) = irSegIdx
-      SurfIdx     (iCellRayIdx, icRay, 1) = CelRay_Loc%SurfIdx(2) ! y : Big
+      SurfIdx     (iCellRayIdx, icRay, 1) = CelRay_Loc%hSufIdx(2) ! y : Big
       PinIdx      (iCellRayIdx, icRay)    = jhPin
     END DO
   END DO

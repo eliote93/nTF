@@ -364,112 +364,132 @@ DO ig = 1, ng
   ENDDO
 ENDDO
 END SUBROUTINE
-
-!--- CNJ Edit : Domain Decomposition
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MOCPhiInUpdt(Core, CmInfo, myzb, myze, ng)
-USE PARAM
-USE TYPEDEF, ONLY : CoreInfo_Type,   Pin_Type,     PinXs_Type,   RayInfo4CMFD_Type,     &
-                    CmInfo_Type,     PolarAngle_Type
-USE CMFD_MOD, ONLY : PinNeighIdx,    CMFDPinXS,    SubPlaneMap
-USE CNTL,    ONLY : nTracerCntl
+
+USE PARAM,       ONLY : zERO
+USE TYPEDEF,     ONLY : CoreInfo_Type, Pin_Type, PinXs_Type, RayInfo4CMFD_Type, CmInfo_Type, PolarAngle_Type
+USE CMFD_MOD,    ONLY : PinNeighIdx, CMFDPinXS, SubPlaneMap
+USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : ItrCntl
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(CmInfo_Type) :: CMInfo
+TYPE (CoreInfo_Type) :: Core
+TYPE (CmInfo_Type)   :: CMInfo
+
 INTEGER :: myzb, myze, ng
 
-TYPE(RayInfo4Cmfd_Type), POINTER :: RayInfo4CMFD
-TYPE(PinXs_Type), POINTER :: PinXs(:, :)
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(PolarAngle_Type), POINTER :: PolarAngle(:)
-REAL, POINTER :: PHIC(:, : , :), PhiFm(:, :, :)
+TYPE (RayInfo4Cmfd_Type), POINTER :: RayInfo4CMFD
 
-INTEGER, POINTER :: RotRayInOutCell(:, :)
-INTEGER, POINTER :: PhiangInSvIdx(:, :)
-INTEGER, POINTER :: DcmpAsyRayCount(:)
-INTEGER, POINTER :: DcmpAsyRayInSurf(:, :, :), DcmpAsyRayInCell(:, :, :)
-INTEGER :: i, j, k, iz, iz0, ig, ipol, ixy, isv, ipin, isurf, ineigh
-INTEGER :: nRotRay, nCoreRay, nPolar, nAsy
-REAL, POINTER :: PhiAngIn(:, :, :, :)
-REAL, POINTER :: AsyPhiAngIn(:, :, :, :, :, :)
-REAL, POINTER :: RadJout(:, :, :, :, :)
+TYPE (Pin_Type),        POINTER, DIMENSION(:)   :: Pin
+TYPE (PolarAngle_Type), POINTER, DIMENSION(:)   :: PolarAngle
+TYPE (PinXs_Type),      POINTER, DIMENSION(:,:) :: PinXs
+
+REAL, POINTER, DIMENSION(:,:,:) :: PHIC, PhiFm
+
+INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
+INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx
+INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAsyRayInSurf, DcmpAsyRayInCell
+
+INTEGER :: i, j, k, iz, iz0, ig, ipol, ixy, isv, ipin, isurf, ineigh, nRotRay, nCoreRay, nPolar, nAsy
+
+REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:)   :: RadJout
+REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn
+
 REAL :: myphi, neighphi, surfphi, atil, ahat, smy, fmult
+! ----------------------------------------------------
 
 RayInfo4Cmfd => CmInfo%RayInfo4Cmfd
-PhiC => CmInfo%PhiC
-PhiFm => CmInfo%PhiFm
-PinXS => CmInfo%PinXS
+PhiC         => CmInfo%PhiC
+PhiFm        => CmInfo%PhiFm
+PinXS        => CmInfo%PinXS
+RadJout      => CmInfo%RadJout
+
 Pin => Core%Pin
 nAsy = Core%nxya
-RadJout => CmInfo%RadJout
-nRotRay = RayInfo4CMFD%nRotRay
-nCoreRay = RayInfo4CMFD%nCoreRay
-nPolar = RayInfo4CMFD%nPolAngle
-RotRayInOutCell => RayInfo4CMFD%RotRayInOutCell
-PhiAngInSvIdx => RayInfo4CMFD%PhiAngInSvIdx
-PhiAngIn => RayInfo4CMFD%PhiAngIn
 
-DcmpAsyRayCount => RayInfo4CMFD%DcmpAsyRayCount
+nRotRay           = RayInfo4CMFD%nRotRay
+nCoreRay          = RayInfo4CMFD%nCoreRay
+nPolar            = RayInfo4CMFD%nPolAngle
+RotRayInOutCell  => RayInfo4CMFD%RotRayInOutCell
+PhiAngInSvIdx    => RayInfo4CMFD%PhiAngInSvIdx
+PhiAngIn         => RayInfo4CMFD%PhiAngIn
+DcmpAsyRayCount  => RayInfo4CMFD%DcmpAsyRayCount
 DcmpAsyRayInSurf => RayInfo4CMFD%DcmpAsyRayInSurf
 DcmpAsyRayInCell => RayInfo4CMFD%DcmpAsyRayInCell
-AsyPhiAngIn => RayInfo4CMFD%AsyPhiAngIn
-PolarAngle => RayInfo4CMFD%PolarAngle
-
+AsyPhiAngIn      => RayInfo4CMFD%AsyPhiAngIn
+PolarAngle       => RayInfo4CMFD%PolarAngle
+! ----------------------------------------------------
 DO j = 1, 2
   DO i = 1, nRotRay
     ixy = RotRayInOutCell(i, j)
-    IF(ixy .EQ. 0) CYCLE
+    
+    IF (ixy .EQ. 0) CYCLE
+    
     isv = PhiAngInSvIdx(i, j)
+    
     DO iz = myzb, myze
       DO k = 1, nPolar
         DO ig = 1, ng
           fmult = PhiC(ixy, iz, ig) / PinXS(ixy, iz)%PHI(ig)
+          
           PhiAngIn(k, isv, iz, ig) = PhiAngIn(k, isv, iz, ig) * fmult
-        ENDDO
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-
+        END DO
+      END DO
+    END DO
+  END DO
+END DO
+! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
   DO iz = myzb, myze
     iz0 = SubPlaneMap(iz)
+    
     DO k = 1, nAsy
       DO j = 1, DcmpAsyRayCount(k)
         DO i = 1, 2
-          ipin = DcmpAsyRayInCell(i, j, k)
-          isurf = DcmpAsyRayInSurf(i, j, k)
+          ipin   = DcmpAsyRayInCell(i, j, k)
+          isurf  = DcmpAsyRayInSurf(i, j, k)
           ineigh = PinNeighIdx(isurf, ipin)
-          smy = Pin(ipin)%BdLength(isurf)
+          smy    = Pin(ipin)%BdLength(isurf)
+          
           DO ig = 1, ng
             myphi = PhiFm(ipin, iz, ig)
-            neighphi = zero
+            
+            neighphi = ZERO
             IF (ineigh .GT. 0) neighphi = PhiFm(ineigh, iz, ig)
+            
             atil = CMFDPinXS(ipin, iz0)%atil(isurf, ig)
             ahat = CMFDPinXS(ipin, iz0)%ahat(isurf, ig)
+            
             surfphi = atil * myphi + (smy - atil) * neighphi
+            
             IF (ItrCntl%mocit .EQ. 0) THEN
               AsyPhiAngIn(:, ig, i, j, k, iz) = surfphi / smy
             ELSE
               surfphi = surfphi + ahat * (myphi + neighphi)
-              fmult = surfphi / RadJout(3, isurf, ipin, iz, ig)
+              fmult   = surfphi / RadJout(3, isurf, ipin, iz, ig)
+              
               DO ipol = 1, nPolar
                 AsyPhiAngIn(ipol, ig, i, j, k, iz) = AsyPhiAngIn(ipol, ig, i, j, k, iz) * fmult
-              ENDDO
-            ENDIF
-          ENDDO
-        ENDDO
-      ENDDO
-    ENDDO
-  ENDDO
-ENDIF
+              END DO
+            END IF
+          END DO
+        END DO
+      END DO
+    END DO
+  END DO
+END IF
+! ----------------------------------------------------
+NULLIFY (PhiAngIn)
+NULLIFY (RotRayInOutCell)
+NULLIFY (PhiAngInSvIdx)
+NULLIFY (DcmpAsyRayInSurf)
+NULLIFY (DcmpAsyRayInCell)
+NULLIFY (AsyPhiAngIn)
+NULLIFY (RadJout)
+! ----------------------------------------------------
 
-NULLIFY(PhiAngIn)
-NULLIFY(RotRayInOutCell)
-NULLIFY(PhiAngInSvIdx)
-NULLIFY(DcmpAsyRayInSurf)
-NULLIFY(DcmpAsyRayInCell)
-NULLIFY(AsyPhiAngIn)
-NULLIFY(RadJout)
-END SUBROUTINE
+END SUBROUTINE MOCPhiInUpdt
+! ------------------------------------------------------------------------------------------------------------

@@ -87,27 +87,24 @@ INTEGER, POINTER :: OutScatRange(:, :)
 LOGICAL :: lXsLib, lsigT
 
 END SUBROUTINE
-
-!SUBROUTINE RadCouplingCoeffGen(Pin, Jout)
-!USE PARAM
-!USE TYPEDEF, ONLY :  Pin_Type
-!REAL, POINTER :: Jout(:, :, :, :, :)
-!TYPE(Pin_Type) :: Pin(:)
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RadCouplingCoeffGen(Core, CmfdPinXS, Jout, ng, lDhatUpdt, PE)
-USE PARAM
-USE TYPEDEF,      ONLY : CoreInfo_Type,       PinXs_Type,        PE_TYPE,     &
-                         Pin_Type
+
+USE TYPEDEF, ONLY : CoreInfo_Type, PinXs_Type, PE_TYPE, Pin_Type
+
 IMPLICIT NONE
 
-TYPE(CoreINfo_Type) :: Core
-TYPE(PinXs_Type), POINTER :: CmfdPinXS(:,:)
-REAL, POINTER :: Jout(:, :, :, :, :)
-TYPE(PE_TYpe) :: PE
+TYPE (CoreINfo_Type) :: Core
+TYPE (PE_TYpe)       :: PE
+TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: CmfdPinXS
+
+REAL, POINTER, DIMENSION(:, :, :, :, :) :: Jout
+
 INTEGER :: ng
 LOGICAL :: lDhatUpdt
 
-END SUBROUTINE
-
+END SUBROUTINE RadCouplingCoeffGen
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetCmfdLinearSystem(lcmfd, l3dim, AxSolver)
 IMPLICIT NONE
 LOGICAL :: lcmfd, l3dim

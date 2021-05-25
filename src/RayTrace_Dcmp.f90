@@ -666,7 +666,7 @@ DO imray = jbeg, jend, jinc
     CelRay_Loc => haRay(iGeoTyp, jcBss, iAsyRay)%CelRay(ipRay)
     
     IF (lJout) THEN
-      iSurf = CelRay_Loc%SurfIdx(isfst)
+      iSurf = CelRay_Loc%hSufIdx(isfst)
       
       DO ig = gb, ge
         DO ipol = 1, nPolarAng
@@ -706,7 +706,7 @@ DO imray = jbeg, jend, jinc
     END DO
     
     IF (lJout) THEN
-      isurf = CelRay_Loc%SurfIdx(isfed) ! y : Big
+      isurf = CelRay_Loc%hSufIdx(isfed) ! y : Big
       
       DO ig = gb, ge
         DO ipol = 1, nPolarAng

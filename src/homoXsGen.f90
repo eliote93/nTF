@@ -415,126 +415,145 @@ ENDIF
 CALL CP_VA(PinXS%CHI(:), CHI(:), ng)
 phisum = SUM(CHI)
 END SUBROUTINE
-
-!SUBROUTINE RadCouplingCoeffGen(Pin, Jout)
-!USE PARAM
-!USE TYPEDEF, ONLY : PinXs_TYPE, Pin_Type
-!USE CMFD_MOD, ONLY : ng,        nxy,          myzb,         myze,    &
-!                     hzfm,      hz,                                  &
-!                     CmfdPinXS, PinNeighIdx
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RadCouplingCoeffGen(Core, CmfdPinXS, Jout, ng, lDhatUpdt, PE)
-USE PARAM
-USE TYPEDEF,      ONLY : CoreInfo_Type,       PinXs_Type,        PE_TYPE,     &
-                         Pin_Type
-USE cntl,           ONLY : nTracerCntl
+
+USE PARAM,   ONLY : TRUE, VoidCell
+USE TYPEDEF, ONLY : CoreInfo_Type, PinXs_Type, PE_TYPE, Pin_Type
+USE cntl,    ONLY : nTracerCntl
+
 IMPLICIT NONE
 
-TYPE(CoreINfo_Type) :: Core
-TYPE(PinXs_Type),POINTER :: CmfdPinXS(:, :)
-REAL, POINTER :: Jout(:, :, :, :, :)
-TYPE(PE_TYpe) :: PE
+TYPE (CoreINfo_Type) :: Core
+TYPE (PE_TYpe)       :: PE
+TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: CmfdPinXS
+REAL, POINTER, DIMENSION(:, :, :, :, :) :: Jout
+
 INTEGER :: ng
 LOGICAL :: lDhatUpdt
 
+TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
+TYPE (PinXS_Type), POINTER :: PinXS
 
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(PinXS_Type), POINTER :: PinXS
-REAL, POINTER :: hzfm(:), hz(:)
-INTEGER :: myzb, myze, nxy
+REAL, POINTER, DIMENSION(:) :: hzfm, hz
 
-INTEGER :: ixy, ineigh, ig, iz, ibd, inbd
+INTEGER :: myzb, myze, nxy, ixy, ineigh, ig, iz, ibd, inbd
+
 INTEGER, PARAMETER :: nbd = 4
-REAL :: myphi(ng), neighphi, phisum, jfdm, jnet
-REAL :: PDHAT, Del, Alpha
-REAL :: Dhat, Dtil, mybeta, neighbeta, smy
-REAL :: atil, ahat, surfphifdm   !--- CNJ Edit : Domain Decomposition
-REAL :: NineSeven
+
+REAL :: myphi(ng)
+REAL :: neighphi, phisum, jfdm, jnet, PDHAT, Del, Alpha, Dhat, Dtil, mybeta, neighbeta, smy, atil, ahat, surfphifdm
 LOGICAL :: lDhatCor
+! ----------------------------------------------------
 
-! lDhatCor=.FALSE.
-lDhatCor=.TRUE.
+lDhatCor = TRUE
 
-Pin => Core%Pin
-hzfm => Core%hzfm; hz => Core%hz
-myzb = PE%myzb; myze = PE%myze
-nxy = core%nxy
-NineSeven = 9._8/7._8
+Pin  => Core%Pin
+hzfm => Core%hzfm
+hz   => Core%hz
+nxy   = Core%nxy
+
+myzb = PE%myzb
+myze = PE%myze
 
 DO iz = myzb, myze
   DO ixy = 1, nxy
     PinXS => CmfdPinXS(ixy, iz)
     myphi(1:ng) = PinXS%phi(1:ng)
+    
     DO ibd = 1, nbd
       ineigh = Pin(ixy)%NeighIdx(ibd)
-      inbd = Pin(ixy)%NeighSurfIdx(ibd)    !The Corresponding Surface Index of
-      smy = Pin(ixy)%BdLength(ibd) !* hz(iz)
-      IF(ineigh .GT. 0) THEN
+      inbd   = Pin(ixy)%NeighSurfIdx(ibd)    !The Corresponding Surface Index of
+      smy    = Pin(ixy)%BdLength(ibd) !* hz(iz)
+      
+      IF (ineigh .GT. 0) THEN
         DO ig = 1, ng
-          neighphi = CmfdPinXs(ineigh, iz)%phi(ig); phisum = neighphi + myphi(ig)
-          mybeta = CmfdPinXS(ixy, iz)%XSD(ig) / Pin(ixy)%Center2SurfaceL(ibd)
+          neighphi  = CmfdPinXs(ineigh, iz)%phi(ig)
+          phisum    = neighphi + myphi(ig)
+          mybeta    = CmfdPinXS(ixy, iz)%XSD(ig) / Pin(ixy)%Center2SurfaceL(ibd)
           neighbeta = CmfdPinXS(ineigh, iz)%XSD(ig) / Pin(ineigh)%Center2SurfaceL(inbd)
-          Dtil = mybeta * neighbeta/(mybeta + neighbeta) * smy
+          Dtil      = mybeta * neighbeta/(mybeta + neighbeta) * smy
+          
           PinXs%dtil(ibd, ig) = dtil
+          
           !--- CNJ Edit : Domain Decomposition
-          atil = mybeta / (mybeta + neighbeta) * smy
+          atil       = mybeta / (mybeta + neighbeta) * smy
           surfphifdm = atil * myphi(ig) + (smy - atil) * neighphi
-          ahat = (Jout(3, ibd, ixy, iz, ig) - surfphifdm) / phisum
-          PinXS%atil(ibd, ig) = atil; PinXS%ahat(ibd, ig) = ahat
-          IF(lDhatUpdt) THEN
-            jfdm = Dtil * (myphi(ig) - neighphi)
-            jnet = (Jout(2, ibd, ixy, iz, ig) - Jout(1, ibd, ixy, iz, ig)) !* hz(iz)
-            dhat = (jfdm - jnet) / phisum
+          ahat       = (Jout(3, ibd, ixy, iz, ig) - surfphifdm) / phisum
+          
+          PinXS%atil(ibd, ig) = atil
+          PinXS%ahat(ibd, ig) = ahat
+          
+          IF (lDhatUpdt) THEN
+            jfdm  = Dtil * (myphi(ig) - neighphi)
+            jnet  = (Jout(2, ibd, ixy, iz, ig) - Jout(1, ibd, ixy, iz, ig)) !* hz(iz)
+            dhat  = (jfdm - jnet) / phisum
             pDhat = PinXs%PDHAT(ibd, ig)
-            Del = ABS(dhat - pdhat)
-            IF(Del .GT. 10.*Dtil .AND. lDhatCor) THEN
+            Del   = ABS(dhat - pdhat)
+            
+            IF (Del .GT. 10.*Dtil .AND. lDhatCor) THEN
               Alpha = Dtil/(Del-Dtil)
-              Dhat = PDHAT + Alpha * (Dhat - PDhat)
-            ENDIF
+              Dhat  = PDHAT + Alpha * (Dhat - PDhat)
+            END IF
+            
             PinXs%PDHAT(ibd, ig) = Dhat; PinXs%dhat(ibd, ig) = dhat
-          ENDIF
-        ENDDO  !ENd of Group Sweep
-      ELSE     !Boundary
-        IF(ineigh .EQ. VoidCell) THEN
+          END IF
+        END DO
+      ELSE ! Boundary
+        IF (ineigh .EQ. VoidCell) THEN
           neighbeta = 0.5_8
         ELSE
           neighbeta = 0
-        ENDIF
+        END IF
+        
         DO ig = 1, ng
-          neighphi = 0; phisum = neighphi + myphi(ig)
-          mybeta = CmfdPinXS(ixy, iz)%XSD(ig) / Pin(ixy)%Center2SurfaceL(ibd)
-          IF (nTracerCntl%lGroupAlbedo) THEN
-            neighbeta = (1.0 - Core%groupAlbedo(ibd, ig)) / (2.0 * (Core%groupAlbedo(ibd, ig) + 1.0))
-          ENDIF
-          Dtil = mybeta * neighbeta/(mybeta + neighbeta) * smy
+          neighphi = 0
+          phisum   = neighphi + myphi(ig)
+          mybeta   = CmfdPinXS(ixy, iz)%XSD(ig) / Pin(ixy)%Center2SurfaceL(ibd)
+          
+          IF (nTracerCntl%lGroupAlbedo) neighbeta = (1.0 - Core%groupAlbedo(ibd, ig)) / (2.0 * (Core%groupAlbedo(ibd, ig) + 1.0))
+          
+          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+          
           PinXs%dtil(ibd, ig) = dtil
+          
           !--- CNJ Edit : Domain Decomposition
-          atil = mybeta / (mybeta + neighbeta) * smy
+          atil       = mybeta / (mybeta + neighbeta) * smy
           surfphifdm = atil * myphi(ig) + (smy - atil) * neighphi
-          ahat = (Jout(3, ibd, ixy, iz, ig) - surfphifdm) / phisum
-          PinXS%atil(ibd, ig) = atil; PinXS%ahat(ibd, ig) = ahat
-          IF(lDhatUpdt) THEN
+          ahat       = (Jout(3, ibd, ixy, iz, ig) - surfphifdm) / phisum
+          
+          PinXS%atil(ibd, ig) = atil
+          PinXS%ahat(ibd, ig) = ahat
+          
+          IF (lDhatUpdt) THEN
             jfdm = Dtil * (myphi(ig) - neighphi)
             jnet = (Jout(2, ibd, ixy, iz, ig) - Jout(1, ibd, ixy, iz, ig)) !* hz(iz)
             dhat = (jfdm - jnet) / phisum
-            PinXs%PDHAT(ibd, ig) = Dhat; PinXs%dhat(ibd, ig) = dhat
-          ENDIF
-        ENDDO
-      ENDIF
-       IF(.NOT. core%lfuelplane(iz) .AND. nTRACErCntl%lAxRefFDM) THEN
-         DO ig= 1, ng
-            PinXs%PDHAT(ibd, ig) = 0; PinXs%dhat(ibd, ig) = 0;
-         ENDDO
-       ENDIF
-    ENDDO  !End of Neighborhood Sweep
+            
+            PinXs%PDHAT(ibd, ig) = Dhat
+            PinXs%dhat (ibd, ig) = dhat
+          END IF
+        END DO
+      END IF
+       IF (.NOT. core%lfuelplane(iz) .AND. nTRACErCntl%lAxRefFDM) THEN
+         DO ig = 1, ng
+            PinXs%PDHAT(ibd, ig) = 0
+            PinXs%dhat (ibd, ig) = 0
+         END DO
+       END IF
+    END DO
+    
     NULLIFY(PinXs)
-  ENDDO  !End of Radial Pin Sweep
-ENDDO
-NULLIFY(Pin)
-NULLIFY(hzfm)
-NULLIFY(PINXS)
-END SUBROUTINE
+  END DO
+END DO
 
+NULLIFY (Pin)
+NULLIFY (hzfm)
+NULLIFY (PINXS)
+! ----------------------------------------------------
+
+END SUBROUTINE RadCouplingCoeffGen
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE UpdatePhiC(PinXS, PhiC)
 USE PARAM
 USE TYPEDEF,  ONLY : PinXs_Type

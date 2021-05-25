@@ -82,7 +82,7 @@ RayInfo4CMFD%nRotRay   = nRotRay
 RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
 
 CALL dmalloc(RayInfo4CMFD%RotRayInOutCell, nRotRay, 2)
-
+! ----------------------------------------------------
 DO iRotRay = 1, nRotRay
   ncRay = hRotRay(iRotRay)%ncRay
   
@@ -116,7 +116,7 @@ DO iRotRay = 1, nRotRay
     RayInfo4CMfd%RotRayInOutCell(iRotRay, tDir) = jPin3
   END DO
 END DO
-
+! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
   DcmpAsyRay => RayInfo%DcmpAsyRay
   
@@ -140,12 +140,12 @@ IF (nTracerCntl%lDomainDcmp) THEN
       IF (DcmpAsyRay(iCnt, iAsy)%DirList(1) .EQ. FORWARD) THEN
         jPin = haRay_Loc%CelRay(1)%hPinIdx
         
-        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%SurfIdx(1)
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%hSufIdx(1)
         RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
       ELSE
         jPin = haRay_Loc%CelRay(npRay)%hPinIdx
         
-        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%SurfIdx(2)
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%hSufIdx(2)
         RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
       END IF
       
@@ -155,12 +155,12 @@ IF (nTracerCntl%lDomainDcmp) THEN
       IF (DcmpAsyRay(iCnt, iAsy)%DirList(DcmpAsyRay(iCnt, iAsy)%nAsyRay) .EQ. 1) THEN
         jPin = haRay_Loc%CelRay(npRay)%hPinIdx
         
-        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%SurfIdx(2)
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%hsufIdx(2)
         RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
       ELSE
         jPin = haRay_Loc%CelRay(1)%hPinIdx
         
-        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%SurfIdx(1)
+        RayInfo4CMFD%DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%hSufIdx(1)
         RayInfo4CMFD%DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
       END IF
     END DO

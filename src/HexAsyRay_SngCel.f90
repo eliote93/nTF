@@ -47,7 +47,7 @@ DO imRay = 1, NumMray(0)
   ALLOCATE (haRay(1, 1, imRay)%CelRay (1))
   
   haRay(1, 1, imRay)%CelRay(1)%hPinIdx = 1
-  haRay(1, 1, imRay)%CelRay(1)%SurfIdx = 1 ! TRASH
+  haRay(1, 1, imRay)%CelRay(1)%hSufIdx = 1 ! TRASH
   
   RayEqn = hmRay(imRay)%Eq ! Origin : Cel Cnt
   nPt    = 0

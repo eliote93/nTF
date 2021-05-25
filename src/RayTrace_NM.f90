@@ -145,7 +145,6 @@ END SUBROUTINE RayTraceNM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RecTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, ilv, krot, gb, ge)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, PinInfo_Type, Cell_Type, AsyRayInfo_type, CoreRayInfo_Type, RotRayInfo_Type, CellRayInfo_type, TrackingDat_Type
 
 IMPLICIT NONE
@@ -477,7 +476,7 @@ DO icRay = jbeg, jend, jinc
         CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
         
         IF (lJout) THEN
-          iSurf = CelRay_Loc%SurfIdx(1) ! y : small
+          iSurf = CelRay_Loc%hSufIdx(1) ! y : small
           
           DO ig = gb, ge
             DO ipol = 1, nPolarAng
@@ -511,7 +510,7 @@ DO icRay = jbeg, jend, jinc
         END DO
         
         IF (lJout) THEN
-          isurf = CelRay_Loc%SurfIdx(2) ! y : Big
+          isurf = CelRay_Loc%hSufIdx(2) ! y : Big
           
           DO ig = gb, ge
             DO ipol = 1, nPolarAng
@@ -544,7 +543,7 @@ DO icRay = jbeg, jend, jinc
         CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
         
         IF (lJout) THEN
-          iSurf = CelRay_Loc%SurfIdx(2) ! y : Big
+          iSurf = CelRay_Loc%hSufIdx(2) ! y : Big
           
           DO ig = gb, ge
             DO ipol = 1, nPolarAng
@@ -578,7 +577,7 @@ DO icRay = jbeg, jend, jinc
         END DO
         
         IF (lJout) THEN
-          isurf = CelRay_Loc%SurfIdx(1) ! y : small
+          isurf = CelRay_Loc%hSufIdx(1) ! y : small
           
           DO ig = gb, ge
             DO ipol = 1, nPolarAng

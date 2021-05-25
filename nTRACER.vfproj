@@ -210,8 +210,8 @@
 		<File RelativePath=".\src\HexGeoConst.f90"/>
 		<File RelativePath=".\src\HexPinConst.f90"/></Filter>
 		<Filter Name="IO">
-		<File RelativePath=".\HexChkInpPcc.f90"/>
 		<File RelativePath=".\src\HexChkInp.f90"/>
+		<File RelativePath=".\HexChkInpPcc.f90"/>
 		<File RelativePath=".\src\HexCorePowerCal.f90"/>
 		<File RelativePath=".\src\HexEffXsOut.f90"/>
 		<File RelativePath=".\src\HexInpCard.f90"/>
@@ -421,6 +421,7 @@
 		<File RelativePath=".\src\MKL_BILU.f90"/>
 		<File RelativePath=".\src\MKL_CMFD.f90"/>
 		<File RelativePath=".\src\MKL_DAVIDSON.f90"/>
+		<File RelativePath=".\src\MKL_HOMOXS.f90"/>
 		<File RelativePath=".\src\MKL_POWER.f90"/></Filter>
 		<Filter Name="Depletion">
 		<File RelativePath=".\src\DeplSolvePostProc.f90"/>

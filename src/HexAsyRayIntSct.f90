@@ -37,13 +37,14 @@ TYPE(Type_HexRayPinInfo), POINTER :: pInf_Loc
 nTotPin = hAsyTypInfo(hCelBss(icBss)%iaTyp)%nTotPin(1)
 nhpRay  = 1
 
+! FND : Pts
 DO iPin = 1, nTotPin
   pInf_Loc => RayPinInfo(iPin)
   
   nPtTmp = 0
   
   DO iBndy = 1, pInf_Loc%nBndy(iGeo)
-    lSol = ChkEqnTwoVtx(RayEqn, pInf_Loc%Vtx(1:2, iBndy, iGeo), pInf_Loc%Vtx(1:2, iBndy + 1, iGeo))
+    lSol = ChkEqnTwoVtx(RayEqn, pInf_Loc%Vtx(1:2, iBndy, iGeo), pInf_Loc%Vtx(1:2, iBndy+1, iGeo))
     lSol = lSol .OR. ChkPtEqn(pInf_Loc%Vtx(1:2, iBndy,   iGeo), RayEqn)
     lSol = lSol .OR. ChkPtEqn(pInf_Loc%Vtx(1:2, iBndy+1, iGeo), RayEqn)
     
@@ -59,8 +60,12 @@ DO iPin = 1, nTotPin
     
     nPtTmp = nPtTmp + 1
     
-    tpRay(nhpRay)%SufIdx    (nPtTmp) = iBndy
+    tpRay(nhpRay)%SurfIdx   (nPtTmp) = iBndy
     tpRay(nhpRay)%PinPt(1:2, nPtTmp) = Sol(1:2)
+    
+    ! Dcmp.
+    tpRay(nhpRay)%hsn(nPtTmp) =  pInf_Loc%Eqn(1, iBndy, iGeo) ! sinv
+    tpRay(nhpRay)%hcs(nPtTmp) = -pInf_Loc%Eqn(2, iBndy, iGeo) ! cosv
   END DO
   
   IF (nPtTmp .NE. 2) CYCLE
@@ -73,21 +78,23 @@ DO iPin = 1, nTotPin
   
   nhpRay = nhpRay + 1
   
-  IF (nhpRay > nMaxPinRay) CALL terminate("SET : RAY INT SCT - PIN")
+  IF (nhpRay .GT. nMaxPinRay) CALL terminate("SET : RAY INT SCT - PIN")
 END DO
 
 nhpRay = nhpRay - 1
 
-IF (nhpRay < 1) RETURN
+IF (nhpRay .LT. 1) RETURN
 
+! Sort
 CALL HexSortPinRay(tpRay, hpRay, nhpRay)
 
+! Gap Pin Surf
 EdPts(1:2, 1) = hpRay(1)%PinPt(1:2, 1)
 EdPts(1:2, 2) = hpRay(nhpRay)%PinPt(1:2, 2)
 
 DO iBndy = 1, 6
-  IF (ChkPtEqn(EdPts(1:2, 1), AsyEqn(1:3, iBndy))) hpRay(1)%SufIdx(1) = 4
-  IF (ChkPtEqn(EdPts(1:2, 2), AsyEqn(1:3, iBndy))) hpRay(nhpRay)%SufIdx(2) = 4
+  IF (ChkPtEqn(EdPts(1:2, 1), AsyEqn(1:3, iBndy))) hpRay(1)%SurfIdx(1) = 4
+  IF (ChkPtEqn(EdPts(1:2, 2), AsyEqn(1:3, iBndy))) hpRay(nhpRay)%SurfIdx(2) = 4
 END DO
 
 !IF ((iGeo .EQ. 7).AND.(imRay .EQ. 1369)) CALL HexTsthpRay(RayEqn, nhpRay, hpRay)
@@ -109,24 +116,35 @@ TYPE(Type_HexPinRay) :: hpRay(:)
 INTEGER :: nhpRay
 
 INTEGER :: iPin, iSuf, jPin, iMn
-REAL    :: Pt(2), Min
+REAL    :: Pt(2), Min, tcs, tsn
 LOGICAL :: luse(nhpRay)
 ! ----------------------------------------------------
 
+! Sort for Each hpRay
 DO iPin = 1, nhpRay
-  IF (tpRay(iPin)%PinPt(2, 1) < tpRay(iPin)%PinPt(2, 2)) CYCLE
+  IF (tpRay(iPin)%PinPt(2, 1) .LT. tpRay(iPin)%PinPt(2, 2)) CYCLE
   
   Pt(1:2) = tpRay(iPin)%PinPt(1:2, 1)
   
   tpRay(iPin)%PinPt(1:2, 1) = tpRay(iPin)%PinPt(1:2, 2)
   tpRay(iPin)%PinPt(1:2, 2) = Pt(1:2)
   
-  iSuf = tpRay(iPin)%SufIdx(1)
+  iSuf = tpRay(iPin)%SurfIdx(1)
   
-  tpRay(iPin)%SufIdx(1) = tpRay(iPin)%SufIdx(2)
-  tpRay(iPin)%SufIdx(2) = iSuf
+  tpRay(iPin)%SurfIdx(1) = tpRay(iPin)%SurfIdx(2)
+  tpRay(iPin)%SurfIdx(2) = iSuf
+  
+  ! Dcmp.
+  tcs = tpRay(iPin)%hcs(1)
+  tsn = tpRay(iPin)%hsn(1)
+  
+  tpRay(iPin)%hcs(1) = tpRay(iPin)%hcs(2)
+  tpRay(iPin)%hsn(1) = tpRay(iPin)%hsn(2)
+  tpRay(iPin)%hcs(2) = tcs
+  tpRay(iPin)%hsn(2) = tsn
 END DO
 
+! Sort along hpRays
 luse = FALSE
 
 DO iPin = 1, nhpRay
