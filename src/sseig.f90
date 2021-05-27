@@ -119,7 +119,8 @@ IF (nTracerCntl%lFeedBack) THEN
   
   CALL CmfdDriverSwitch()
   
-#if defined (__INTEL_MKL) && defined (__GAMMA_TRANSPORT)
+#ifdef __INTEL_MKL
+#ifdef __GAMMA_TRANSPORT
   IF (nTracerCntl%lGamma) THEN
     WRITE (mesg, '(A12, I1, A31)') 'Performing P', nTracerCntl%GammaScatOd, ' Gamma Transport Calculation...'
     IF (Master) CALL message(io8, TRUE, TRUE, mesg)
@@ -132,6 +133,7 @@ IF (nTracerCntl%lFeedBack) THEN
       CALL GammaMOCSweep(Core, RayInfo, FmInfo, PE, nTracerCntl, ItrCntl)
     END DO
   END IF
+#endif
 #endif
 
   CALL SteadyStateTH(Core, CmInfo, FmInfo, ThInfo, Eigv, ng, GroupInfo, nTracerCntl, PE)

@@ -101,7 +101,7 @@ DO izf = myzbf, myzef
 END DO
 !$OMP END PARALLEL
 #ifdef MPI_ENV
-CALL MPI_ALLREDUCE(volsum, tmpvolsum, 1, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(volsum, tmpvolsum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
 volsum = tmpvolsum
 #endif
 cuTranCMInfo%Inv_FuelVol = 1._8 / volsum
@@ -965,10 +965,10 @@ END DO
 
 #ifdef MPI_ENV
 Buf0 =(/resphi, lifetime, betaavg, psisum/)
-CALL MPI_ALLREDUCE(Buf0, Buf, 4, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(Buf0, Buf, 4, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
 resphi = Buf(1); lifetime = Buf(2); betaavg = Buf(3); psisum = Buf(4)
-CALL MPI_ALLREDUCE(invvelsum, invvelsum0, 8, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
-CALL MPI_ALLREDUCE(phivolsum, phivolsum0, 8, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(invvelsum, invvelsum0, 8, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(phivolsum, phivolsum0, 8, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
 #endif
 
 PRINT'(2es14.6)', invvelsum0(1) / phivolsum0(1) , invvelsum0(2) / phivolsum0(2)
@@ -2554,7 +2554,7 @@ n = ng * nxy * nzCMFD
 WRITE(mesg, '(a)') 'Leakage Difference Summary...'
 IF(PE%master) CALL message(io8, TRUE, TRUE, MESG)
 realn = n
-CALL MPI_ALLREDUCE(realn, totn, 1, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(realn, totn, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
 DO ibd = 1, nsurf
   maxval = 0
   sumval = 0
@@ -2567,11 +2567,11 @@ DO ibd = 1, nsurf
       maxval = val
     END IF
   END DO
-  CALL MPI_ALLREDUCE(sumleak, totleak, 1, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(sumleak, totleak, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
   sumleak = totleak / totn
-  CALL MPI_ALLREDUCE(sumval, val, 1, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(sumval, val, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
   sumval = val / totleak
-  CALL MPI_ALLREDUCE(maxval, val, 1, MPI_DOUBLE_PRECISION,, MPI_MAX, MPI_CUDA_COMM, ierr)
+  CALL MPI_ALLREDUCE(maxval, val, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_CUDA_COMM, ierr)
   maxval = val / sumleak
   WRITE(mesg, '(1x,a6,a1,x,a10,es12.5,2x,a9,es12.5,2x,a9,es12.5)')  DirName(ibd), ':', 'Avg Leak =',sumleak, 'Avg Err =', sumval, 'Max Err =', maxval
   IF(PE%master) CALL message(io8, FALSE, TRUE, MESG)

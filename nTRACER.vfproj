@@ -302,10 +302,12 @@
 		<Filter Name="MOC">
 		<Filter Name="Common">
 		<File RelativePath=".\src\ApproxExp.f90"/>
+		<File RelativePath=".\src\InitRT.f90"/>
 		<File RelativePath=".\src\moc_mod.f90"/>
 		<File RelativePath=".\src\MocEtc.f90"/>
 		<File RelativePath=".\src\MOCSweep.f90"/></Filter>
-		<Filter Name="Domain Dcmp">
+		<Filter Name="Etc">
+		<File RelativePath=".\src\RayTrace_AFSS.f90"/>
 		<File RelativePath=".\src\RayTrace_Dcmp.f90"/></Filter>
 		<Filter Name="Group Major">
 		<File RelativePath=".\src\RayTrace_GM.f90"/>

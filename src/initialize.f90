@@ -15,6 +15,7 @@ USE FXRVAR_MOD,    ONLY : lFXRVAR
 USE XS_COMMON,     ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
 USE MOC_COMMON,    ONLY : AllocCoreMacXs
 USE MPIComm_Mod,   ONLY : MPI_SYNC
+USE MOC_MOD,       ONLY : initRT
 
 #ifdef __INTEL_MKL
 USE MKL_INIT
@@ -25,7 +26,7 @@ IMPLICIT NONE
 
 IF (nTracerCntl%lHex) CALL HexMain
 
-! Parallel Enviorment
+! Parallel Environment
 #ifdef MPI_ENV
 CALL SetMPIEnv(PE)
 IF (PE%lidle) RETURN
@@ -72,6 +73,9 @@ IF (lFXRVAR .AND. .NOT.nTracerCntl%lBranch ) CALL FXRVARIATION(Core%ncorefxr, Fm
 ! Flux Variables
 IF (PE%RTmaster) CALL SetCorePower(Core, nTracerCntl)
 IF (PE%RTmaster) CALL InitFluxVariables
+
+! RT
+IF (PE%RTmaster) CALL initRT(RayInfo, Core, nTracerCntl, PE)
 
 ! Pre-generated Macro Cross Section
 IF (nTracerCntl%lMacro) CALL AllocCoreMacXs(Core)

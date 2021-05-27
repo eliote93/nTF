@@ -370,6 +370,8 @@ TYPE Type_HexPinRay ! Temporary
   INTEGER :: SurfIdx(2)  = 0    ! (y¢Ö)
   REAL    :: PinPt(2, 2) = ZERO ! (x/y, y¢Ö)
   
+  REAL :: hsn(2) = ZERO ! sinv
+  REAL :: hcs(2) = ZERO ! cosv
 END TYPE Type_HexPinRay
 ! ----------------------------------------------------
 !               02. Cel Ray

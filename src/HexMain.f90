@@ -28,8 +28,6 @@ nbd = 6
 IF (ngBss .EQ. 1) ncbd = 6
 IF (ngBss .NE. 1) ncbd = 10
 
-nTracerCntl%MultigridLV = 6
-
 IF (nz .EQ. 1) nTracerCntl%l3dim = FALSE
 
 CALL ConvertXs

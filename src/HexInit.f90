@@ -43,14 +43,6 @@ END IF
 
 ! Ray 4 CMFD
 CALL HexRayInfo4CmfdGen(RayInfo, RayInfo4Cmfd)
-
-! MGD
-IF (.NOT. nTracerCntl%lMultigrid) THEN
-  nTracerCntl%MultigridLV = 1
-  nTracerCntl%gridNum     = 0
-END IF
-
-CALL MultigridRayGen(RayInfo)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexInit

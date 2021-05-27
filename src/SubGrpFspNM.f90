@@ -3,12 +3,10 @@
 !--- CNJ Edit : Node Majors
 
 MODULE SubGrpFspNM
-USE TYPEDEF,        ONLY : TrackingDat_Type
+
 IMPLICIT NONE
 
-TYPE(TrackingDat_Type) :: TrackingDat(100)
-
-PRIVATE :: SubgroupRT, TrackingDat
+PRIVATE :: SubgroupRT
 
 CONTAINS
 
@@ -208,119 +206,111 @@ Tend = nTracer_dclock(FALSE, FALSE)
 TimeChk%SubGrpTime = TimeChk%SubGrpTime + (Tend - Tbeg)
 
 END SUBROUTINE
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE SubgroupRT(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, iz, mg, lDomainDcmp)
+! NOTICE : # of E. Grp. for Sub-Group Calculation can be different
 
-SUBROUTINE SubgroupRT(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, iz, ng, lDomainDcmp)
-USE PARAM
-USE TYPEDEF,        ONLY : RayInfo_Type,    CoreInfo_type,      Pin_Type,           Cell_Type,                      &
-                           MultigridInfo_Type
-USE CNTL,           ONLY : nTracerCntl
-USE PE_MOD,         ONLY : PE
+USE allocs
 USE OMP_LIB
+USE PARAM,   ONLY : TRUE, FALSE, ZERO
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
+USE CNTL,    ONLY : nTracerCntl
+USE PE_MOD,  ONLY : PE
+USE MOC_MOD, ONLY : TrackingDat
+USE geom,    ONLY : ng
+
 IMPLICIT NONE
 
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: phis(:, :), PhiAngIn(:, :, :), xst(:, :), src(:, :)
-INTEGER :: iz, ng
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+
+REAL, POINTER, DIMENSION(:,:)   :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:,:) :: PhiAngIn
+
+INTEGER :: iz, mg
 LOGICAL :: lDomainDcmp
 
-TYPE(Cell_Type), POINTER :: Cell(:)
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(MultigridInfo_Type), POINTER :: MultigridInfo(:)
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nPhiAngSv
-INTEGER :: nRotray
-INTEGER :: nFsr, nAsy, nxy
-INTEGER :: nThread
+INTEGER :: nFsr, nxy, nThr, iRotRay, irot, ithr
+INTEGER :: FsrIdxSt, ipin, icel, ig, ifsr, jfsr
+! ----------------------------------------------------
 
-INTEGER :: iRotRay, ipol, iazi, irot, AziIdx
-INTEGER :: tid
-INTEGER :: FsrIdxSt, ipin, icel, ireg, ibd
-INTEGER :: ilv, i, j, l, g
-
-nAsy = CoreInfo%nxya
-MultigridInfo => RayInfo%MultigridInfo
-nPhiAngSv = RayInfo%nPhiAngSv
-nRotRay = RayInfo%nRotRay
 nFsr = CoreInfo%nCoreFsr
-nxy = CoreInfo%nxy
-nThread = PE%nThread
+nxy  = CoreInfo%nxy
 
-ilv = nTracerCntl%MultigridLV
+nThr = PE%nThread
 
-nAziAng = MultigridInfo(ilv)%nAzi
-nPolarAng = MultigridInfo(ilv)%nPolar
+DO ithr = 1, nThr
+  DEALLOCATE (TrackingDat(ithr)%phisnm)
+  CALL dmalloc(TrackingDat(ithr)%phisnm, mg, nFsr)
+END DO
+! ----------------------------------------------------
+!$OMP PARALLEL PRIVATE(ithr, irot, iRotRay)
+ithr = omp_get_thread_num() + 1
 
-phis = zero
-
-!$OMP PARALLEL PRIVATE(tid, iRotRay, AziIdx)
-tid = omp_get_thread_num() + 1
-
-ALLOCATE(TrackingDat(tid)%phisnm(ng, nFsr))
-TrackingDat(tid)%phisnm = zero
-TrackingDat(tid)%EXPA => MultigridInfo(ilv)%EXPA
-TrackingDat(tid)%EXPB => MultigridInfo(ilv)%EXPB
-TrackingDat(tid)%srcnm => src
-TrackingDat(tid)%xstnm => xst
-TrackingDat(tid)%PhiAngInnm => PhiAngIn
+TrackingDat(ithr)%phisnm      = ZERO
+TrackingDat(ithr)%srcnm      => src
+TrackingDat(ithr)%xstnm      => xst
+TrackingDat(ithr)%PhiAngInnm => PhiAngIn
 
 DO irot = 1, 2
-  DO iazi = 1, nAziAng / 2
-    AziIdx = MultigridInfo(ilv)%AziList(iazi)
-    
-    IF (nTracerCntl%lHex) THEN
-      !$OMP DO SCHEDULE(GUIDED)
-      DO i = 1, RayInfo%RotRayAziList(0, Aziidx)
-        iRotRay = RayInfo%RotRayAziList(i, AziIdx)
-        CALL HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
-      ENDDO
-      !$OMP END DO NOWAIT
-    ELSE
-      !$OMP DO SCHEDULE(GUIDED)
-      DO i = 1, RayInfo%RotRayAziList(0, Aziidx)
-        iRotRay = RayInfo%RotRayAziList(i, AziIdx)
-        CALL RecTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(tid), FALSE, iRotRay, iz, ilv, irot, 1, ng)
-      ENDDO
-      !$OMP END DO NOWAIT
-    END IF
-    
-  ENDDO
-ENDDO
-
+  IF (nTracerCntl%lHex) THEN
+    !$OMP DO SCHEDULE(GUIDED)
+    DO iRotRay = 1, RayInfo%nRotRay
+      CALL HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), FALSE, iRotRay, iz, irot, 1, mg)
+    END DO
+    !$OMP END DO NOWAIT
+  ELSE
+    !$OMP DO SCHEDULE(GUIDED)
+    DO iRotRay = 1, RayInfo%nRotRay
+      CALL RecTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), FALSE, iRotRay, iz, irot, 1, mg)
+    END DO
+    !$OMP END DO NOWAIT
+  END IF
+END DO
 !$OMP END PARALLEL
+! ----------------------------------------------------
+phis = ZERO
 
-DO j = 1, nThread
-  DO ireg = 1, nFsr
-    DO g = 1, ng
-      phis(g, ireg) = phis(g, ireg) + TrackingDat(j)%phisnm(g, ireg)
-    ENDDO
-  ENDDO
-ENDDO
+DO ithr = 1, nThr
+  DO ifsr = 1, nFsr
+    DO ig = 1, mg
+      phis(ig, ifsr) = phis(ig, ifsr) + TrackingDat(ithr)%phisnm(ig, ifsr)
+    END DO
+  END DO
+  
+  DEALLOCATE (TrackingDat(ithr)%phisnm)
+  CALL dmalloc(TrackingDat(ithr)%phisnm, ng, nFsr)
+END DO
+! ----------------------------------------------------
+Cell => CoreInfo%CellInfo
+Pin  => CoreInfo%Pin
 
-Cell => CoreInfo%CellInfo; Pin => CoreInfo%Pin
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(FsrIdxSt, icel, ireg)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr, ig)
 !$OMP DO SCHEDULE(GUIDED)
-DO l = 1, nxy
-  FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
-  DO j = 1, Cell(icel)%nFsr
-    ireg = FsrIdxSt + j - 1
-    DO g = 1, ng
-      phis(g, ireg) = phis(g, ireg) / (xst(g, ireg) * Cell(icel)%vol(j)) + src(g, ireg)
-    ENDDO
-  ENDDO
-ENDDO
+DO ipin = 1, nxy
+  FsrIdxSt = Pin(ipin)%FsrIdxSt
+  icel     = Pin(ipin)%Cell(iz)
+  
+  DO ifsr = 1, Cell(icel)%nFsr
+    jfsr = FsrIdxSt + ifsr - 1
+    
+    DO ig = 1, mg
+      phis(ig, jfsr) = phis(ig, jfsr) / (xst(ig, jfsr) * Cell(icel)%vol(ifsr)) + src(ig, jfsr)
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-!$OMP PARALLEL PRIVATE(tid)
-tid = omp_get_thread_num() + 1
+NULLIFY (Cell)
+NULLIFY (Pin)
+! ----------------------------------------------------
 
-DEALLOCATE(TrackingDat(tid)%phisnm)
-
-!$OMP END PARALLEL
-
-END SUBROUTINE
-
+END SUBROUTINE SubgroupRT
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
 USE TYPEDEF,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Pin_Type,           Cell_Type
 USE xslib_mod,      ONLY : libdata,         ldiso,              mapnucl,            mlgdata

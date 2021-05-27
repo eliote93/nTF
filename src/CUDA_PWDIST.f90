@@ -229,7 +229,7 @@ DO izf = 1, nzCMFD
 END DO
 !$OMP END PARALLEL
 #ifdef MPI_ENV
-CALL MPI_ALLREDUCE(volsum, tmpvolsum, 1, MPI_DOUBLE_PRECISION,, MPI_SUM, MPI_CUDA_COMM, ierr)
+CALL MPI_ALLREDUCE(volsum, tmpvolsum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_CUDA_COMM, ierr)
 volsum = tmpvolsum
 #endif
 

@@ -310,24 +310,6 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1GM_MGD(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ScatOd, lJout)
-
-USE PARAM
-USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type
-
-IMPLICIT NONE
-
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER :: phis(:), phim(:, :), PhiAngIn(:, :), xst(:)
-REAL, POINTER :: src(:), srcm(:, :), jout(:, :, :)
-INTEGER :: iz
-LOGICAL :: ljout
-INTEGER :: ScatOd
-
-END SUBROUTINE RayTraceP1GM_MGD
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_Pn(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -1061,6 +1043,20 @@ INTEGER :: nfsr, myzb, myze, gb, ge, nz
 INTEGER :: AxBC(2)
 
 END SUBROUTINE GetNeighborMocFlux
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE initRT(RayInfo, CoreInfo, nTracerCntl, PE)
+
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE
+USE Cntl,    ONLY : nTracerCntl_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
+
+END SUBROUTINE initRT
 ! ------------------------------------------------------------------------------------------------------------
 END INTERFACE
 

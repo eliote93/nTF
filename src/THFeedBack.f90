@@ -269,7 +269,7 @@ ENDIF
 
 #ifdef MPI_ENV
 Buf0 =(/tdvolsum, denvolsum, tmvolsum, ncvolsum, tfxrsum, volfxrsum/)
-CALL MPI_ALLREDUCE(Buf0, Buf, 6, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+CALL MPI_ALLREDUCE(Buf0, Buf, 6, MPI_DOUBLE_PRECISION, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
 tdvolsum = Buf(1)
 denvolsum = Buf(2)
 tmvolsum = Buf(3)
@@ -481,7 +481,7 @@ END DO
 
 #ifdef MPI_ENV
 Buf0 =(/tdvolsum, denvolsum, tmvolsum, ncvolsum/)
-CALL MPI_ALLREDUCE(Buf0, Buf, 4, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+CALL MPI_ALLREDUCE(Buf0, Buf, 4, MPI_DOUBLE_PRECISION, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
 tdvolsum = Buf(1)
 denvolsum = Buf(2)
 tmvolsum = Buf(3)

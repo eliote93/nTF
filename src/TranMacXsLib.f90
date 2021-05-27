@@ -143,7 +143,7 @@ END DO
 
 NULLIFY(Cell, Pin, phis, myFxr)
 
-CALL MPI_ALLREDUCE(chidksum, chidk, ng*nprec, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+CALL MPI_ALLREDUCE(chidksum, chidk, ng*nprec, MPI_DOUBLE_PRECISION, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
 
 psisum = sum(chidk(:,:))
 chid = 0.
@@ -246,7 +246,7 @@ END DO
 
 NULLIFY(Cell, Pin, phis, myFxr)
 
-CALL MPI_ALLREDUCE(chidsum, avgchid, ng, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+CALL MPI_ALLREDUCE(chidsum, avgchid, ng, MPI_DOUBLE_PRECISION, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
 
 psisum = sum(avgchid(1:ng))
 DO ig = 1, ng
@@ -303,7 +303,7 @@ DO iz = myzb, myze
     END DO 
   END DO 
 END DO 
-CALL MPI_ALLREDUCE(chisum, avgchi, ng, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+CALL MPI_ALLREDUCE(chisum, avgchi, ng, MPI_DOUBLE_PRECISION, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
 
 psisum = sum(avgchi(1:ng))
 DO ig = 1, ng
@@ -364,7 +364,7 @@ DO iz = myzb, myze
 END DO 
 
 Buf0 = (/betasum, psisum/)
-CALL MPI_ALLREDUCE(Buf0, Buf, 2, MPI_DOUBLE_PRECISION,, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
+CALL MPI_ALLREDUCE(Buf0, Buf, 2, MPI_DOUBLE_PRECISION, MPI_SUM, PE%MPI_CMFD_COMM, ierr)
 betasum = Buf(1) 
 psisum = Buf(2)
 

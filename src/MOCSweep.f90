@@ -6,7 +6,7 @@ USE TYPEDEF,     ONLY : CoreInfo_Type, RayInfo_Type, FmInfo_Type, PE_TYPE, FxrIn
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
-USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTraceGM_OMP, RayTraceP1GM_OMP, RayTraceP1GM_AFSS, RayTraceP1GM_MGD, &
+USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTraceGM_OMP, RayTraceP1GM_OMP, RayTraceP1GM_AFSS, &
                         PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
@@ -42,15 +42,13 @@ REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
 
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn
-INTEGER :: nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
-REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, errdat(3)
-REAL :: tmocst, tmoced, t1gst, t1ged, tngst, tnged, tngdel(2), tdel
+REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, t1gst, t1ged, tngst, tnged, tdel
+REAL :: errdat(3), tngdel(2)
 
-LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, lDmesg
-LOGICAL :: lLinSrc, lLSCASMO, lmocUR, lbsq, lmgrid, laxrefFDM, ldcmp
+LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp
 
 CHARACTER(80) :: hostname
 
@@ -128,7 +126,6 @@ lLinSrc   = nTracerCntl%lLinSrc
 lLSCASMO  = nTracerCntl%lLinSrcCASMO
 lmocUR    = nTracerCntl%lmocUR
 lbsq      = nTracerCntl%lbsq
-lmgrid    = nTracerCntl%lmultigrid
 laxrefFDM = nTracerCntl%laxrefFDM
 ldcmp     = nTracerCntl%ldomaindcmp
 lAFSS     = nTracerCntl%lAFSS
@@ -207,9 +204,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
                   CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
                 END IF
               ELSE
-                IF (lmgrid) THEN
-                  CALL RayTraceP1GM_MGD(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, nscttod, lJout)
-                ELSE IF (lAFSS) THEN
+                IF (lAFSS) THEN
                   CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
                 ELSE
                   CALL RayTraceP1GM_OMP (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
