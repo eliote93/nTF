@@ -56,7 +56,7 @@ DO iaTyp = 1, nAsyType0
   
   IF (aInf_Loc%nPin .LT. 2) CALL terminate("# of Pin")
   
-  CALL HexChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN")
+  CALL HexChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN 1")
   
   ! Rod Pin
   DO ix = 1, 2 * nPin - 1
@@ -104,7 +104,7 @@ DO iPin = 1, nGapPinType
   IF (.NOT. GapPin(iPin)%luse) CYCLE
   
   DO iz = 1, nZ
-    CALL HexChkRange_INT(GapPin(iPin)%iCel(iz), 1, nGapType, "GAP PIN")
+    CALL HexChkRange_INT(GapPin(iPin)%iCel(iz), 1, nGapType, "GAP PIN 2")
   END DO
 END DO
 

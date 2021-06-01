@@ -391,7 +391,7 @@ INTEGER :: nCoreRay, nAsyRay, nPolarAng, PhiAnginSvIdx, PhiAngOutSvIdx, ExpAppId
 
 REAL :: phid, tau, locsrc, ExpApp
 
-REAL :: wtpol(10)
+REAL :: wtazi(10)
 REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: PhiAngOut
 
 REAL, POINTER, DIMENSION(:,:)     :: phis, src, xst, EXPA, EXPB, wtang
@@ -436,7 +436,7 @@ DO icRay = jbeg, jend, jinc
   IF (krot .EQ. 2) jcRay = -jcRay ! Reverse the Sweep Direction
   
   DO ipol = 1, nPolarAng
-    wtpol(ipol) = wtang(ipol, iazi)
+    wtazi(ipol) = wtang(ipol, iazi)
   END DO
   ! --------------------------------------------------
   IF (jcRay .GT. 0) THEN
@@ -459,16 +459,18 @@ DO icRay = jbeg, jend, jinc
         
         CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
         
+        ! Surface : In-coming
         IF (lJout) THEN
           iSurf = CelRay_Loc%hSufIdx(1) ! y : small
           
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              Jout(1, ig, iSurf, jhPin) = Jout(1, ig, isurf, jhPin) + wtpol(ipol) * PhiAngOut(ipol, ig)
+          DO ipol = 1, nPolarAng
+            DO ig = gb, ge
+              Jout(1, ig, iSurf, jhPin) = Jout(1, ig, isurf, jhPin) + PhiAngOut(ipol, ig) * wtazi(ipol)
             END DO
           END DO
         END IF
         
+        ! Iter. : FSR
         DO iRaySeg = 1, CelRay_Loc%nSegRay
           ifsr = CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
           
@@ -487,17 +489,18 @@ DO icRay = jbeg, jend, jinc
               
               PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
               
-              phis(ig, ifsr) = phis(ig, ifsr) + wtpol(ipol) * phid
+              phis(ig, ifsr) = phis(ig, ifsr) + wtazi(ipol) * phid
             END DO
           END DO
         END DO
         
+        ! Surface : Out-going
         IF (lJout) THEN
           isurf = CelRay_Loc%hSufIdx(2) ! y : Big
           
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              Jout(2, ig, iSurf, jhPin) = Jout(2, ig, iSurf, jhPin) + wtpol(ipol) * PhiAngOut(ipol, ig)
+          DO ipol = 1, nPolarAng
+            DO ig = gb, ge
+              Jout(2, ig, iSurf, jhPin) = Jout(2, ig, iSurf, jhPin) + PhiAngOut(ipol, ig) * wtazi(ipol)
             END DO
           END DO
         END IF
@@ -524,16 +527,18 @@ DO icRay = jbeg, jend, jinc
         
         CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
         
+        ! Surface : In-coming
         IF (lJout) THEN
           iSurf = CelRay_Loc%hSufIdx(2) ! y : Big
           
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              Jout(1, ig, iSurf, jhPin) = Jout(1, ig, isurf, jhPin) + wtpol(ipol) * PhiAngOut(ipol, ig)
+          DO ipol = 1, nPolarAng
+            DO ig = gb, ge
+              Jout(1, ig, iSurf, jhPin) = Jout(1, ig, isurf, jhPin) + PhiAngOut(ipol, ig) * wtazi(ipol)
             END DO
           END DO
         END IF
         
+        ! Iter. : FSR
         DO iRaySeg = CelRay_Loc%nSegRay, 1, -1
           ifsr = CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
           
@@ -552,17 +557,18 @@ DO icRay = jbeg, jend, jinc
               
               PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
               
-              phis(ig, ifsr) = phis(ig, ifsr) + wtpol(ipol) * phid
+              phis(ig, ifsr) = phis(ig, ifsr) + wtazi(ipol) * phid
             END DO
           END DO
         END DO
         
+        ! Surface : Out-going
         IF (lJout) THEN
           isurf = CelRay_Loc%hSufIdx(1) ! y : small
           
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              Jout(2, ig, iSurf, jhPin) = Jout(2, ig, iSurf, jhPin) + wtpol(ipol) * PhiAngOut(ipol, ig)
+          DO ipol = 1, nPolarAng
+            DO ig = gb, ge
+              Jout(2, ig, iSurf, jhPin) = Jout(2, ig, iSurf, jhPin) + PhiAngOut(ipol, ig) * wtazi(ipol)
             END DO
           END DO
         END IF

@@ -367,8 +367,8 @@ END SUBROUTINE
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE MOCPhiInUpdt(Core, CmInfo, myzb, myze, ng)
 
-USE PARAM,       ONLY : zERO
-USE TYPEDEF,     ONLY : CoreInfo_Type, Pin_Type, PinXs_Type, RayInfo4CMFD_Type, CmInfo_Type, PolarAngle_Type
+USE PARAM,       ONLY : ZERO
+USE TYPEDEF,     ONLY : CoreInfo_Type, Pin_Type, PinXs_Type, RayInfo4CMFD_Type, CmInfo_Type
 USE CMFD_MOD,    ONLY : PinNeighIdx, CMFDPinXS, SubPlaneMap
 USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : ItrCntl
@@ -382,9 +382,8 @@ INTEGER :: myzb, myze, ng
 
 TYPE (RayInfo4Cmfd_Type), POINTER :: RayInfo4CMFD
 
-TYPE (Pin_Type),        POINTER, DIMENSION(:)   :: Pin
-TYPE (PolarAngle_Type), POINTER, DIMENSION(:)   :: PolarAngle
-TYPE (PinXs_Type),      POINTER, DIMENSION(:,:) :: PinXs
+TYPE (Pin_Type),   POINTER, DIMENSION(:)   :: Pin
+TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: PinXs
 
 REAL, POINTER, DIMENSION(:,:,:) :: PHIC, PhiFm
 
@@ -392,7 +391,7 @@ INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAsyRayInSurf, DcmpAsyRayInCell
 
-INTEGER :: i, j, k, iz, iz0, ig, ipol, ixy, isv, ipin, isurf, ineigh, nRotRay, nCoreRay, nPolar, nAsy
+INTEGER :: iz, iz0, ig, ipol, ixy, iAsy, isv, isurf, ingh, nRotRay, nCoreRay, nPolar, nAsy, icnt, idir, iRotRay
 
 REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn
 REAL, POINTER, DIMENSION(:,:,:,:,:)   :: RadJout
@@ -420,22 +419,21 @@ DcmpAsyRayCount  => RayInfo4CMFD%DcmpAsyRayCount
 DcmpAsyRayInSurf => RayInfo4CMFD%DcmpAsyRayInSurf
 DcmpAsyRayInCell => RayInfo4CMFD%DcmpAsyRayInCell
 AsyPhiAngIn      => RayInfo4CMFD%AsyPhiAngIn
-PolarAngle       => RayInfo4CMFD%PolarAngle
 ! ----------------------------------------------------
-DO j = 1, 2
-  DO i = 1, nRotRay
-    ixy = RotRayInOutCell(i, j)
+DO idir = 1, 2
+  DO iRotRay = 1, nRotRay
+    ixy = RotRayInOutCell(iRotRay, idir)
     
     IF (ixy .EQ. 0) CYCLE
     
-    isv = PhiAngInSvIdx(i, j)
+    isv = PhiAngInSvIdx(iRotRay, idir)
     
     DO iz = myzb, myze
-      DO k = 1, nPolar
+      DO ipol = 1, nPolar
         DO ig = 1, ng
-          fmult = PhiC(ixy, iz, ig) / PinXS(ixy, iz)%PHI(ig)
+          fmult = PhiC(ixy, iz, ig) / PinXS(ixy, iz)%phi(ig)
           
-          PhiAngIn(k, isv, iz, ig) = PhiAngIn(k, isv, iz, ig) * fmult
+          PhiAngIn(ipol, isv, iz, ig) = PhiAngIn(ipol, isv, iz, ig) * fmult
         END DO
       END DO
     END DO
@@ -446,33 +444,33 @@ IF (nTracerCntl%lDomainDcmp) THEN
   DO iz = myzb, myze
     iz0 = SubPlaneMap(iz)
     
-    DO k = 1, nAsy
-      DO j = 1, DcmpAsyRayCount(k)
-        DO i = 1, 2
-          ipin   = DcmpAsyRayInCell(i, j, k)
-          isurf  = DcmpAsyRayInSurf(i, j, k)
-          ineigh = PinNeighIdx(isurf, ipin)
-          smy    = Pin(ipin)%BdLength(isurf)
+    DO iAsy = 1, nAsy
+      DO icnt = 1, DcmpAsyRayCount(iAsy)
+        DO idir = 1, 2
+          ixy   = DcmpAsyRayInCell(idir, icnt, iAsy)
+          isurf = DcmpAsyRayInSurf(idir, icnt, iAsy)
+          ingh  = PinNeighIdx(isurf, ixy)
+          smy   = Pin(ixy)%BdLength(isurf)
           
           DO ig = 1, ng
-            myphi = PhiFm(ipin, iz, ig)
+            myphi = PhiFm(ixy, iz, ig)
             
             neighphi = ZERO
-            IF (ineigh .GT. 0) neighphi = PhiFm(ineigh, iz, ig)
+            IF (ingh .GT. 0) neighphi = PhiFm(ingh, iz, ig)
             
-            atil = CMFDPinXS(ipin, iz0)%atil(isurf, ig)
-            ahat = CMFDPinXS(ipin, iz0)%ahat(isurf, ig)
+            atil = CMFDPinXS(ixy, iz0)%atil(isurf, ig)
+            ahat = CMFDPinXS(ixy, iz0)%ahat(isurf, ig)
             
             surfphi = atil * myphi + (smy - atil) * neighphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN
-              AsyPhiAngIn(:, ig, i, j, k, iz) = surfphi / smy
+              AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / smy
             ELSE
               surfphi = surfphi + ahat * (myphi + neighphi)
-              fmult   = surfphi / RadJout(3, isurf, ipin, iz, ig)
+              fmult   = surfphi / RadJout(3, isurf, ixy, iz, ig)
               
               DO ipol = 1, nPolar
-                AsyPhiAngIn(ipol, ig, i, j, k, iz) = AsyPhiAngIn(ipol, ig, i, j, k, iz) * fmult
+                AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) * fmult
               END DO
             END IF
           END DO
@@ -482,12 +480,21 @@ IF (nTracerCntl%lDomainDcmp) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-NULLIFY (PhiAngIn)
+! Dcmp.
 NULLIFY (RotRayInOutCell)
 NULLIFY (PhiAngInSvIdx)
+NULLIFY (PhiAngIn)
+NULLIFY (DcmpAsyRayCount)
 NULLIFY (DcmpAsyRayInSurf)
 NULLIFY (DcmpAsyRayInCell)
 NULLIFY (AsyPhiAngIn)
+
+! Geo
+NULLIFY (Pin)
+NULLIFY (RayInfo4Cmfd)
+NULLIFY (PhiC)
+NULLIFY (PhiFm)
+NULLIFY (PinXS)
 NULLIFY (RadJout)
 ! ----------------------------------------------------
 

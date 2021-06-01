@@ -5,7 +5,7 @@ USE allocs
 USE PARAM,   ONLY : TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, wthcs, wthsn
 USE geom,    ONLY : nbd, ng
 
 IMPLICIT NONE
@@ -64,6 +64,19 @@ DO ipol = 1, nPolarAng
     wtsurf(ipol, iazi, 4) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv)
   END DO
 END DO
+
+! Hex.
+IF (nTracerCntl%lHex) THEN
+  CALL dmalloc(wthcs, nPolarAng, nAziAng)
+  CALL dmalloc(wthsn, nPolarAng, nAziAng)
+  
+  DO ipol = 1, nPolarAng
+    DO iazi = 1, nAziAng
+      wthcs(ipol, iazi) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del * AziAng(iazi)%cosv
+      wthsn(ipol, iazi) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del * AziAng(iazi)%sinv
+    END DO
+  END DO
+END IF
 ! ----------------------------------------------------
 ! Basic
 DO ithr = 1, nThr
@@ -77,6 +90,11 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%Expb   => Expb
   TrackingDat(ithr)%wtang  => wtang
   TrackingDat(ithr)%wtsurf => wtsurf
+  
+  IF (.NOT. nTracerCntl%lHex) CYCLE
+  
+  TrackingDat(ithr)%wthcs => wthcs
+  TrackingDat(ithr)%wthsn => wthsn
 END DO
 
 ! Basic : GM vs. NM
@@ -157,7 +175,6 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     
     CALL dmalloc(TrackingDat(ithr)%phim, nod, nFsr)
   END DO
-! NM
 ELSE
   DO ithr = 1, nThr
     CALL dmalloc(SrcAngnm1, ng, nPolarAng, nFsr, nAziAng)

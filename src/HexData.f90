@@ -31,7 +31,7 @@ INTEGER :: nAzmAng    = 0
 INTEGER :: nPolAng    = 0
 INTEGER :: nVA        = 0 ! # of Void Asys
 INTEGER :: nHexPin    = 0
-INTEGER :: nhcPin     = 0
+INTEGER :: nhcPin     = 0 ! # of CMFD Pins
 INTEGER :: nGeoTyp    = 1
 INTEGER :: nInnMOCItr = 2
 
@@ -46,7 +46,6 @@ REAL :: cBndyEq(3,6) = ZERO ! Origin : Cnt Asy
 
 INTEGER, POINTER, DIMENSION(:,:) :: Asy2Dto1DMap ! (ix, iy)
 INTEGER, POINTER, DIMENSION(:,:) :: Asy1Dto2DMap ! (ix/iy, iAsy)
-
 INTEGER, POINTER, DIMENSION(:,:) :: hCore
 
 ! Vygorodka

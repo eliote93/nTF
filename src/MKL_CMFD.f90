@@ -30,6 +30,7 @@ USE TIMER,       ONLY : nTracer_dclock, TimeChk
 USE CMFD_COMMON, ONLY : HomogenizeXS, SetRadialCoupling
 USE MKL_HOMOXS,  ONLY : HomogenizePnXS
 USE MKL_AXIAL,   ONLY : MKL_AxialSolver, SetAxialDtil
+USE HexCmfd,     ONLY : HexSetMocPhiIn
 
 IMPLICIT NONE
 
@@ -227,6 +228,8 @@ IF (mklCntl%lPardiso) THEN
 END IF
 
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
+
+CALL HexSetMOCPhiIn(CoreInfo, PinXS)
 
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)

@@ -682,7 +682,7 @@ ELSE
 ENDIF
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze, lScat1)
 IMPLICIT NONE
 
@@ -709,18 +709,17 @@ DO ig = 1, ng
         DO jxy = 1, Pin(ixy)%nBdmPin(iBndy)
           iPin  = Pin(ixy)%BdMPidx(jxy, iBndy) ! MOC Pin
           jBndy = Pin(ixy)%BdMPsuf(jxy, iBndy) ! MOC Suf
-
-          superJout(:, iNgh, ixy, iz, ig) = superJout(:, iNgh, ixy, iz, ig) &
-                                               + Jout(:, jBndy, iPin, iz, ig) * ratio
+          
+          superJout(:, iNgh, ixy, iz, ig) = superJout(:, iNgh, ixy, iz, ig) + Jout(:, jBndy, iPin, iz, ig) * ratio
         END DO
       END DO
-    ENDDO
-  ENDDO
-ENDDO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-IF(lScat1) THEN
+IF (lScat1) THEN
   !$OMP PARALLEL PRIVATE(iBndy, iPin, jBndy, ratio)
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO ig = 1, ng
@@ -729,9 +728,11 @@ IF(lScat1) THEN
         DO iNgh = 1, Pin(ixy)%nNgh
           iBndy = Pin(ixy)%NghBd(iNgh)
           ratio = Pin(ixy)%NghLgh(iNgh) / Pin(ixy)%BdLength(iBndy)
+          
           DO jxy = 1, Pin(ixy)%nBdmPin(iBndy)
-            iPin = Pin(ixy)%BdMPidx(jxy, iBndy)
+            iPin  = Pin(ixy)%BdMPidx(jxy, iBndy)
             jBndy = Pin(ixy)%BdMPsuf(jxy, iBndy)
+            
             superJout(:, iNgh, ixy, iz, ig) = superJout(:, iNgh, ixy, iz, ig) + Jout(:, jBndy, iPin, ig, iz) * ratio
           END DO
         END DO
@@ -749,9 +750,11 @@ ELSE
         DO iNgh = 1, Pin(ixy)%nNgh
           iBndy = Pin(ixy)%NghBd(iNgh)
           ratio = Pin(ixy)%NghLgh(iNgh) / Pin(ixy)%BdLength(iBndy)
+          
           DO jxy = 1, Pin(ixy)%nBdmPin(iBndy)
-            iPin = Pin(ixy)%BdMPidx(jxy, iBndy)
+            iPin  = Pin(ixy)%BdMPidx(jxy, iBndy)
             jBndy = Pin(ixy)%BdMPsuf(jxy, iBndy)
+            
             superJout(:, iNgh, ixy, iz, ig) = superJout(:, iNgh, ixy, iz, ig) + Jout(:, ig, jBndy, iPin, iz) * ratio
           END DO
         END DO
@@ -761,12 +764,10 @@ ELSE
   !$OMP END DO
   !$OMP END PARALLEL
 END IF
-
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSuperPinCurrent
-
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetCsrBiCGSystem(CMFD, l3dim, lPrecond)
 USE PARAM
 USE geom,           ONLY : ncbd

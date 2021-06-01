@@ -138,19 +138,23 @@ TYPE Type_HexPinInfo
   SEQUENCE
   
   INTEGER :: PinTyp = 0 ! Numeric # of "HexPin" or "GapPin"
-  INTEGER :: AsyIdx = 0 ! Numeric # of "hAsy"
+  INTEGER :: AsyIdx = 0 ! Global Numeric # of "hAsy"
   INTEGER :: AsyTyp = 0 ! Numeric # of "hAsyTypInfo"
-  INTEGER :: VtxTyp = 0 ! Numeric # of "hAsyTypInfo"
+  INTEGER :: VtxTyp = 0 ! 
+  INTEGER :: ihcPin = 0 ! Global Numeric # of "hcPin"
   
-  INTEGER :: OrdInAsy01 = 0 ! Numeric # of Pin in "hAsyTypInfo"
+  INTEGER :: OrdInAsy01 = 0 ! Local Numeric # of Pin in "hAsyTypInfo"
   
   INTEGER :: ix = 0 ! x-coordinate of Pin
   INTEGER :: iy = 0 ! y-coordinate of Pin
   
   INTEGER :: nSct = 12 ! # of Sector Lines
   
-  INTEGER :: FsrIdxSt = 0 ! Numeric # of 1st FSR in Core
-  INTEGER :: FxrIdxSt = 0 ! Numeric # of 1st FXR in Core
+  INTEGER :: FsrIdxSt = 0 ! Global Numeric # of 1st FSR
+  INTEGER :: FxrIdxSt = 0 ! Global Numeric # of 1st FXR
+  
+  INTEGER :: DcmpMP2SPngh ! Ngh. Idx of CMFD Pin in the Case of Gap Pin
+  INTEGER :: DcmpMP2SPidx ! Global Numeric # of CMFD Pin in the Case of Gap Pin
   
   REAL :: Wt     = 1._8
   REAL :: Cnt(2) = ZERO ! (x/y), Origin = Asy Cnt
@@ -181,18 +185,18 @@ TYPE Type_HexCmfdPin
   REAL :: BdLgh   (6) = ZERO
   REAL :: BdC2B   (6) = ZERO
   
-  ! MOC Pin
-  INTEGER :: nmPin
-  INTEGER :: mpIdx(3)
-  INTEGER :: nBdmPin(6)
-  INTEGER :: BdMPidx(2, 6) = 0
-  INTEGER :: BdMPsuf(2, 6) = 0
+  ! MoC Pin
+  INTEGER :: nmPin             ! # of MoC Pins
+  INTEGER :: mpIdx(3)          ! Global Numeric # of MoC Pin
+  INTEGER :: nBdmPin(6)        ! # of MoC Pins along Bndy.
+  INTEGER :: BdMPidx(2, 6) = 0 ! Global Numeric # of MoC Pin at Bndy.
+  INTEGER :: BdMPsuf(2, 6) = 0 ! Bndy. Idx. of MoC Pin at Bndy.
   
   ! CMFD Pin
-  INTEGER :: nNgh       = 0
-  INTEGER :: NghPin(15) = 0 ! USE RefCell & VoidCell
-  INTEGER :: NghBd (15) = 0 ! Self Bndy Idx
-  INTEGER :: NghSuf(15) = 0
+  INTEGER :: nNgh       = 0 ! # of Neighboring CMFD Pins
+  INTEGER :: NghPin(15) = 0 ! Global Numeric # of CMFD Pin using RefCell & VoidCell
+  INTEGER :: NghBd (15) = 0 ! Self Bndy. Idx.
+  INTEGER :: NghSuf(15) = 0 ! Bndy. Idx. of Neighboring CMFD Pin
   REAL    :: NghLgh(15) = ZERO
   
 END TYPE Type_HexCmfdPin

@@ -19,22 +19,21 @@ USE HexUtil, ONLY : SetEqn, FindCnt
 IMPLICIT NONE
 ! ----------------------------------------------------
 
-! CASE : Sng Cel
 IF (hLgc%lSngCel) THEN
   CALL HexSetHcPin_Sng
 
   RETURN
 END IF
 
-! SET : hcPin Self
 IF (hLgc%lspCMFD) THEN
   CALL HexSetHcPinSlf_SP
 ELSE
   CALL HexSetHcPinSlf_MP
 END IF
 
-!  SET : hcPin Ngh
 CALL HexSetHcPinNgh
+
+CALL HexSetMP2SP
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPin
@@ -98,7 +97,7 @@ DO iAsy = 1, nhAsy
 
     cPin_Loc => hcPin(PinMap(jPin))
     ! ----------------------------
-    !      1. CP
+    !      1. CnP
     ! ----------------------------
     cPin_Loc%nBndy = nBndy
     cPin_Loc%aIdx  = iAsy
@@ -198,7 +197,7 @@ DO iAsy = 1, nhAsy
 
     cPin_Loc => hcPin(PinMap(jPin))
     ! ----------------------------
-    !      1. CP
+    !      1. CnP
     ! ----------------------------
     cPin_Loc%nBndy = nBndy
     cPin_Loc%aIdx  = iAsy
@@ -268,8 +267,7 @@ Cnt    = ZERO
 Lgh    = hAsyTypInfo(hAsy(1)%AsyTyp)%pPch
 EqnTst = SetEqn([Lgh, ZERO], [Lgh * HALF, -Lgh * HALF * Sq3], Cnt)
 
-!$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, &
-!$OMP                  jPin_Loc, jBndy, PtsNgh, Lgh)
+!$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, jPin_Loc, jBndy, PtsNgh, Lgh)
 !$OMP DO SCHEDULE(GUIDED)
 DO iPin = 1, nhcPin
   cPin_Loc => hcPin(iPin)
@@ -315,7 +313,7 @@ DO iPin = 1, nhcPin
     iPri = SetPtsPri(PtsSlf(1:2, 1:2))
     lNgh = FALSE
     ! ----------------------------
-    !      2. CP - CP
+    !      2. CnP - CnP
     ! ----------------------------
     DO jPin = 1, nhcPin
       IF (iPin .EQ. jPin) CYCLE
@@ -503,7 +501,7 @@ lSuperpin = TRUE
 
 ALLOCATE (superPin (nxy))
 ! ----------------------------------------------------
-!               01. CP
+!               01. CnP
 ! ----------------------------------------------------
 DO ixy = 1, nxy
   sPin_Loc => superPin(ixy)
@@ -701,6 +699,51 @@ Core%Pin(1)%BdLength        = hCelBss(1)%pPch
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPin_Sng
+! ------------------------------------------------------------------------------------------------------------
+!                                     10. SET : MoC Pin 2 CMFD Pin
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexSetMP2SP()
+
+USE CNTL,    ONLY : nTracerCntl
+USE HexType, ONLY : Type_HexCmfdPin
+USE HexData, ONLY : hcPin, nhcPin, hPinInfo
+
+IMPLICIT NONE
+
+INTEGER :: ihcPin, iNgh, jhcPin, iAsy, jAsy, iBndy, nPin, iPin, jPin
+
+TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc
+! ----------------------------------------------------
+
+IF (.NOT. nTracerCntl%lDomainDcmp) RETURN
+
+DO ihcPin = 1, nhcPin
+  cPin_Loc => hcPin(ihcPin)
+  
+  iAsy = cPin_Loc%aIdx
+  
+  DO iNgh = 1, cPin_Loc%nNgh
+    jhcPin = cPin_Loc%NghPin(iNgh)
+    jAsy   = hcPin(jhcPin)%aIdx
+    
+    IF (jhcPin.LE.0 .AND. iAsy.EQ.jAsy) CYCLE
+    
+    iBndy = cPin_Loc%NghBd(iNgh)
+    nPin  = cPin_Loc%nBdmPin(iBndy)
+    
+    DO iPin = 1, nPin
+      jPin = cPin_Loc%BdMPidx(iPin, iBndy)
+      
+      hPinInfo(jPin)%DcmpMP2SPngh = iNgh
+      hPinInfo(jPin)%DcmpMP2SPidx = jhcPin
+    END DO
+  END DO
+END DO
+  
+NULLIFY (cPin_Loc)
+! ----------------------------------------------------
+
+END SUBROUTINE HexSetMP2SP
 ! ------------------------------------------------------------------------------------------------------------
 
 END MODULE HexCMFDConst

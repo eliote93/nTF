@@ -180,7 +180,7 @@ ELSE
   END DO
 END IF
 ! ----------------------------------------------------
-!               02. CP : nFXR / nFSR Max
+!               02. CnP : nFXR / nFSR Max
 ! ----------------------------------------------------
 Core%nCoreFXR = Core%nCoreFXR + nSubMax
 Core%nCoreFSR = Core%nCoreFSR + nFSRMax
@@ -365,7 +365,7 @@ DO iTyp = 1, ngp0
   END DO
 END DO
 ! ----------------------------------------------------
-!               04. CP : Vss Cel
+!               04. CnP : Vss Cel
 ! ----------------------------------------------------
 DO iPin = 1, nHexPin
   Cnt = hPinInfo(iPin)%Cnt

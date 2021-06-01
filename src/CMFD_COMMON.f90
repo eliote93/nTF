@@ -851,25 +851,31 @@ ENDDO
 DEALLOCATE(superJout)
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRadialCoupling(Pin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
-USE PARAM
+
 USE geom,    ONLY : ncbd
 USE TYPEDEF, ONLY : PinXS_Type
 USE HexCmfd, ONLY : HexSuperPinCurrent
+USE CNTL,    ONLY : nTracerCntl
+
 IMPLICIT NONE
 
-TYPE(superPin_Type), POINTER :: Pin(:)
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
-REAL, POINTER :: Jout(:, :, :, :, :)
+TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
+TYPE (PinXS_Type),    POINTER, DIMENSION(:,:) :: PinXS
+
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout
+
 INTEGER :: ng, nxy, myzb, myze
 LOGICAL :: lDhat
 
 INTEGER :: ig, ipin, ineighpin, iz, iNgh, ibd, jNgh, jbd
-REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy
-REAL, POINTER :: superJout(:, :, :, :, :)
+REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy, atil, surfphifdm, ahat
 
-ALLOCATE(superJout(3, ncbd, nxy, myzb : myze, ng)) ! # of Ngh is fixed as 15, artibrary #
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout
+! ----------------------------------------------------
+
+ALLOCATE (superJout(3, ncbd, nxy, myzb : myze, ng)) ! # of Ngh is fixed as 15, artibrary #
 
 CALL HexsuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 
@@ -879,44 +885,57 @@ DO ig = 1, ng
   DO iz = myzb, myze
     DO ipin = 1, nxy
       DO iNgh = 1, Pin(ipin)%nNgh
-        ibd = Pin(ipin)%NghBd(iNgh)
+        ibd       = Pin(ipin)%NghBd(iNgh)
         ineighpin = Pin(ipin)%NeighIdx(iNgh)
-        jNgh = Pin(ipin)%NeighSurfIdx(iNgh)
-        smy = Pin(ipin)%NghLgh(iNgh)
-        myphi = PinXS(ipin, iz)%Phi(ig)
+        jNgh      = Pin(ipin)%NeighSurfIdx(iNgh)
+        smy       = Pin(ipin)%NghLgh(iNgh)
+        
+        myphi  = PinXS(ipin, iz)%Phi(ig)
         mybeta = PinXS(ipin, iz)%XSD(ig) / Pin(ipin)%Center2SurfaceL(ibd)
+        
         IF (ineighpin .GT. 0) THEN
           jbd = Pin(ineighpin)%NghBd(jNgh)
-          neighphi = PinXS(ineighpin, iz)%Phi(ig)
+          
+          neighphi  = PinXS(ineighpin, iz)%Phi(ig)
           neighbeta = PinXS(ineighpin, iz)%XSD(ig) / Pin(ineighpin)%Center2SurfaceL(jbd)
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          jnet = superJout(2, iNgh, ipin, iz, ig) - superJout(1, iNgh, ipin, iz, ig)
-          Dhat = - (jnet - jfdm) / (myphi + neighphi)
         ELSE
           IF (ineighpin .EQ. VoidCell) THEN
             neighbeta = 0.5; neighphi = 0.0
           ELSEIF (ineighpin .EQ. RefCell) THEN
             neighbeta = 0.0; neighphi = myphi
           ENDIF
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          jnet = superJout(2, iNgh, ipin, iz, ig) - superJout(1, iNgh, ipin, iz, ig)
-          Dhat = - (jnet - jfdm) / (myphi + neighphi)
         ENDIF
+        
+        Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+        jfdm = -Dtil * (neighphi - myphi)
+        jnet = superJout(2, iNgh, ipin, iz, ig) - superJout(1, iNgh, ipin, iz, ig)
+        Dhat = -(jnet - jfdm) / (myphi + neighphi)
+        
         PinXS(ipin, iz)%Dtil(iNgh, ig) = Dtil
+        
         IF (lDhat) PinXS(ipin, iz)%Dhat(iNgh, ig) = Dhat
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
+        
+        ! Dcmp.
+        IF (.NOT. nTracerCntl%ldomaindcmp) CYCLE
+        
+        atil       = mybeta / (mybeta + neighbeta) * smy
+        surfphifdm = atil * myphi + (smy - atil) * neighphi
+        ahat       = (superJout(3, iNgh, ipin, iz, ig) - surfphifdm) / (myphi + neighphi)
+        
+        PinXS(ipin, iz)%atil(ingh, ig) = atil
+        PinXS(ipin, iz)%ahat(ingh, ig) = ahat
+      END DO
+    END DO
+  END DO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
 DEALLOCATE(superJout)
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetRadialCoupling
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE superPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 
 IMPLICIT NONE

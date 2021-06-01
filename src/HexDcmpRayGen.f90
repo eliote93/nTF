@@ -2,7 +2,7 @@
 SUBROUTINE HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
 
 USE ALLOCS
-USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, BLUE
+USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
 USE PE_Mod,  ONLY : PE
 USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay
@@ -215,7 +215,7 @@ DO iAsy = 1, nAsy
   SELECT CASE (itmp)
     CASE (1); Core%Asy(iAsy)%color = RED
     CASE (2); Core%Asy(iAsy)%color = BLACK
-    CASE (0); Core%Asy(iAsy)%color = BLUE
+    CASE (0); Core%Asy(iAsy)%color = GREEN
   END SELECT
 END DO
 ! ----------------------------------------------------
@@ -234,6 +234,17 @@ DO iAsy = 1, nAsy
 END DO
 
 RayInfo%DcmpAsyRay => DcmpAsyRay
+! ----------------------------------------------------
+NULLIFY (DcmpAsyRayCount)
+NULLIFY (AsyRayList)
+NULLIFY (DirList)
+NULLIFY (AziList)
+NULLIFY (DcmpAsyAziList)
+NULLIFY (DcmpAsyLinkInfo)
+NULLIFY (Pin)
+NULLIFY (haRay_Loc)
+NULLIFY (CelRay_Loc)
+NULLIFY (hRotRay_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexDcmpRayGen

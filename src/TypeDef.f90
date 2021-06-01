@@ -437,42 +437,43 @@ END TYPE
 
 
 TYPE TrackingDat_Type
-
-  LOGICAL :: lAlloc = .FALSE.
-  INTEGER, POINTER :: FsrIdx(:, :),  ExpAppIdx(:, :)
-  REAL, POINTER ::OptLenList(:, :), ExpApp(:, :), ExpAppPolar(:, :, :)
-  REAL, POINTER :: phis(:), src(:), xst(:), jout(:, :, :)
-  REAL, POINTER :: EXPA(:, :), EXPB(:, :)
-  REAL, POINTER :: PhiAngOut(:), PhiAngOutPolar(:, :)
-  REAL, POINTER :: PhiAngIn(:, :)
-  LOGICAL :: lAllocP1 = .FALSE.
-  REAL, POINTER :: phia(:, :, :)
-  REAL, POINTER :: phi1a(:, :, :)
-  REAL, POINTER :: phi2a(:, :, :)
-  REAL, POINTER :: phim(:, :)
-  REAL, POINTER :: wtang(:, :), wtsurf(:, :, :), comp(:, :, :), mwt(:, :, :), mwt2(:, :, :)
-  REAL, POINTER :: SrcM(:, :), SrcAng(:, :, :), SrcAng1(:, :, :), SrcAng2(:, :, :)
-  !--- CNJ Edit : CASMO Linear Source
+  LOGICAL :: lAlloc       = .FALSE.
+  LOGICAL :: lAllocP1     = .FALSE.
   LOGICAL :: lAllocLinSrc = .FALSE.
-  REAL, POINTER :: dCentroid(:, :, :, :), dMxx(:, :, :), dMyy(:, :, :), dMxy(:, :, :)
-  REAL, POINTER :: FsrCentroid(:, :), FsrMxx(:), FsrMyy(:), FsrMxy(:)
-  REAL, POINTER :: srcSlope(:, :, :)
-  REAL, POINTER :: E1(:, :, :, :), E3(:, :, :, :), R1(:, :, :, :), R3(:, :, :, :)
-  REAL, POINTER :: phimx(:, :, :), phimy(:, :, :)
-  REAL, POINTER :: cmOptLen(:, :, :, :), cmOptLenInv(:, :, :, :)
-  REAL, POINTER :: q0(:, :, :), q1(:, :, :, :)
-  REAL, POINTER :: x0(:, :, :), y0(:, :, :)
-  !--- CNJ Edit : Node Majors & Polar XS Homogenization
-  LOGICAL :: lAllocNM = .FALSE.
-  REAL, POINTER :: phisPolar(:, :, :), phisnm(:, :), srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
-  REAL, POINTER :: phianm(:, :, :, :), SrcAngnm(:, :, :, :)
-  REAL, POINTER :: phimnm(:, :, :), SrcAngnm1(:, :, :, :), SrcAngnm2(:, :, :, :)
-  REAL, POINTER :: PhiAngOutnm(:, :, :), PhiAngInnm(:, :, :)
-  REAL, POINTER :: OptLenListnm(:, :, :), ExpAppnm(:, :, :, :)
-  INTEGER, POINTER :: ExpAppIdxnm(:, :, :)
-  !--- CNJ Edit : Domain Decomposition
-  REAL, POINTER :: DcmpPhiAngIn(:, :, :, :, :), DcmpPhiAngOut(:, :, :, :, :)
-  INTEGER, POINTER :: AziMap(:, :)
+  LOGICAL :: lAllocNM     = .FALSE.
+  
+  INTEGER, POINTER, DIMENSION(:,:)   :: FsrIdx, ExpAppIdx, AziMap
+  INTEGER, POINTER, DIMENSION(:,:,:) :: ExpAppIdxnm
+  
+  ! Basic
+  REAL, POINTER, DIMENSION(:,:)   :: wtang, wthcs, wthsn
+  REAL, POINTER, DIMENSION(:,:,:) :: wtsurf, comp, mwt, mwt2
+  
+  ! GM TRC
+  REAL, POINTER, DIMENSION(:)     :: phis, src, xst, PhiAngOut
+  REAL, POINTER, DIMENSION(:,:)   :: OptLenList, EXPA, EXPB, ExpApp, PhiAngOutPolar, PhiAngIn
+  REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout
+  
+  ! GM Pn
+  REAL, POINTER, DIMENSION(:,:)   :: phim, srcm
+  REAL, POINTER, DIMENSION(:,:,:) :: SrcAng, SrcAng1, SrcAng2
+  
+  ! NM Pn
+  REAL, POINTER, DIMENSION(:,:)     :: phisnm, srcnm, xstnm
+  REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngOutnm, PhiAngInnm, OptLenListnm
+  REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm, phianm, SrcAngnm, SrcAngnm1, SrcAngnm2, ExpAppnm
+  
+  ! AFSS
+  REAL, POINTER, DIMENSION(:,:,:) :: phia, phi1a, phi2a
+  
+  ! CASMO LS
+  REAL, POINTER, DIMENSION(:)       :: FsrMxx, FsrMyy, FsrMxy
+  REAL, POINTER, DIMENSION(:,:)     :: FsrCentroid
+  REAL, POINTER, DIMENSION(:,:,:)   :: dMxx, dMyy, dMxy, srcSlope, phimx, phimy, q0, x0, y0
+  REAL, POINTER, DIMENSION(:,:,:,:) :: dCentroid, E1, E3, R1, R3, cmOptLen, cmOptLenInv, q1
+  
+  ! Dcmp.
+  REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 END TYPE
 
 TYPE RayInfo4CMFD_TYPE
