@@ -29,8 +29,10 @@ INTEGER, TARGET :: AziMap(360, 2)
 TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
 
 ! AFSS
-INTEGER, POINTER, DIMENSION(:)   :: nAziRotRay, nAziRotRay0, nSegRotRay, OmpRayBeg, OmpRayEnd, OmpRayList
-INTEGER, POINTER, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap, OmpRayNum
+INTEGER :: nOmpAng
+
+INTEGER, POINTER, DIMENSION(:)   :: OmpRayBeg, OmpRayEnd
+INTEGER, POINTER, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap
 
 ! Approximation of Exponetial Function
 REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb
@@ -1057,6 +1059,20 @@ TYPE (nTracerCntl_Type) :: nTracerCntl
 TYPE (PE_TYPE)          :: PE
 
 END SUBROUTINE initRT
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE initAFSS(RayInfo, CoreInfo, nTracerCntl, PE)
+
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE
+USE Cntl,    ONLY : nTracerCntl_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
+
+END SUBROUTINE initAFSS
 ! ------------------------------------------------------------------------------------------------------------
 END INTERFACE
 

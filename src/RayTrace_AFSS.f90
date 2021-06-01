@@ -1,15 +1,263 @@
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE InitAFSS(RayInfo, CoreInfo, PE, nTracerCntl)
+
+USE allocs
+USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_Type, PE_TYPE, RotRayInfo_Type
+USE CNTL,    ONLY : nTracerCntl_Type
+USE IOUTIL,  ONLY : terminate
+USE moc_mod, ONLY : OmpRayBeg, OmpRayEnd, OmpRayBegBd, OmpRayEndBd, OmpMap, trackingdat, nOmpAng
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
+! ----------------------------------------------------
+INTEGER :: nAziAng, nPolarAng, nRotray, nFSR, nThread, OmpTemp, ithr, nAzi, iRotRay, iazi, iRay, jazi
+
+TYPE(RotRayInfo_Type), POINTER :: LocRotRay, RotRay(:)
+
+INTEGER, POINTER, DIMENSION(:) :: nAziRotRay, nAziRotRay0, nSegRotRay
+! ----------------------------------------------------
+
+IF (.NOT. nTracerCntl%lAFSS) RETURN
+
+nAziAng   = RayInfo%nAziAngle
+nPolarAng = RayInfo%nPolarAngle
+nRotRay   = RayInfo%nRotRay
+RotRay   => RayInfo%RotRay
+
+nFSR = CoreInfo%nCoreFsr
+
+nThread = PE%nThread
+! ----------------------------------------------------
+IF (nTracerCntl%lScatBd) THEN
+  ! Basic
+  CALL dmalloc(nAziRotRay, nAziAng/2)
+  CALL dmalloc(nSegRotRay, nAziAng/2)
+  
+  DO iRotRay = 1, nRotRay
+    iazi = RotRay(iRotRay)%Ang1
+    
+    nAziRotRay(iazi) = nAziRotRay(iazi) + 1
+    nSegRotRay(iazi) = nSegRotRay(iazi) + RotRay(iRotRay)%nSeg
+  END DO
+  
+  CALL dmalloc(nAziRotRay0,   nThread)
+  CALL dmalloc0(OmpRayBeg, 0, nThread)
+  CALL dmalloc0(OmpRayEnd, 0, nThread)
+  
+  OmpRayBeg(0) = 1
+  OmpRayEnd(0) = 0
+  
+  nAzi    = nAziAng / 2 / nThread
+  OmpTemp = 0
+  jazi    = 0
+  
+  DO ithr = 1, nThread
+    OmpRayBeg(ithr) = OmpRayBeg(ithr-1) + OmpTemp
+    
+    DO iazi = 1, nAzi
+      jazi = jazi + 1
+      
+      nAziRotRay0(ithr) = nAziRotRay0(ithr) + nAziRotRay(jazi)
+    END DO
+    
+    OmpTemp = nAziRotRay0(ithr)
+    OmpRayEnd(ithr) = OmpRayEnd(ithr-1) + OmpTemp
+  END DO
+  
+  ! Parallel Ang
+  DO iRotRay = 1, nRotRay
+    LocRotRay => RotRay(iRotRay)
+    
+    LocRotRay%OmpAng1 = MOD(LocRotRay%Ang1, nAzi)
+    
+    IF (LocRotRay%OmpAng1 .EQ. 0) LocRotRay%OmpAng1 = nAzi
+    
+    LocRotRay%OmpAng2 = LocRotRay%OmpAng1 + nAzi
+  END DO
+  
+  DO iRotRay = 1, nRotRay
+    LocRotRay => RotRay(iRotRay)
+    
+    DO iRay = 1, LocRotRay%nRay, 2
+      LocRotRay%OmpRayIdx(iRay)   = LocRotRay%OmpAng1
+      LocRotRay%OmpRayIdx(iRay+1) = LocRotRay%OmpAng2
+    END DO
+  END DO
+  
+  CALL dmalloc(OmpMap, nThread, nAzi*2)
+  
+  DO ithr = 1, nThread
+    DO iazi = 1, nAzi
+      OmpTemp = OmpTemp + 1
+      
+      OmpMap(ithr, iazi)      = OmpTemp
+      OmpMap(ithr, iazi+nAzi) = nAziAng - OmpTemp + 1
+    END DO
+  END DO
+! ----------------------------------------------------
+ELSE
+  CALL dmalloc(nAziRotRay, nAziAng)
+  CALL dmalloc(nSegRotRay, nAziAng)
+
+  DO iRotRay = 1, nRotRay
+    iazi = RotRay(iRotRay)%Ang1
+    
+    nAziRotRay(iazi) = nAziRotRay(iazi) + 1
+    nSegRotRay(iazi) = nSegRotRay(iazi) + RotRay(iRotRay)%nSeg
+  END DO
+  
+  CALL dmalloc(nAziRotRay0,   2*nThread)
+  CALL dmalloc0(OmpRayBeg, 0, 2*nThread)
+  CALL dmalloc0(OmpRayEnd, 0, 2*nThread)
+  
+  CALL dmalloc0(OmpRayBegBd, 1, 2, 0, nThread)
+  CALL dmalloc0(OmpRayEndBd, 1, 2, 0, nThread)
+  
+  OmpRayBegBd(1,0) = 1
+  OmpRayEndBd(1,0) = 0
+  
+  nAzi    = nAziAng / nThread / 2
+  OmpTemp = 0
+  jazi    = 0
+  
+  DO ithr = 1, nThread
+    OmpRayBegBd(1, ithr) = OmpRayBegBd(1, ithr-1) + OmpTemp
+    
+    DO iazi = 1, nAzi
+      jazi = jazi + 1
+      
+      nAziRotRay0(ithr) = nAziRotRay0(ithr) + nAziRotRay(jazi)
+    END DO
+    
+    OmpTemp = nAziRotRay0(ithr)
+    
+    OmpRayEndBd(1, ithr) = OmpRayEndBd(1, ithr-1) + OmpTemp
+  END DO
+  
+  nAziRotRay0 = 0
+  jazi        = nAziAng + 1
+  OmpTemp     = 0
+  
+  OmpRayBegBd(2, 0) = nRotRay + 1
+  OmpRayEndBd(2, 0) = nRotRay
+  
+  DO ithr = 1, nThread
+    OmpRayEndBd(2, ithr) = OmpRayEndBd(2, ithr-1) - OmpTemp
+    
+    DO iazi = 1, nAzi
+      jazi = jazi - 1
+      
+      nAziRotRay0(ithr) = nAziRotRay0(ithr) + nAziRotRay(jazi)
+    END DO
+    
+    OmpTemp = nAziRotRay0(ithr)
+    
+    OmpRayBegBd(2, ithr) = OmpRayBegBd(2, ithr-1) - OmpTemp
+  END DO
+  
+  ! Parallel Ang
+  DO iRotRay = 1, nRotRay
+    LocRotRay => RotRay(iRotRay)
+    
+    IF (LocRotRay%nRay .GT. 1) THEN
+      IF (LocRotRay%Ang1 .LE. nAziAng/2) THEN
+        LocRotRay%OmpAng1 = MOD(LocRotRay%Ang1, nAzi)
+        
+        IF (LocRotRay%OmpAng1 .EQ. 0) LocRotRay%OmpAng1 = nAzi
+        
+        LocRotRay%OmpAng2 = LocRotRay%OmpAng1 + nAzi
+      ELSE IF (LocRotRay%Ang1 .GT. nAziAng/2) THEN
+        LocRotRay%OmpAng1 = MOD(nAziAng+1 - LocRotRay%Ang1, nAzi) + nAzi
+        
+        IF (LocRotRay%OmpAng1 .EQ. nAzi) LocRotRay%OmpAng1 = LocRotRay%OmpAng1 + nAzi
+        
+        LocRotRay%OmpAng2 = LocRotRay%OmpAng1 - nAzi
+      END IF
+    ELSE IF (LocRotRay%nRay .EQ. 1) THEN
+      IF (LocRotRay%Ang1 .LE. nAziAng/2) THEN
+        LocRotRay%OmpAng1 = MOD(LocRotRay%Ang1, nAzi)
+        
+        IF (LocRotRay%OmpAng1 .EQ. 0) LocRotRay%OmpAng1 = nAzi
+        
+        LocRotRay%OmpAng2 = 0
+      ELSE IF (LocRotRay%Ang1 .GT. nAziAng/2) THEN
+        
+        LocRotRay%OmpAng1 = MOD(nAziAng+1-LocRotRay%Ang1, nAzi) + nAzi
+        
+        IF (LocRotRay%OmpAng1 .EQ. nAzi) LocRotRay%OmpAng1 = LocRotRay%OmpAng1 + nAzi
+        
+        LocRotRay%OmpAng2 = 0
+      END IF
+    END IF
+  END DO
+  
+  DO iRotRay = 1, nRotRay
+    LocRotRay => RotRay(iRotRay)
+    
+    IF (LocRotRay%nRay .GT. 1) THEN
+      IF (MOD(LocRotRay%nRay, 2) .EQ. 0) THEN
+        DO iRay = 1, LocRotRay%nRay, 2
+          LocRotRay%OmpRayIdx(iRay)   = LocRotRay%OmpAng1
+          LocRotRay%OmpRayIdx(iRay+1) = LocRotRay%OmpAng2
+        END DO
+      ELSE
+        DO iRay = 1, LocRotRay%nRay-1, 2
+          LocRotRay%OmpRayIdx(iRay)   = LocRotRay%OmpAng1
+          LocRotRay%OmpRayIdx(iRay+1) = LocRotRay%OmpAng2
+        END DO
+        
+        LocRotRay%OmpRayIdx(LocRotRay%nRay) = LocRotRay%OmpAng1
+      END IF
+    ELSE
+      LocRotRay%OmpRayIdx(1) = LocRotRay%OmpAng1
+    END IF
+  END DO
+  
+  CALL dmalloc(OmpMap, nThread, nAzi*2)
+  
+  DO ithr = 1, nThread
+    DO iazi = 1, nAzi
+      OmpTemp = OmpTemp + 1
+      
+      OmpMap(ithr, iazi)      = OmpTemp
+      OmpMap(ithr, iazi+nAzi) = nAziAng - OmpTemp + 1
+    END DO
+  END DO
+END IF
+! ----------------------------------------------------
+IF (MOD(nAziANg / 2, nThread) .NE. 0) CALL terminate('WRONG_MOC_TRD')
+
+nOmpAng = nAziAng / nThread
+
+DO ithr = 1, nThread
+  CALL dmalloc(TrackingDat(ithr)%phi1a, nPolarAng, nFsr, nOmpAng)
+  CALL dmalloc(TrackingDat(ithr)%phi2a, nPolarAng, nFsr, nOmpAng)
+END DO
+! ----------------------------------------------------
+! Ray
+NULLIFY (LocRotRay)
+NULLIFY (RotRay)
+
+! Local
+NULLIFY (nAziRotRay)
+NULLIFY (nAziRotRay0)
+NULLIFY (nSegRotRay)
+! ----------------------------------------------------
+
+END SUBROUTINE InitAFSS
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceGM_AFSS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
-USE TIMER
-USE ALLOCS
 USE OMP_LIB
-USE PARAM,   ONLY : TRUE, FALSE, ZERO
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type
-USE Moc_Mod, ONLY : nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, Expa, Expb, TrackingDat, ApproxExp, wtang, wtsurf, Phia1g
-USE geom,    ONLY : nbd
+USE PARAM,   ONLY : FALSE, ZERO
+USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Cell_Type
+USE Moc_Mod, ONLY : TrackingDat, nOmpAng, OmpRayBeg, OmpRayEnd, OmpRayBegBd, OmpRayEndBd, OmpMap, wtang
 USE cntl,    ONLY : nTracerCntl
 USE PE_MOD,  ONLY : PE
-USE IOUTIL,  ONLY : terminate
 
 IMPLICIT NONE
 
@@ -22,353 +270,72 @@ REAL, POINTER, DIMENSION(:,:,:) :: jout
 INTEGER :: iz
 LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
+! ----------------------------------------------------
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-LOGICAL, SAVE :: lfirst
-DATA lfirst /TRUE/
-
-TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
-TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
-TYPE (Cell_Type),         POINTER, DIMENSION(:) :: Cell
-TYPE (Pin_Type),          POINTER, DIMENSION(:) :: Pin
-
-INTEGER :: nAziAng, nPolarAng, nPhiAngSv, nRotray, nFsr, nxy, nThread
-INTEGER :: iRotRay, ithr, FsrIdxSt, icel, ireg, iazi, ipol, i, j, k, l, m
-REAL :: wttmp
-
-LOGICAL, SAVE :: lScatBd
-
-INTEGER, SAVE :: OmpTemp, OmpAng, nOmpAng
-
-INTEGER, POINTER, SAVE, DIMENSION(:)   :: nAziRotRay, nAziRotRay0, nSegRotRay, OmpRayBeg, OmpRayEnd, OmpRayList
-INTEGER, POINTER, SAVE, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap, OmpRayNum
+INTEGER :: nPolarAng, nxy, nThread, iRotRay, ithr, FsrIdxSt, icel, iazi, ipol, OmpAng, ixy, iRay, iDir, iFSR, jFSR
 ! ----------------------------------------------------
 
-AziAng   => RayInfo%AziAngle
-PolarAng => RayInfo%PolarAngle
-nAziAng   = RayInfo%nAziAngle
-nPolarAng = RayInfo%nPolarAngle
-nPhiAngSv = RayInfo%nPhiAngSv
-nRotRay   = RayInfo%nRotRay
-
-nFsr = CoreInfo%nCoreFsr
-nxy  = CoreInfo%nxy
-
-nThread = PE%nThread
+nxy = CoreInfo%nxy
 ! ----------------------------------------------------
-IF (lfirst) THEN
-  lScatBd = nTracerCntl%lScatBd
-  
-  IF (lScatBd) THEN
-    CALL dmalloc(nAziRotRay,  nAziAng/2)
-    CALL dmalloc(nAziRotRay0, nThread)
-    CALL dmalloc(nSegRotRay,  nAziAng/2)
-        
-    DO i = 1, nRotRay
-      j = RayInfo%RotRay(i)%Ang1
-      
-      nAziRotRay(j) = nAziRotRay(j) + 1
-      nSegRotRay(j) = nSegRotRay(j) + RayInfo%RotRay(i)%nSeg
-    END DO
-    
-    CALL dmalloc0(OmpRayBeg, 0, nThread)
-    CALL dmalloc0(OmpRayEnd, 0, nThread)
-    
-    k = nAziAng/2/nThread
-    nAziRotRay0(:) = 0
-    OmpRayBeg(0) = 1
-    OmpTemp = 0
-    OmpRayEnd(0) = 0
-    l = 0
-    
-    DO i = 1, nThread
-      OmpRayBeg(i) = OmpRayBeg(i-1) + OmpTemp
-      
-      DO j = 1, k
-        l = l + 1
-        
-        nAziRotRay0(i) = nAziRotRay0(i) + nAziRotRay(l)
-      END DO
-      
-      OmpTemp = nAziRotRay0(i)
-      OmpRayEnd(i) = OmpRayEnd(i-1) + OmpTemp
-    END DO
-    
-    ! Parallel Ang
-    DO i = 1, nRotRay
-      RayInfo%RotRay(i)%OmpAng1 = MOD(RayInfo%RotRay(i)%Ang1, k)
-      
-      IF (RayInfo%RotRay(i)%OmpAng1 .EQ. 0) RayInfo%RotRay(i)%OmpAng1 = k
-      
-      RayInfo%RotRay(i)%OmpAng2 = RayInfo%RotRay(i)%OmpAng1 + k
-    END DO
-    
-    DO i = 1, nRotRay
-      DO j = 1, RayInfo%RotRay(i)%nRay, 2
-        RayInfo%RotRay(i)%OmpRayIdx(j)   = RayInfo%RotRay(i)%OmpAng1
-        RayInfo%RotRay(i)%OmpRayIdx(j+1) = RayInfo%RotRay(i)%OmpAng2
-      END DO
-    END DO
-    
-    CALL dmalloc(OmpMap, nThread, k*2)
-    
-    DO i = 1, nThread
-      DO j = 1, k
-        OmpTemp = OmpTemp + 1
-        
-        OmpMap(i,j)   = OmpTemp
-        OmpMap(i,j+k) = nAziAng - OmpTemp + 1
-      END DO
-    END DO
-    nOmpAng = nAziAng/nThread
-    
-  ELSE
-    CALL dmalloc(nAziRotRay,  nAziAng)
-    CALL dmalloc(nAziRotRay0, 2*nThread)
-    CALL dmalloc(nSegRotRay,  nAziAng)
-  
-    DO i = 1, nRotRay
-      j = RayInfo%RotRay(i)%Ang1
-      
-      nAziRotRay(j) = nAziRotRay(j) + 1
-      nSegRotRay(j) = nSegRotRay(j) + RayInfo%RotRay(i)%nSeg
-    END DO
-    
-    CALL dmalloc0(OmpRayBeg, 0, 2*nThread)
-    CALL dmalloc0(OmpRayEnd, 0, 2*nThread)
-    
-    CALL dmalloc0(OmpRayBegBd, 1, 2, 0, nThread)
-    CALL dmalloc0(OmpRayEndBd, 1, 2, 0, nThread)
-    
-    k = nAziAng/nThread/2
-    nAziRotRay0(:) = 0
-    OmpRayBegBd(1,0) = 1
-    OmpTemp = 0
-    OmpRayEndBd(1,0) = 0
-    l = 0
-    
-    DO i = 1, nThread
-      OmpRayBegBd(1,i) = OmpRayBegBd(1,i-1) + OmpTemp
-      
-      DO j = 1, k
-        l = l + 1
-        
-        nAziRotRay0(i) = nAziRotRay0(i) + nAziRotRay(l)
-      END DO
-      OmpTemp = nAziRotRay0(i)
-      OmpRayEndBd(1,i) = OmpRayEndBd(1,i-1) + OmpTemp
-    END DO
-    
-    nAziRotRay0(:) = 0
-    l = nAziAng + 1
-    OmpRayBegBd(2,0) = nRotRay + 1
-    OmpTemp = 0
-    OmpRayEndBd(2,0) = nRotRay
-    
-    DO i = 1, nThread
-      OmpRayEndBd(2,i) = OmpRayEndBd(2,i-1) - OmpTemp
-      
-      DO j = 1, k
-        l = l - 1
-        
-        nAziRotRay0(i) = nAziRotRay0(i) + nAziRotRay(l)
-      END DO
-      
-      OmpTemp = nAziRotRay0(i)
-      OmpRayBegBd(2,i) = OmpRayBegBd(2,i-1) - OmpTemp
-    END DO
-    
-    ! Parallel Ang
-    DO i = 1, nRotRay
-      IF (RayInfo%RotRay(i)%nRay .GT. 1) THEN
-        IF (RayInfo%RotRay(i)%Ang1 .LE. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(RayInfo%RotRay(i)%Ang1, k)
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. 0) RayInfo%RotRay(i)%OmpAng1 = k
-          
-          RayInfo%RotRay(i)%OmpAng2 = RayInfo%RotRay(i)%OmpAng1 + k
-        ELSE IF (RayInfo%RotRay(i)%Ang1 .GT. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(nAziAng+1-RayInfo%RotRay(i)%Ang1, k) + k
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. k) RayInfo%RotRay(i)%OmpAng1 = RayInfo%RotRay(i)%OmpAng1 + k
-          
-          RayInfo%RotRay(i)%OmpAng2 = RayInfo%RotRay(i)%OmpAng1 - k
-        END IF
-      ELSE IF (RayInfo%RotRay(i)%nRay .EQ. 1) THEN
-        IF (RayInfo%RotRay(i)%Ang1 .LE. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(RayInfo%RotRay(i)%Ang1, k)
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. 0) RayInfo%RotRay(i)%OmpAng1 = k
-          
-          RayInfo%RotRay(i)%OmpAng2 = 0
-        ELSE IF (RayInfo%RotRay(i)%Ang1 .GT. nAziAng/2) THEN
-          
-          RayInfo%RotRay(i)%OmpAng1 = MOD(nAziAng+1-RayInfo%RotRay(i)%Ang1, k) + k
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. k) RayInfo%RotRay(i)%OmpAng1 = RayInfo%RotRay(i)%OmpAng1 + k
-          
-          RayInfo%RotRay(i)%OmpAng2 = 0
-        END IF
-      END IF
-    END DO
-    
-    DO i = 1, nRotRay
-      IF (RayInfo%RotRay(i)%nRay .GT. 1) THEN
-        IF (MOD(RayInfo%RotRay(i)%nRay, 2) .EQ. 0) THEN
-          DO j = 1, RayInfo%RotRay(i)%nRay, 2
-            RayInfo%RotRay(i)%OmpRayIdx(j)   = RayInfo%RotRay(i)%OmpAng1
-            RayInfo%RotRay(i)%OmpRayIdx(j+1) = RayInfo%RotRay(i)%OmpAng2
-          END DO
-        ELSE
-          DO j = 1, RayInfo%RotRay(i)%nRay-1, 2
-            RayInfo%RotRay(i)%OmpRayIdx(j)   = RayInfo%RotRay(i)%OmpAng1
-            RayInfo%RotRay(i)%OmpRayIdx(j+1) = RayInfo%RotRay(i)%OmpAng2
-          END DO
-          
-          RayInfo%RotRay(i)%OmpRayIdx(RayInfo%RotRay(i)%nRay) = RayInfo%RotRay(i)%OmpAng1
-        END IF
-      ELSE
-        RayInfo%RotRay(i)%OmpRayIdx(1) = RayInfo%RotRay(i)%OmpAng1
-      END IF
-    END DO
-    
-    CALL dmalloc(OmpMap, nThread, k*2)
-    
-    DO i = 1, nThread
-      DO j = 1, k
-        OmpTemp = OmpTemp + 1
-        
-        OmpMap(i,j)   = OmpTemp
-        OmpMap(i,j+k) = nAziAng - OmpTemp + 1
-      END DO
-    END DO
-    
-    CALL dmalloc(OmpRayList, nThread)
-    CALL dmalloc(OmpRayNum, nThread, nRotRay)
-    
-    nOmpAng = nAziAng/nThread
-    
-    DO i = 1, nThread
-      DO j = 1, 2
-        OmpRayList(i) = OmpRayList(i) + OmpRayEndBd(j,i) - OmpRayBegBd(j,i) + 1
-      END DO
-    END DO
-    
-    DO i = 1, nThread
-      m = 0
-      
-      DO j = 1, 2
-        l = 0
-        
-        DO k = 1, OmpRayEndBd(j,i) - OmpRayBegBd(j,i) + 1
-          m = m + 1
-          
-          OmpRayNum(i,m) = OmpRayBegBd(j,i) + l
-          
-          l = l + 1
-        END DO
-      END DO
-    END DO
-  END IF
-  
-  IF (MOD(nAziANg/2, nThread) .NE. 0) CALL terminate('WRONG_MOC_TRD')
-END IF
-! ----------------------------------------------------
-IF (lfirst) THEN
-  lFirst = FALSE
-  
-  CALL ApproxExp(RayInfo%PolarAngle, nPolarAng)
-  
-  DO ithr = 1, nThread
-    IF (TrackingDat(ithr)%lAlloc) CYCLE
-    
-    CALL dmalloc(TrackingDat(ithr)%FsrIdx,         nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,      nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%OptLenList,     nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%ExpAppPolar,    nPolarAng, nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%PhiAngOutPolar, nPolarAng, nMaxRaySeg+2)
-    CALL dmalloc(TrackingDat(ithr)%phi1a,          nPolarAng, nFsr, nOmpAng)
-    CALL dmalloc(TrackingDat(ithr)%phi2a,          nPolarAng, nFsr, nOmpAng)
-    CALL dmalloc(TrackingDat(ithr)%Jout,           3, nbd, nxy)
-    
-    TrackingDat(ithr)%Expa => Expa
-    TrackingDat(ithr)%Expb => Expb
-    TrackingDat(ithr)%lAlloc = TRUE
-  END DO
-  
-  CALL dmalloc(wtang, nPolarAng, nAziAng)
-  
-  DO ipol = 1, nPolarAng
-    wttmp = PolarAng(ipol)%weight * PolarAng(ipol)%sinv
-    
-    DO iazi = 1, nAziAng
-      wtang(ipol, iazi) = wttmp  * AziAng(iazi)%weight * AziAng(iazi)%del
-      
-      wtsurf(ipol, iazi, 1) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%sinv)
-      wtsurf(ipol, iazi, 3) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%sinv)
-      wtsurf(ipol, iazi, 2) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv)
-      wtsurf(ipol, iazi, 4) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv)
-    END DO
-  END DO
-END IF
-! ----------------------------------------------------
-!$  call omp_set_dynamic(FALSE)
-!$  call omp_set_num_threads(nThread)
+!$ call omp_set_dynamic(FALSE)
+!$ call omp_set_num_threads(nThread)
 
 DO ithr = 1, nThread
   TrackingDat(ithr)%PhiAngIn => PhiAngIn
   TrackingDat(ithr)%src      => src
   TrackingDat(ithr)%xst      => xst
-  TrackingDat(ithr)%wtang    => wtang
-  TrackingDat(ithr)%wtsurf   => wtsurf
+  
+  DO iazi = 1, nOmpAng
+    TrackingDat(ithr)%phi1a(:,:,iazi) = ZERO
+    TrackingDat(ithr)%phi2a(:,:,iazi) = ZERO
+  END DO
+  
+  DO ixy = 1, nxy
+    TrackingDat(ithr)%jout(:, :, ixy) = ZERO
+  END DO
 END DO
 
-phis =  ZERO
+phis = ZERO
 IF (ljout) Jout = ZERO
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irotray, ithr, i, j, k, l, iazi, ipol, OmpAng)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iRay, iDir, iazi, irotray, iFSR, ipol, OmpAng)
 ithr = 1
-!$  ithr = omp_get_thread_num()+1
-j = ithr
-
-DO iazi = 1, nOmpAng
-  TrackingDat(j)%phi1a(:,:,iazi) = ZERO
-  TrackingDat(j)%phi2a(:,:,iazi) = ZERO
-END DO
-
-DO i = 1, nxy
-  TrackingDat(j)%jout(:, :, i) = ZERO
-END DO
+!$ ithr = omp_get_thread_num()+1
 !$OMP BARRIER
-IF (lScatBd) THEN
-  DO i = OmpRayBeg(ithr), OmpRayEnd(ithr)
-    irotray = i
+IF (nTracerCntl%lScatBd) THEN
+  DO iRay = OmpRayBeg(ithr), OmpRayEnd(ithr)
+    irotray = iRay
+    
     CALL RecTrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat(ithr), ljout, irotray, iz, FastMocLv)
   END DO
 ELSE
-  DO i = 1, 2
-    DO j = OmpRayBegBd(i, ithr), OmpRayEndBd(i, ithr)
-      irotray = j
+  DO iDir = 1, 2
+    DO iRay = OmpRayBegBd(iDir, ithr), OmpRayEndBd(iDir, ithr)
+      irotray = iRay
+      
       CALL RecTrackRotRayGM_AFSS(RayInfo, CoreInfo, TrackingDat(ithr), ljout, irotray, iz, FastMocLv)
     END DO
   END DO
 END IF
 !$OMP BARRIER
-DO j = 1, nThread
+DO ithr = 1, nThread
   DO iazi = 1, nOmpAng
-   DO i = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
+   DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
       DO ipol = 1, nPolarAng
-        OmpAng = OmpMap(j, iazi)
+        OmpAng = OmpMap(ithr, iazi)
         
-        phis(i) = phis(i) + wtang(ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
+        phis(iFSR) = phis(iFSR) + wtang(ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) + TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
       END DO
     END DO
   END DO
 END DO
 
 IF (ljout) THEN
-  DO j = 1, nThread
-    DO i = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
-      jout(:, :, i) = jout(:, :, i) + TrackingDat(j)%jout(:, :, i)
+  DO ithr = 1, nThread
+    DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+      jout(:, :, ixy) = jout(:, :, ixy) + TrackingDat(ithr)%jout(:, :, ixy)
     END DO
   END DO
 END IF
@@ -377,23 +344,21 @@ END IF
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(l, j, FsrIdxSt, icel, ireg)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, iFSR, jFSR)
 !$OMP DO
-DO l = 1, nxy
-  FsrIdxSt = Pin(l)%FsrIdxSt
-  icel = Pin(l)%Cell(iz)
+DO ixy = 1, nxy
+  FsrIdxSt = Pin(ixy)%FsrIdxSt
+  icel     = Pin(ixy)%Cell(iz)
   
-  DO j = 1, Cell(icel)%nFsr
-    ireg = FsrIdxSt + j - 1
+  DO iFSR = 1, Cell(icel)%nFsr
+    jFSR = FsrIdxSt + iFSR - 1
     
-    phis(ireg) = phis(ireg)/xst(ireg)/Cell(icel)%vol(j) + src(ireg)
+    phis(jFSR) = phis(jFSR) / xst(jFSR) / Cell(icel)%vol(iFSR) + src(jFSR)
   END DO
 END DO
 !$OMP END DO
 !$OMP END PARALLEL
-! ----------------------------------------------------
-NULLIFY (AziAng)
-NULLIFY (PolarAng)
+
 NULLIFY (Cell)
 NULLIFY (Pin)
 ! ----------------------------------------------------
@@ -439,8 +404,8 @@ REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, EXPA, E
 REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout, wtsurf, phi1a, phi2a
 
 INTEGER :: mp(2)
-INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, irot, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv
-INTEGER :: ipin, icel, iasy, ireg, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nFsr, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, iOmpAzi, ibcel
+INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, irot, itype, idir, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng
+INTEGER :: ipin, icel, iasy, ireg, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, iOmpAzi, ibcel
 
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay, 2) :: CellRayIdxSt, SurfIdx
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay) :: PinIdx
@@ -465,13 +430,11 @@ CoreRay  => RayInfo%CoreRay
 RotRay   => RayInfo%RotRay
 nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
-nPhiAngSv = RayInfo%nPhiAngSv
 
 Asy     => CoreInfo%Asy
 Pin     => CoreInfo%Pin
 PinInfo => CoreInfo%Pininfo
 Cell    => CoreInfo%CellInfo
-nFsr     = CoreInfo%nCoreFsr
 nxy      = CoreInfo%nxy
 
 FsrIdx         => TrackingDat%FsrIdx
@@ -772,15 +735,13 @@ END SUBROUTINE RecTrackRotRayGM_AFSS
 SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
 USE TIMER
-USE ALLOCS
 USE OMP_LIB
 USE PARAM,   ONLY : TRUE, FALSE, ZERO, ONE
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type
-USE Moc_Mod, ONLY : nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, Expa, Expb, TrackingDat, ApproxExp, wtang, SrcAng1, SrcAng2, comp, mwt
-USE geom,    ONLY : nbd
+USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Cell_Type
+USE Moc_Mod, ONLY : TrackingDat, wtang, comp, mwt, mwt2, SrcAng1, SrcAng2, nOmpAng, OmpRayBeg, OmpRayEnd, OmpRayBegBd, OmpRayEndBd, OmpMap
 USE cntl,    ONLY : nTracerCntl
-USE PE_MOD,  ONLY : PE
 USE IOUTIL,  ONLY : terminate
+USE PE_MOD,  ONLY : PE
 
 IMPLICIT NONE
 
@@ -794,498 +755,163 @@ REAL, POINTER, DIMENSION(:,:,:) :: jout
 INTEGER :: iz, ScatOd
 LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
+! ----------------------------------------------------
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-LOGICAL, SAVE :: lfirst
-DATA lfirst /TRUE/
-
-TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
-TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
-TYPE (Cell_Type),         POINTER, DIMENSION(:) :: Cell
-TYPE (Pin_Type),          POINTER, DIMENSION(:) :: Pin
-
-INTEGER :: nAziAng, nPolarAng, nPhiAngSv, nRotray, nFsr, nxy, nThread, od, iod, iRotRay, tid, FsrIdxSt, icel, ireg, iazi, ipol, i, j, l, k, m
-REAL :: wttmp, wtcos, wtpolar, wtsin2, tempsrc, ONETHREE, ONEFIVE, ONESEVEN
-
-REAL, ALLOCATABLE :: wtp(:)
-
-LOGICAL, SAVE :: lScatBd
-
-INTEGER, SAVE :: OmpTemp, OmpAng, nOmpAng
-
-INTEGER, POINTER, SAVE, DIMENSION(:)   :: nAziRotRay, nAziRotRay0, nSegRotRay, OmpRayBeg, OmpRayEnd, OmpRayList
-INTEGER, POINTER, SAVE, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap, OmpRayNum
+INTEGER :: nAziAng, nPolarAng, nxy, nThread, iRotRay, ithr, FsrIdxSt, icel, ireg, iazi, ipol, OmpAng, ixy, iDir, iRay, iFSR, jFSR
+REAL :: wttmp, tempsrc, ONETHREE, ONEFIVE, ONESEVEN
 ! ----------------------------------------------------
 
-AziAng   => RayInfo%AziAngle
-PolarAng => RayInfo%PolarAngle
 nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
-nPhiAngSv = RayInfo%nPhiAngSv
-nRotRay   = RayInfo%nRotRay
 
-nFsr = CoreInfo%nCoreFsr
-nxy  = CoreInfo%nxy
-
-nThread = PE%nThread
+nxy = CoreInfo%nxy
 ! ----------------------------------------------------
-OD = 2
+!$ call omp_set_dynamic(FALSE)
+!$ call omp_set_num_threads(nThread)
 
-IF (ScatOd .EQ. 2) OD = 5
-IF (ScatOd .EQ. 3) OD = 9
-
-ALLOCATE(wtp(1:OD))
-! ----------------------------------------------------
-IF (lfirst) THEN
-  lScatBd = nTracerCntl%lScatBd
+DO ithr = 1, nThread
+  TrackingDat(ithr)%PhiAngIn => PhiAngIn
+  TrackingDat(ithr)%src      => src
+  TrackingDat(ithr)%xst      => xst
+  TrackingDat(ithr)%SrcAng1  => SrcAng1
+  TrackingDat(ithr)%SrcAng2  => SrcAng2
   
-  IF (lScatBd) THEN
-    CALL dmalloc(nAziRotRay, nAziAng/2)
-    CALL dmalloc(nAziRotRay0, nThread)
-    CALL dmalloc(nSegRotRay, nAziAng/2)
-        
-    DO i = 1, nRotRay
-      j = RayInfo%RotRay(i)%Ang1
-      
-      nAziRotRay(j) = nAziRotRay(j) + 1
-      nSegRotRay(j) = nSegRotRay(j) + RayInfo%RotRay(i)%nSeg
-    END DO
-    
-    CALL dmalloc0(OmpRayBeg, 0, nThread)
-    CALL dmalloc0(OmpRayEnd, 0, nThread)
-    
-    k = nAziAng/2/nThread
-    nAziRotRay0(:) = 0
-    OmpRayBeg(0) = 1
-    OmpTemp = 0
-    OmpRayEnd(0) = 0
-    l = 0
-    
-    DO i = 1, nThread
-      OmpRayBeg(i) = OmpRayBeg(i-1) + OmpTemp
-      
-      DO j = 1, k
-        l = l + 1
-        
-        nAziRotRay0(i) = nAziRotRay0(i) + nAziRotRay(l)
-      END DO
-      
-      OmpTemp = nAziRotRay0(i)
-      
-      OmpRayEnd(i) = OmpRayEnd(i-1) + OmpTemp
-    END DO
-    
-    ! Parallel Ang
-    DO i = 1, nRotRay
-      RayInfo%RotRay(i)%OmpAng1 = MOD(RayInfo%RotRay(i)%Ang1, k)
-      
-      IF (RayInfo%RotRay(i)%OmpAng1 .EQ. 0) RayInfo%RotRay(i)%OmpAng1 = k
-      
-      RayInfo%RotRay(i)%OmpAng2 = RayInfo%RotRay(i)%OmpAng1 + k
-    END DO
-    
-    DO i = 1, nRotRay
-      DO j = 1, RayInfo%RotRay(i)%nRay, 2
-        RayInfo%RotRay(i)%OmpRayIdx(j)   = RayInfo%RotRay(i)%OmpAng1
-        RayInfo%RotRay(i)%OmpRayIdx(j+1) = RayInfo%RotRay(i)%OmpAng2
-      END DO
-    END DO
-    
-    CALL dmalloc(OmpMap, nThread, k*2)
-    
-    DO i = 1, nThread
-      DO j = 1, k
-        OmpTemp = OmpTemp + 1
-        OmpMap(i,j) = OmpTemp
-        OmpMap(i,j+k) = nAziAng - OmpTemp + 1
-      END DO
-    END DO
-    
-    nOmpAng = nAziAng/nThread
-  ELSE
-    CALL dmalloc(nAziRotRay, nAziAng)
-    CALL dmalloc(nAziRotRay0, 2*nThread)
-    CALL dmalloc(nSegRotRay, nAziAng)
-        
-    DO i = 1, nRotRay
-      j = RayInfo%RotRay(i)%Ang1
-      
-      nAziRotRay(j) = nAziRotRay(j) + 1
-      nSegRotRay(j) = nSegRotRay(j) + RayInfo%RotRay(i)%nSeg
-    END DO
-    
-    CALL dmalloc0(OmpRayBeg, 0, 2*nThread)
-    CALL dmalloc0(OmpRayEnd, 0, 2*nThread)
-    
-    CALL dmalloc0(OmpRayBegBd, 1, 2, 0, nThread)
-    CALL dmalloc0(OmpRayEndBd, 1, 2, 0 ,nThread)
-    
-    k = nAziAng/nThread/2
-    nAziRotRay0(:) = 0
-    OmpRayBegBd(1,0) = 1
-    OmpTemp = 0
-    OmpRayEndBd(1,0) = 0
-    l = 0
-    
-    DO i = 1, nThread
-      OmpRayBegBd(1,i) = OmpRayBegBd(1,i-1) + OmpTemp
-      
-      DO j = 1, k
-        l = l + 1
-        
-        nAziRotRay0(i) = nAziRotRay0(i) + nAziRotRay(l)
-      END DO
-      
-      OmpTemp = nAziRotRay0(i)
-      OmpRayEndBd(1,i) = OmpRayEndBd(1,i-1) + OmpTemp
-    END DO
-    
-    nAziRotRay0(:) = 0
-    l = nAziAng + 1
-    OmpRayBegBd(2,0) = nRotRay + 1
-    OmpTemp = 0
-    OmpRayEndBd(2,0) = nRotRay
-    
-    DO i = 1, nThread
-      OmpRayEndBd(2,i) = OmpRayEndBd(2,i-1) - OmpTemp
-      
-      DO j = 1, k
-        l = l - 1
-        
-        nAziRotRay0(i) = nAziRotRay0(i) + nAziRotRay(l)
-      END DO
-      OmpTemp = nAziRotRay0(i)
-      OmpRayBegBd(2,i) = OmpRayBegBd(2,i-1) - OmpTemp
-    END DO
-    
-    ! Parallel Ang
-    DO i = 1, nRotRay
-      IF (RayInfo%RotRay(i)%nRay .GT. 1) THEN
-        IF (RayInfo%RotRay(i)%Ang1 .LE. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(RayInfo%RotRay(i)%Ang1, k)
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. 0) RayInfo%RotRay(i)%OmpAng1 = k
-          
-          RayInfo%RotRay(i)%OmpAng2 = RayInfo%RotRay(i)%OmpAng1 + k
-        ELSE IF (RayInfo%RotRay(i)%Ang1 .GT. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(nAziAng+1-RayInfo%RotRay(i)%Ang1, k) + k
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. k) RayInfo%RotRay(i)%OmpAng1 = RayInfo%RotRay(i)%OmpAng1 + k
-          
-          RayInfo%RotRay(i)%OmpAng2 = RayInfo%RotRay(i)%OmpAng1 - k
-        END IF
-      ELSE IF (RayInfo%RotRay(i)%nRay .EQ. 1) THEN
-        IF (RayInfo%RotRay(i)%Ang1 .LE. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(RayInfo%RotRay(i)%Ang1, k)
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. 0) RayInfo%RotRay(i)%OmpAng1 = k
-          
-          RayInfo%RotRay(i)%OmpAng2 = 0
-        ELSE IF (RayInfo%RotRay(i)%Ang1 .GT. nAziAng/2) THEN
-          RayInfo%RotRay(i)%OmpAng1 = MOD(nAziAng+1-RayInfo%RotRay(i)%Ang1, k) + k
-          
-          IF (RayInfo%RotRay(i)%OmpAng1 .EQ. k) RayInfo%RotRay(i)%OmpAng1 = RayInfo%RotRay(i)%OmpAng1 + k
-          
-          RayInfo%RotRay(i)%OmpAng2 = 0
-        END IF
-      END IF
-    END DO
-    
-    DO i = 1, nRotRay
-      IF (RayInfo%RotRay(i)%nRay .GT. 1) THEN
-        IF (MOD(RayInfo%RotRay(i)%nRay, 2) .EQ. 0) THEN
-          DO j = 1, RayInfo%RotRay(i)%nRay, 2
-            RayInfo%RotRay(i)%OmpRayIdx(j)   = RayInfo%RotRay(i)%OmpAng1
-            RayInfo%RotRay(i)%OmpRayIdx(j+1) = RayInfo%RotRay(i)%OmpAng2
-          END DO
-        ELSE
-          DO j = 1, RayInfo%RotRay(i)%nRay-1, 2
-            RayInfo%RotRay(i)%OmpRayIdx(j)   = RayInfo%RotRay(i)%OmpAng1
-            RayInfo%RotRay(i)%OmpRayIdx(j+1) = RayInfo%RotRay(i)%OmpAng2
-          END DO
-          RayInfo%RotRay(i)%OmpRayIdx(RayInfo%RotRay(i)%nRay) = RayInfo%RotRay(i)%OmpAng1
-        END IF
-      ELSE
-        RayInfo%RotRay(i)%OmpRayIdx(1) = RayInfo%RotRay(i)%OmpAng1
-      END IF
-    END DO
-    
-    CALL dmalloc(OmpMap, nThread, k*2)
-    
-    DO i = 1, nThread
-      DO j = 1, k
-        OmpTemp = OmpTemp + 1
-        
-        OmpMap(i,j)   = OmpTemp
-        OmpMap(i,j+k) = nAziAng - OmpTemp + 1
-      END DO
-    END DO
-    
-    CALL dmalloc(OmpRayList, nThread)
-    CALL dmalloc(OmpRayNum, nThread, nRotRay)
-    
-    nOmpAng = nAziAng/nThread
-    OmpRayList(:) = 0; OmpRayNum(:,:) = 0
-    
-    DO i = 1, nThread
-      DO j = 1, 2
-        OmpRayList(i) = OmpRayList(i) + OmpRayEndBd(j,i) - OmpRayBegBd(j,i) + 1
-      END DO
-    END DO
-    
-    DO i = 1, nThread
-      m = 0
-      
-      DO j = 1, 2
-        l = 0
-        
-        DO k = 1, OmpRayEndBd(j,i) - OmpRayBegBd(j,i) + 1
-          m = m + 1
-          
-          OmpRayNum(i,m) = OmpRayBegBd(j,i) + l
-          
-          l = l + 1
-        END DO
-      END DO
-    END DO
-  END IF
-  
-  IF (MOD(nAziANg/2, nThread) .NE. 0) CALL terminate('WRONG_MOC_TRD')
-END IF
-! ----------------------------------------------------
-IF (lfirst) THEN
-  
-  lFirst = FALSE
-  
-  CALL ApproxExp(RayInfo%PolarAngle, nPolarAng)
-  
-  DO tid = 1, nThread
-     IF (TrackingDat(tid)%lAllocP1) CYCLE
-     
-     CALL dmalloc(TrackingDat(tid)%phi1a, nPolarAng, nFsr, nOmpAng)
-     CALL dmalloc(TrackingDat(tid)%phi2a, nPolarAng, nFsr, nOmpAng)
-     
-     TrackingDat(tid)%lAllocP1 = TRUE
-     
-     IF (TrackingDat(tid)%lAlloc) CYCLE
-     
-     CALL dmalloc(TrackingDat(tid)%FsrIdx,         nMaxRaySeg, nMaxCoreRay)
-     CALL dmalloc(TrackingDat(tid)%ExpAppIdx,      nMaxRaySeg, nMaxCoreRay)
-     CALL dmalloc(TrackingDat(tid)%OptLenList,     nMaxRaySeg, nMaxCoreRay)
-     CALL dmalloc(TrackingDat(tid)%ExpAppPolar,    nPolarAng, nMaxRaySeg, nMaxCoreRay)
-     CALL dmalloc(TrackingDat(tid)%PhiAngOutPolar, nPolarAng, nMaxRaySeg+2)
-     CALL dmalloc(TrackingDat(tid)%Jout,           3, nbd, nxy)
-     
-     TrackingDat(tid)%lAlloc = TRUE
+  DO iazi = 1, nOmpAng
+    TrackingDat(ithr)%phi1a(:,:,iazi) = ZERO
+    TrackingDat(ithr)%phi2a(:,:,iazi) = ZERO
   END DO
   
-  CALL dmalloc(SrcAng1, nPolarAng, nFsr, nAziAng)
-  CALL dmalloc(SrcAng2, nPolarAng, nFsr, nAziAng)
-  CALL dmalloc(Comp,Od, nPolarAng, nAziAng)
-  CALL dmalloc(mwt, Od, nPolarAng, nAziAng)
-  CALL dmalloc(wtang,   nPolarAng, nAziAng)
-  
-  DO ipol = 1, nPolarAng
-    wttmp = PolarAng(ipol)%weight * PolarAng(ipol)%sinv
-    
-    DO iazi = 1, nAziAng
-      wtang(ipol, iazi) = wttmp  * AziAng(iazi)%weight * AziAng(iazi)%del
-    END DO
+  DO ixy = 1, nxy
+    TrackingDat(ithr)%jout(:, :, ixy) = zero
   END DO
-  
-  DO ipol = 1, nPolarAng
-    wttmp = PolarAng(ipol)%sinv
-    
-    DO iazi = 1, nAziAng
-      comp(1, ipol, iazi) = wttmp * AziAng(iazi)%cosv
-      comp(2, ipol, iazi) = wttmp * AziAng(iazi)%sinv
-      
-      mwt(1:2, ipol, iazi) = comp(1:2, ipol, iazi) * wtang(ipol, iazi)
-    END DO
-  END DO
-  
-  IF (ScatOd .GE. 2) THEN
-    DO ipol = 1, nPolarAng
-      wttmp   = PolarAng(ipol)%sinv
-      wtsin2  = PolarAng(ipol)%sinv * PolarAng(ipol)%sinv
-      wtcos   = PolarAng(ipol)%cosv
-      wtpolar = 1.5_8 * PolarAng(ipol)%cosv * PolarAng(ipol)%cosv - 0.5_8
-      
-      DO iazi = 1, nAziAng
-        Comp(3, ipol, iazi) = wtpolar
-        Comp(4, ipol, iazi) = wtsin2 * (1._8-2._8*AziAng(iazi)%sinv*AziAng(iazi)%sinv)
-        Comp(5, ipol, iazi) = wtsin2 * (2._8 * AziAng(iazi)%sinv * AziAng(iazi)%cosv)
-
-        mwt(3,   ipol, iazi) = comp(3, ipol, iazi) *  wtang(ipol, iazi)
-        mwt(4:5, ipol, iazi) = 0.75_8 * comp(4:5, ipol, iazi) *  wtang(ipol, iazi)
-      END DO
-    END DO
-  END IF
-  
-  IF (ScatOd .EQ. 3) THEN
-    DO ipol = 1, nPolarAng
-      wttmp = PolarAng(ipol)%sinv
-      DO iazi = 1, nAziAng
-        Comp(6, ipol, iazi) = (5._8 * PolarAng(ipol)%cosv * PolarAng(ipol)%cosv - 1._8) * wttmp * AziAng(iazi)%cosv
-        Comp(7, ipol, iazi) = (5._8 * PolarAng(ipol)%cosv * PolarAng(ipol)%cosv - 1._8) * wttmp * AziAng(iazi)%sinv
-        Comp(8, ipol, iazi) = (wttmp ** 3._8) * (4._8 * (AziAng(iazi)%cosv ** 3._8) - 3._8 * AziAng(iazi)%cosv)
-        Comp(9, ipol, iazi) = (wttmp ** 3._8) * (- 4._8 * (AziAng(iazi)%sinv ** 3._8) + 3._8 * AziAng(iazi)%sinv)
-
-        mwt(6:7, ipol, iazi) = 0.375_8 * comp(6:7, ipol, iazi) * wtang(ipol, iazi)
-        mwt(8:9, ipol, iazi) = 0.625_8 * comp(8:9, ipol, iazi) * wtang(ipol, iazi)
-      END DO
-    END DO
-  END IF
-END IF
-! ----------------------------------------------------
-!$  call omp_set_dynamic(FALSE)
-!$  call omp_set_num_threads(nThread)
-
-DO tid = 1, nThread
-  TrackingDat(tid)%Expa     => Expa
-  TrackingDat(tid)%Expb     => Expb
-  TrackingDat(tid)%PhiAngIn => PhiAngIn
-  TrackingDat(tid)%src      => src
-  TrackingDat(tid)%xst      => xst
-  TrackingDat(tid)%wtang    => WtAng
-  TrackingDat(tid)%SrcAng1  => SrcAng1
-  TrackingDat(tid)%SrcAng2  => SrcAng2
 END DO
 
 phis = ZERO
 phim = ZERO
 IF (ljout) Jout = ZERO
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irotray, tid, iazi, ipol, i, j, tempsrc, k, l)
-tid = 1
-
-!$  tid = omp_get_thread_num()+1
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, iFSR, ipol, tempsrc)
+ithr = 1
+!$ ithr = omp_get_thread_num()+1
 
 IF (ScatOd .EQ. 1) THEN
   DO iazi = 1, nAziAng
-    DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+    DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
       DO ipol = 1, nPolarAng
-        SrcAng1(ipol, i, iazi) = src(i)
-        SrcAng2(ipol, i, iazi) = src(i)
+        SrcAng1(ipol, iFSR, iazi) = src(iFSR)
+        SrcAng2(ipol, iFSR, iazi) = src(iFSR)
         
-        tempsrc = comp(1, ipol, iazi) * srcm(1, i) + comp(2, ipol, iazi) * srcm(2, i)
+        tempsrc = comp(1, ipol, iazi) * srcm(1, iFSR) + comp(2, ipol, iazi) * srcm(2, iFSR)
         
-        SrcAng1(ipol, i, iazi) = SrcAng1(ipol, i, iazi) + tempsrc
-        SrcAng2(ipol, i, iazi) = SrcAng2(ipol, i, iazi) - tempsrc
+        SrcAng1(ipol, iFSR, iazi) = SrcAng1(ipol, iFSR, iazi) + tempsrc
+        SrcAng2(ipol, iFSR, iazi) = SrcAng2(ipol, iFSR, iazi) - tempsrc
        END DO
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 2) THEN
   DO iazi = 1, nAziAng
-    DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+    DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
       DO ipol = 1, nPolarAng
-        SrcAng1(ipol, i, iazi) = src(i)
-        SrcAng2(ipol, i, iazi) = src(i)
+        SrcAng1(ipol, iFSR, iazi) = src(iFSR)
+        SrcAng2(ipol, iFSR, iazi) = src(iFSR)
         
-        tempsrc = comp(1, ipol, iazi) * srcm(1, i) + comp(2, ipol, iazi) * srcm(2, i)
+        tempsrc = comp(1, ipol, iazi) * srcm(1, iFSR) + comp(2, ipol, iazi) * srcm(2, iFSR)
         
-        SrcAng1(ipol, i, iazi) = SrcAng1(ipol, i, iazi) + tempsrc
-        SrcAng2(ipol, i, iazi) = SrcAng2(ipol, i, iazi) - tempsrc
+        SrcAng1(ipol, iFSR, iazi) = SrcAng1(ipol, iFSR, iazi) + tempsrc
+        SrcAng2(ipol, iFSR, iazi) = SrcAng2(ipol, iFSR, iazi) - tempsrc
         
-        tempsrc = comp(3, ipol, iazi) * srcm(3, i) + comp(4, ipol, iazi) * srcm(4, i) + comp(5, ipol, iazi) * srcm(5, i)
+        tempsrc = comp(3, ipol, iazi) * srcm(3, iFSR) + comp(4, ipol, iazi) * srcm(4, iFSR) + comp(5, ipol, iazi) * srcm(5, iFSR)
         
-        SrcAng1(ipol, i, iazi) = SrcAng1(ipol, i, iazi) +  tempsrc
-        SrcAng2(ipol, i, iazi) = SrcAng2(ipol, i, iazi) +  tempsrc
+        SrcAng1(ipol, iFSR, iazi) = SrcAng1(ipol, iFSR, iazi) +  tempsrc
+        SrcAng2(ipol, iFSR, iazi) = SrcAng2(ipol, iFSR, iazi) +  tempsrc
       END DO
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 3) THEN
   DO iazi = 1, nAziAng
-    DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+    DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
       DO ipol = 1, nPolarAng
-        SrcAng1(ipol, i, iazi) = src(i)
-        SrcAng2(ipol, i, iazi) = src(i)
+        SrcAng1(ipol, iFSR, iazi) = src(iFSR)
+        SrcAng2(ipol, iFSR, iazi) = src(iFSR)
         
-        tempsrc = comp(1, ipol, iazi) * srcm(1, i) + comp(2, ipol, iazi) * srcm(2, i) + comp(6, ipol, iazi) * srcm(6, i) + comp(7, ipol, iazi) * srcm(7, i) + comp(8, ipol, iazi) * srcm(8, i) + comp(9, ipol, iazi) * srcm(9, i)
+        tempsrc = comp(1, ipol, iazi) * srcm(1, iFSR) + comp(2, ipol, iazi) * srcm(2, iFSR) + comp(6, ipol, iazi) * srcm(6, iFSR) + comp(7, ipol, iazi) * srcm(7, iFSR) + comp(8, ipol, iazi) * srcm(8, iFSR) + comp(9, ipol, iazi) * srcm(9, iFSR)
         
-        SrcAng1(ipol, i, iazi) = SrcAng1(ipol, i, iazi) + tempsrc
-        SrcAng2(ipol, i, iazi) = SrcAng2(ipol, i, iazi) - tempsrc
+        SrcAng1(ipol, iFSR, iazi) = SrcAng1(ipol, iFSR, iazi) + tempsrc
+        SrcAng2(ipol, iFSR, iazi) = SrcAng2(ipol, iFSR, iazi) - tempsrc
         
-        tempsrc = comp(3, ipol, iazi) * srcm(3, i) + comp(4, ipol, iazi) * srcm(4, i) + comp(5, ipol, iazi) * srcm(5, i)
+        tempsrc = comp(3, ipol, iazi) * srcm(3, iFSR) + comp(4, ipol, iazi) * srcm(4, iFSR) + comp(5, ipol, iazi) * srcm(5, iFSR)
         
-        SrcAng1(ipol, i, iazi) = SrcAng1(ipol, i, iazi) +  tempsrc
-        SrcAng2(ipol, i, iazi) = SrcAng2(ipol, i, iazi) +  tempsrc
+        SrcAng1(ipol, iFSR, iazi) = SrcAng1(ipol, iFSR, iazi) +  tempsrc
+        SrcAng2(ipol, iFSR, iazi) = SrcAng2(ipol, iFSR, iazi) +  tempsrc
       END DO
     END DO
   END DO
 END IF
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irotray, tid, i, j, k, l, iazi, ipol, OmpAng)
-tid = 1
-!$  tid = omp_get_thread_num()+1
-j = tid
-
-DO iazi = 1, nOmpAng
-  TrackingDat(j)%phi1a(:,:,iazi) = ZERO
-  TrackingDat(j)%phi2a(:,:,iazi) = ZERO
-END DO
-
-DO i = 1, nxy
-  TrackingDat(j)%jout(:, :, i) = zero
-END DO
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iRay, irotray, iDir, iazi, ipol, OmpAng, ixy)
+ithr = 1
+!$  ithr = omp_get_thread_num()+1
 !$OMP BARRIER
-IF (lScatBd) THEN
-  DO i = OmpRayBeg(tid), OmpRayEnd(tid)
-    irotray = i
+IF (nTracerCntl%lScatBd) THEN
+  DO iRay = OmpRayBeg(ithr), OmpRayEnd(ithr)
+    irotray = iRay
     
-    CALL RecTrackRotRayP1GM_AFSS(RayInfo, CoreInfo, TrackingDat(tid), lJout, irotray, iz, FastMocLv)
+    CALL RecTrackRotRayP1GM_AFSS(RayInfo, CoreInfo, TrackingDat(ithr), lJout, irotray, iz, FastMocLv)
   END DO
 ELSE
-  DO i = 1, 2
-    DO j = OmpRayBegBd(i, tid), OmpRayEndBd(i, tid)
-      irotray = j
+  DO iDir = 1, 2
+    DO iRay = OmpRayBegBd(iDir, ithr), OmpRayEndBd(iDir, ithr)
+      irotray = iRay
       
-      CALL RecTrackRotRayP1GM_AFSS(RayInfo, CoreInfo, TrackingDat(tid), lJout, irotray, iz, FastMocLv)
+      CALL RecTrackRotRayP1GM_AFSS(RayInfo, CoreInfo, TrackingDat(ithr), lJout, irotray, iz, FastMocLv)
     END DO
   END DO
 END IF
 !$OMP BARRIER
 IF (ScatOd .EQ. 1) THEN
-  DO j = 1, nThread
+  DO ithr = 1, nThread
     DO iazi = 1, nOmpAng
-      DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+      DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
         DO ipol = 1, nPolarAng
-          OmpAng = OmpMap(j, iazi)
+          OmpAng = OmpMap(ithr, iazi)
           
-          phis(i) = phis(i) + wtang(ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
+          phis(iFSR) = phis(iFSR) + wtang(ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) + TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
           
-          phim(1:2, i) = phim(1:2, i) + mwt(1:2, ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) - TrackingDat(j)%phi2a(ipol, i, iazi))
+          phim(1:2, iFSR) = phim(1:2, iFSR) + mwt(1:2, ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) - TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
         END DO
       END DO
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 2) THEN
-  DO j = 1, nThread
+  DO ithr = 1, nThread
     DO iazi = 1, nOmpAng
-      DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+      DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
         DO ipol = 1, nPolarAng
-          OmpAng = OmpMap(j, iazi)
+          OmpAng = OmpMap(ithr, iazi)
           
-          phis(i) = phis(i) + wtang(ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
+          phis(iFSR) = phis(iFSR) + wtang(ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) + TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
           
-          phim(1:2, i) = phim(1:2, i) + mwt(1:2, ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) - TrackingDat(j)%phi2a(ipol, i, iazi))
-          phim(3:5, i) = phim(3:5, i) + mwt(3:5, ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
+          phim(1:2, iFSR) = phim(1:2, iFSR) + mwt(1:2, ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) - TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
+          phim(3:5, iFSR) = phim(3:5, iFSR) + mwt(3:5, ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) + TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
         END DO
       END DO
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 3) THEN
-  DO j = 1, nThread
+  DO ithr = 1, nThread
     DO iazi = 1, nOmpAng
-      DO i = PE%myOmpFsrBeg(tid), PE%myOmpFsrEnd(tid)
+      DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
         DO ipol = 1, nPolarAng
-          OmpAng = OmpMap(j, iazi)
+          OmpAng = OmpMap(ithr, iazi)
           
-          phis(i) = phis(i) + wtang(ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
+          phis(iFSR) = phis(iFSR) + wtang(ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) + TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
           
-          phim(1:2, i) = phim(1:2, i) + mwt(1:2, ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) - TrackingDat(j)%phi2a(ipol, i, iazi))
-          phim(3:5, i) = phim(3:5, i) + mwt(3:5, ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) + TrackingDat(j)%phi2a(ipol, i, iazi))
-          phim(6:9, i) = phim(6:9, i) + mwt(6:9, ipol, OmpAng) * (TrackingDat(j)%phi1a(ipol, i, iazi) - TrackingDat(j)%phi2a(ipol, i, iazi))
+          phim(1:2, iFSR) = phim(1:2, iFSR) + mwt(1:2, ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) - TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
+          phim(3:5, iFSR) = phim(3:5, iFSR) + mwt(3:5, ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) + TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
+          phim(6:9, iFSR) = phim(6:9, iFSR) + mwt(6:9, ipol, OmpAng) * (TrackingDat(ithr)%phi1a(ipol, iFSR, iazi) - TrackingDat(ithr)%phi2a(ipol, iFSR, iazi))
         END DO
       END DO
     END DO
@@ -1293,9 +919,9 @@ ELSE IF (ScatOd .EQ. 3) THEN
 END IF
 
 IF (ljout) THEN
-  DO j = 1, nThread
-    DO i = PE%myOmpNxyBeg(tid), PE%myOmpNxyEnd(tid)
-      jout(:, :, i) = jout(:, :, i) + TrackingDat(j)%jout(:, :, i)
+  DO ithr = 1, nThread
+    DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+      jout(:, :, ixy) = jout(:, :, ixy) + TrackingDat(ithr)%jout(:, :, ixy)
     END DO
   END DO
 END IF
@@ -1308,66 +934,61 @@ ONESEVEN = ONE / 7._8
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(l, j, FsrIdxSt, icel, ireg, wttmp, tid)
-tid = 1
-
-!$  tid = omp_get_thread_num()+1
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, ixy, FsrIdxSt, icel, iFSR, jFSR, wttmp)
+ithr = 1
+!$ ithr = omp_get_thread_num()+1
 
 IF (ScatOd .EQ. 1) THEN
-  DO l = PE%myOmpNxyBeg(tid), PE%myOmpNxyEnd(tid)
-    FsrIdxSt = Pin(l)%FsrIdxSt
-    icel     = Pin(l)%Cell(iz);
+  DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+    FsrIdxSt = Pin(ixy)%FsrIdxSt
+    icel     = Pin(ixy)%Cell(iz)
     
-    DO j = 1, Cell(icel)%nFsr
-      ireg = FsrIdxSt + j - 1
+    DO iFSR = 1, Cell(icel)%nFsr
+      jFSR = FsrIdxSt + iFSR - 1
       
-      wttmp = 1._8/(xst(ireg)*Cell(icel)%vol(j))
+      wttmp = 1._8 / (xst(jFSR) * Cell(icel)%vol(iFSR))
       
-      phis(ireg) = phis(ireg) * wttmp + src(ireg)
+      phis(jFSR) = phis(jFSR) * wttmp + src(jFSR)
       
-      phim(1:2, ireg) = phim(1:2, ireg) * wttmp + srcm(1:2, ireg) * ONETHREE
+      phim(1:2, jFSR) = phim(1:2, jFSR) * wttmp + srcm(1:2, jFSR) * ONETHREE
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 2) THEN
-  DO l = PE%myOmpNxyBeg(tid), PE%myOmpNxyEnd(tid)
-    FsrIdxSt = Pin(l)%FsrIdxSt
-    icel     = Pin(l)%Cell(iz);
+  DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+    FsrIdxSt = Pin(ixy)%FsrIdxSt
+    icel     = Pin(ixy)%Cell(iz)
     
-    DO j = 1, Cell(icel)%nFsr
-      ireg = FsrIdxSt + j - 1
+    DO iFSR = 1, Cell(icel)%nFsr
+      jFSR = FsrIdxSt + iFSR - 1
       
-      wttmp = 1._8/(xst(ireg)*Cell(icel)%vol(j))
+      wttmp = 1._8 / (xst(jFSR) * Cell(icel)%vol(iFSR))
       
-      phis(ireg) = phis(ireg) * wttmp + src(ireg)
+      phis(jFSR) = phis(jFSR) * wttmp + src(jFSR)
       
-      phim(1:2, ireg) = phim(1:2, ireg) * wttmp + srcm(1:2, ireg) * ONETHREE
-      phim(3:5, ireg) = phim(3:5, ireg) * wttmp + srcm(3:5, ireg) * ONEFIVE
+      phim(1:2, jFSR) = phim(1:2, jFSR) * wttmp + srcm(1:2, jFSR) * ONETHREE
+      phim(3:5, jFSR) = phim(3:5, jFSR) * wttmp + srcm(3:5, jFSR) * ONEFIVE
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 3) THEN
-  DO l = PE%myOmpNxyBeg(tid), PE%myOmpNxyEnd(tid)
-    FsrIdxSt = Pin(l)%FsrIdxSt
-    icel     = Pin(l)%Cell(iz)
+  DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+    FsrIdxSt = Pin(ixy)%FsrIdxSt
+    icel     = Pin(ixy)%Cell(iz)
     
-    DO j = 1, Cell(icel)%nFsr
-      ireg = FsrIdxSt + j - 1
+    DO iFSR = 1, Cell(icel)%nFsr
+      jFSR = FsrIdxSt + iFSR - 1
       
-      wttmp = 1._8/(xst(ireg)*Cell(icel)%vol(j))
+      wttmp = 1._8 / (xst(jFSR) * Cell(icel)%vol(iFSR))
       
-      phis(ireg) = phis(ireg) * wttmp + src(ireg)
+      phis(jFSR) = phis(jFSR) * wttmp + src(jFSR)
       
-      phim(1:2, ireg) = phim(1:2, ireg) * wttmp + srcm(1:2, ireg) * ONETHREE
-      phim(3:5, ireg) = phim(3:5, ireg) * wttmp + srcm(3:5, ireg) * ONEFIVE
-      phim(6:9, ireg) = phim(6:9, ireg) * wttmp + srcm(6:9, ireg) * ONESEVEN
+      phim(1:2, jFSR) = phim(1:2, jFSR) * wttmp + srcm(1:2, jFSR) * ONETHREE
+      phim(3:5, jFSR) = phim(3:5, jFSR) * wttmp + srcm(3:5, jFSR) * ONEFIVE
+      phim(6:9, jFSR) = phim(6:9, jFSR) * wttmp + srcm(6:9, jFSR) * ONESEVEN
     END DO
   END DO
 END IF
 !$OMP END PARALLEL
-! ----------------------------------------------------
-DEALLOCATE(wtp)
 
-NULLIFY (AziAng)
-NULLIFY (PolarAng)
 NULLIFY (Cell)
 NULLIFY (Pin)
 ! ----------------------------------------------------
@@ -1413,7 +1034,7 @@ REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, EXPA, E
 REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout, wtsurf, phi1a, phi2a, SrcAng1, SrcAng2
 
 INTEGER :: mp(2)
-INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, irot, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv
+INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, irot, itype, idir, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng
 INTEGER :: ipin, icel, ibcel, iasy, ireg, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nFsr, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, iOmpAzi
 
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay, 2) :: CellRayIdxSt, SurfIdx
@@ -1438,7 +1059,6 @@ CoreRay  => RayInfo%CoreRay
 RotRay   => RayInfo%RotRay
 nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
-nPhiAngSv = RayInfo%nPhiAngSv
 
 Asy     => CoreInfo%Asy
 Pin     => CoreInfo%Pin

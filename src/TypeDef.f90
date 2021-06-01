@@ -1013,7 +1013,7 @@ TYPE PE_TYPE
   INTEGER :: myNxyBeg, myNxyEnd
   INTEGER :: myOmpNxyBeg(100), myOmpNxyEnd(100)
   INTEGER :: myOmpFsrBeg(100), myOmpFsrEnd(100)
-  INTEGER, POINTER :: RayList(:), OmpRayList(:,:)
+  INTEGER, POINTER :: RayList(:)
   INTEGER :: MPI_NTRACER_COMM, MPI_RT_COMM, MPI_CMFD_COMM, MPI_AXN_COMM, MPI_COMM
   INTEGER :: MPI_RTMASTER_COMM, MPI_NULL
   INTEGER :: nRtProc, nCmfdProc, nAxnProc
