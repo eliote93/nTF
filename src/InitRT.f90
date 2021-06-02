@@ -5,7 +5,8 @@ USE allocs
 USE PARAM,   ONLY : TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, wthcs, wthsn
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, wthcs, wthsn, &
+                    EXPA_P, EXPB_P, AziMap
 USE geom,    ONLY : nbd, ng
 
 IMPLICIT NONE
@@ -17,7 +18,7 @@ TYPE (PE_TYPE)          :: PE
 
 INTEGER :: nFsr, nxy, ithr, scatod, nod, nPolarAng, nAziAng, ipol, iazi, nthr
 REAL :: wttmp, wtsin2, wtcos, wtpolar
-LOGICAL :: lscat1
+LOGICAL :: lscat1, ldcmp, lLinSrcCASMO
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
@@ -34,8 +35,10 @@ nthr = PE%nThread
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
-scatod = nTracerCntl%scatod
-lscat1 = nTracerCntl%lscat1
+scatod       = nTracerCntl%scatod
+lscat1       = nTracerCntl%lscat1
+ldcmp        = nTracerCntl%lDomainDcmp
+lLinSrcCASMO = nTracerCntl%lLinSrcCASMO
 
 IF (nTracerCntl%lscat1) THEN
   SELECT CASE (scatod)
@@ -80,14 +83,20 @@ END IF
 ! ----------------------------------------------------
 ! Basic
 DO ithr = 1, nThr
-  CALL dmalloc(TrackingDat(ithr)%FsrIdx,         nMaxRaySeg, nMaxCoreRay)
-  CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,      nMaxRaySeg, nMaxCoreRay)
-  CALL dmalloc(TrackingDat(ithr)%OptLenList,     nMaxRaySeg, nMaxCoreRay)
+  CALL dmalloc(TrackingDat(ithr)%FsrIdx,                     nMaxRaySeg, nMaxCoreRay)
+  CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,                  nMaxRaySeg, nMaxCoreRay)
+  CALL dmalloc(TrackingDat(ithr)%OptLenList,                 nMaxRaySeg, nMaxCoreRay)
   CALL dmalloc(TrackingDat(ithr)%ExpAppPolar,    nPolarAng,  nMaxRaySeg, nMaxCoreRay)
   CALL dmalloc(TrackingDat(ithr)%PhiAngOutPolar, nPolarAng,  nMaxRaySeg + 2)
   
-  TrackingDat(ithr)%Expa   => Expa
-  TrackingDat(ithr)%Expb   => Expb
+  IF (.NOT. ldcmp) THEN
+    TrackingDat(ithr)%Expa => ExpA
+    TrackingDat(ithr)%Expb => ExpB
+  ELSE
+    TrackingDat(ithr)%Expa => ExpA_P
+    TrackingDat(ithr)%Expb => ExpB_P
+  END IF
+  
   TrackingDat(ithr)%wtang  => wtang
   TrackingDat(ithr)%wtsurf => wtsurf
   
@@ -111,6 +120,29 @@ ELSE
     CALL dmalloc(TrackingDat(ithr)%Joutnm, 3, ng, nbd, nxy)
     
     TrackingDat(ithr)%lAllocNM = TRUE
+  END DO
+END IF
+
+! Dcmp. & Lin Src CASMO
+IF (ldcmp .AND. lLinSrcCASMO) THEN
+  DO ithr = 1, nThr
+    CALL dmalloc(TrackingDat(ithr)%FsrIdx,                      nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%ExpAppIdxnm,             ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%OptLenListnm,            ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%ExpAppnm,     nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%PhiAngOutnm,  nPolarAng, ng, nMaxRaySeg + 2)
+    CALL dmalloc(TrackingDat(ithr)%cmOptLen,     nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%cmOptLenInv,  nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%q0,                      ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%q1,           nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%E1,           nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%E3,           nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%R1,           nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%R3,           nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%x0,                       2, nMaxRaySeg, nMaxCoreRay)
+    CALL dmalloc(TrackingDat(ithr)%y0,                       2, nMaxRaySeg, nMaxCoreRay)
+    
+    TrackingDat(ithr)%lAllocLinSrc = TRUE
   END DO
 END IF
 ! ----------------------------------------------------
@@ -170,8 +202,8 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     CALL dmalloc(SrcAng1, nPolarAng, nFsr, nAziAng)
     CALL dmalloc(SrcAng2, nPolarAng, nFsr, nAziAng)
     
-    TrackingDat(ithr)%SrcAng1  => SrcAng1
-    TrackingDat(ithr)%SrcAng2  => SrcAng2
+    TrackingDat(ithr)%SrcAng1 => SrcAng1
+    TrackingDat(ithr)%SrcAng2 => SrcAng2
     
     CALL dmalloc(TrackingDat(ithr)%phim, nod, nFsr)
   END DO
@@ -180,10 +212,25 @@ ELSE
     CALL dmalloc(SrcAngnm1, ng, nPolarAng, nFsr, nAziAng)
     CALL dmalloc(SrcAngnm2, ng, nPolarAng, nFsr, nAziAng)
         
-    TrackingDat(ithr)%SrcAngnm1  => SrcAngnm1
-    TrackingDat(ithr)%SrcAngnm2  => SrcAngnm2
+    TrackingDat(ithr)%SrcAngnm1 => SrcAngnm1
+    TrackingDat(ithr)%SrcAngnm2 => SrcAngnm2
     
     CALL dmalloc(TrackingDat(ithr)%phimnm, nod, ng, nFsr)
+  END DO
+END IF
+
+! P1 : Dcmp.
+IF (ldcmp) THEN
+  DO iAzi = 1, nAziAng / 2
+    AziMap(iAzi, 1) = 1
+    AziMap(iAzi, 2) = 2
+    
+    AziMap(nAziAng - iAzi + 1, 1) = 3
+    AziMap(nAziAng - iAzi + 1, 2) = 4
+  END DO
+  
+  DO ithr = 1, nThr
+    TrackingDat(ithr)%AziMap => AziMap
   END DO
 END IF
 ! ----------------------------------------------------

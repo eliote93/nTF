@@ -219,7 +219,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
 END SUBROUTINE RayTraceP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, iasy, gb, ge, ljout)
+SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisnm, joutnm, iz, iasy, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -228,8 +228,7 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInnm
+REAL, POINTER, DIMENSION(:,:)     :: phisnm
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
 INTEGER :: iz, iasy, gb, ge
@@ -312,7 +311,7 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_Pn(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
+SUBROUTINE RayTraceDcmp_Pn(RayInfo, CoreInfo, phisnm, phimnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -321,8 +320,8 @@ IMPLICIT NONE
 TYPE (RayInfo_Type) :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
-REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
+REAL, POINTER, DIMENSION(:,:)     :: phisnm
+REAL, POINTER, DIMENSION(:,:,:)   :: phimnm
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
 INTEGER :: iz, iAsy, gb, ge, ScatOd
@@ -382,7 +381,7 @@ LOGICAL :: ljout
 
 END SUBROUTINE RayTraceLS_CASMO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, iasy, gb, ge, ljout)
+SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisnm, phisSlope, joutnm, iz, iasy, gb, ge, ljout)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -392,9 +391,9 @@ IMPLICIT NONE
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :)
+REAL, POINTER :: phisnm(:, :)
 REAL, POINTER :: srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
-REAL, POINTER :: phisSlope(:, :, :, :), srcSlope(:, :, :, :)
+REAL, POINTER :: phisSlope(:, :, :, :)
 INTEGER :: iz, iasy, gb, ge
 LOGICAL :: ljout
 
