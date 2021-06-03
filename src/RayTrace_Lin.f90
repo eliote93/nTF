@@ -9,7 +9,7 @@ USE TYPEDEF,  ONLY :  RayInfo_Type,      coreinfo_type,                         
                       AziAngleInfo_Type, PolarAngle_Type, ModRayInfo_type,  AsyRayInfo_type,  &
                       CoreRayInfo_Type,  RotRayInfo_Type, CellRayInfo_type
 USE Moc_Mod, ONLY :   nMaxRaySeg,        nMaxCellRay,     nMaxAsyRay,       nMaxCoreRay,      &
-                      Expa,              Expb,                                                &
+                      ExpA,              ExpB,                                                &
                       ApproxExp
 USE BasicOperation, ONLY : CP_CA, CP_VA                    
 USE ALLOCS
@@ -127,7 +127,7 @@ IF(lFirst) THEN
 !  CALL Dmalloc(CellRayIdxSt, nMaxCellRay, nMaxCoreRay, 2)
 !  CALL Dmalloc(nTotRaySeg, nMaxCoreRay);  CALL Dmalloc(nTotCellRay, nMaxCoreRay)
 #endif  
-  !CALL ApproxExp(PolarAng, nPolarAng, Expa, Expb)
+  !CALL ApproxExp(PolarAng, nPolarAng, ExpA, ExpB)
   CALL ApproxExp(PolarAng, nPolarAng)
 #ifdef newslope
   CALL Dmalloc(ExpApp2, nMaxRaySeg, nMaxCoreRay)
@@ -225,7 +225,7 @@ DO i = 1, nRotRay    !Rotational Ray Sweep
     DO j = 1, nCoreRay 
       DO l = 1, nTotRaySeg(j)
         tau = -0.001_8 * OptLenList(l, j) * rsinv
-        ExpApp(l, j) = expa(ExpAppIdx(l, j), ipol)*optlenlist(l, j) + expb(ExpAppIdx(l, j), ipol)
+        ExpApp(l, j) = ExpA(ExpAppIdx(l, j), ipol)*optlenlist(l, j) + ExpB(ExpAppIdx(l, j), ipol)
         ExpApp1(l, j) = 2._8 * (tau - ExpApp(l, j)) - tau * ExpApp(l, j)
         ExpApp1(l, j) = ExpApp1(l, j) * sinv2
        ! ExpApp2(l, j) = ExpApp(l, j) -tau + 0.5_8 * tau * tau
@@ -368,7 +368,7 @@ USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,       
                         PolarAngle_Type,    ModRayInfo_type,    AsyRayInfo_type,    CoreRayInfo_Type,       &
                         RotRayInfo_Type,    CellRayInfo_type,   DcmpAsyRayInfo_Type
 USE Moc_Mod,    ONLY :  nMaxRaySeg,         nMaxCellRay,        nMaxAsyRay,         nMaxCoreRay,            &
-                        Expa,               Expb,               ApproxExp,          TrackingDat,            &
+                        ExpA,               ExpB,               ApproxExp,          TrackingDat,            &
                         DcmpPhiAngIn,       DcmpPhiAngOut,      TrackRotRayLSDcmp_CASMO
 USE geom,       ONLY :  ng
 USE PE_Mod,     ONLY :  PE
@@ -447,7 +447,7 @@ IF(lfirst) THEN
     CALL Dmalloc(TrackingDat(tid)%R3, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%x0, 2, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%y0, 2, nMaxRaySeg, nMaxCoreRay)
-    TrackingDat(tid)%Expa => Expa; TrackingDat(tid)%Expb => Expb
+    TrackingDat(tid)%ExpA => ExpA; TrackingDat(tid)%ExpB => ExpB
     TrackingDat(tid)%PhiAngInnm => PhiAngInnm
     TrackingDat(tid)%srcnm => srcnm; TrackingDat(tid)%srcSlope => srcSlope(:, :, :, iz)
     TrackingDat(tid)%xstnm => xstnm
@@ -572,7 +572,7 @@ REAL, POINTER :: OptLenList(:, :, :)
 REAL, POINTER :: phisC(:, :), phimx(:, :, :), phimy(:, :, :)
 REAL, POINTER :: srcC(:, :), srcSlope(:, :, :), xst(:, :), jout(:, :, :, :)
 REAL, POINTER :: PhiAngOut(:, :, :), PhiAngIn(:, :, :)
-REAL, POINTER :: EXPA(:, :), EXPB(:, :)
+REAL, POINTER :: ExpA(:, :), ExpB(:, :)
 REAL, POINTER :: E1(:, :, :, :), E3(:, :, :, :), R1(:, :, :, :), R3(:, :, :, :)
 REAL, POINTER :: cmOptLen(:, :, :, :), cmOptLenInv(:, :, :, :)
 REAL, POINTER :: q0(:, :, :), q1(:, :, :, :)
@@ -626,8 +626,8 @@ srcC => TrackingDat%srcnm; srcSlope => TrackingDat%srcSlope
 xst => TrackingDat%xstnm; jout => TrackingDat%joutnm
 PhiAngOut => TrackingDat%PhiAngOutnm
 PhiAngIn => TrackingDat%phiAngInnm
-EXPA => TrackingDat%EXPA
-EXPB => TrackingDat%EXPB
+ExpA => TrackingDat%ExpA
+ExpB => TrackingDat%ExpB
 E1 => TrackingDat%E1; E3 => TrackingDat%E3
 R1 => TrackingDat%R1; R3 => TrackingDat%R3
 q0 => TrackingDat%q0; q1 => TrackingDat%q1
@@ -720,7 +720,7 @@ DO ipol = 1, nPolarAng
   DO j = 1, nCoreRay 
     DO l = 1, nTotRaySeg(j)
       DO ig = gb, ge
-        E1(ipol, ig, l, j) = EXPA(ExpAppIdx(ig, l, j), ipol) * OptLenList(ig, l, j) + EXPB(ExpAppIdx(ig, l, j), ipol)
+        E1(ipol, ig, l, j) = ExpA(ExpAppIdx(ig, l, j), ipol) * OptLenList(ig, l, j) + ExpB(ExpAppIdx(ig, l, j), ipol)
         E3(ipol, ig, l, j) = 2._8 * (cmOptLen(ipol, ig, l, j) - E1(ipol, ig, l, j)) - cmOptLen(ipol, ig, l, j) * E1(ipol, ig, l, j)
         R1(ipol, ig, l, j) = 1._8 + half * cmOptLen(ipol, ig, l, j) - (1._8 + cmOptLenInv(ipol, ig, l, j)) * E1(ipol, ig, l, j)
         R3(ipol, ig, l, j) = rsix * cmOptLen(ipol, ig, l, j) - 2._8 * cmOptLenInv(ipol, ig, l, j) - 2._8  &
@@ -848,7 +848,7 @@ NULLIFY(phisC); NULLIFY(phimx); NULLIFY(phimy)
 NULLIFY(srcC); NULLIFY(srcSlope)
 NULLIFY(xst); NULLIFY(jout)
 NULLIFY(PhiAngOut); NULLIFY(PhiAngIn)
-NULLIFY(EXPA); NULLIFY(EXPB)
+NULLIFY(ExpA); NULLIFY(ExpB)
 NULLIFY(E1); NULLIFY(E3); NULLIFY(R1); NULLIFY(R3)
 NULLIFY(q0); NULLIFY(q1); NULLIFY(x0); NULLIFY(y0)
 

@@ -394,7 +394,7 @@ INTEGER, POINTER, DIMENSION(:)   :: LocalFsrIdx
 INTEGER, POINTER, DIMENSION(:,:) :: FsrIdx,  ExpAppIdx
 
 REAL, POINTER, DIMENSION(:)     :: LenSeg, phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, EXPA, EXPB, wtang
+REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, ExpA, ExpB, wtang
 REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout, wtsurf, phi1a, phi2a
 
 INTEGER :: mp(2)
@@ -439,8 +439,8 @@ xst            => TrackingDat%xst
 jout           => TrackingDat%jout
 PhiAngOutPolar => TrackingDat%PhiAngOutPolar
 PhiAngIn       => TrackingDat%phiAngIn
-EXPA           => TrackingDat%EXPA
-EXPB           => TrackingDat%EXPB
+ExpA           => TrackingDat%ExpA
+ExpB           => TrackingDat%ExpB
 Wtang          => TrackingDat%wtang
 wtsurf         => TrackingDat%wtsurf
 ! ----------------------------------------------------
@@ -577,7 +577,7 @@ END IF
 DO iCoreRay = 1, nCoreRay
   DO iFSR = 1, nTotRaySeg(iCoreRay)
     DO ipol = 1, nPolarANg
-      ExpAppPolar(ipol, iFSR, iCoreRay) = expa(ExpAppIdx(iFSR, iCoreRay), ipol) * optlenlist(iFSR, iCoreRay) + expb(ExpAppIdx(iFSR, iCoreRay), ipol)
+      ExpAppPolar(ipol, iFSR, iCoreRay) = ExpA(ExpAppIdx(iFSR, iCoreRay), ipol) * optlenlist(iFSR, iCoreRay) + ExpB(ExpAppIdx(iFSR, iCoreRay), ipol)
       CONTINUE
     END DO
   END DO
@@ -712,8 +712,8 @@ NULLIFY (xst)
 NULLIFY (jout)
 NULLIFY (PhiAngOutPolar)
 NULLIFY (PhiAngIn)
-NULLIFY (EXPA)
-NULLIFY (EXPB)
+NULLIFY (ExpA)
+NULLIFY (ExpB)
 NULLIFY (wtang)
 NULLIFY (wtsurf)
 NULLIFY (Phi1a)
@@ -756,30 +756,6 @@ nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
 
 nxy = CoreInfo%nxy
-! ----------------------------------------------------
-!$ call omp_set_dynamic(FALSE)
-!$ call omp_set_num_threads(nThread)
-
-DO ithr = 1, nThread
-  TrackingDat(ithr)%PhiAngIn => PhiAngIn
-  TrackingDat(ithr)%src      => src
-  TrackingDat(ithr)%xst      => xst
-  TrackingDat(ithr)%SrcAng1  => SrcAng1
-  TrackingDat(ithr)%SrcAng2  => SrcAng2
-  
-  DO iazi = 1, nOmpAng
-    TrackingDat(ithr)%phi1a(:,:,iazi) = ZERO
-    TrackingDat(ithr)%phi2a(:,:,iazi) = ZERO
-  END DO
-  
-  DO ixy = 1, nxy
-    TrackingDat(ithr)%jout(:, :, ixy) = zero
-  END DO
-END DO
-
-phis = ZERO
-phim = ZERO
-IF (ljout) Jout = ZERO
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, iFSR, ipol, tempsrc)
 ithr = 1
@@ -839,6 +815,30 @@ ELSE IF (ScatOd .EQ. 3) THEN
   END DO
 END IF
 !$OMP END PARALLEL
+! ----------------------------------------------------
+!$ call omp_set_dynamic(FALSE)
+!$ call omp_set_num_threads(nThread)
+
+DO ithr = 1, nThread
+  TrackingDat(ithr)%PhiAngIn => PhiAngIn
+  TrackingDat(ithr)%src      => src
+  TrackingDat(ithr)%xst      => xst
+  TrackingDat(ithr)%SrcAng1  => SrcAng1
+  TrackingDat(ithr)%SrcAng2  => SrcAng2
+  
+  DO iazi = 1, nOmpAng
+    TrackingDat(ithr)%phi1a(:,:,iazi) = ZERO
+    TrackingDat(ithr)%phi2a(:,:,iazi) = ZERO
+  END DO
+  
+  DO ixy = 1, nxy
+    TrackingDat(ithr)%jout(:, :, ixy) = zero
+  END DO
+END DO
+
+phis = ZERO
+phim = ZERO
+IF (ljout) Jout = ZERO
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iRotRay, iDir, iazi, ipol, OmpAng, ixy)
 ithr = 1
@@ -1012,7 +1012,7 @@ INTEGER, POINTER, DIMENSION(:)   :: LocalFsrIdx
 INTEGER, POINTER, DIMENSION(:,:) :: FsrIdx, ExpAppIdx
 
 REAL, POINTER, DIMENSION(:)     :: LenSeg, phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, EXPA, EXPB, wtang
+REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, ExpA, ExpB, wtang
 REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout, wtsurf, phi1a, phi2a, SrcAng1, SrcAng2
 
 INTEGER :: mp(2)
@@ -1056,8 +1056,8 @@ xst            => TrackingDat%xst
 jout           => TrackingDat%jout
 PhiAngOutPolar => TrackingDat%PhiAngOutPolar
 PhiAngIn       => TrackingDat%phiAngIn
-EXPA           => TrackingDat%EXPA
-EXPB           => TrackingDat%EXPB
+ExpA           => TrackingDat%ExpA
+ExpB           => TrackingDat%ExpB
 Wtang          => TrackingDat%wtang
 wtsurf         => TrackingDat%wtsurf
 SrcAng1        => TrackingDat%SrcAng1
@@ -1196,7 +1196,7 @@ END IF
 DO iCoreRay = 1, nCoreRay
   DO iFSR = 1, nTotRaySeg(iCoreRay)
     DO ipol = 1, nPolarAng
-      ExpAppPolar(ipol, iFSR, iCoreRay) = expa(ExpAppIdx(iFSR, iCoreRay), ipol) * optlenlist(iFSR, iCoreRay) + expb(ExpAppIdx(iFSR, iCoreRay), ipol)
+      ExpAppPolar(ipol, iFSR, iCoreRay) = ExpA(ExpAppIdx(iFSR, iCoreRay), ipol) * optlenlist(iFSR, iCoreRay) + ExpB(ExpAppIdx(iFSR, iCoreRay), ipol)
       CONTINUE
     END DO
   END DO
@@ -1325,8 +1325,8 @@ NULLIFY (xst)
 NULLIFY (jout)
 NULLIFY (PhiAngOutPolar)
 NULLIFY (PhiAngIn)
-NULLIFY (EXPA)
-NULLIFY (EXPB)
+NULLIFY (ExpA)
+NULLIFY (ExpB)
 NULLIFY (wtang)
 NULLIFY (wtsurf)
 NULLIFY (Phi1a)

@@ -158,7 +158,6 @@ END SUBROUTINE RayTraceP1GM_OMP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RecTrackRotRayP1GM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv)
 
-USE ALLOCS
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Asy_Type, AsyInfo_Type, PinInfo_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type, ModRayInfo_type, AsyRayInfo_type,  &
                     CoreRayInfo_Type, RotRayInfo_Type, CellRayInfo_type, FastCoreRayDat_Type, TrackingDat_Type, FastRaySegDat_Type
@@ -192,7 +191,7 @@ INTEGER, POINTER, DIMENSION(:)   :: LocalFsrIdx
 INTEGER, POINTER, DIMENSION(:,:) :: FsrIdx, ExpAppIdx
 
 REAL, POINTER, DIMENSION(:)     :: LenSeg, phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, EXPA, EXPB, wtang, phim
+REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, ExpA, ExpB, wtang, phim
 REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout, wtsurf, mwt, mwt2, SrcAng1, SrcAng2
 
 INTEGER :: mp(2)
@@ -240,8 +239,8 @@ xst            => TrackingDat%xst
 jout           => TrackingDat%jout
 PhiAngOutPolar => TrackingDat%PhiAngOutPolar
 PhiAngIn       => TrackingDat%phiAngIn
-EXPA           => TrackingDat%EXPA
-EXPB           => TrackingDat%EXPB
+ExpA           => TrackingDat%ExpA
+ExpB           => TrackingDat%ExpB
 wtang          => TrackingDat%wtang
 wtsurf         => TrackingDat%wtsurf
 mwt            => TrackingDat%mwt
@@ -388,7 +387,7 @@ END IF
 DO j = 1, nCoreRay
   DO l = 1, nTotRaySeg(j)
     DO ipol = 1, nPolarAng
-      ExpAppPolar(ipol, l, j) = expa(ExpAppIdx(l, j), ipol) * optlenlist(l, j) + expb(ExpAppIdx(l, j), ipol)
+      ExpAppPolar(ipol, l, j) = ExpA(ExpAppIdx(l, j), ipol) * optlenlist(l, j) + ExpB(ExpAppIdx(l, j), ipol)
     END DO
   END DO
 END DO
@@ -534,8 +533,8 @@ NULLIFY (xst)
 NULLIFY (jout)
 NULLIFY (PhiAngOutPolar)
 NULLIFY (PhiAngIn)
-NULLIFY (EXPA)
-NULLIFY (EXPB)
+NULLIFY (ExpA)
+NULLIFY (ExpB)
 NULLIFY (wtang)
 NULLIFY (wtsurf)
 NULLIFY (mwt)
@@ -581,7 +580,7 @@ REAL :: tau, phid, wt
 REAL :: locphiout(RayInfo%nPolarAngle)
 
 REAL, POINTER, DIMENSION(:)     :: phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: EXPA, EXPB, wtang, phim, OptLenList, PhiAngOutPolar
+REAL, POINTER, DIMENSION(:,:)   :: ExpA, ExpB, wtang, phim, OptLenList, PhiAngOutPolar
 REAL, POINTER, DIMENSION(:,:,:) :: jout, mwt, mwt2, SrcAng1, SrcAng2, ExpAppPolar
 
 TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
@@ -605,8 +604,8 @@ phim           => TrackingDat%phim
 src            => TrackingDat%src
 xst            => TrackingDat%xst
 jout           => TrackingDat%jout
-EXPA           => TrackingDat%EXPA
-EXPB           => TrackingDat%EXPB
+ExpA           => TrackingDat%ExpA
+ExpB           => TrackingDat%ExpB
 wtang          => TrackingDat%wtang
 mwt            => TrackingDat%mwt
 mwt2           => TrackingDat%mwt2
@@ -677,8 +676,7 @@ END DO
 DO icRay = 1, nCoreRay
   DO iRaySeg = 1, nTotRaySeg(icRay)
     DO iPol = 1, nPolarAng
-      ExpAppPolar(iPol, iRaySeg, icRay) = expa(ExpAppIdx(iRaySeg, icRay), iPol) * optlenlist(iRaySeg, icRay) &
-                                        + expb(ExpAppIdx(iRaySeg, icRay), iPol)
+      ExpAppPolar(iPol, iRaySeg, icRay) = ExpA(ExpAppIdx(iRaySeg, icRay), iPol) * optlenlist(iRaySeg, icRay) + ExpB(ExpAppIdx(iRaySeg, icRay), iPol)
     END DO
   END DO
 END DO
@@ -791,8 +789,8 @@ NULLIFY (wtang)
 NULLIFY (phis)
 NULLIFY (src)
 NULLIFY (xst)
-NULLIFY (EXPA)
-NULLIFY (EXPB)
+NULLIFY (ExpA)
+NULLIFY (ExpB)
 NULLIFY (Pin)
 NULLIFY (FsrIdx)
 NULLIFY (ExpAppIdx)

@@ -5,8 +5,7 @@ USE allocs
 USE PARAM,   ONLY : TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, wthcs, wthsn, &
-                    EXPA_P, EXPB_P, AziMap
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, wthcs, wthsn, AziMap
 USE geom,    ONLY : nbd, ng
 
 IMPLICIT NONE
@@ -89,14 +88,8 @@ DO ithr = 1, nThr
   CALL dmalloc(TrackingDat(ithr)%ExpAppPolar,    nPolarAng,  nMaxRaySeg, nMaxCoreRay)
   CALL dmalloc(TrackingDat(ithr)%PhiAngOutPolar, nPolarAng,  nMaxRaySeg + 2)
   
-  IF (.NOT. ldcmp) THEN
-    TrackingDat(ithr)%Expa => ExpA
-    TrackingDat(ithr)%Expb => ExpB
-  ELSE
-    TrackingDat(ithr)%Expa => ExpA_P
-    TrackingDat(ithr)%Expb => ExpB_P
-  END IF
-  
+  TrackingDat(ithr)%ExpA   => ExpA
+  TrackingDat(ithr)%ExpB   => ExpB
   TrackingDat(ithr)%wtang  => wtang
   TrackingDat(ithr)%wtsurf => wtsurf
   
@@ -198,20 +191,20 @@ END DO
 ! ----------------------------------------------------
 ! P1 : GM vs. NM
 IF (.NOT. nTracerCntl%lNodeMajor) THEN
-  DO ithr = 1, nThr
-    CALL dmalloc(SrcAng1, nPolarAng, nFsr, nAziAng)
-    CALL dmalloc(SrcAng2, nPolarAng, nFsr, nAziAng)
+  CALL dmalloc(SrcAng1, nPolarAng, nFsr, nAziAng)
+  CALL dmalloc(SrcAng2, nPolarAng, nFsr, nAziAng)
     
+  DO ithr = 1, nThr
     TrackingDat(ithr)%SrcAng1 => SrcAng1
     TrackingDat(ithr)%SrcAng2 => SrcAng2
     
     CALL dmalloc(TrackingDat(ithr)%phim, nod, nFsr)
   END DO
 ELSE
+  CALL dmalloc(SrcAngnm1, ng, nPolarAng, nFsr, nAziAng)
+  CALL dmalloc(SrcAngnm2, ng, nPolarAng, nFsr, nAziAng)
+  
   DO ithr = 1, nThr
-    CALL dmalloc(SrcAngnm1, ng, nPolarAng, nFsr, nAziAng)
-    CALL dmalloc(SrcAngnm2, ng, nPolarAng, nFsr, nAziAng)
-        
     TrackingDat(ithr)%SrcAngnm1 => SrcAngnm1
     TrackingDat(ithr)%SrcAngnm2 => SrcAngnm2
     

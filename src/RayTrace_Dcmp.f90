@@ -360,7 +360,7 @@ DO imray = jbeg, jend, jinc
         ExpAppIdx = min(0, ExpAppIdx)
         
         DO ipol = 1, nPolarAng
-          ExpApp = EXPA(ipol, ExpAppIdx) * tau + EXPB(ipol, ExpAppIdx)
+          ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
           
           phid = (PhiAngOut(ipol, ig) - src(ig, ireg)) * ExpApp
           
@@ -568,7 +568,7 @@ DO imray = jbeg, jend, jinc
         ExpAppIdx = min(0, ExpAppIdx)
         
         DO ipol = 1, nPolarAng
-          ExpApp = EXPA(ipol, ExpAppIdx) * tau + EXPB(ipol, ExpAppIdx)
+          ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
           
           phid = (PhiAngOut(ipol, ig) - src(ig, ireg)) * ExpApp
           
@@ -1551,7 +1551,7 @@ DO irot = 1, 2
             ExpAppIdx = min(0, ExpAppIdx)
             
             DO ipol = 1, nPolarAng
-              ExpApp = EXPA(ipol, ExpAppIdx) * tau + EXPB(ipol, ExpAppIdx)
+              ExpApp = ExpA(ExpAppIdx, ipol) * tau + EXPB(ExpAppIdx, ipol)
               
               phid = (PhiAngOut(ipol, ig) - SrcAng(ipol, ig, ireg, AziSvIdx(idir))) * ExpApp
               
@@ -1611,7 +1611,7 @@ DO irot = 1, 2
             ExpAppIdx = min(0, ExpAppIdx)
             
             DO ipol = 1, nPolarAng
-              ExpApp = EXPA(ipol, ExpAppIdx) * tau + EXPB(ipol, ExpAppIdx)
+              ExpApp = EXPA(ExpAppIdx, ipol) * tau + EXPB(ExpAppIdx, ipol)
               
               phid = (PhiAngOut(ipol, ig) - SrcAng(ipol, ig, ireg, AziSvIdx(idir))) * ExpApp
               

@@ -1,56 +1,55 @@
-SUBROUTINE ApproxExp(PolarAng, npr)
+SUBROUTINE ApproxExp(PolarAng, npol)
   
-USE PARAM
-USE ALLOCS
+USE PARAM,   ONLY : ONE, EPSM3
 USE TYPEDEF, ONLY : PolarAngle_Type
-USE MOC_MOD, ONLY : expa, expb, expa_p, expb_p
+USE MOC_MOD, ONLY : ExpA, ExpB
 
 IMPLICIT NONE
 
-TYPE(PolarAngle_Type) :: PolarAng(npr)
+TYPE(PolarAngle_Type) :: PolarAng(npol)
 
-INTEGER :: npr, ipr, i
+INTEGER :: npol, ipol, idx
 
 REAL :: ttt, xval1, xval2, dx
 REAL :: yval1(100), yval2(100), rsinvpol(100)
 ! ----------------------------------------------------
 
-DO ipr = 1, npr
-  rsinvpol(ipr) = one/PolarAng(ipr)%sinv
+DO ipol = 1, npol
+  rsinvpol(ipol) = ONE / PolarAng(ipol)%sinv
 END DO
 
-dx    = epsm3
+dx    = EPSM3
 xval1 = -40.0_8
 
-DO ipr = 1, npr
-  expa(-40000, ipr) = 0; expa_p(ipr, -40000) = 0
-  expb(-40000, ipr) = 1; expb_p(ipr, -40000) = 1
+DO ipol = 1, npol
+  ExpA(-40000, ipol) = 0
+  ExpB(-40000, ipol) = 1
   
-  ttt = rsinvpol(ipr) * xval1
+  ttt = rsinvpol(ipol) * xval1
   
   IF (ttt .LT. -200.0_8) THEN
-    yval1(ipr) = 1
+    yval1(ipol) = 1
   ELSE
-    yval1(ipr) = 1 - exp(ttt)
+    yval1(ipol) = 1 - exp(ttt)
   END IF
 END DO
 
-DO i = -39999, 0
+DO idx = -39999, 0
   xval2 = xval1 + dx
   
-  DO ipr = 1, npr
-    ttt = rsinvpol(ipr) * xval2
+  DO ipol = 1, npol
+    ttt = rsinvpol(ipol) * xval2
     
     IF (ttt .LT. -100) THEN
-      yval2(ipr) = 1
+      yval2(ipol) = 1
     ELSE
-      yval2(ipr) = 1 - exp(ttt)
+      yval2(ipol) = 1 - exp(ttt)
     END IF
     
-    expa(i, ipr) = 1000._8 * (yval2(ipr) - yval1(ipr)); expa_p(ipr, i) = 1000._8 * (yval2(ipr) - yval1(ipr))
-    expb(i, ipr) = yval1(ipr) - expa(i, ipr) * xval1;   expb_p(ipr, i) = yval1(ipr) - expa_p(ipr, i) * xval1
+    ExpA(idx, ipol) = 1000._8 * (yval2(ipol) - yval1(ipol))
+    ExpB(idx, ipol) = yval1(ipol) - ExpA(idx, ipol) * xval1
     
-    yval1(ipr) = yval2(ipr)
+    yval1(ipol) = yval2(ipol)
   END DO
   
   xval1 = xval2
@@ -58,9 +57,9 @@ END DO
 
 CONTINUE
 
-DO ipr = 1, npr
-  DO i = -39999,0
-    expa(i, ipr) = dx * expa(i, ipr); expa_p(ipr, i) = dx * expa_p(ipr, i)
+DO ipol = 1, npol
+  DO idx = -39999,0
+    ExpA(idx, ipol) = dx * ExpA(idx, ipol)
   END DO
 END DO 
 ! ----------------------------------------------------
