@@ -550,7 +550,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
   ENDDO
 ENDIF
 
-RayInfo%RayInfo4Cmfd => RayInfo4CMfd
+!RayInfo%RayInfo4Cmfd => RayInfo4CMfd
 RayInfo4CMFD%PhiAngInSvIdx => RayInfo%PhiAngInSvIdx
 RayInfo4CMFD%PolarAngle => RayInfo%PolarAngle
 

@@ -715,7 +715,7 @@ SUBROUTINE ConvertRay()
 USE allocs
 USE PARAM,    ONLY : PI, VoidCell
 USE Geom,     ONLY : Core, Albedo
-USE Rays,     ONLY : RayInfo, PolarAngle, AziAngle, RotRay, CoreRay, AsyRay
+USE Rays,     ONLY : RayInfo, PolarAngle, AziAngle, RotRay, CoreRay, AsyRay, RayInfo4CMFD
 USE Moc_Mod,  ONLY : nMaxCoreRay, nMaxCellRay, nMaxRaySeg
 USE SetRay,   ONLY : SetPolarRayAngle
 USE HexData,  only : ncRay, nRotRay, hcRay, hRotRay, NumMray, nAzmAng, AzmAng, AzmDel, AzmSin, AzmCos, AzmTan, AzmWgt, nPolAng, nRotRay
@@ -787,10 +787,14 @@ CALL SetPolarRayAngle(PolarAngle, RayInfo)
 ! ----------------------------------------------------
 !                4. Ray Info % RayInfo 4 CMFD - Rough
 ! ----------------------------------------------------
-ALLOCATE (RayInfo%RayInfo4CMFD)
+!ALLOCATE (RayInfo%RayInfo4CMFD)
+ALLOCATE (RayInfo4CMFD)
 
-RayInfo%RayInfo4CMFD%nRotRay   = nRotRay
-RayInfo%RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
+!RayInfo%RayInfo4CMFD%nRotRay   = nRotRay
+!RayInfo%RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
+
+RayInfo4CMFD%nRotRay   = nRotRay
+RayInfo4CMFD%nPolAngle = RayInfo%nPolarAngle
 ! ----------------------------------------------------
 !                5. Move to Ray Info
 ! ----------------------------------------------------

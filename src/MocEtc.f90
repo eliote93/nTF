@@ -931,7 +931,7 @@ nDat = nPolarAngle * ng * nPhiAngSv
 
 CALL MPI_BCAST(PhiAngIn, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
-CALL dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy)
+CALL dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy) ! Can be Huge Time-consuming
 
 sendcounts = nPolarAngle * ng * 2 * nModRay * PE%nAsy
 displs     = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs
@@ -1009,7 +1009,7 @@ nModRay     = RayInfo%nModRay
 
 nAsy = PE%nAsy(PE%myRTRank)
 
-CALL Dmalloc(buf_DcmpPhiAngOut, nPolarAngle, ng, 2, nModRay, nAsy)
+CALL dmalloc(buf_DcmpPhiAngOut, nPolarAngle, ng, 2, nModRay, nAsy)
 
 recvcounts = nPolarAngle * ng * 2 * nModRay * PE%nAsy
 displs     = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs

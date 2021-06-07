@@ -879,8 +879,8 @@ ALLOCATE (superJout(3, ncbd, nxy, myzb : myze, ng)) ! # of Ngh is fixed as 15, a
 
 CALL HexsuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 
-!$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+!!$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
+!!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
 DO ig = 1, ng
   DO iz = myzb, myze
     DO ipin = 1, nxy
@@ -922,14 +922,14 @@ DO ig = 1, ng
         surfphifdm = atil * myphi + (smy - atil) * neighphi
         ahat       = (superJout(3, iNgh, ipin, iz, ig) - surfphifdm) / (myphi + neighphi)
         
-        PinXS(ipin, iz)%atil(ingh, ig) = atil
-        PinXS(ipin, iz)%ahat(ingh, ig) = ahat
+        PinXS(ipin, iz)%atil(ingh, ig) = atil ! Multiplied with Surf. Lgh.
+        PinXS(ipin, iz)%ahat(ingh, ig) = ahat ! Multiplied with Surf. Lgh.
       END DO
     END DO
   END DO
 END DO
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
 DEALLOCATE(superJout)
 ! ----------------------------------------------------

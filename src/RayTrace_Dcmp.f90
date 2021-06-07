@@ -160,16 +160,13 @@ FsrIdxEnd = Pin(PinIdxEnd)%FsrIdxSt + Cell(Pin(PinIdxEnd)%Cell(iz))%nFsr - 1
 
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-
+! ----------------------------------------------------
 ithr = omp_get_thread_num() + 1
-
-xstnm => TrackingDat(ithr)%xstnm
-srcnm => TrackingDat(ithr)%srcnm
 
 phisnm(gb:ge, FsrIdxSt:FsrIdxEnd) = ZERO
 
 IF (ljout) joutnm(:, gb:ge, :, PinIdxSt:PinIdxEnd) = ZERO
-! ----------------------------------------------------
+
 IF (nTracerCntl%lHex) THEN
   DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
     DO krot = 1, 2
@@ -183,6 +180,9 @@ ELSE
     END DO
   END DO
 END IF
+! ----------------------------------------------------
+xstnm => TrackingDat(ithr)%xstnm
+srcnm => TrackingDat(ithr)%srcnm
 
 DO ipin = PinIdxSt, PinIdxEnd
   FsrIdxSt = Pin(ipin)%FsrIdxSt
@@ -467,7 +467,7 @@ nAziAng   = RayInfo%nAziAngle
 ! Geo.
 Pin => CoreInfo%Pin
 
-! Tracking Dat Pointing
+! Tracking Dat
 src           => TrackingDat%srcnm
 xst           => TrackingDat%xstnm
 PhiAngIn      => TrackingDat%phiAngInnm
@@ -479,7 +479,7 @@ wtang         => TrackingDat%wtang
 wthcs         => TrackingDat%wthcs
 wthsn         => TrackingDat%wthsn
 
-! Dcmp. Ray
+! Dcmp.
 iRotRay     = DcmpAsyRay%iRotRay
 iAsy        = DcmpAsyRay%iAsy
 iRay        = DcmpAsyRay%iRay
@@ -507,7 +507,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList(imray)
   idir    = DirList(imray)
   IF (krot .EQ. 2) idir = mp(idir)
-    
+  
   DO ipol = 1, nPolarAng
     wtazi(ipol) = wtang(ipol, iazi)
     wt2cs(ipol) = wthcs(ipol, iazi)
@@ -595,7 +595,7 @@ DO imray = jbeg, jend, jinc
   END DO
 END DO
 
-DcmpPhiAngOut(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut
+DcmpPhiAngOut(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut(1:nPolarAng, gb:ge)
 ! ----------------------------------------------------
 ! Geo.
 NULLIFY (Pin)

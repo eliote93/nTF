@@ -428,7 +428,7 @@ TYPE RayInfo_Type
   TYPE(AsyRayInfo_type), POINTER :: AsyRay(:)
   TYPE(CoreRayInfo_Type), POINTER :: CoreRay(:)
   TYPE(RotRayInfo_Type), POINTER :: RotRay(:)
-  TYPE(RayInfo4CMFD_TYPE), POINTER :: RayInfo4CMFD
+  !TYPE(RayInfo4CMFD_TYPE), POINTER :: RayInfo4CMFD
   TYPE(DcmpAsyRayInfo_Type), POINTER :: DcmpAsyRay(:, :)   !--- CNJ Edit : Domain Decomposition
   TYPE(CellRayInfo_type), POINTER :: CellRay1D
   TYPE(FastCoreRayDat_Type), POINTER :: FastCoreRayDat(:, :)

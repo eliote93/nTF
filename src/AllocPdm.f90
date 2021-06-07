@@ -63,7 +63,7 @@ USE Core_mod,     ONLY : Phis,        psi,         psid,     &
                          !--- CNJ Edit : Domain Decomposition
                          AsyPhiAngIn
 USE PE_MOD,       ONLY : PE
-USE RAYS,         ONLY : RayInfo
+USE RAYS,         ONLY : RayInfo, RayInfo4CMfd
 USE ALLOCS
 USE CNTL,         ONLY : nTracerCntl
 USE SPH_mod,      ONLY : ssphf, ssphfnm
@@ -156,11 +156,13 @@ FMInfo%PsiC => PsiC;   FmInfo%PsiCD => PsiCD
 FMInfo%Power => Power
 FMInfo%RadJout => RadJout !ninout/ 1:in 2:out 3:surfphi ! BYS edit 16//02/11
 FmInfo%w => wmoc
-RayInfo%RayInfo4Cmfd%PhiAngIn => PhiAngIn
+!RayInfo%RayInfo4Cmfd%PhiAngIn => PhiAngIn
+RayInfo4CMfd%PhiAngIn => PhiAngIn
 
 !--- CNJ Edit : Domain Decomposition
 FMInfo%AsyPhiAngIn => AsyPhiAngIn
-RayInfo%RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
+!RayInfo%RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
+RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
 
 IF(nTracerCntl%lLinSrc) FmInfo%LinSrcSlope => LinSrcSlope
 
