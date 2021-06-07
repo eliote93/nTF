@@ -33,13 +33,13 @@ DO iPin = 1, aInf_Loc%nTotPin(1)
   rPin_Loc%Cnt(1:2) = aInf_Loc%PinCnt(1:2, iPin)
   rPin_Loc%Vtx(1:2, 1:7, 1:nGeoTyp) = aInf_Loc%mpVtx(1:2, 1:7, 1:nGeoTyp, iPin)
   
-  IF (iPin > aInf_Loc%nRodPin(1)) rPin_Loc%iCel = 2
+  IF (iPin .GT. aInf_Loc%nRodPin(1)) rPin_Loc%iCel = 2
   
   DO iGeo = 1, nGeoTyp
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, iPin)
     Ang   = aInf_Loc%PinVtxAng(iGeo, iPin)
     
-    IF (ivTyp < 1) CYCLE
+    IF (ivTyp .LT. 1) CYCLE
     
     nBndy = mpTypNumNgh(ivTyp)
     

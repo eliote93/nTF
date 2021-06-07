@@ -54,7 +54,8 @@ DO iaTyp = 1, nAsyType0
   pF2F  = aInf_Loc%pF2F
   aiF2F = aInf_Loc%aiF2F
   
-  IF (aInf_Loc%nPin .LT. 2) CALL terminate("# of Pin")
+  IF (nPin .LT. 2) CALL terminate("# of Pin")
+  IF (abs(aiF2F - aoF2F) .LT. hEps) CALL terminate("UNDERC-ONSTRUCTION - NO GAP")
   
   CALL HexChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN 1")
   

@@ -203,7 +203,7 @@ INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount, pinMap
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx, fmRange
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAsyRayInSurf, DcmpAsyRayInCell
 
-INTEGER :: iz, izf, ig, ipol, ixy, isv, ipin, ingh, nRotRay, nCoreRay, nPolar, nAsy, icnt, idir, iRotRay, isxy, jsxy, iAsy
+INTEGER :: iz, izf, ig, ipol, ixy, isv, ipin, ingh, nRotRay, nCoreRay, nPolar, nAsy, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
 
 REAL, POINTER, DIMENSION(:)           :: hz, hzfm
 REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn
@@ -267,9 +267,10 @@ IF (nTracerCntl%lDomainDcmp) THEN
       DO icnt = 1, DcmpAsyRayCount(iAsy)
         DO idir = 1, 2
           ixy   = DcmpAsyRayInCell(idir, icnt, iAsy)
+          isurf = DcmpAsyRayInSurf(idir, icnt, iAsy)
           isxy  = hPinInfo(ixy)%ihcPin
-          ingh  = hPinInfo(ixy)%DcmpMP2SPngh
-          jsxy  = hPinInfo(ixy)%DcmpMP2SPidx
+          ingh  = hPinInfo(ixy)%DcmpMP2slfSPngh(isurf)
+          jsxy  = hPinInfo(ixy)%DcmpMP2nghSPidx(isurf)
           smy   = superPin(isxy)%BdLength(ingh)
           
           DO ig = 1, ng
@@ -294,7 +295,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
               AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / smy
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
-              fmult   = surfphi / RadJout(3, 4, ixy, iz, ig) ! NOTICE : 4th Surf. of Gap Pin is Always Asy. Bndy.
+              fmult   = surfphi / RadJout(3, isurf, ixy, iz, ig)
               
               DO ipol = 1, nPolar
                 AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) * fmult

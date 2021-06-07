@@ -1,7 +1,6 @@
 #include <defines.h>
 SUBROUTINE HexInit
 
-USE ALLOCS
 USE PARAM,         ONLY : mesg, TRUE
 USE Geom,          ONLY : Core
 USE RAYS,          ONLY : RayInfo, RayInfo4Cmfd, DcmpAsyRay

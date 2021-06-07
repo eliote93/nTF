@@ -342,7 +342,7 @@ INTEGER :: imat(100), idiv(100)
 REAL :: vol, vol_
 REAL :: rr(300), irad(0:100)
 
-TYPE(cell_type),         POINTER :: Cel_Loc, Cel_CP
+TYPE(cell_type),         POINTER :: Cel_Loc, Cel_CnP
 TYPE(Type_HexRodCel),    POINTER :: hCl_Loc
 TYPE(Type_HexRodCelBss), POINTER :: cBs_Loc
 ! ----------------------------------------------------
@@ -535,34 +535,34 @@ ist = pnRod * (icTyp - 1)
 
 IF (.NOT. hLgc%lSngCel) THEN
   DO iDir = 2, pnRod
-    Cel_CP => CellInfo(ist + iDir)
+    Cel_CnP => CellInfo(ist + iDir)
     
-    IF (.NOT. CeL_CP%luse) CYCLE
+    IF (.NOT. CeL_CnP%luse) CYCLE
     
-    CALL dmalloc(Cel_CP%matidx, nmat)
-    CALL dmalloc(Cel_CP%matrad, nmat)
-    CALL dmalloc(Cel_CP%matvol, nmat)
-    CALL dmalloc(Cel_CP%rad_cp, nreg)
-    CALL dmalloc(Cel_CP%fxrvol, nreg)
+    CALL dmalloc(Cel_CnP%matidx, nmat)
+    CALL dmalloc(Cel_CnP%matrad, nmat)
+    CALL dmalloc(Cel_CnP%matvol, nmat)
+    CALL dmalloc(Cel_CnP%rad_cp, nreg)
+    CALL dmalloc(Cel_CnP%fxrvol, nreg)
     
-    Cel_CP%nmat     = Cel_Loc%nmat
-    Cel_CP%matidx   = Cel_Loc%matidx
-    Cel_CP%matrad   = Cel_Loc%matrad
-    Cel_CP%matvol   = Cel_Loc%matvol
-    Cel_CP%nreg_cp  = Cel_Loc%nreg_cp
-    Cel_CP%rad_cp   = Cel_Loc%rad_cp
-    Cel_CP%fxrvol   = Cel_Loc%fxrvol
+    Cel_CnP%nmat     = Cel_Loc%nmat
+    Cel_CnP%matidx   = Cel_Loc%matidx
+    Cel_CnP%matrad   = Cel_Loc%matrad
+    Cel_CnP%matvol   = Cel_Loc%matvol
+    Cel_CnP%nreg_cp  = Cel_Loc%nreg_cp
+    Cel_CnP%rad_cp   = Cel_Loc%rad_cp
+    Cel_CnP%fxrvol   = Cel_Loc%fxrvol
     
-    Cel_CP%fuelgapcldvol = Cel_Loc%fuelgapcldvol
-    Cel_CP%cldfxridx     = Cel_Loc%cldfxridx
-    Cel_CP%nmodfxr       = Cel_Loc%nmodfxr
-    Cel_CP%invnmodfxr    = Cel_Loc%invnmodfxr
+    Cel_CnP%fuelgapcldvol = Cel_Loc%fuelgapcldvol
+    Cel_CnP%cldfxridx     = Cel_Loc%cldfxridx
+    Cel_CnP%nmodfxr       = Cel_Loc%nmodfxr
+    Cel_CnP%invnmodfxr    = Cel_Loc%invnmodfxr
     
-    Cel_CP%FuelRad0 = Cel_Loc%FuelRad0
+    Cel_CnP%FuelRad0 = Cel_Loc%FuelRad0
     
-    Cel_CP%lHole  = Cel_Loc%lHole
-    Cel_CP%ibFuel = Cel_Loc%ibFuel
-    Cel_CP%ieFuel = Cel_Loc%ieFuel
+    Cel_CnP%lHole  = Cel_Loc%lHole
+    Cel_CnP%ibFuel = Cel_Loc%ibFuel
+    Cel_CnP%ieFuel = Cel_Loc%ieFuel
   END DO
   
   ! Mat Vol
@@ -718,13 +718,11 @@ USE Geom,     ONLY : Core, Albedo
 USE Rays,     ONLY : RayInfo, PolarAngle, AziAngle, RotRay, CoreRay, AsyRay
 USE Moc_Mod,  ONLY : nMaxCoreRay, nMaxCellRay, nMaxRaySeg
 USE SetRay,   ONLY : SetPolarRayAngle
-USE HexData,  only : ncRay, nRotRay, hcRay, hRotRay, NumMray, nAzmAng, AzmAng, AzmDel, AzmSin, AzmCos, AzmTan, AzmWgt, &
-                     nPolAng, nRotRay
+USE HexData,  only : ncRay, nRotRay, hcRay, hRotRay, NumMray, nAzmAng, AzmAng, AzmDel, AzmSin, AzmCos, AzmTan, AzmWgt, nPolAng, nRotRay
 
 IMPLICIT NONE
 
 INTEGER :: iAzm, jAzm, iRotRay, iCoreRay, imRay, iPin
-INTEGER :: iAssy, iAssyType, iAssyDatID
 INTEGER :: nCoreRay, nMRay, nSeg, iSegSt, nPin, nhcPin, nhcSeg, nBndy, nRay
 ! ----------------------------------------------------
 !                1. Ray Info

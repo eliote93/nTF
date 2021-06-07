@@ -38,10 +38,10 @@ TYPE(PowerDist_Type)   :: PowerDist
 TYPE(PowerDist_Type)   :: PhotonPower, NeutronPower, TotalExpPower
 TYPE(DancoffDist_Type) :: DancoffDist
 
-TYPE(Fxrinfo_type), POINTER :: Fxr(:,:)
-TYPE(PinXS_Type),   POINTER :: PinXS(:, :)
+TYPE(Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
+TYPE(PinXS_Type),   POINTER, DIMENSION(:,:) :: PinXS
 
-REAL, POINTER :: PhiS(:,:,:), PhiC(:,:,:) 
+REAL, POINTER, DIMENSION(:,:,:) :: PhiS, PhiC
 
 INTEGER :: io
 LOGICAL :: Master
@@ -195,19 +195,17 @@ USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, Pin_Type
 USE CNTL,    ONLY : nTracerCntl
 USE geom,    ONLY : nAsyType0
 
-use HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nHexPin
+USE HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nHexPin
 
 IMPLICIT NONE
 
 INTEGER :: io
 TYPE(CoreInfo_Type) :: Core
 TYPE(PowerDist_Type) :: PowerDist
-TYPE(Pin_Type), POINTER :: Pin(:)
-
-INTEGER :: nxya, nz
-INTEGER :: nCx, iAsyTyp, iGeoTyp
-INTEGER :: iasy
-INTEGER :: ixy, ix, iy, iPin, jPin, ivTyp
+TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
+! ----------------------------------------------------
+INTEGER :: nxya, nz, nCx, iAsyTyp, iGeoTyp
+INTEGER :: iasy, ixy, ix, iy, iPin, jPin, ivTyp
 
 REAL :: EffPinNum
 REAL :: VtxTypVolInv(7) = [6., 2., 1., 1., 1., 2., 2.]
@@ -299,19 +297,17 @@ USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, Pin_Type
 USE CNTL,    ONLY : nTracerCntl
 USE geom,    ONLY : nAsyType0
 
-use HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nHexPin
+USE HexData, ONLY : hAsy, hAsyTypInfo, hPinInfo, Asy1Dto2Dmap, nHexPin
 
 IMPLICIT NONE
 
 INTEGER :: io
 TYPE(CoreInfo_Type) :: Core
 TYPE(PowerDist_Type) :: PowerDist
-TYPE(Pin_Type), POINTER :: Pin(:)
-
-INTEGER :: nxya, nz
-INTEGER :: nCx, iAsyTyp, iGeoTyp
-INTEGER :: iasy, iz
-INTEGER :: ixy, ix, iy, iPin, jPin, ivTyp
+TYPE(Pin_Type), POINTER, DIMENSION(:) :: Pin
+! ----------------------------------------------------
+INTEGER :: nxya, nz, nCx, iAsyTyp, iGeoTyp
+INTEGER :: iasy, iz, ixy, ix, iy, iPin, jPin, ivTyp
 
 REAL :: EffPinNum
 REAL :: VtxTypVolInv(7) = [6., 2., 1., 1., 1., 2., 2.]
@@ -403,24 +399,22 @@ END SUBROUTINE HexPrintLocalPinPower
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexAxialAvgAsy2DPower(io, Core, PowerDist)
 
+USE allocs
 USE PARAM,   ONLY : ZERO, BLANK
 USE TYPEDEF, ONLY : CoreInfo_Type, PowerDist_Type, Asy_Type
 USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hLgc, nAsyCore, Asy2Dto1Dmap
-USE ALLOCS
 
 IMPLICIT NONE
 
 INTEGER :: io
 TYPE(CoreInfo_Type) :: Core
 TYPE(PowerDist_Type) :: PowerDist
-TYPE(Asy_Type), POINTER :: Asy(:)
-
+TYPE(Asy_Type), POINTER, DIMENSION(:) :: Asy
+! ----------------------------------------------------
 REAL :: maxv
 
-INTEGER :: nxy, nLgh
-INTEGER :: i, j, ix, iy
-INTEGER :: iAsy
+INTEGER :: nxy, nLgh, i, j, ix, iy, iAsy
 
 CHARACTER(12)  :: cTmp
 
@@ -482,31 +476,31 @@ USE HexData, ONLY : hPinInfo
 
 #ifdef MPI_ENV
 USE BasicOperation, ONLY : CP_CA, CP_VA
-USE MpiComm_mod, ONLY : Reduce
+USE MpiComm_mod,    ONLY : Reduce
 #endif
 
 IMPLICIT NONE
 
 INTEGER :: io, ng
-TYPE(CoreInfo_Type) :: Core
-TYPE(CMInfo_Type) :: CMInfo
+TYPE(CoreInfo_Type)  :: Core
+TYPE(CMInfo_Type)    :: CMInfo
 TYPE(PowerDist_Type) :: PowerDist
-TYPE(PE_TYPE) :: PE
+TYPE(PE_TYPE)        :: PE
+! ----------------------------------------------------
+TYPE(AsyInfo_Type), POINTER, DIMENSION(:)   :: AsyInfo
+TYPE(Asy_Type),     POINTER, DIMENSION(:)   :: Asy
+TYPE(PinXS_Type),   POINTER, DIMENSION(:,:) :: PinXs
 
-TYPE(AsyInfo_Type), POINTER :: AsyInfo(:)
-TYPE(Asy_Type), POINTER :: Asy(:)
-TYPE(PinXS_Type), POINTER :: PinXs(:, :)
-REAL, POINTER :: PhiC(:, :, :)
-REAL, POINTER :: PinVol(:, :), AsyVol(:, :)
-REAL, POINTER :: hz(:)
-INTEGER :: nz, nxy, nxya, myzb, myze
-INTEGER :: nAsyType, AsyType
+REAL, POINTER, DIMENSION(:)     :: hz, row
+REAL, POINTER, DIMENSION(:,:)   :: PinVol, AsyVol, Avg2DFlx
+REAL, POINTER, DIMENSION(:,:,:) :: PhiC
+
+INTEGER :: nz, nxy, nxya, myzb, myze, nAsyType, AsyType
 INTEGER :: iz, ig, iasy, ixy, i, j, k
 LOGICAL :: master
-REAL,POINTER :: Avg2DFlx(:,  :), row(:)
 
 #ifdef MPI_ENV
-REAL, POINTER :: Buf(:)
+REAL, POINTER, DIMENSION(:) :: Buf
 #endif
 ! ----------------------------------------------------
 
@@ -605,26 +599,25 @@ USE MpiComm_mod, ONLY : SENDRECV
 IMPLICIT NONE
 
 INTEGER :: io, ng
-TYPE(CoreInfo_Type) :: Core
-TYPE(CMInfo_Type) :: CMInfo
+TYPE(CoreInfo_Type)  :: Core
+TYPE(CMInfo_Type)    :: CMInfo
 TYPE(PowerDist_Type) :: PowerDist
-TYPE(PE_TYPE) :: PE
+TYPE(PE_TYPE)        :: PE
+! ----------------------------------------------------
+TYPE(AsyInfo_Type), POINTER, DIMENSION(:)   :: AsyInfo
+TYPE(Asy_Type),     POINTER, DIMENSION(:)   :: Asy
+TYPE(PinXS_Type),   POINTER, DIMENSION(:,:) :: PinXs
 
-TYPE(AsyInfo_Type), POINTER :: AsyInfo(:)
-TYPE(Asy_Type), POINTER :: Asy(:)
-TYPE(PinXS_Type), POINTER :: PinXs(:, :)
-REAL, POINTER :: PhiC(:, :, :)
-REAL, POINTER :: PinVol(:, :), AsyVol(:, :)
-REAL, POINTER :: hz(:)
-INTEGER :: nz, nxy, nxya, myzb, myze
-INTEGER :: nAsyType, AsyType
+REAL, POINTER, DIMENSION(:)     :: hz
+REAL, POINTER, DIMENSION(:,:)   :: PinVol, AsyVol, Avg1DFlx
+REAL, POINTER, DIMENSION(:,:,:) :: PhiC
+
+INTEGER :: nz, nxy, nxya, myzb, myze, nAsyType, AsyType
 INTEGER :: iz, ig, iasy, ixy, i, j, k
 LOGICAL :: master
-REAL,POINTER :: Avg1DFlx(:, :)
 
 #ifdef MPI_ENV
-INTEGER :: nproc, comm
-INTEGER :: iz1, iz2
+INTEGER :: nproc, comm, iz1, iz2
 #endif
 ! ----------------------------------------------------
 
@@ -881,20 +874,22 @@ END SUBROUTINE HexPin3DFlux
 SUBROUTINE HexFreePowerDist(PowerDist, PE)
 
 USE PARAM
-USE TypeDef,     ONLY : PowerDist_Type,      PE_TYPE
+USE TypeDef, ONLY : PowerDist_Type, PE_TYPE
+
 IMPLICIT NONE
+
 TYPE(PowerDist_Type) :: PowerDist
-TYPE(PE_TYPE) :: PE
+TYPE(PE_TYPE)        :: PE
 ! ----------------------------------------------------
 
-DEALLOCATE(PowerDist%PinPower3D)
+DEALLOCATE (PowerDist%PinPower3D)
 
-IF(PE%CMFDmaster) THEN
+IF (PE%CMFDmaster) THEN
   DEALLOCATE(PowerDist%PinPower2D)
   DEALLOCATE(PowerDist%AsyPower2D)
   DEALLOCATE(PowerDist%AsyPower3D)
   DEALLOCATE(PowerDist%Axial1DPower)
-ENDIF
+END IF
 ! ----------------------------------------------------
 
 END SUBROUTINE HexFreePowerDist

@@ -58,10 +58,10 @@ TYPE Type_HexRodCelBss
   INTEGER :: xDiv(nMaxFXR)      = 0    ! (iFXR), # of Sub-rings in each FXR
   REAL    :: xVol(0:2, nMaxFXR) = ZERO ! (iBndy, iFXR), FXR Volume
   
-  REAL, POINTER :: sRad(:)       ! (iSub), Sub-ring Outer Radius
-  REAL, POINTER :: sVol(:, :, :) ! (iTyp, iFSR, iSub), FSR Volume
+  REAL, POINTER, DIMENSION(:)     :: sRad ! (iSub), Sub-ring Outer Radius
+  REAL, POINTER, DIMENSION(:,:,:) :: sVol ! (iTyp, iFSR, iSub), FSR Volume
   
-  INTEGER, POINTER :: iCel(:) ! Numeric # of Cels
+  INTEGER, POINTER, DIMENSION(:) :: iCel ! Numeric # of Cels
   
 END TYPE Type_HexRodCelBss
 ! ----------------------------------------------------
@@ -109,10 +109,11 @@ TYPE Type_HexGapCelBss
   REAL    :: xHgt(nMaxFXR) = ZERO ! (iFXR), FXR Outer Height
   INTEGER :: xDiv(nMaxFXR) = 0    ! (iFXR), # of Sub-rings in each FXR
   
-  REAL, POINTER :: sHgt(:)    ! (iSub), Sub-ring Outer Height
-  REAL, POINTER :: sVol(:, :) ! (iTyp, iFSR), Source Mesh Voluem
+  REAL, POINTER, DIMENSION(:)   :: sHgt ! (iSub), Sub-ring Outer Height
+  REAL, POINTER, DIMENSION(:,:) :: sVol ! (iTyp, iFSR), Source Mesh Voluem
   
-  INTEGER, POINTER :: iCel(:) ! (iz), Numeric # of Cel
+  INTEGER, POINTER, DIMENSION(:) :: iCel ! (iz), Numeric # of Cel
+  
 END TYPE Type_HexGapCelBss
 ! ------------------------------------------------------------------------------------------------------------
 !                                     02. Pin
@@ -129,7 +130,8 @@ TYPE Type_HexPin
   
   INTEGER :: nFsrMax = 0
   
-  INTEGER, POINTER :: iCel(:) ! (iz)
+  INTEGER, POINTER, DIMENSION(:) :: iCel ! (iz)
+  
 END TYPE
 ! ----------------------------------------------------
 !               02. Pin Info
@@ -140,7 +142,7 @@ TYPE Type_HexPinInfo
   INTEGER :: PinTyp = 0 ! Numeric # of "HexPin" or "GapPin"
   INTEGER :: AsyIdx = 0 ! Global Numeric # of "hAsy"
   INTEGER :: AsyTyp = 0 ! Numeric # of "hAsyTypInfo"
-  INTEGER :: VtxTyp = 0 ! 
+  INTEGER :: VtxTyp = 0 ! Geometric Typ (1 ~ 10)
   INTEGER :: ihcPin = 0 ! Global Numeric # of "hcPin"
   
   INTEGER :: OrdInAsy01 = 0 ! Local Numeric # of Pin in "hAsyTypInfo"
@@ -153,14 +155,14 @@ TYPE Type_HexPinInfo
   INTEGER :: FsrIdxSt = 0 ! Global Numeric # of 1st FSR
   INTEGER :: FxrIdxSt = 0 ! Global Numeric # of 1st FXR
   
-  INTEGER :: DcmpMP2SPngh ! Ngh. Idx of CMFD Pin in the Case of Gap Pin
-  INTEGER :: DcmpMP2SPidx ! Global Numeric # of CMFD Pin in the Case of Gap Pin
+  INTEGER :: DcmpMP2slfSPngh(6) = 0 ! Ngh. Idx of Self CMFD Pin which MoC Pin belongs to
+  INTEGER :: DcmpMP2nghSPidx(6) = 0 ! Global Numeric # of Neighboring CMFD Pin with CMFD Pin which MoC Pin belongs to
   
   REAL :: Wt     = 1._8
   REAL :: Cnt(2) = ZERO ! (x/y), Origin = Asy Cnt
   
-  REAL, POINTER :: Vol(:)   ! Volume of Pin in Plane
-  REAL, POINTER :: VolFm(:) ! Volume of Pin in Sub-plane
+  REAL, POINTER, DIMENSION(:) :: Vol   ! Volume of Pin in Plane
+  REAL, POINTER, DIMENSION(:) :: VolFm ! Volume of Pin in Sub-plane
   
   LOGICAL :: lInn  = TRUE
   LOGICAL :: lBndy = FALSE
@@ -248,32 +250,32 @@ TYPE Type_HexAsyTypInfo
   REAL :: spBndyLgh(6,  7) = ZERO ! (iSuf, ivTyp)
   REAL :: spBndyC2B(6,  7) = ZERO ! (iSuf, ivTyp)
   
-  REAL, POINTER :: mpVtx(:, :, :, :) ! (x/y, iBndy, iGeo, iPin)
-  REAL, POINTER :: spVtx(:, :, :, :) ! (x/y, iBndy, iGeo, iPin)
+  REAL, POINTER, DIMENSION(:,:,:,:) :: mpVtx ! (x/y, iBndy, iGeo, iPin)
+  REAL, POINTER, DIMENSION(:,:,:,:) :: spVtx ! (x/y, iBndy, iGeo, iPin)
   
   ! MOC Pin Data
-  INTEGER, POINTER :: PinLocIdx(:, :)    ! (iGeo, iPin), Numeric # in each Geo
-  INTEGER, POINTER :: PinIdx(:, :)       ! (ix,   iy),   Input of Pin
+  INTEGER, POINTER, DIMENSION(:,:) :: PinLocIdx ! (iGeo, iPin), Numeric # in each Geo
+  INTEGER, POINTER, DIMENSION(:,:) :: PinIdx    ! (ix,   iy),   Input of Pin
   
-  REAL, POINTER :: PinCnt(:, :) ! (x/y,  iPin)
+  REAL, POINTER, DIMENSION(:,:) :: PinCnt ! (x/y,  iPin)
   
-  INTEGER, POINTER :: Pin1Dto2Dmap(:, :) ! (ix/iy, iPin), Only for rod pins
-  INTEGER, POINTER :: Pin2Dto1Dmap(:, :) ! (ix, iy),      Only for rod pins
+  INTEGER, POINTER, DIMENSION(:,:) :: Pin1Dto2Dmap ! (ix/iy, iPin), Only for rod pins
+  INTEGER, POINTER, DIMENSION(:,:) :: Pin2Dto1Dmap ! (ix, iy),      Only for rod pins
   
-  LOGICAL, POINTER :: lGeoPin(:, :) ! (iGeo, iPin)
+  LOGICAL, POINTER, DIMENSION(:,:) :: lGeoPin ! (iGeo, iPin)
   
-  REAL,    POINTER :: PinVtxAng(:, :) ! (iGeo, iPin), Rotated by (Ang)
-  INTEGER, POINTER :: PinVtxTyp(:, :) ! (iGeo, iPin)
+  REAL,    POINTER, DIMENSION(:,:) :: PinVtxAng ! (iGeo, iPin), Rotated by (Ang)
+  INTEGER, POINTER, DIMENSION(:,:) :: PinVtxTyp ! (iGeo, iPin)
   
-  INTEGER, POINTER :: CstMap(:) ! (iPin)
+  INTEGER, POINTER, DIMENSION(:) :: CstMap ! (iPin)
   
   ! CMFD
-  INTEGER, POINTER :: cpSlfMPnum(:, :)    !       (iGeo, iPin), MOC Pin
-  INTEGER, POINTER :: cpSlfMPidx(:, :, :) ! (jPin, iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:)   :: cpSlfMPnum !       (iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:,:) :: cpSlfMPidx ! (jPin, iGeo, iPin), MOC Pin
   
-  INTEGER, POINTER :: cpSufMPnum(:, :, :)    !       (iSuf, iGeo, iPin), MOC Pin
-  INTEGER, POINTER :: cpSufMPidx(:, :, :, :) ! (jPin, iSuf, iGeo, iPin), MOC Pin
-  INTEGER, POINTER :: cpSufMPsuf(:, :, :, :) ! (jPin, iSuf, iGeo, iPin), MOC Suf
+  INTEGER, POINTER, DIMENSION(:,:,:)   :: cpSufMPnum !       (iSuf, iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:,:,:) :: cpSufMPidx ! (jPin, iSuf, iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:,:,:) :: cpSufMPsuf ! (jPin, iSuf, iGeo, iPin), MOC Suf
   
 END TYPE Type_HexAsyTypInfo
 ! ----------------------------------------------------
@@ -316,7 +318,7 @@ TYPE Type_HexAsy
   REAL :: Cnt(2) = ZERO ! (x/y)
   REAL :: wt     = 1._8
   
-  INTEGER, POINTER :: cBss(:)
+  INTEGER, POINTER, DIMENSION(:) :: cBss
   
 END TYPE Type_HexAsy
 ! ------------------------------------------------------------------------------------------------------------
@@ -332,15 +334,15 @@ TYPE Type_HexRayCel
   INTEGER :: nMsh = 0
   INTEGER :: nSct = 12
   
-  REAL, POINTER :: Eqn(:, :) ! (1:5, iEqn)
+  REAL, POINTER, DIMENSION(:,:) :: Eqn ! (1:5, iEqn)
   
-  INTEGER, POINTER :: iEqnCor(:) ! (iEqn), Not flat coordinate
-  INTEGER, POINTER :: nMshEqn(:) ! (iMsh), # of Eqn
+  INTEGER, POINTER, DIMENSION(:) :: iEqnCor ! (iEqn), Not flat coordinate
+  INTEGER, POINTER, DIMENSION(:) :: nMshEqn ! (iMsh), # of Eqn
   
-  INTEGER, POINTER :: MshEqnLst(:, :) ! (4, nMsh), Eqn Idx
-  REAL,    POINTER :: MshEqnVal(:, :) ! (4, nMsh), (c- ax - by)
+  INTEGER, POINTER, DIMENSION(:,:) :: MshEqnLst ! (4, nMsh), Eqn Idx
+  REAL,    POINTER, DIMENSION(:,:) :: MshEqnVal ! (4, nMsh), (c- ax - by)
   
-  INTEGER, POINTER :: MshIdx(:, :) ! (10, nMsh), for Vtx Typ
+  INTEGER, POINTER, DIMENSION(:,:) :: MshIdx ! (10, nMsh), for Vtx Typ
   
 END TYPE Type_HexRayCel
 ! ----------------------------------------------------
@@ -357,8 +359,7 @@ TYPE Type_HexRayPinInfo
   REAL    :: VtxAng(7) = ZERO ! (iGeo)
   
   REAL :: Vtx(2, 7, 7) = ZERO ! (x/y, iBndy, iGeo)
-  REAL :: Eqn(3, 6, 7) = ZERO ! (Val, iBndy, iGeo)
-                              ! (c - ax - by) > 0 for Cnt
+  REAL :: Eqn(3, 6, 7) = ZERO ! (Val, iBndy, iGeo), (c - ax - by) > 0 for Cnt
   
 END TYPE Type_HexRayPinInfo
 ! ------------------------------------------------------------------------------------------------------------
@@ -376,6 +377,7 @@ TYPE Type_HexPinRay ! Temporary
   
   REAL :: hsn(2) = ZERO ! sinv
   REAL :: hcs(2) = ZERO ! cosv
+  
 END TYPE Type_HexPinRay
 ! ----------------------------------------------------
 !               02. Cel Ray
@@ -387,13 +389,13 @@ TYPE Type_HexCelRay
   INTEGER :: hSufIdx(2) = 0 ! y¢Ö
   INTEGER :: nSegRay    = 0
   
-  REAL,    POINTER :: SegLgh(:) ! (ihsRay)
-  INTEGER, POINTER :: MshIdx(:) ! (ihsRay)
+  REAL,    POINTER, DIMENSION(:) :: SegLgh ! (ihsRay)
+  INTEGER, POINTER, DIMENSION(:) :: MshIdx ! (ihsRay)
   
   REAL :: hsn(2) = ZERO ! sinv
   REAL :: hcs(2) = ZERO ! cosv
   
-  !REAL, POINTER :: SegPts(:, :) ! (x/y, ihsRay), for DEBUG
+  !REAL, POINTER, DIMENSION(:,:) :: SegPts ! (x/y, ihsRay), for DEBUG
   
 END TYPE Type_HexCelRay
 ! ----------------------------------------------------
@@ -404,7 +406,7 @@ TYPE Type_HexAsyRay
   
   INTEGER :: nhpRay = 0
   
-  TYPE(Type_HexCelRay), POINTER :: CelRay(:) ! (ihpRay)
+  TYPE(Type_HexCelRay), POINTER, DIMENSION(:) :: CelRay ! (ihpRay)
   
 END TYPE Type_HexAsyRay
 ! ------------------------------------------------------------------------------------------------------------
@@ -442,8 +444,8 @@ TYPE Type_HexCoreRay
   INTEGER :: nmRay  = 0
   INTEGER :: AzmIdx = 0
   
-  INTEGER, POINTER :: mRayIdx(:) ! (imRay)
-  INTEGER, POINTER ::  AsyIdx(:) ! (imRay)
+  INTEGER, POINTER, DIMENSION(:) :: mRayIdx ! (imRay)
+  INTEGER, POINTER, DIMENSION(:) ::  AsyIdx ! (imRay)
   
 END TYPE Type_HexCoreRay
 ! ----------------------------------------------------
@@ -454,7 +456,7 @@ TYPE Type_HexRotRay
   
   INTEGER :: ncRay = 0
   
-  INTEGER, POINTER :: cRayIdx(:) ! (icRay)
+  INTEGER, POINTER, DIMENSION(:) :: cRayIdx ! (icRay)
   
 END TYPE Type_HexRotRay
 ! ------------------------------------------------------------------------------------------------------------
@@ -496,8 +498,7 @@ TYPE Type_HexLogical
   LOGICAL :: lSngCel  = FALSE
   LOGICAL :: lspCMFD  = TRUE  ! Super-pin based CMFD
   
-  INTEGER :: iSym = 0 ! 1 = 60 / 2 = 120 / 3 = 360
-                      ! 4 = Sng Asy / 5 = Sng Cel
+  INTEGER :: iSym = 0 ! 1 = 60 / 2 = 120 / 3 = 360 / 4 = Sng Asy / 5 = Sng Cel
   
 END TYPE Type_HexLogical
 ! ------------------------------------------------------------------------------------------------------------

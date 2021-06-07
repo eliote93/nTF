@@ -263,7 +263,7 @@ DO iPin = 1, nRod
     pTyp = 3
     pAng = ZERO
     
-    IF (iBndy > gInf_Loc%nBndy) CYCLE
+    IF (iBndy .GT. gInf_Loc%nBndy) CYCLE
     
     ! 180
     pTyp = 2
@@ -295,7 +295,7 @@ DO iPin = 1, nRod
     aInf_Loc%PinVtxTyp(iGeo, iPin) = 4
     aInf_Loc%PinVtxAng(iGeo, iPin) = Ang - PI_2
     
-    IF (iBndy < 4) CYCLE
+    IF (iBndy .LT. 4) CYCLE
     
     gInf_Loc => hGeoTypInfo(iGeo)
     
@@ -308,14 +308,14 @@ DO iPin = 1, nRod
     pTyp = 5
     pAng = (int(Tmp/PI_3) + HALF * (SetSgn_REAL(Tmp) - 1))* PI_3
     
-    IF (iBndy > gInf_Loc%nBndy) CYCLE
+    IF (iBndy .GT. gInf_Loc%nBndy) CYCLE
     
     ! Bndy 02 - Spt
-    IF (Cnt(1) > ZERO) THEN
+    IF (Cnt(1) .GT. ZERO) THEN
       pTyp = 6
       
-      IF (Cnt(2) > ZERO) pAng =  ZERO
-      IF (Cnt(2) < ZERO) pAng = -TwoPI_3
+      IF (Cnt(2) .GT. ZERO) pAng =  ZERO
+      IF (Cnt(2) .GT. ZERO) pAng = -TwoPI_3
       
       IF (.NOT. ChkSameVal(ZERO, Cnt(2))) CYCLE
       
@@ -324,8 +324,8 @@ DO iPin = 1, nRod
     ELSE
       pTyp = 7
       
-      IF (Cnt(2) > ZERO) pAng = -TwoPI_3
-      IF (Cnt(2) < ZERO) pAng = ZERO
+      IF (Cnt(2) .GT. ZERO) pAng = -TwoPI_3
+      IF (Cnt(2) .LT. ZERO) pAng = ZERO
       
       IF (.NOT. ChkSameVal(ZERO, Cnt(2))) CYCLE
       

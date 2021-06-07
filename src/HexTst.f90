@@ -21,9 +21,11 @@ IMPLICIT NONE
 
 INTEGER :: iPin
 
-INTEGER, POINTER :: tnNgh(:), tnmPin(:), tmpIdx(:, :), tnBdmPin(:, :), tBdMPidx(:, :, :), tBdMPsuf(:, :, :)
-INTEGER, POINTER :: tNghPin(:, :), tNghSuf(:, :)
-REAL,    POINTER :: tNghLgh(:, :)
+INTEGER, POINTER, DIMENSION(:)     :: tnNgh, tnmPin
+INTEGER, POINTER, DIMENSION(:,:)   :: tmpIdx, tnBdmPin, tNghPin, tNghSuf
+INTEGER, POINTER, DIMENSION(:,:,:) :: tBdMPidx, tBdMPsuf
+
+REAL, POINTER, DIMENSION(:,:) :: tNghLgh
 ! ----------------------------------------------------
 
 ALLOCATE (tnNgh          (nhcPin));    tnNgh = -1
@@ -65,7 +67,7 @@ IMPLICIT NONE
 
 INTEGER :: icBss, imRay, iGeo, ihpRay
 
-INTEGER, POINTER :: nSeg(:)
+INTEGER, POINTER, DIMENSION(:) :: nSeg
 ! ----------------------------------------------------
 
 ALLOCATE (nSeg (ncBss)); nSeg = 0
@@ -202,10 +204,12 @@ USE HexData, ONLY : nHexPin, hPinInfo
 
 IMPLICIT NONE
 
-INTEGER, POINTER :: tPinTyp(:), tAsyIdx(:), tAsyTyp(:), tOrdInAsy01(:), tix(:), tiy(:), tVtxTyp(:)
-INTEGER, POINTER :: tnSct(:), tFsrIdxSt(:), tFxrIdxSt(:)
-REAL, POINTER :: tWt(:), tCnt(:,:), tVol(:), tVolFm(:)
-LOGICAL, POINTER :: tlInn(:), tlBndy(:), tlRod(:), tlGap(:)
+INTEGER, POINTER, DIMENSION(:) :: tPinTyp, tAsyIdx, tAsyTyp, tOrdInAsy01, tix, tiy, tVtxTyp, tnSct, tFsrIdxSt, tFxrIdxSt
+
+REAL, POINTER, DIMENSION(:)   :: tWt, tVol, tVolFm
+REAL, POINTER, DIMENSION(:,:) :: tCnt
+
+LOGICAL, POINTER, DIMENSION(:) :: tlInn, tlBndy, tlRod, tlGap
 
 INTEGER :: iPin
 ! ----------------------------------------------------
@@ -250,8 +254,8 @@ DO iPin = 1, nHexPin
   tlGap       (iPin) = hPinInfo(iPin)%lGap
 END DO
 
-NULLIFY(tPinTyp, tAsyIdx, tAsyTyp, tOrdInAsy01, tix, tiy, tVtxTyp, tnSct, tFsrIdxSt, tFxrIdxSt)
-NULLIFY(tWt, tCnt, tVol, tVolFm, tlInn, tlBndy, tlRod, tlGap)
+NULLIFY (tPinTyp, tAsyIdx, tAsyTyp, tOrdInAsy01, tix, tiy, tVtxTyp, tnSct, tFsrIdxSt, tFxrIdxSt)
+NULLIFY (tWt, tCnt, tVol, tVolFm, tlInn, tlBndy, tlRod, tlGap)
 
 CALL terminate("END OF TEST = HPIN INFO")
 ! ----------------------------------------------------
@@ -268,17 +272,14 @@ IMPLICIT NONE
 
 INTEGER :: imRay
 
-INTEGER, POINTER :: tAzmIdx(:)
+INTEGER, POINTER, DIMENSION(:) :: tAzmIdx
 
-REAL, POINTER :: tEq(:, :)
-REAL, POINTER :: tPt(:, :, :)
+REAL, POINTER, DIMENSION(:,:)   :: tEq
+REAL, POINTER, DIMENSION(:,:,:) :: tPt
 
-INTEGER, POINTER :: tNxtAsy_Mov(:, :, :)
-INTEGER, POINTER :: tNxtmRay_Mov(:, :)
-
-INTEGER, POINTER :: tNxtAsy_Ref(:, :, :, :)
-INTEGER, POINTER :: tNxtmRay_Ref(:, :, :)
-INTEGER, POINTER :: tNxtDir_Ref(:, :, :)
+INTEGER, POINTER, DIMENSION(:,:)     :: tNxtmRay_Mov
+INTEGER, POINTER, DIMENSION(:,:,:)   :: tNxtAsy_Mov, tNxtmRay_Ref, tNxtDir_Ref
+INTEGER, POINTER, DIMENSION(:,:,:,:) :: tNxtAsy_Ref
 ! ----------------------------------------------------
 
 ALLOCATE (tAzmIdx                 (NumMray(0)))
@@ -316,14 +317,15 @@ USE HexType, ONLY : Type_HexPinRay
 
 IMPLICIT NONE
 
-INTEGER, POINTER :: tPinIdx(:)
-INTEGER, POINTER :: tSurfIdx(:, :)
-REAL,    POINTER :: tPinPt (:, :, :)
+INTEGER, POINTER, DIMENSION(:)   :: tPinIdx
+INTEGER, POINTER, DIMENSION(:,:) :: tSurfIdx
+
+REAL, POINTER, DIMENSION(:,:,:) :: tPinPt
 
 INTEGER :: nPin, iPin
 REAL    :: RayEqn(3)
 
-TYPE(Type_HexPinRay) :: hpRay(:)
+TYPE(Type_HexPinRay), DIMENSION(:) :: hpRay
 ! ----------------------------------------------------
 
 ALLOCATE (tPinIdx      (nPin))
@@ -357,9 +359,11 @@ REAL    :: RayEqn(3)
 
 INTEGER :: ihpRay, ihsRay, nhsRay
 
-INTEGER, POINTER :: MshIdx(:)
-!REAL,    POINTER :: SegPts(:, :)
-REAL,    POINTER :: SegLgh(:)
+INTEGER, POINTER, DIMENSION(:) :: MshIdx
+
+!REAL, POINTER, DIMENSION(:,:) :: SegPts
+REAL, POINTER, DIMENSION(:) :: SegLgh
+
 TYPE(Type_HexAsyRay), POINTER :: haRay_Loc
 ! ----------------------------------------------------
 
@@ -413,7 +417,7 @@ IMPLICIT NONE
 INTEGER :: io, iAng, icRay, jcRay, imRay, iAsy, nMaxRay, nmRay
 REAL    :: aCnt(2), Pts(2, 2)
 
-INTEGER, POINTER :: cRayRng(:, :) ! (St/Ed, iAng)
+INTEGER, POINTER, DIMENSION(:,:) :: cRayRng ! (St/Ed, iAng)
 
 TYPE(Type_HexCoreRay), POINTER :: hcRay_Loc
 ! ----------------------------------------------------
@@ -748,7 +752,7 @@ USE MKL_3D
 
 IMPLICIT NONE
 
-TYPE(CSR_DOUBLE), POINTER :: csrDouble(:)
+TYPE(CSR_DOUBLE), POINTER, DIMENSION(:) :: csrDouble
 
 INTEGER :: io, iCol, iRow, idxNN, NN, ig
 INTEGER, SAVE :: itr
@@ -794,7 +798,7 @@ SUBROUTINE HexPrtArray_REAL_2D(aa, Array, d1, d2)
 
 IMPLICIT NONE
 
-REAL :: Array(:, :)
+REAL, DIMENSION(:,:) :: Array
 INTEGER :: d1, d2
 CHARACTER*256 :: aa
 
@@ -841,6 +845,7 @@ IMPLICIT NONE
 
 INTEGER :: myzb, myze, myRank
 INTEGER :: iAsy, iz, ixy, io, AsyType, jxy, iPin
+
 CHARACTER*256 :: fName
 ! ----------------------------------------------------
 
@@ -885,6 +890,7 @@ IMPLICIT NONE
 
 INTEGER :: myzb, myze, myRank
 INTEGER :: iAsy, iz, ixy, io, AsyType, jxy, iPin
+
 CHARACTER*256 :: fName
 ! ----------------------------------------------------
 

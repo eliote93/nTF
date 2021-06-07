@@ -90,7 +90,7 @@ REAL :: Val(n1:n2)
 ! ----------------------------------------------------
 
 DO ii = n1, n2
-  IF (abs(Val(ii)) < hEps) Val(ii) = ZERO
+  IF (abs(Val(ii)) .LT. hEps) Val(ii) = ZERO
 END DO
 ! ----------------------------------------------------
 
@@ -109,7 +109,7 @@ REAL :: Val(n1:n2, n3:n4)
 
 DO jj = n3, n4
   DO ii = n1, n2
-    IF (abs(Val(ii, jj)) < hEps) Val(ii, jj) = ZERO
+    IF (abs(Val(ii, jj)) .LT. hEps) Val(ii, jj) = ZERO
   END DO
 END DO
 ! ----------------------------------------------------
@@ -130,7 +130,7 @@ REAL :: Val(n1:n2, n3:n4, n5:n6)
 DO kk = n5, n6
   DO jj = n3, n4
     DO ii = n1, n2
-      IF (abs(Val(ii, jj, kk)) < hEps) Val(ii, jj, kk) = ZERO
+      IF (abs(Val(ii, jj, kk)) .LT. hEps) Val(ii, jj, kk) = ZERO
     END DO
   END DO
 END DO
@@ -153,7 +153,7 @@ DO tt = n7, n8
   DO kk = n5, n6
     DO jj = n3, n4
       DO ii = n1, n2
-        IF (abs(Val(ii, jj, kk, tt)) < hEps) Val(ii, jj, kk, tt) = ZERO
+        IF (abs(Val(ii, jj, kk, tt)) .LT. hEps) Val(ii, jj, kk, tt) = ZERO
       END DO
     END DO
   END DO
@@ -301,7 +301,7 @@ Tmp01 = Eqn(3) -  Pt(1)*Eqn(1) -  Pt(2)*Eqn(2)
 Tmp02 = Eqn(3) - Cnt(1)*Eqn(1) - Cnt(2)*Eqn(2)
 Tmp03 = Tmp01 * Tmp02
 
-IF (abs(Tmp03) < hEps) THEN
+IF (abs(Tmp03) .LT. hEps) THEN
   CalPtLineSgn = ZERO
 ELSE
   CalPtLineSgn = SetSgn_REAL(Tmp03)
@@ -314,7 +314,7 @@ END FUNCTION CalPtLineSgn
 ! ------------------------------------------------------------------------------------------------------------
 FUNCTION SetEqn(Pt01, Pt02, Cnt)
 ! Eqn(1) * x + Eqn(2) * y = Eqn(3)
-! Always Eqn(3) - Eqn(1) * x - Eqn(2) * y >= 0
+! Always Eqn(3) - Eqn(1) * x - Eqn(2) * y .GE. 0
 
 IMPLICIT NONE
 
@@ -326,9 +326,7 @@ REAL :: Pt01(2), Pt02(2), Cnt(2)
 REAL :: Lgh, sinv, cosv, Val
 ! ----------------------------------------------------
 
-! ----------------------------------------------------
-!               01. SET : Eqn
-! ----------------------------------------------------
+! SET : Eqn
 Lgh = (Pt02(1) - Pt01(1))**2 + &
       (Pt02(2) - Pt01(2))**2
 Lgh = sqrt(Lgh)
@@ -341,15 +339,14 @@ cosv = (Pt02(1) - Pt01(1)) / Lgh
 SetEqn(1) =  sinv
 SetEqn(2) = -cosv
 SetEqn(3) = sinv * Pt01(1) - cosv * Pt01(2)
-! ----------------------------------------------------
-!               02. PROCESS
-! ----------------------------------------------------
+
+! Process
 CALL ChkArrayZero(SetEqn, 1, 3)
 
 Val = SetEqn(3) - SetEqn(1) * Cnt(1) &
                 - SetEqn(2) * Cnt(2)
 
-IF (Val < 0) SetEqn(1:3) = -SetEqn(1:3)
+IF (Val .LT. 0) SetEqn(1:3) = -SetEqn(1:3)
 ! ----------------------------------------------------
 
 END FUNCTION SetEqn
@@ -389,7 +386,7 @@ REAL :: RotLineEqn(3)
 INTEGER :: iCor, jCor, iPt
 ! ----------------------------------------------------
 
-IF (abs(Eqn(2)) > hEps) THEN
+IF (abs(Eqn(2)) .GT. hEps) THEN
   iCor = 1; jCor = 2 ! x = -1, 1
 ELSE
   iCor = 2; jCor = 1 ! y = -1, 1
@@ -422,10 +419,10 @@ LOGICAL :: lSol
 REAL :: Tmp
 ! ----------------------------------------------------
 
-IF (abs(Eqn01(1)) > hEps) THEN
+IF (abs(Eqn01(1)) .GT. hEps) THEN
   Tmp = Eqn02(2) - Eqn02(1) * Eqn01(2) / Eqn01(1)
 
-  IF (abs(Tmp) > hEps) THEN
+  IF (abs(Tmp) .GT. hEps) THEN
     Sol(2) = (Eqn02(3) - Eqn02(1) * Eqn01(3) / Eqn01(1)) / Tmp
     Sol(1) = (Eqn01(3) - Eqn01(2) * Sol(2)) / Eqn01(1)
   ELSE
@@ -433,7 +430,7 @@ IF (abs(Eqn01(1)) > hEps) THEN
     lSol = .FALSE.; RETURN
   END IF
 ELSE
-  IF (abs(Eqn02(1)) > hEps) THEN
+  IF (abs(Eqn02(1)) .GT. hEps) THEN
     Sol(2) = Eqn01(3) / Eqn01(2)
     Sol(1) = (Eqn02(3) - Eqn02(2) * Eqn01(3) / Eqn01(2)) / Eqn02(1)
   ELSE
@@ -588,7 +585,7 @@ k = a*a + b*b
 
 LghSq = c*c / k
 
-IF (LghSq > RadSq) RETURN
+IF (LghSq .GT. RadSq) RETURN
 
 Rev  = SetSgn_REAL(a*b)
 nSol = 2
@@ -598,7 +595,7 @@ Sol(1, 2) = (a*c - sqrt(R*b*b*k-b*b*c*c))/k
 Sol(2, 1) = (b*c - sqrt(R*a*a*k-a*a*c*c) * Rev)/k
 Sol(2, 2) = (b*c + sqrt(R*a*a*k-a*a*c*c) * Rev)/k
 
-IF (R*b*b*k-b*b*c*c > hEps) RETURN
+IF (R*b*b*k-b*b*c*c .GT. hEps) RETURN
 
 nSol = 1
 ! ----------------------------------------------------
@@ -627,7 +624,7 @@ LOGICAL :: lSol
 nSol = 0
 Sol  = ZERO
 
-IF (REqn(2) > 0) THEN
+IF (REqn(2) .GT. 0) THEN
   CALL SolveLineCircle_Zero(Line, REqn(5), Sol, nSol)
 ELSE
   LineNew(1) = REqn(1)
@@ -697,7 +694,7 @@ ChkPtEqn = FALSE
 Tmp = Eqn(3) - Eqn(1) * Pt(1) &
              - Eqn(2) * Pt(2)
 
-IF (abs(Tmp) < hEps) ChkPtEqn = TRUE
+IF (abs(Tmp) .LT. hEps) ChkPtEqn = TRUE
 ! ----------------------------------------------------
 
 END FUNCTION ChkPtEqn
@@ -717,7 +714,7 @@ ChkSameVal = FALSE
 
 Tmp = Val01 - Val02
 
-IF (abs(Tmp) < hEps) ChkSameVal = TRUE
+IF (abs(Tmp) .LT. hEps) ChkSameVal = TRUE
 ! ----------------------------------------------------
 
 END FUNCTION ChkSameVal
@@ -741,7 +738,7 @@ Tmp02 = Pt01(2) - Pt02(2)
 Del = Tmp01 * Tmp01 + Tmp02 * Tmp02
 Del = sqrt(Del)
 
-IF (Del < hEps) ChkSamePts = TRUE
+IF (Del .LT. hEps) ChkSamePts = TRUE
 ! ----------------------------------------------------
 
 END FUNCTION ChkSamePts
@@ -765,7 +762,7 @@ ChkPtVtx = FALSE
 Tmp01 = Pt(iPri) - Vtx01(iPri)
 Tmp02 = Pt(iPri) - Vtx02(iPri)
 
-IF (Tmp01 * Tmp02 < ZERO) ChkPtVtx = TRUE
+IF (Tmp01 * Tmp02 .LT. ZERO) ChkPtVtx = TRUE
 ! ----------------------------------------------------
 
 END FUNCTION ChkPtVtx
@@ -791,12 +788,12 @@ ChkPtEqnVtx = FALSE
 Tmp = Eqn(3) - Eqn(1) * Pt(1) &
              - Eqn(2) * Pt(2)
 
-IF (abs(Tmp) > hEps) RETURN
+IF (abs(Tmp) .GT. hEps) RETURN
 
 Tmp01 = Pt(iPri) - Vtx01(iPri)
 Tmp02 = Pt(iPri) - Vtx02(iPri)
 
-IF (Tmp01 * Tmp02 > ZERO) RETURN
+IF (Tmp01 * Tmp02 .GT. ZERO) RETURN
 
 ChkPtEqnVtx = TRUE
 ! ----------------------------------------------------
@@ -823,8 +820,8 @@ Tmp01 = Eqn(3) - Eqn(1) * Vtx01(1) - Eqn(2) * Vtx01(2)
 Tmp02 = Eqn(3) - Eqn(1) * Vtx02(1) - Eqn(2) * Vtx02(2)
 Tmp   = Tmp01 * Tmp02
 
-!IF (abs(Tmp) < hEps) RETURN
-IF (Tmp      < ZERO) ChkEqnTwoVtx = TRUE
+!IF (abs(Tmp) .LT. hEps) RETURN
+IF (Tmp      .LT. ZERO) ChkEqnTwoVtx = TRUE
 ! ----------------------------------------------------
 
 END FUNCTION ChkEqnTwoVtx
@@ -845,13 +842,13 @@ REAL, PARAMETER :: rSq = 0.577350269189626_8
 REAL, PARAMETER :: Pi6 = 0.52359877559830_8
 ! ----------------------------------------------------
 
-IF (Rad > F2F * rSq - Eps) THEN
+IF (Rad .GT. F2F * rSq - Eps) THEN
   FindRodRad2Vol = F2F * F2F * 0.5_8 * Sq3
 
-ELSE IF (Rad < ZERO + Eps) THEN
+ELSE IF (Rad .LT. ZERO + Eps) THEN
   FindRodRad2Vol = ZERO
 
-ELSE IF (Rad < F2F * 0.5_8 + Eps) THEN
+ELSE IF (Rad .LT. F2F * 0.5_8 + Eps) THEN
   FindRodRad2Vol = Rad * Rad * Pi
 
 ELSE
@@ -868,7 +865,7 @@ END FUNCTION FindRodRad2Vol
 !                                     30. Find : Rod Sub Rad
 ! ------------------------------------------------------------------------------------------------------------
 FUNCTION FindRodSubRad(F2F, Rad2, Rad1, nDiv)
-! Rad 2 > Rad 1
+! Rad 2 .GT. Rad 1
 
 IMPLICIT NONE
 
@@ -887,15 +884,15 @@ INTEGER :: iTmp, iDiv, jDiv
 REAL, PARAMETER :: rSq3 = 0.577350269189626_8
 ! ----------------------------------------------------
 
-IF (Rad1 < ZERO) CALL terminate("FIND ROD SUB RAD")
-IF (nDiv > nMaxFXR) CALL terminate("FIND ROD SUB RAD")
+IF (Rad1 .LT. ZERO) CALL terminate("FIND ROD SUB RAD")
+IF (nDiv .GT. nMaxFXR) CALL terminate("FIND ROD SUB RAD")
 
 FindRodSubRad(1)      = Rad2
 FindRodSubRad(nDiv+1) = Rad1
 ! ----------------------------------------------------
-!               CASE : Rad < Half of F2F
+!               CASE : Rad .LT. Half of F2F
 ! ----------------------------------------------------
-IF (Rad2 < F2F * 0.5_8) THEN
+IF (Rad2 .LT. F2F * 0.5_8) THEN
   dVol = (Rad2 * Rad2 - Rad1 * Rad1) / real(nDiv)
   tVol = Rad2 * Rad2
 
@@ -908,9 +905,9 @@ IF (Rad2 < F2F * 0.5_8) THEN
   RETURN
 END IF
 ! ----------------------------------------------------
-!               CASE : Rad > PCH
+!               CASE : Rad .GT. PCH
 ! ----------------------------------------------------
-IF (Rad2 > F2F * rSq3) THEN
+IF (Rad2 .GT. F2F * rSq3) THEN
   dRad = (Rad2 - Rad1) / real(nDiv)
   
   DO iDiv = 2, nDiv
@@ -920,7 +917,7 @@ IF (Rad2 > F2F * rSq3) THEN
   RETURN
 END IF
 ! ----------------------------------------------------
-!               CASE : Rad > Half of F2F
+!               CASE : Rad .GT. Half of F2F
 ! ----------------------------------------------------
 dRad = (Rad2 - Rad1) / real(nnDiv)
 
@@ -938,14 +935,14 @@ jDiv = nDiv - 1
 DO iTmp = 1, nnDiv
   tVol = FindRodRad2Vol(F2F, TmpRad(iTmp))
 
-  IF (tVol < pVol) THEN
+  IF (tVol .LT. pVol) THEN
     iDiv = iDiv + 1
     pVol = pVol - dVol
 
     FindRodSubRad(iDiv) = TmpRad(iTmp)
   END IF
 
-  IF (iDiv > jDiv) EXIT
+  IF (iDiv .GT. jDiv) EXIT
 END DO
 
 CALL ChkArrayZero(FindRodSubRad, 1, nMaxFXR)
@@ -967,7 +964,7 @@ INTEGER :: Tmp
 
 Tmp = (x - b1) * (x - b2)
 
-IF (Tmp > 0) CALL terminate(errmesg)
+IF (Tmp .GT. 0) CALL terminate(errmesg)
 
 END SUBROUTINE HexChkRange_INT
 ! ------------------------------------------------------------------------------------------------------------
@@ -986,7 +983,7 @@ REAL, PARAMETER :: Eps = 1E-7
 
 Tmp = (x - b1) * (x - b2)
 
-IF (Tmp > Eps) CALL terminate(errmesg)
+IF (Tmp .GT. Eps) CALL terminate(errmesg)
 
 END SUBROUTINE HexChkRange_REAL
 ! ------------------------------------------------------------------------------------------------------------
@@ -1028,9 +1025,9 @@ Tmp = abs(x - y)
 
 SELECT CASE(i)
 CASE(1)
-  IF (Tmp > Eps) CALL terminate(errmesg)
+  IF (Tmp .GT. Eps) CALL terminate(errmesg)
 CASE(2)
-  IF (Tmp < Eps) CALL terminate(errmesg)
+  IF (Tmp .LT. Eps) CALL terminate(errmesg)
 END SELECT
 ! ----------------------------------------------------
 
@@ -1049,7 +1046,7 @@ REAL :: Tmp
 REAL, PARAMETER :: Eps = 1E-7
 ! ----------------------------------------------------
 
-IF (x > y) CALL terminate(errmesg)
+IF (x .GT. y) CALL terminate(errmesg)
 
 END SUBROUTINE HexChkInc_REAL
 ! ------------------------------------------------------------------------------------------------------------
@@ -1094,10 +1091,10 @@ Tmp2 = FindPtLgh(Vtx2, Cnt)
 Tmp3 = FindPtLgh(Vtx3, Cnt)
 Tmp4 = FindPtLgh(Vtx4, Cnt)
 
-IF (Rad > Tmp3) CALL terminate("FIND : BNDY RAD 2 VOL")
+IF (Rad .GT. Tmp3) CALL terminate("FIND : BNDY RAD 2 VOL")
 
-! sRad < Bndy
-IF ((Rad < Tmp2).AND.(Rad < Tmp3)) THEN
+! sRad .LT. Bndy
+IF ((Rad .LT. Tmp2).AND.(Rad .LT. Tmp3)) THEN
   FindBndyRad2Vol = HALF * Rad * Rad * PI_6
   
   RETURN
@@ -1106,7 +1103,7 @@ END IF
 ! Vol 1
 Ang = atan(Vtx3(2) / Vtx3(1))
 
-IF (Rad < Tmp2) THEN
+IF (Rad .LT. Tmp2) THEN
   Vol1 = HALF * Rad * Rad * (PI_6 - Ang)
 ELSE
   Pt  = FindLineCircleIntSct(Eqn1, Rad)
@@ -1118,7 +1115,7 @@ ELSE
 END IF
 
 ! Vol2
-IF (Rad < Tmp4) THEN
+IF (Rad .LT. Tmp4) THEN
   Vol1 = HALF * Rad * Rad * Ang
 ELSE
   Pt  = FindLineCircleIntSct(Eqn2, Rad)
@@ -1164,7 +1161,7 @@ END FUNCTION FindPolygonVol
 !                                     38. Find : Bndy Rad to Vol
 ! ------------------------------------------------------------------------------------------------------------
 FUNCTION FindLineCircleIntSct(Eqn, Rad)
-! x1 < x2
+! x1 .LT. x2
 
 IMPLICIT NONE
 
@@ -1173,12 +1170,12 @@ REAL :: FindLineCircleIntSct(2, 2), Eqn(3), Rad, Pt(2)
 REAL :: Tmp, a, b, c
 ! ----------------------------------------------------
 
-IF (abs(Eqn(1)) < hEps) THEN
-  IF (abs(Eqn(2)) < hEps) CALL terminate("FIND : LINE CIRCLE INT-SCT")
+IF (abs(Eqn(1)) .LT. hEps) THEN
+  IF (abs(Eqn(2)) .LT. hEps) CALL terminate("FIND : LINE CIRCLE INT-SCT")
   
   Tmp = Eqn(3) / Eqn(2)
   
-  IF (Rad < Tmp) CALL terminate("FIND : LINE CIRCLE INT-SCT")
+  IF (Rad .LT. Tmp) CALL terminate("FIND : LINE CIRCLE INT-SCT")
   
   FindLineCircleIntSct(1, 1) = -sqrt(Rad*Rad - Tmp*Tmp)
   FindLineCircleIntSct(1, 2) =  sqrt(Rad*Rad - Tmp*Tmp)
@@ -1189,7 +1186,7 @@ ELSE
   c   = Eqn(3)*Eqn(3) / Eqn(1)/Eqn(1) - Rad*Rad
   Tmp = b*b - 4*a*c
   
-  IF (Tmp < ZERO) CALL terminate("FIND : LINE CIRCLE INT-SCT")
+  IF (Tmp .LT. ZERO) CALL terminate("FIND : LINE CIRCLE INT-SCT")
   
   FindLineCircleIntSct(2, 1) = -(b + sqrt(Tmp)) / 2/a
   FindLineCircleIntSct(2, 2) = -(b - sqrt(Tmp)) / 2/a
@@ -1197,7 +1194,7 @@ ELSE
   FindLineCircleIntSct(1, 1) = (Eqn(3) - Eqn(2) * FindLineCircleIntSct(2, 1)) / Eqn(1)
   FindLineCircleIntSct(1, 2) = (Eqn(3) - Eqn(2) * FindLineCircleIntSct(2, 2)) / Eqn(1)
   
-  IF (FindLineCircleIntSct(1, 1) > FindLineCircleIntSct(1, 2)) THEN
+  IF (FindLineCircleIntSct(1, 1) .GT. FindLineCircleIntSct(1, 2)) THEN
     Pt = FindLineCircleIntSct(:, 1)
     
     FindLineCircleIntSct(:, 1) = FindLineCircleIntSct(:, 2)
@@ -1236,7 +1233,7 @@ ENDIF
 IF(lAcending) THEN
   DO j = n, 1, -1
     DO i = 1, j - 1
-      IF(A(i) > A(i+1)) THEN
+      IF(A(i) .GT. A(i+1)) THEN
         temp = A(i)
         A(i) = A(i+1); A(i+1) = temp
         temp = B(i)
@@ -1247,7 +1244,7 @@ IF(lAcending) THEN
 ELSE
   DO j = n, 1, -1
     DO i = 1, j - 1
-      IF(A(i) < A(i+1)) THEN
+      IF(A(i) .LT. A(i+1)) THEN
         temp = A(i)
         A(i) = A(i+1); A(i+1) = temp
         temp = B(i)
@@ -1292,7 +1289,7 @@ A = 0; B = 0
 npt = 1
 A(1) = tA(1); B(1) = tB(1)
 DO i = 2, n
-  IF(abs(A(npt) - tA(i)) > 1.E-9) THEN
+  IF(abs(A(npt) - tA(i)) .GT. 1.E-9) THEN
     npt = npt + 1
     A(npt) = tA(i); B(npt) = tB(i)
   ENDIF

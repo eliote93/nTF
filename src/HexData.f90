@@ -19,19 +19,19 @@ INTEGER, PARAMETER :: spTypNumNgh(7)  = [3, 4, 6,  & ! Inn
                                          5, 5, 4, 4] ! Bndy
 
 ! Global
-INTEGER :: nAsyCore   = 0
-INTEGER :: ncBndy     = 0
-INTEGER :: nhAsy      = 0
-INTEGER :: ncBss      = 0
-INTEGER :: ngBss      = 0
-INTEGER :: ncTyp      = 0 ! Total # of Cell Types
-INTEGER :: ncRay      = 0
+INTEGER :: nAsyCore   = 0 ! # of Asy. along Core Bndy.
+INTEGER :: ncBndy     = 0 ! # of Core Bndy.
+INTEGER :: nhAsy      = 0 ! # of Asy. in Core
+INTEGER :: ncBss      = 0 ! # of Rod Cell Basis
+INTEGER :: ngBss      = 0 ! # of Gap Cell Basis
+INTEGER :: ncTyp      = 0 ! # of Cell Types
+INTEGER :: ncRay      = 0 ! # of Core Rays
 INTEGER :: nRotRay    = 0
 INTEGER :: nAzmAng    = 0
 INTEGER :: nPolAng    = 0
 INTEGER :: nVA        = 0 ! # of Void Asys
-INTEGER :: nHexPin    = 0
-INTEGER :: nhcPin     = 0 ! # of CMFD Pins
+INTEGER :: nHexPin    = 0 ! # of MoC Pins in Core
+INTEGER :: nhcPin     = 0 ! # of CMFD Pins in Core
 INTEGER :: nGeoTyp    = 1
 INTEGER :: nInnMOCItr = 2
 
@@ -44,9 +44,9 @@ REAL :: AsyEqn (3,6) = ZERO
 REAL :: cBndyPt(2,7) = ZERO ! Origin : Cnt Asy
 REAL :: cBndyEq(3,6) = ZERO ! Origin : Cnt Asy
 
-INTEGER, POINTER, DIMENSION(:,:) :: Asy2Dto1DMap ! (ix, iy)
-INTEGER, POINTER, DIMENSION(:,:) :: Asy1Dto2DMap ! (ix/iy, iAsy)
-INTEGER, POINTER, DIMENSION(:,:) :: hCore
+INTEGER, POINTER, DIMENSION(:,:) :: Asy2Dto1DMap ! (iax, iay)
+INTEGER, POINTER, DIMENSION(:,:) :: Asy1Dto2DMap ! (iax/aiy, iAsy)
+INTEGER, POINTER, DIMENSION(:,:) :: hCore ! (iax, iay), Global Idx of Asy.
 
 ! Vygorodka
 INTEGER :: vFxr    = 0
@@ -103,4 +103,3 @@ TYPE(Type_HexRayCel),     POINTER, DIMENSION(:) :: RayCel
 TYPE(Type_HexRayPinInfo), POINTER, DIMENSION(:) :: RayPinInfo
 
 END MODULE HexData
-! ------------------------------------------------------------------------------------------------------------

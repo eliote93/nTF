@@ -32,11 +32,10 @@ ELSE IF (hLgc%lRadVac) THEN
   lGeo(6) = FALSE
 END IF
 
-WRITE(MESG, '(9X, I2, X, A3)') icBss, '...'
-IF(PE%Master) CALL message(io8, TRUE, TRUE, MESG)
-! ----------------------------------------------------
-!               01. INIT
-! ----------------------------------------------------
+WRITE (MESG, '(9X, I2, X, A3)') icBss, '...'
+IF (PE%Master) CALL message(io8, TRUE, TRUE, MESG)
+
+! INIT
 ALLOCATE (RayPinInfo (hAsyTypInfo(hCelBss(icBss)%iaTyp)%nTotPin(1)))
 
 CALL HexSetRayPinDat(RayPinInfo, icBss)
@@ -45,8 +44,6 @@ ALLOCATE (RayCel (2))
 
 CALL HexSetRayRodCel_12(RayCel, icBss)
 CALL HexSetRayGapCel   (RayCel, icBss)
-! ----------------------------------------------------
-!               02. ITER
 ! ----------------------------------------------------
 nMaxPinPt = 10 * hCelBss(icBss)%nPin ! ARBITRARY
 
@@ -62,7 +59,7 @@ DO imRay = 1, NumMray(0)
     
     CALL HexSetRayIntSct_Pin(icBss, RayEqn, imRay, iGeo, nhpRay, hpRay)
     
-    IF (nhpRay > nMaxPinPt) CALL terminate("SET : ASY RAY - NHPRAY")
+    IF (nhpRay .GT. nMaxPinPt) CALL terminate("SET : ASY RAY - NHPRAY")
     
     haRay_Loc => haRay(iGeo, icBss, imRay)
     
@@ -84,8 +81,11 @@ DO imRay = 1, NumMray(0)
 END DO
 !$OMP END DO
 !$OMP END PARALLEL
-
-NULLIFY (haRay_Loc, CelRay_Loc, RayPinInfo, RayCel)
+! ----------------------------------------------------
+NULLIFY (RayCel)
+NULLIFY (RayPinInfo)
+NULLIFY (haRay_Loc)
+NULLIFY (CelRay_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetAsyRay

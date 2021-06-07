@@ -32,7 +32,6 @@ ELSE
 END IF
 
 CALL HexSetHcPinNgh
-
 CALL HexSetMP2SP
 ! ----------------------------------------------------
 
@@ -710,9 +709,9 @@ USE HexData, ONLY : hcPin, nhcPin, hPinInfo
 
 IMPLICIT NONE
 
-INTEGER :: ihcPin, iNgh, jhcPin, iAsy, jAsy, iBndy, nPin, iPin, jPin
+INTEGER :: ihcPin, iNgh, jhcPin, iAsy, jAsy, iBndy, nPin, iPin, jPin, ivTyp, isurf
 
-TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc
+TYPE (Type_HexCmfdPin), POINTER :: cPin_Loc
 ! ----------------------------------------------------
 
 IF (.NOT. nTracerCntl%lDomainDcmp) RETURN
@@ -724,22 +723,50 @@ DO ihcPin = 1, nhcPin
   
   DO iNgh = 1, cPin_Loc%nNgh
     jhcPin = cPin_Loc%NghPin(iNgh)
-    jAsy   = hcPin(jhcPin)%aIdx
     
-    IF (jhcPin.LE.0 .AND. iAsy.EQ.jAsy) CYCLE
+    IF (jhcPin .GT. 0) THEN
+      jAsy = hcPin(jhcPin)%aIdx
+      
+      IF (iAsy .EQ. jAsy) CYCLE
+    END IF
     
     iBndy = cPin_Loc%NghBd(iNgh)
     nPin  = cPin_Loc%nBdmPin(iBndy)
     
     DO iPin = 1, nPin
-      jPin = cPin_Loc%BdMPidx(iPin, iBndy)
+      jPin  = cPin_Loc%BdMPidx(iPin, iBndy)
+      ivTyp = hPinInfo(jPin)%VtxTyp
       
-      hPinInfo(jPin)%DcmpMP2SPngh = iNgh
-      hPinInfo(jPin)%DcmpMP2SPidx = jhcPin
+      SELECT CASE (ivTyp) ! NOTICE : No 4, 5
+      CASE (1); isurf = 2 ! Inn 060
+      CASE (2); isurf = 4 ! Inn 180
+      CASE (3); isurf = 6 ! Inn 360
+      CASE (6); isurf = 1 ! Bndy Typ 2 Spt NE 01
+      CASE (7); isurf = 1 ! Bndy Typ 2 Spt NW 02
+      CASE (8); isurf = 4 ! Gap Typ 1 NE R
+      CASE (9); isurf = 4 ! Gap Typ 1 NE L
+      CASE (10)           ! Gap Typ 2
+        IF (jhcPin .LT. 0) isurf = 1 ! REF
+        IF (jhcPin .GE. 0) isurf = 4 ! VAC + Other Asy.
+      END SELECT
+      
+      hPinInfo(jPin)%DcmpMP2nghSPidx(isurf) = jhcPin
+      hPinInfo(jPin)%DcmpMP2slfSPngh(isurf) = iNgh
+      
+      SELECT CASE (ivTyp)
+      CASE (1)
+        hPinInfo(jPin)%DcmpMP2nghSPidx(3) = -1   ! VAC
+        hPinInfo(jPin)%DcmpMP2slfSPngh(3) = iNgh
+      CASE (3)
+        hPinInfo(jPin)%DcmpMP2nghSPidx(2) = -1   ! VAC
+        hPinInfo(jPin)%DcmpMP2slfSPngh(2) = iNgh
+        hPinInfo(jPin)%DcmpMP2nghSPidx(4) = -1   ! VAC
+        hPinInfo(jPin)%DcmpMP2slfSPngh(4) = iNgh
+      END SELECT
     END DO
   END DO
 END DO
-  
+
 NULLIFY (cPin_Loc)
 ! ----------------------------------------------------
 
