@@ -62,50 +62,67 @@ ENDDO
 !$OMP END PARALLEL
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocPinXS(PinXS, GroupInfo, nxy, myzb, myze)
-USE PARAM
-USE geom,           ONLY : ncbd
-USE TYPEDEF,        ONLY : GroupInfo_Type,      PinXS_Type
+
+USE allocs
+USE geom,    ONLY : ncbd
+USE TYPEDEF, ONLY : GroupInfo_Type, PinXS_Type
+USE CNTL,    ONLY : nTracerCntl
+
 IMPLICIT NONE
 
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+TYPE(PinXS_Type), POINTER, DIMENSION(:,:) :: PinXS
 TYPE(GroupInfo_Type) :: GroupInfo
 INTEGER :: ng, nxy, myzb, myze
 
 TYPE(PinXS_Type), POINTER :: myPinXS
 INTEGER :: ig, igb, ige, ipin, iz
+! ----------------------------------------------------
 
 ng = GroupInfo%ng
 
-ALLOCATE(PinXS(nxy, myzb : myze))
+ALLOCATE (PinXS(nxy, myzb:myze))
 
 DO iz = myzb, myze
   DO ipin = 1, nxy
     myPinXS => PinXS(ipin, iz)
-    ALLOCATE(myPinXS%Dtil(ncbd, ng)); myPinXS%Dtil = 0.0
-    ALLOCATE(myPinXS%Dhat(ncbd, ng)); myPinXS%Dhat = 0.0
-    ALLOCATE(myPinXS%XSD(ng)); myPinXS%XSD = 0.0
-    ALLOCATE(myPinXS%XSD2(ng)); myPinXS%XSD2 = 0.0
-    ALLOCATE(myPinXS%XSt(ng)); myPinXS%XSt = 0.0
-    ALLOCATE(myPinXS%XStr(ng)); myPinXS%XStr = 0.0
-    ALLOCATE(myPinXS%XSr(ng)); myPinXS%XSr = 0.0
-    ALLOCATE(myPinXS%XSa(ng)); myPinXS%XSa = 0.0
-    ALLOCATE(myPinXS%XSnf(ng)); myPinXS%XSnf = 0.0
-    ALLOCATE(myPinXS%XSkf(ng)); myPinXS%XSkf = 0.0
-    ALLOCATE(myPinXS%Chi(ng)); myPinXS%Chi = 0.0
-    ALLOCATE(myPinXS%Phi(ng)); myPinXS%Phi = 0.0
-    ALLOCATE(myPinXS%XSs(ng))
+    
+    CALL dmalloc(myPinXS%Dtil, ncbd, ng)
+    CALL dmalloc(myPinXS%Dhat, ncbd, ng)
+    CALL dmalloc(myPinXS%XSD,  ng)
+    CALL dmalloc(myPinXS%XSD2, ng)
+    CALL dmalloc(myPinXS%XSt,  ng)
+    CALL dmalloc(myPinXS%XStr, ng)
+    CALL dmalloc(myPinXS%XSr,  ng)
+    CALL dmalloc(myPinXS%XSa,  ng)
+    CALL dmalloc(myPinXS%XSnf, ng)
+    CALL dmalloc(myPinXS%XSkf, ng)
+    CALL dmalloc(myPinXS%Chi,  ng)
+    CALL dmalloc(myPinXS%Phi,  ng)
+    
+    ALLOCATE (myPinXS%XSs (ng))
+    
     DO ig = 1, ng
-      igb = GroupInfo%InScatRange(1, ig); ige = GroupInfo%InScatRange(2, ig)
-      ALLOCATE(myPinXS%XSs(ig)%from(igb : ige)); myPinXS%XSs(ig)%from = 0.0
-      myPinXS%XSs(ig)%ib = igb; myPinXS%XSs(ig)%ie = ige
-    ENDDO
-  ENDDO
-ENDDO
+      igb = GroupInfo%InScatRange(1, ig)
+      ige = GroupInfo%InScatRange(2, ig)
+      
+      CALL dmalloc0(myPinXS%XSs(ig)%from, igb, ige)
+      
+      myPinXS%XSs(ig)%ib = igb
+      myPinXS%XSs(ig)%ie = ige
+    END DO
+    
+    IF (.NOT. nTracerCntl%lDomainDcmp) CYCLE
+    
+    CALL dmalloc(myPinXS%atil, ncbd, ng)
+    CALL dmalloc(myPinXS%ahat, ncbd, ng)
+  END DO
+END DO
+! ----------------------------------------------------
 
-END SUBROUTINE
-
+END SUBROUTINE AllocPinXS
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CopyPinXS(Input, Output, ng)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
@@ -868,19 +885,19 @@ REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout
 
 INTEGER :: ng, nxy, myzb, myze
 LOGICAL :: lDhat
-
+! ----------------------------------------------------
 INTEGER :: ig, ipin, ineighpin, iz, iNgh, ibd, jNgh, jbd
 REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy, atil, surfphifdm, ahat
 
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout
 ! ----------------------------------------------------
 
-ALLOCATE (superJout(3, ncbd, nxy, myzb : myze, ng)) ! # of Ngh is fixed as 15, artibrary #
+ALLOCATE (superJout(3, ncbd, nxy, myzb:myze, ng)) ! # of Ngh is fixed as 15, artibrary #
 
 CALL HexsuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 
-!!$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
-!!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+!$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
 DO ig = 1, ng
   DO iz = myzb, myze
     DO ipin = 1, nxy
@@ -928,8 +945,8 @@ DO ig = 1, ng
     END DO
   END DO
 END DO
-!!$OMP END DO
-!!$OMP END PARALLEL
+!$OMP END DO
+!$OMP END PARALLEL
 
 DEALLOCATE(superJout)
 ! ----------------------------------------------------

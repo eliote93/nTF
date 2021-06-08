@@ -16,7 +16,7 @@ TYPE (CoreInfo_type) :: Core
 TYPE (RayInfo_type)  :: RayInfo
 
 TYPE (DcmpAsyRayInfo_type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
-
+! ----------------------------------------------------
 INTEGER, POINTER, DIMENSION(:)       :: DcmpAsyRayCount, AsyRayList, DirList, AziList
 INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo

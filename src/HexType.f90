@@ -17,7 +17,7 @@ TYPE Type_HexRodCel
   
   LOGICAL :: luse = FALSE
   
-  INTEGER :: icBss = 0  ! Numeric # of Rod Cel Basis
+  INTEGER :: icBss = 0  ! Index of Rod Cel Basis
   INTEGER :: nPin  = 0  ! # of Pins along Asy Side
   INTEGER :: nSct  = 12 ! # of Sector Lines
   
@@ -28,7 +28,7 @@ TYPE Type_HexRodCel
   
   REAL    :: xRad(nMaxFXR) = ZERO ! (iFXR), FXR Outer Radius
   INTEGER :: xDiv(nMaxFXR) = 0    ! (iFXR), # of Sub-rings in each FXR
-  INTEGER :: xMix(nMaxFXR) = 0    ! (iFXR), Numeric # of Mixture in each FXR
+  INTEGER :: xMix(nMaxFXR) = 0    ! (iFXR), Index of Mixture in each FXR
   
 END TYPE Type_HexRodCel
 ! ----------------------------------------------------
@@ -39,8 +39,8 @@ TYPE Type_HexRodCelBss
   
   !LOGICAL :: luse = TRUE ! Set only for used cel type
   
-  INTEGER :: igBss = 0 ! Numeric # of Gap Cel Basis
-  INTEGER :: iaTyp = 0 ! Numeric # of Gap Cel Basis
+  INTEGER :: igBss = 0 ! Index of Gap Cel Basis
+  INTEGER :: iaTyp = 0 ! Index of Gap Cel Basis
   INTEGER :: nPin  = 0 ! # of Pins along Asy Side
   INTEGER :: nSct  = 6 ! # of Sector Lines
   
@@ -61,7 +61,7 @@ TYPE Type_HexRodCelBss
   REAL, POINTER, DIMENSION(:)     :: sRad ! (iSub), Sub-ring Outer Radius
   REAL, POINTER, DIMENSION(:,:,:) :: sVol ! (iTyp, iFSR, iSub), FSR Volume
   
-  INTEGER, POINTER, DIMENSION(:) :: iCel ! Numeric # of Cels
+  INTEGER, POINTER, DIMENSION(:) :: iCel ! Index of Cell
   
 END TYPE Type_HexRodCelBss
 ! ----------------------------------------------------
@@ -72,7 +72,7 @@ TYPE Type_HexGapCel
   
   LOGICAL :: luse = FALSE
   
-  INTEGER :: igBss = 0 ! Numeric # of Gap Cel Basis
+  INTEGER :: igBss = 0 ! Index of Gap Cel Basis
   INTEGER :: nPin  = 0 ! # of Pins along Asy Side
   INTEGER :: nFXR  = 0 ! # of FXRs
   
@@ -81,7 +81,7 @@ TYPE Type_HexGapCel
   
   REAL    :: xHgt(nMaxFXR) = ZERO ! (iFXR), FXR Outer Height
   INTEGER :: xDiv(nMaxFXR) = 0    ! (iFXR), # of Sub-rings in each FXR
-  INTEGER :: xMix(nMaxFXR) = 0    ! (iFXR), Numeric # of Mixture in each FXR
+  INTEGER :: xMix(nMaxFXR) = 0    ! (iFXR), Index of Mixture in each FXR
   
 END TYPE Type_HexGapCel
 ! ----------------------------------------------------
@@ -98,7 +98,7 @@ TYPE Type_HexGapCelBss
   INTEGER :: nFXR = 0 ! # of FXRs
   INTEGER :: nCel = 0
   
-  INTEGER :: icBss   = 0 ! Numeric # of Rod Cel Basis
+  INTEGER :: icBss   = 0 ! Index of Rod Cel Basis
   INTEGER :: nVtxHor = 0 ! # of Horizontal regions in Bndy 02
   INTEGER :: nMsh01  = 0 ! # of Source Meshes in Bndy 01
   INTEGER :: nMsh02  = 0 ! # of Source Meshes in Bndy 02
@@ -112,7 +112,7 @@ TYPE Type_HexGapCelBss
   REAL, POINTER, DIMENSION(:)   :: sHgt ! (iSub), Sub-ring Outer Height
   REAL, POINTER, DIMENSION(:,:) :: sVol ! (iTyp, iFSR), Source Mesh Voluem
   
-  INTEGER, POINTER, DIMENSION(:) :: iCel ! (iz), Numeric # of Cel
+  INTEGER, POINTER, DIMENSION(:) :: iCel ! (iz), Index of Cell
   
 END TYPE Type_HexGapCelBss
 ! ------------------------------------------------------------------------------------------------------------
@@ -139,24 +139,24 @@ END TYPE
 TYPE Type_HexPinInfo
   SEQUENCE
   
-  INTEGER :: PinTyp = 0 ! Numeric # of "HexPin" or "GapPin"
-  INTEGER :: AsyIdx = 0 ! Global Numeric # of "hAsy"
-  INTEGER :: AsyTyp = 0 ! Numeric # of "hAsyTypInfo"
+  INTEGER :: PinTyp = 0 ! Index of "HexPin" or "GapPin"
+  INTEGER :: AsyIdx = 0 ! Global Index of "hAsy"
+  INTEGER :: AsyTyp = 0 ! Index of "hAsyTypInfo"
   INTEGER :: VtxTyp = 0 ! Geometric Typ (1 ~ 10)
-  INTEGER :: ihcPin = 0 ! Global Numeric # of "hcPin"
+  INTEGER :: ihcPin = 0 ! Global Index of "hcPin"
   
-  INTEGER :: OrdInAsy01 = 0 ! Local Numeric # of Pin in "hAsyTypInfo"
+  INTEGER :: OrdInAsy01 = 0 ! Local Index of Pin in "hAsyTypInfo"
   
   INTEGER :: ix = 0 ! x-coordinate of Pin
   INTEGER :: iy = 0 ! y-coordinate of Pin
   
   INTEGER :: nSct = 12 ! # of Sector Lines
   
-  INTEGER :: FsrIdxSt = 0 ! Global Numeric # of 1st FSR
-  INTEGER :: FxrIdxSt = 0 ! Global Numeric # of 1st FXR
+  INTEGER :: FsrIdxSt = 0 ! Global Index of 1st FSR
+  INTEGER :: FxrIdxSt = 0 ! Global Index of 1st FXR
   
-  INTEGER :: DcmpMP2slfSPngh(6) = 0 ! Ngh. Idx of Self CMFD Pin which MoC Pin belongs to
-  INTEGER :: DcmpMP2nghSPidx(6) = 0 ! Global Numeric # of Neighboring CMFD Pin with CMFD Pin which MoC Pin belongs to
+  INTEGER :: DcmpMP2slfSPngh(6) = 0 ! Neighboring Index of Self CMFD Pin which MoC Pin belongs to
+  INTEGER :: DcmpMP2nghSPidx(6) = 0 ! Global Index of Neighboring CMFD Pin with CMFD Pin which MoC Pin belongs to
   
   REAL :: Wt     = 1._8
   REAL :: Cnt(2) = ZERO ! (x/y), Origin = Asy Cnt
@@ -189,16 +189,16 @@ TYPE Type_HexCmfdPin
   
   ! MoC Pin
   INTEGER :: nmPin             ! # of MoC Pins
-  INTEGER :: mpIdx(3)          ! Global Numeric # of MoC Pin
-  INTEGER :: nBdmPin(6)        ! # of MoC Pins along Bndy.
-  INTEGER :: BdMPidx(2, 6) = 0 ! Global Numeric # of MoC Pin at Bndy.
-  INTEGER :: BdMPsuf(2, 6) = 0 ! Bndy. Idx. of MoC Pin at Bndy.
+  INTEGER :: mpIdx(3)          ! Global Index of MoC Pin
+  INTEGER :: nBdmPin(6)        ! # of MoC Pins along Boundary
+  INTEGER :: BdMPidx(2, 6) = 0 ! Global Index of MoC Pin at Boundary
+  INTEGER :: BdMPsuf(2, 6) = 0 ! Boundary Index of MoC Pin at Boundary
   
   ! CMFD Pin
   INTEGER :: nNgh       = 0 ! # of Neighboring CMFD Pins
-  INTEGER :: NghPin(15) = 0 ! Global Numeric # of CMFD Pin using RefCell & VoidCell
-  INTEGER :: NghBd (15) = 0 ! Self Bndy. Idx.
-  INTEGER :: NghSuf(15) = 0 ! Bndy. Idx. of Neighboring CMFD Pin
+  INTEGER :: NghPin(15) = 0 ! Global Index of CMFD Pin using RefCell & VoidCell
+  INTEGER :: NghBd (15) = 0 ! Self Boundary Index
+  INTEGER :: NghSuf(15) = 0 ! Boundary Index of Neighboring CMFD Pin
   REAL    :: NghLgh(15) = ZERO
   
 END TYPE Type_HexCmfdPin
@@ -254,7 +254,7 @@ TYPE Type_HexAsyTypInfo
   REAL, POINTER, DIMENSION(:,:,:,:) :: spVtx ! (x/y, iBndy, iGeo, iPin)
   
   ! MOC Pin Data
-  INTEGER, POINTER, DIMENSION(:,:) :: PinLocIdx ! (iGeo, iPin), Numeric # in each Geo
+  INTEGER, POINTER, DIMENSION(:,:) :: PinLocIdx ! (iGeo, iPin), Index in each Geo
   INTEGER, POINTER, DIMENSION(:,:) :: PinIdx    ! (ix,   iy),   Input of Pin
   
   REAL, POINTER, DIMENSION(:,:) :: PinCnt ! (x/y,  iPin)
@@ -267,15 +267,15 @@ TYPE Type_HexAsyTypInfo
   REAL,    POINTER, DIMENSION(:,:) :: PinVtxAng ! (iGeo, iPin), Rotated by (Ang)
   INTEGER, POINTER, DIMENSION(:,:) :: PinVtxTyp ! (iGeo, iPin)
   
-  INTEGER, POINTER, DIMENSION(:) :: CstMap ! (iPin)
+  INTEGER, POINTER, DIMENSION(:) :: CstMap ! (iPin), Corner Stiffener Map
   
   ! CMFD
-  INTEGER, POINTER, DIMENSION(:,:)   :: cpSlfMPnum !       (iGeo, iPin), MOC Pin
-  INTEGER, POINTER, DIMENSION(:,:,:) :: cpSlfMPidx ! (jPin, iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:)   :: cnpSlfMPnum !       (iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:,:) :: cnpSlfMPidx ! (jPin, iGeo, iPin), MOC Pin
   
-  INTEGER, POINTER, DIMENSION(:,:,:)   :: cpSufMPnum !       (iSuf, iGeo, iPin), MOC Pin
-  INTEGER, POINTER, DIMENSION(:,:,:,:) :: cpSufMPidx ! (jPin, iSuf, iGeo, iPin), MOC Pin
-  INTEGER, POINTER, DIMENSION(:,:,:,:) :: cpSufMPsuf ! (jPin, iSuf, iGeo, iPin), MOC Suf
+  INTEGER, POINTER, DIMENSION(:,:,:)   :: cnpSufMPnum !       (iSuf, iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:,:,:) :: cnpSufMPidx ! (jPin, iSuf, iGeo, iPin), MOC Pin
+  INTEGER, POINTER, DIMENSION(:,:,:,:) :: cnpSufMPsuf ! (jPin, iSuf, iGeo, iPin), MOC Suf
   
 END TYPE Type_HexAsyTypInfo
 ! ----------------------------------------------------
@@ -472,8 +472,8 @@ TYPE Type_HexVss
   INTEGER :: zSt = 0
   INTEGER :: zEd = 0
   
-  REAL    :: Cnt(2) = ZERO ! (x/y)
-  REAL    :: Rad(2) = ZERO ! (Inn/Out)
+  REAL :: Cnt(2) = ZERO ! (x/y)
+  REAL :: Rad(2) = ZERO ! (Inn/Out)
   
 END TYPE Type_HexVss
 ! ----------------------------------------------------

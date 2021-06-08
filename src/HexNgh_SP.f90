@@ -26,13 +26,13 @@ aInf_Loc => hAsyTypInfo(iaTyp)
 nRod = aInf_Loc%nRodPin(1)
 nTot = aInf_Loc%nTotPin(1)
 
-CALL dmalloc(aInf_Loc%cpSlfMPnum,       nGeoTyp, nRod)
-CALL dmalloc(aInf_Loc%cpSlfMPidx,    3, nGeoTyp, nRod)
-CALL dmalloc(aInf_Loc%cpSufMPidx, 2, 6, nGeoTyp, nRod)
-CALL dmalloc(aInf_Loc%cpSufMPsuf, 2, 6, nGeoTyp, nRod)
-CALL dmalloc(aInf_Loc%cpSufMPnum,    6, nGeoTyp, nRod)
+CALL dmalloc(aInf_Loc%cnpSlfMPnum,       nGeoTyp, nRod)
+CALL dmalloc(aInf_Loc%cnpSlfMPidx,    3, nGeoTyp, nRod)
+CALL dmalloc(aInf_Loc%cnpSufMPidx, 2, 6, nGeoTyp, nRod)
+CALL dmalloc(aInf_Loc%cnpSufMPsuf, 2, 6, nGeoTyp, nRod)
+CALL dmalloc(aInf_Loc%cnpSufMPnum,    6, nGeoTyp, nRod)
 
-aInf_Loc%cpSlfMPnum = 1 ! Self
+aInf_Loc%cnpSlfMPnum = 1 ! Self
 ! ----------------------------------------------------
 !               01. SET : Self Data
 ! ----------------------------------------------------
@@ -50,14 +50,14 @@ DO iGeo = 1, nGeoTyp
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, iPin)
     nBndy = spTypNumNgh(ivTyp)
     
-    aInf_Loc%cpSlfMPidx(1, iGeo, iPin) = iPin
+    aInf_Loc%cnpSlfMPidx(1, iGeo, iPin) = iPin
     
     ! Inn Pin
     IF (ivTyp < 4) THEN
       DO iBndy = 1, nBndy
-        aInf_Loc%cpSufMPnum(   iBndy, iGeo, iPin) = 1
-        aInf_Loc%cpSufMPidx(1, iBndy, iGeo, iPin) = iPin
-        aInf_Loc%cpSufMPsuf(1, iBndy, iGeo, iPin) = iBndy
+        aInf_Loc%cnpSufMPnum(   iBndy, iGeo, iPin) = 1
+        aInf_Loc%cnpSufMPidx(1, iBndy, iGeo, iPin) = iPin
+        aInf_Loc%cnpSufMPsuf(1, iBndy, iGeo, iPin) = iBndy
       END DO
       
       CYCLE
@@ -65,9 +65,9 @@ DO iGeo = 1, nGeoTyp
     
     ! Bndy Pin - Inn Bndy
     DO iBndy = 1, 3 + ivTyp / 5 - ivTyp / 6
-      aInf_Loc%cpSufMPnum(   iBndy, iGeo, iPin) = 1
-      aInf_Loc%cpSufMPidx(1, iBndy, iGeo, iPin) = iPin
-      aInf_Loc%cpSufMPsuf(1, iBndy, iGeo, iPin) = iBndy
+      aInf_Loc%cnpSufMPnum(   iBndy, iGeo, iPin) = 1
+      aInf_Loc%cnpSufMPidx(1, iBndy, iGeo, iPin) = iPin
+      aInf_Loc%cnpSufMPsuf(1, iBndy, iGeo, iPin) = iBndy
     END DO
     
     ! Bndy Pin - FIND : Ngh Gap Pin
@@ -82,7 +82,7 @@ DO iGeo = 1, nGeoTyp
       Pts(1:2, 2) = aInf_Loc%spVtx(1:2, iBndy+1, iGeo, iPin)
       
       Eqn  = SetEqn(Pts(1:2, 1), Pts(1:2, 2), Cnt)
-      iNum = aInf_Loc%cpSufMPnum(iBndy, iGeo, iPin)
+      iNum = aInf_Loc%cnpSufMPnum(iBndy, iGeo, iPin)
       xRng = [min(Pts(1, 1), Pts(1, 2)) - hEps, max(Pts(1, 1), Pts(1, 2)) + hEps]
       yRng = [min(Pts(2, 1), Pts(2, 2)) - hEps, max(Pts(2, 1), Pts(2, 2)) + hEps]
       
@@ -113,9 +113,9 @@ DO iGeo = 1, nGeoTyp
         
         iNum = iNum + 1
         
-        aInf_Loc%cpSufMPnum      (iBndy, iGeo, iPin) = iNum
-        aInf_Loc%cpSufMPidx(iNum, iBndy, iGeo, iPin) = jPin
-        aInf_Loc%cpSufMPsuf(iNum, iBndy, iGeo, iPin) = jBndy
+        aInf_Loc%cnpSufMPnum      (iBndy, iGeo, iPin) = iNum
+        aInf_Loc%cnpSufMPidx(iNum, iBndy, iGeo, iPin) = jPin
+        aInf_Loc%cnpSufMPsuf(iNum, iBndy, iGeo, iPin) = jBndy
       END DO
     END DO
     
@@ -141,19 +141,19 @@ lFst = TRUE
 
 DO kBndy = 1, 6
   DO kPin = 1, 2
-    tPin = aInf_Loc%cpSufMPidx(kPin, kBndy, iGeo, iPin)
+    tPin = aInf_Loc%cnpSufMPidx(kPin, kBndy, iGeo, iPin)
     
     IF ((tPin .EQ. 0).OR.(tPin .EQ. iPin)) CYCLE
     
     IF (lFst) THEN
-      aInf_Loc%cpSlfMPnum   (iGeo, iPin) = 2
-      aInf_Loc%cpSlfMPidx(2, iGeo, iPin) = tPin
+      aInf_Loc%cnpSlfMPnum   (iGeo, iPin) = 2
+      aInf_Loc%cnpSlfMPidx(2, iGeo, iPin) = tPin
       
       xPin = tPin
       lFst = FALSE
     ELSE IF (tPin .NE. xPin) THEN
-      aInf_Loc%cpSlfMPnum   (iGeo, iPin) = 3
-      aInf_Loc%cpSlfMPidx(3, iGeo, iPin) = tPin
+      aInf_Loc%cnpSlfMPnum   (iGeo, iPin) = 3
+      aInf_Loc%cnpSlfMPidx(3, iGeo, iPin) = tPin
       
       RETURN
     END IF

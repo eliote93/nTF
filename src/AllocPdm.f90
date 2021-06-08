@@ -221,7 +221,7 @@ USE Moc_mod,      ONLY : phis1g,     MocJout1g,   Xst1g,       tSrc,       &
                          phisnm,     PhiAngInnm,  MocJoutnm,   xstnm,      &
                          srcnm,      srcmnm,      phimnm,                  &
                          !--- CNJ Edit : Domain Decomposition
-                         DcmpPhiAngOut
+                         DcmpPhiAngOut, DcmpPhiAngIn
 USE rays,         ONLY : RayInfo
 USE Setray,       ONLY : RayInfoMaxSize
 USE CNTL,         ONLY : nTracerCntl
@@ -288,6 +288,7 @@ ENDIF
 !--- CNJ Edit : Domain Decomposition
 IF (nTracerCntl%lDomainDcmp) THEN
   CALL Dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
+  CALL Dmalloc(DcmpPhiAngIn,  nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
 ENDIF
 
 END SUBROUTINE

@@ -25,7 +25,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThread
+INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nthr
 INTEGER :: iRotRay, krot, ithr, FsrIdxSt, ipin, icel, ibd, ifsr, jfsr, ig
 REAL :: wttmp
 ! ----------------------------------------------------
@@ -36,9 +36,8 @@ nxy  = CoreInfo%nxy
 nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
 
-nThread = PE%nThread
-
-CALL omp_set_num_threads(nThread)
+nthr = PE%nThread
+CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
 !$OMP PARALLEL PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
@@ -71,7 +70,7 @@ END DO
 phisnm(gb:ge, :) = ZERO
 IF (ljout) joutnm(:, gb:ge, :, :) = ZERO
 
-DO ithr = 1, nThread
+DO ithr = 1, nthr
   phisnm(gb:ge, 1:nfsr) = phisnm(gb:ge, 1:nfsr) + TrackingDat(ithr)%phisnm(gb:ge, 1:nfsr)
   
   IF (.NOT. ljout) CYCLE

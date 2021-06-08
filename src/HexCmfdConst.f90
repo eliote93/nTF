@@ -48,28 +48,26 @@ USE HexUtil, ONLY : SetEqn, FindCnt
 
 IMPLICIT NONE
 
-INTEGER :: iAsy, iGeo, iPin, jPin, kPin, tPin, ivTyp, iBndy, nPin, nBndy
+INTEGER :: iAsy, iGeo, iPin, jPin, kPin, tPin, sPin, ivTyp, iBndy, nPin, nBndy
 REAL    :: Cnt(2)
 
-INTEGER, POINTER :: cpSlfMPnum(:, :), cpSlfMPidx(:, :, :), PinMap(:) ! Global to Super-Pin
-INTEGER, POINTER :: cpSufMPnum(:, :, :), cpSufMPidx(:, :, :, :), cpSufMPsuf(:, :, :, :)
+INTEGER, POINTER :: cnpSlfMPnum(:, :), cnpSlfMPidx(:, :, :)
+INTEGER, POINTER :: cnpSufMPnum(:, :, :), cnpSufMPidx(:, :, :, :), cnpSufMPsuf(:, :, :, :)
 
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 TYPE(Type_HexCmfdPin),    POINTER :: cPin_Loc
 ! ----------------------------------------------------
 
-CALL dmalloc(PinMap, nHexPin)
-
 nPin = 0
 
 DO iAsy = 1, nhAsy
   nhcPin = nhcPin + hAsy(iAsy)%nRodPin
-
+  
   DO iPin = 1, hAsy(iAsy)%nRodPin
     nPin = nPin + 1
     jPin = iPin + hAsy(iAsy)%PinIdxSt - 1
-
-    PinMap(jPin) = nPin
+    
+    hPinInfo(jPin)%ihcPin = nPin
   END DO
 END DO
 
@@ -77,35 +75,36 @@ ALLOCATE (hcPin (nhcPin))
 ! ----------------------------------------------------
 DO iAsy = 1, nhAsy
   iGeo = hAsy(iAsy)%GeoTyp
-
+  
   aInf_Loc => hAsyTypInfo(hAsy(iAsy)%AsyTyp)
-
-  cpSufMPnum => aInf_Loc%cpSufMPnum
-  cpSlfMPnum => aInf_Loc%cpSlfMPnum
-  cpSlfMPidx => aInf_Loc%cpSlfMPidx
-  cpSufMPidx => aInf_Loc%cpSufMPidx
-  cpSufMPsuf => aInf_Loc%cpSufMPsuf
-
-  !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin)
+  
+  cnpSufMPnum => aInf_Loc%cnpSufMPnum
+  cnpSlfMPnum => aInf_Loc%cnpSlfMPnum
+  cnpSlfMPidx => aInf_Loc%cnpSlfMPidx
+  cnpSufMPidx => aInf_Loc%cnpSufMPidx
+  cnpSufMPsuf => aInf_Loc%cnpSufMPsuf
+  
+  !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin, sPin)
   !$OMP DO SCHEDULE(GUIDED)
   DO iPin = 1, hAsy(iAsy)%nRodPin
-    jPin  = iPin + hAsy(iAsy)%PinIdxSt - 1  ! Global Pin Idx
+    jPin  = iPin + hAsy(iAsy)%PinIdxSt - 1  ! Global Idx. of MoC Pin
     kPin  = hPinInfo(jPin)%OrdInAsy01       ! Pin Idx in "hAsyTypInfo"
+    sPin  = hPinInfo(jPin)%ihcPin           ! Global Idx. of Super-Pin
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, kPin)  ! Vtx Typ
     nBndy = spTypNumNgh(ivTyp)
-
-    cPin_Loc => hcPin(PinMap(jPin))
+    
+    cPin_Loc => hcPin(sPin)
     ! ----------------------------
     !      1. CnP
     ! ----------------------------
     cPin_Loc%nBndy = nBndy
     cPin_Loc%aIdx  = iAsy
-
+    
     cPin_Loc%BdPts(1, 1:7) = aInf_Loc%spVtx(1, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(1)
     cPin_Loc%BdPts(2, 1:7) = aInf_Loc%spVtx(2, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(2)
-
+    
     Cnt(1:2) = FindCnt(nBndy, cPin_Loc%BdPts(1:2, 1:nBndy))
-
+    
     DO iBndy = 1, nBndy
       cPin_Loc%BdLgh(iBndy) = aInf_Loc%spBndyLgh(iBndy, ivTyp)
       cPin_Loc%BdC2B(iBndy) = aInf_Loc%spBndyC2B(iBndy, ivTyp)
@@ -116,21 +115,23 @@ DO iAsy = 1, nhAsy
     !      2. MP
     ! ----------------------------
     cPin_Loc%Area = aInf_Loc%spTypAre(ivTyp)
-
-    cPin_Loc%nmPin   = cpSlfMPnum   (iGeo, kPin)
-    cPin_Loc%nBdmPin = cpSufMPnum(:, iGeo, kPin)
-
+    
+    cPin_Loc%nmPin   = cnpSlfMPnum   (iGeo, kPin)
+    cPin_Loc%nBdmPin = cnpSufMPnum(:, iGeo, kPin)
+    
     DO jPin = 1, cPin_Loc%nmPin
-      tPin = cpSlfMPidx(jPin, iGeo, kPin)
-
+      tPin = cnpSlfMPidx(jPin, iGeo, kPin)
+      
       cPin_Loc%mpIdx(jPin) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1
+      
+      hPinInfo(cPin_Loc%mpIdx(jPin))%ihcPin = sPin
     END DO
-
+    
     DO iBndy = 1, cPin_Loc%nBndy
-      DO jPin = 1, cpSufMPnum(iBndy, iGeo, kPin)
-        tPin = cpSufMPidx(jPin, iBndy, iGeo, kPin)
+      DO jPin = 1, cnpSufMPnum(iBndy, iGeo, kPin)
+        tPin = cnpSufMPidx(jPin, iBndy, iGeo, kPin)
 
-        cPin_Loc%BdMPsuf(jPin, iBndy) = cpSufMPsuf(jPin, iBndy, iGeo, kPin)
+        cPin_Loc%BdMPsuf(jPin, iBndy) = cnpSufMPsuf(jPin, iBndy, iGeo, kPin)
         cPin_Loc%BdMPidx(jPin, iBndy) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx
       END DO
     END DO
@@ -139,7 +140,13 @@ DO iAsy = 1, nhAsy
   !$OMP END PARALLEL
 END DO
 
-NULLIFY (PinMap, cpSufMPnum, cpSlfMPnum, cpSlfMPidx, cpSufMPidx, cpSufMPsuf, aInf_Loc, cPin_Loc)
+NULLIFY (cnpSufMPnum)
+NULLIFY (cnpSlfMPnum)
+NULLIFY (cnpSlfMPidx)
+NULLIFY (cnpSufMPidx)
+NULLIFY (cnpSufMPsuf)
+NULLIFY (aInf_Loc)
+NULLIFY (cPin_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPinSlf_SP
@@ -158,34 +165,32 @@ IMPLICIT NONE
 INTEGER :: iAsy, iGeo, iPin, jPin, kPin, tPin, ivTyp, iBndy, nBndy
 REAL    :: Cnt(2)
 
-INTEGER, POINTER :: cpSlfMPnum(:, :), cpSlfMPidx(:, :, :), PinMap(:) ! Global to Super-Pin
-INTEGER, POINTER :: cpSufMPnum(:, :, :), cpSufMPidx(:, :, :, :), cpSufMPsuf(:, :, :, :)
+INTEGER, POINTER :: cnpSlfMPnum(:, :), cnpSlfMPidx(:, :, :)
+INTEGER, POINTER :: cnpSufMPnum(:, :, :), cnpSufMPidx(:, :, :, :), cnpSufMPsuf(:, :, :, :)
 
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 TYPE(Type_HexCmfdPin),    POINTER :: cPin_Loc
 ! ----------------------------------------------------
 
-CALL dmalloc(PinMap, nHexPin)
-
 nhcPin = nHexPin
 
 DO iPin = 1, nhcPin
-  PinMap(iPin) = iPin
+  hPinInfo(iPin)%ihcPin = iPin
 END DO
 
 ALLOCATE (hcPin (nhcPin))
 ! ----------------------------------------------------
 DO iAsy = 1, nhAsy
   iGeo = hAsy(iAsy)%GeoTyp
-
+  
   aInf_Loc => hAsyTypInfo(hAsy(iAsy)%AsyTyp)
-
-  cpSufMPnum => aInf_Loc%cpSufMPnum
-  cpSlfMPnum => aInf_Loc%cpSlfMPnum
-  cpSlfMPidx => aInf_Loc%cpSlfMPidx
-  cpSufMPidx => aInf_Loc%cpSufMPidx
-  cpSufMPsuf => aInf_Loc%cpSufMPsuf
-
+  
+  cnpSufMPnum => aInf_Loc%cnpSufMPnum
+  cnpSlfMPnum => aInf_Loc%cnpSlfMPnum
+  cnpSlfMPidx => aInf_Loc%cnpSlfMPidx
+  cnpSufMPidx => aInf_Loc%cnpSufMPidx
+  cnpSufMPsuf => aInf_Loc%cnpSufMPsuf
+  
   !$OMP PARALLEL PRIVATE(iPin, jPin, kPin, ivTyp, nBndy, cPin_Loc, Cnt, iBndy, tPin)
   !$OMP DO SCHEDULE(GUIDED)
   DO iPin = 1, hAsy(iAsy)%nTotPin
@@ -193,44 +198,44 @@ DO iAsy = 1, nhAsy
     kPin  = hPinInfo(jPin)%OrdInAsy01       ! Pin Idx in "hAsyTypInfo"
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, kPin)  ! Vtx Typ
     nBndy = mpTypNumNgh(ivTyp)
-
-    cPin_Loc => hcPin(PinMap(jPin))
+    
+    cPin_Loc => hcPin(hPinInfo(jPin)%ihcPin)
     ! ----------------------------
     !      1. CnP
     ! ----------------------------
     cPin_Loc%nBndy = nBndy
     cPin_Loc%aIdx  = iAsy
-
+    
     cPin_Loc%BdPts(1, 1:7) = aInf_Loc%mpVtx(1, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(1)
     cPin_Loc%BdPts(2, 1:7) = aInf_Loc%mpVtx(2, 1:7, iGeo, kPin) + hAsy(iAsy)%Cnt(2)
-
+    
     Cnt(1:2) = FindCnt(nBndy, cPin_Loc%BdPts(1:2, 1:nBndy))
-
+    
     DO iBndy = 1, nBndy
       cPin_Loc%BdLgh(iBndy) = aInf_Loc%mpBndyLgh(iBndy, ivTyp)
       cPin_Loc%BdC2B(iBndy) = aInf_Loc%mpBndyC2B(iBndy, ivTyp)
-
+      
       cPin_Loc%BdEqn(1:3, iBndy) = SetEqn(cPin_Loc%BdPts(1:2, iBndy), cPin_Loc%BdPts(1:2, iBndy+1), Cnt)
     END DO
     ! ----------------------------
     !      2. MP
     ! ----------------------------
     cPin_Loc%Area = aInf_Loc%mpTypAre(ivTyp)
-
-    cPin_Loc%nmPin   = cpSlfMPnum   (iGeo, kPin)
-    cPin_Loc%nBdmPin = cpSufMPnum(:, iGeo, kPin)
-
+    
+    cPin_Loc%nmPin   = cnpSlfMPnum   (iGeo, kPin)
+    cPin_Loc%nBdmPin = cnpSufMPnum(:, iGeo, kPin)
+    
     DO jPin = 1, cPin_Loc%nmPin
-      tPin = cpSlfMPidx(jPin, iGeo, kPin)
-
+      tPin = cnpSlfMPidx(jPin, iGeo, kPin)
+      
       cPin_Loc%mpIdx(jPin) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1
     END DO
-
+    
     DO iBndy = 1, cPin_Loc%nBndy
-      DO jPin = 1, cpSufMPnum(iBndy, iGeo, kPin)
-        tPin = cpSufMPidx(jPin, iBndy, iGeo, kPin)
+      DO jPin = 1, cnpSufMPnum(iBndy, iGeo, kPin)
+        tPin = cnpSufMPidx(jPin, iBndy, iGeo, kPin)
 
-        cPin_Loc%BdMPsuf(jPin, iBndy) = cpSufMPsuf(jPin, iBndy, iGeo, kPin)
+        cPin_Loc%BdMPsuf(jPin, iBndy) = cnpSufMPsuf(jPin, iBndy, iGeo, kPin)
         cPin_Loc%BdMPidx(jPin, iBndy) = aInf_Loc%PinLocIdx(iGeo, tPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx
       END DO
     END DO
@@ -239,7 +244,13 @@ DO iAsy = 1, nhAsy
   !$OMP END PARALLEL
 END DO
 
-NULLIFY (PinMap, cpSufMPnum, cpSlfMPnum, cpSlfMPidx, cpSufMPidx, cpSufMPsuf, aInf_Loc, cPin_Loc)
+NULLIFY (cnpSufMPnum)
+NULLIFY (cnpSlfMPnum)
+NULLIFY (cnpSlfMPidx)
+NULLIFY (cnpSufMPidx)
+NULLIFY (cnpSufMPsuf)
+NULLIFY (aInf_Loc)
+NULLIFY (cPin_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPinSlf_MP
@@ -704,7 +715,7 @@ END SUBROUTINE HexSetHcPin_Sng
 SUBROUTINE HexSetMP2SP()
 
 USE CNTL,    ONLY : nTracerCntl
-USE HexType, ONLY : Type_HexCmfdPin
+USE HexType, ONLY : Type_HexCmfdPin, Type_HexPinInfo
 USE HexData, ONLY : hcPin, nhcPin, hPinInfo
 
 IMPLICIT NONE
@@ -712,6 +723,7 @@ IMPLICIT NONE
 INTEGER :: ihcPin, iNgh, jhcPin, iAsy, jAsy, iBndy, nPin, iPin, jPin, ivTyp, isurf
 
 TYPE (Type_HexCmfdPin), POINTER :: cPin_Loc
+TYPE (Type_HexPinInfo), POINTER :: mPin_Loc
 ! ----------------------------------------------------
 
 IF (.NOT. nTracerCntl%lDomainDcmp) RETURN
@@ -734,8 +746,11 @@ DO ihcPin = 1, nhcPin
     nPin  = cPin_Loc%nBdmPin(iBndy)
     
     DO iPin = 1, nPin
-      jPin  = cPin_Loc%BdMPidx(iPin, iBndy)
-      ivTyp = hPinInfo(jPin)%VtxTyp
+      jPin = cPin_Loc%BdMPidx(iPin, iBndy)
+      
+      mPin_Loc => hPinInfo(jPin)
+      
+      ivTyp = mPin_Loc%VtxTyp
       
       SELECT CASE (ivTyp) ! NOTICE : No 4, 5
       CASE (1); isurf = 2 ! Inn 060
@@ -750,24 +765,25 @@ DO ihcPin = 1, nhcPin
         IF (jhcPin .GE. 0) isurf = 4 ! VAC + Other Asy.
       END SELECT
       
-      hPinInfo(jPin)%DcmpMP2nghSPidx(isurf) = jhcPin
-      hPinInfo(jPin)%DcmpMP2slfSPngh(isurf) = iNgh
+      mPin_Loc%DcmpMP2nghSPidx(isurf) = jhcPin
+      mPin_Loc%DcmpMP2slfSPngh(isurf) = iNgh
       
       SELECT CASE (ivTyp)
       CASE (1)
-        hPinInfo(jPin)%DcmpMP2nghSPidx(3) = -1   ! VAC
-        hPinInfo(jPin)%DcmpMP2slfSPngh(3) = iNgh
+        mPin_Loc%DcmpMP2nghSPidx(3) = -1   ! VAC
+        mPin_Loc%DcmpMP2slfSPngh(3) = iNgh
       CASE (3)
-        hPinInfo(jPin)%DcmpMP2nghSPidx(2) = -1   ! VAC
-        hPinInfo(jPin)%DcmpMP2slfSPngh(2) = iNgh
-        hPinInfo(jPin)%DcmpMP2nghSPidx(4) = -1   ! VAC
-        hPinInfo(jPin)%DcmpMP2slfSPngh(4) = iNgh
+        mPin_Loc%DcmpMP2nghSPidx(2) = -1   ! VAC
+        mPin_Loc%DcmpMP2slfSPngh(2) = iNgh
+        mPin_Loc%DcmpMP2nghSPidx(4) = -1   ! VAC
+        mPin_Loc%DcmpMP2slfSPngh(4) = iNgh
       END SELECT
     END DO
   END DO
 END DO
 
 NULLIFY (cPin_Loc)
+NULLIFY (mPin_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetMP2SP

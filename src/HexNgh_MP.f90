@@ -19,13 +19,13 @@ aInf_Loc => hAsyTypInfo(iaTyp)
 
 nTot = aInf_Loc%nTotPin(1)
 
-CALL dmalloc(aInf_Loc%cpSlfMPnum,       nGeoTyp, nTot)
-CALL dmalloc(aInf_Loc%cpSlfMPidx,    3, nGeoTyp, nTot)
-CALL dmalloc(aInf_Loc%cpSufMPidx, 2, 6, nGeoTyp, nTot)
-CALL dmalloc(aInf_Loc%cpSufMPsuf, 2, 6, nGeoTyp, nTot)
-CALL dmalloc(aInf_Loc%cpSufMPnum,    6, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cnpSlfMPnum,       nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cnpSlfMPidx,    3, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cnpSufMPidx, 2, 6, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cnpSufMPsuf, 2, 6, nGeoTyp, nTot)
+CALL dmalloc(aInf_Loc%cnpSufMPnum,    6, nGeoTyp, nTot)
 
-aInf_Loc%cpSlfMPnum = 1 ! Self
+aInf_Loc%cnpSlfMPnum = 1 ! Self
 ! ----------------------------------------------------
 !               01. SET : Self Data
 ! ----------------------------------------------------
@@ -36,12 +36,12 @@ DO iGeo = 1, nGeoTyp
     ivTyp = aInf_Loc%PinVtxTyp(iGeo, iPin)
     nBndy = mpTypNumNgh(ivTyp)
     
-    aInf_Loc%cpSlfMPidx(1, iGeo, iPin) = iPin
+    aInf_Loc%cnpSlfMPidx(1, iGeo, iPin) = iPin
     
     DO iBndy = 1, nBndy
-      aInf_Loc%cpSufMPnum(   iBndy, iGeo, iPin) = 1
-      aInf_Loc%cpSufMPidx(1, iBndy, iGeo, iPin) = iPin
-      aInf_Loc%cpSufMPsuf(1, iBndy, iGeo, iPin) = iBndy
+      aInf_Loc%cnpSufMPnum(   iBndy, iGeo, iPin) = 1
+      aInf_Loc%cnpSufMPidx(1, iBndy, iGeo, iPin) = iPin
+      aInf_Loc%cnpSufMPsuf(1, iBndy, iGeo, iPin) = iBndy
     END DO
     
   END DO

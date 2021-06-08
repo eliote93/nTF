@@ -56,12 +56,13 @@ ELSE
   END IF
 END IF
 
+nthr = PE%nthread
 CALL OMP_SET_NUM_THREADS(nThr)
 ! ----------------------------------------------------
 DO ithr = 1, nThr
   TrackingDat(ithr)%srcnm => srcnm
   TrackingDat(ithr)%xstnm => xstnm
-    
+  
   IF (lLinSrcCASMO) TrackingDat(ithr)%srcSlope => srcSlope(:, :, :, iz)
 END DO
 
@@ -72,7 +73,7 @@ DO color = startColor, endColor, colorInc
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInnm, DcmpPhiAngIn)
 #endif
 
-  !$OMP PARALLEL PRIVATE(iAsy, AsyType)
+  !$OMP PARALLEL PRIVATE(ithr, iAsy, AsyType)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   
@@ -119,6 +120,7 @@ USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, AsyInfo_Type, Asy_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE Moc_Mod, ONLY : RecTrackRotRayOMP_Dcmp, HexTrackRotRayOMP_Dcmp, TrackingDat
 USE CNTL,    ONLY : nTracerCntl
+USE HexData, ONLY : hAsy
 
 IMPLICIT NONE
 
@@ -141,7 +143,7 @@ INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
 REAL, POINTER, DIMENSION(:,:) :: xstnm, srcnm
 
-INTEGER :: nxy, iAsyRay, ithr, icel, ig, ipin, ifsr, jfsr, krot, AsyType, FsrIdxSt, FsrIdxEnd, PinIdxSt, PinIdxEnd
+INTEGER :: nxy, iAsyRay, ithr, icel, ig, ipin, ifsr, jfsr, krot, FsrIdxSt, FsrIdxEnd, PinIdxSt, PinIdxEd
 ! ----------------------------------------------------
 
 AsyInfo => CoreInfo%AsyInfo
@@ -149,14 +151,18 @@ Asy     => CoreInfo%Asy
 Cell    => CoreInfo%CellInfo
 Pin     => CoreInfo%Pin
 
-AsyType   = Asy(iAsy)%AsyType
-PinIdxSt  = Asy(iAsy)%GlobalPinIdx(1)
-PinIdxEnd = Asy(iAsy)%GlobalPinIdx(nxy)
-
-nxy = AsyInfo(AsyType)%nxy
+IF (.NOT. nTracerCntl%lHex) THEN
+  nxy = AsyInfo(Asy(iAsy)%AsyType)%nxy
+  
+  PinIdxSt = Asy(iAsy)%GlobalPinIdx(1)
+  PinIdxEd = Asy(iAsy)%GlobalPinIdx(nxy)
+ELSE
+  PinIdxSt = hAsy(iAsy)%PinIdxSt
+  PinIdxEd = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
+END IF
 
 FsrIdxSt  = Pin(PinIdxSt)%FsrIdxSt
-FsrIdxEnd = Pin(PinIdxEnd)%FsrIdxSt + Cell(Pin(PinIdxEnd)%Cell(iz))%nFsr - 1
+FsrIdxEnd = Pin(PinIdxEd)%FsrIdxSt + Cell(Pin(PinIdxEd)%Cell(iz))%nFsr - 1
 
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
@@ -165,7 +171,7 @@ ithr = omp_get_thread_num() + 1
 
 phisnm(gb:ge, FsrIdxSt:FsrIdxEnd) = ZERO
 
-IF (ljout) joutnm(:, gb:ge, :, PinIdxSt:PinIdxEnd) = ZERO
+IF (ljout) joutnm(:, gb:ge, :, PinIdxSt:PinIdxEd) = ZERO
 
 IF (nTracerCntl%lHex) THEN
   DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
@@ -184,7 +190,7 @@ END IF
 xstnm => TrackingDat(ithr)%xstnm
 srcnm => TrackingDat(ithr)%srcnm
 
-DO ipin = PinIdxSt, PinIdxEnd
+DO ipin = PinIdxSt, PinIdxEd
   FsrIdxSt = Pin(ipin)%FsrIdxSt
   icel     = Pin(ipin)%Cell(iz)
   
@@ -287,9 +293,9 @@ AziList    => DcmpAsyRay%AziList
 PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
-  PhiAngOut = PhiAngIn(1:nPolarAng, gb:ge, PhiAnginSvIdx)
+  PhiAngOut(1:nPolarAng, gb:ge) = PhiAngIn    (1:nPolarAng, gb:ge, PhiAnginSvIdx)
 ELSE
-  PhiAngOut = DcmpPhiAngIn(1:nPolarAng, gb:ge, krot, iRay, iAsy)
+  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngIn(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF
   
 IF (krot .EQ. 2) THEN
@@ -491,9 +497,9 @@ AziList    => DcmpAsyRay%AziList
 PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
-  PhiAngOut = PhiAngIn(1:nPolarAng, gb:ge, PhiAnginSvIdx)
+  PhiAngOut(1:nPolarAng, gb:ge) = PhiAngIn    (1:nPolarAng, gb:ge, PhiAnginSvIdx)
 ELSE
-  PhiAngOut = DcmpPhiAngIn(1:nPolarAng, gb:ge, krot, iRay, iAsy)
+  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngIn(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF
   
 IF (krot .EQ. 2) THEN
@@ -660,7 +666,7 @@ INTEGER :: nxy, nFsr
 INTEGER :: iAsyRay
 INTEGER :: tid
 INTEGER :: FsrIdxSt, FsrIdxEnd
-INTEGER :: PinIdxSt, PinIdxEnd
+INTEGER :: PinIdxSt, PinIdxEd
 INTEGER :: icel, ireg
 INTEGER :: i, j, l, g
 REAL :: detinv
@@ -678,9 +684,9 @@ AsyType = Asy(iAsy)%AsyType
 nxy = AsyInfo(AsyType)%nxy
 
 PinIdxSt = Asy(iAsy)%GlobalPinIdx(1)
-PinIdxEnd = Asy(iAsy)%GlobalPinIdx(nxy)
+PinIdxEd = Asy(iAsy)%GlobalPinIdx(nxy)
 FsrIdxSt = Pin(PinIdxSt)%FsrIdxSt
-FsrIdxEnd = Pin(PinIdxEnd)%FsrIdxSt + Cell(Pin(PinIdxEnd)%Cell(iz))%nFsr - 1
+FsrIdxEnd = Pin(PinIdxEd)%FsrIdxSt + Cell(Pin(PinIdxEd)%Cell(iz))%nFsr - 1
 
 DcmpAsyRay => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
@@ -689,7 +695,7 @@ ALLOCATE(phimx(2, gb : ge, FsrIdxSt : FsrIdxEnd), phimy(2, gb : ge, FsrIdxSt : F
 phimx(:, :, :) = zero; phimy(:, :, :) = zero
 
 phisnm(gb : ge, FsrIdxSt : FsrIdxEnd) = zero
-IF(ljout) joutnm(:, gb : ge, :, PinIdxSt : PinIdxEnd) = zero
+IF(ljout) joutnm(:, gb : ge, :, PinIdxSt : PinIdxEd) = zero
 
 tid = omp_get_thread_num() + 1
 
@@ -708,7 +714,7 @@ DO i = FsrIdxSt, FsrIdxEnd
   END DO
 END DO
 
-DO l = PinIdxSt, PinIdxEnd
+DO l = PinIdxSt, PinIdxEd
   icel = Pin(l)%Cell(iz);
   DO j = 1, Cell(icel)%nFsr
     ireg = Pin(l)%FsrIdxSt + j - 1
@@ -1064,6 +1070,7 @@ USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cel
 USE Moc_Mod, ONLY : TrackingDat, Comp, mwt, AziMap, DcmpPhiAngIn, DcmpPhiAngOut, RecTrackRotRayPn_Dcmp, wtang, srcmnm
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
+USE HexData, ONLY : hAsy
 
 IMPLICIT NONE
 
@@ -1088,7 +1095,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: phianm, SrcAngnm
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: nAziAng, nPolarAng, nAsyRay, nxy, ithr, FsrIdxSt, FsrIdxEnd, PinIdxSt, PinIdxEnd, AziIdx
+INTEGER :: nAziAng, nPolarAng, nAsyRay, nxy, ithr, FsrIdxSt, FsrIdxEnd, PinIdxSt, PinIdxEd, AziIdx
 INTEGER :: icel, ipin, iazi, ipol, iDcmpAsyRay, imRay, ig, iFSR, jFSR, iAsyRay, krot
 REAL :: wttemp, tempsrc
 ! ----------------------------------------------------
@@ -1103,13 +1110,18 @@ nPolarAng        = RayInfo%nPolarAngle
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
-nxy = AsyInfo(Asy(iAsy)%AsyType)%nxy
+IF (.NOT. nTracerCntl%lHex) THEN
+  nxy = AsyInfo(Asy(iAsy)%AsyType)%nxy
+  
+  PinIdxSt = Asy(iAsy)%GlobalPinIdx(1)
+  PinIdxEd = Asy(iAsy)%GlobalPinIdx(nxy)
+ELSE
+  PinIdxSt = hAsy(iAsy)%PinIdxSt
+  PinIdxEd = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
+END IF
 
-PinIdxSt  = Asy(iAsy)%GlobalPinIdx(1)
-PinIdxEnd = Asy(iAsy)%GlobalPinIdx(nxy)
-
-FsrIdxSt  = Pin(Asy(iAsy)%GlobalPinIdx(1))%FsrIdxSt
-FsrIdxEnd = Pin(Asy(iAsy)%GlobalPinIdx(nxy))%FsrIdxSt + Cell(Pin(Asy(iAsy)%GlobalPinIdx(nxy))%Cell(iz))%nFsr - 1
+FsrIdxSt  = Pin(PinIdxSt)%FsrIdxSt
+FsrIdxEnd = Pin(PinIdxEd)%FsrIdxSt + Cell(Pin(PinIdxEd)%Cell(iz))%nFsr - 1
 ! ----------------------------------------------------
 ithr = omp_get_thread_num() + 1
 
@@ -1123,7 +1135,7 @@ SrcAngnm => TrackingDat(ithr)%SrcAngnm
 phisnm(   gb:ge, FsrIdxSt:FsrIdxEnd) = ZERO
 phimnm(:, gb:ge, FsrIdxSt:FsrIdxEnd) = ZERO
 
-IF (lJout) joutnm(:, gb:ge, :, PinIdxSt:PinIdxEnd) = ZERO
+IF (lJout) joutnm(:, gb:ge, :, PinIdxSt:PinIdxEd) = ZERO
 ! ----------------------------------------------------
 DO iAzi = 1, nAziAng / 2
   IF (ScatOd .EQ. 1) THEN
@@ -1347,7 +1359,7 @@ DEALLOCATE (TrackingDat(ithr)%phianm)
 DEALLOCATE (TrackingDat(ithr)%SrcAngnm)
 ! ----------------------------------------------------
 IF (ScatOd .EQ. 1) THEN
-  DO iPin = PinIdxSt, PinIdxEnd
+  DO iPin = PinIdxSt, PinIdxEd
     FsrIdxSt = Pin(iPin)%FsrIdxSt
     icel     = Pin(iPin)%Cell(iz)
     
@@ -1364,7 +1376,7 @@ IF (ScatOd .EQ. 1) THEN
     END DO  
   END DO
 ELSE IF (ScatOd .EQ. 2) THEN
-  DO iPin = PinIdxSt, PinIdxEnd
+  DO iPin = PinIdxSt, PinIdxEd
     FsrIdxSt = Pin(iPin)%FsrIdxSt
     icel     = Pin(iPin)%Cell(iz)
     
@@ -1382,7 +1394,7 @@ ELSE IF (ScatOd .EQ. 2) THEN
     END DO  
   END DO
 ELSE IF (ScatOd .EQ. 3) THEN
-  DO iPin = PinIdxSt, PinIdxEnd
+  DO iPin = PinIdxSt, PinIdxEd
     FsrIdxSt = Pin(iPin)%FsrIdxSt
     icel     = Pin(iPin)%Cell(iz)
     

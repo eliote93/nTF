@@ -64,7 +64,7 @@ IMPLICIT NONE
 
 TYPE(RayInfo_type) :: RayInfo
 TYPE(RayInfo4Cmfd_type), POINTER :: RayInfo4Cmfd
-
+! ----------------------------------------------------
 TYPE(DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER :: iRotRay, tDir, kDir, isv, icNum, imNum, ipNum, nRotRay, ncRay, nmRay, npRay
@@ -189,9 +189,9 @@ SUBROUTINE HexSetMocPhiIn(Core, PinXS)
 
 USE MKL_3D,      ONLY : mklGeom, mklCMFD, superPin_Type
 USE PARAM,       ONLY : ZERO
-USE TYPEDEF,     ONLY : CoreInfo_Type, Pin_Type, PinXs_Type, RayInfo4CMFD_Type, CmInfo_Type
+USE TYPEDEF,     ONLY : CoreInfo_Type, PinXs_Type
+USE Core_mod,    ONLY : RadJout
 USE RAYS,        ONLY : RayInfo4CMFD
-USE CMFD_MOD,    ONLY : PinNeighIdx, CMFDPinXS, SubPlaneMap
 USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : ItrCntl
 USE HexData,     ONLY : hPinInfo
@@ -199,38 +199,39 @@ USE HexData,     ONLY : hPinInfo
 IMPLICIT NONE
 
 TYPE (CoreInfo_Type) :: Core
-TYPE (CmInfo_Type)   :: CMInfo
 
-INTEGER :: myzb, myze, ng
+TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: PinXs
+! ----------------------------------------------------
+INTEGER :: iz, izf, ig, ipol, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
+INTEGER :: myzb, myze, ng, nRotRay, nCoreRay, nPolar, nAsy
 
-TYPE (superPin_Type), POINTER, DIMENSION(:)   :: superPin
-TYPE (PinXs_Type),    POINTER, DIMENSION(:,:) :: PinXs
-
-REAL, POINTER, DIMENSION(:,:,:) :: PHIC, PhiFm
-
-INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount, pinMap
+INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx, fmRange
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAsyRayInSurf, DcmpAsyRayInCell
 
-INTEGER :: iz, izf, ig, ipol, ixy, isv, ipin, ingh, nRotRay, nCoreRay, nPolar, nAsy, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
+REAL :: myphi, nghphi, surfphi, atil, ahat, smy, fmult, phisum
 
 REAL, POINTER, DIMENSION(:)           :: hz, hzfm
+REAL, POINTER, DIMENSION(:,:,:)       :: phis
 REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn
-REAL, POINTER, DIMENSION(:,:,:,:,:)   :: RadJout
 REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn
 
-REAL :: myphi, nghphi, surfphi, atil, ahat, smy, fmult, phisum
+TYPE (superPin_Type), POINTER, DIMENSION(:) :: superPin
 ! ----------------------------------------------------
 
 IF (.NOT.nTracerCntl%lHex .OR. .NOT.nTracerCntl%lDomainDcmp) RETURN
 
 nAsy = Core%nxya
 
-pinMap   => mklGeom%pinMap
+ng        = mklGeom%ng
+myzb      = mklGeom%myzb
+myze      = mklGeom%myze
 fmRange  => mklGeom%fmRange
 hzfm     => mklGeom%hzfm
 hz       => mklGeom%hz
 superPin => mklGeom%superPin
+
+phis => mklCMFD%phis
 
 nRotRay           = RayInfo4CMFD%nRotRay
 nCoreRay          = RayInfo4CMFD%nCoreRay
@@ -245,11 +246,11 @@ AsyPhiAngIn      => RayInfo4CMFD%AsyPhiAngIn
 ! ----------------------------------------------------
 DO idir = 1, 2
   DO iRotRay = 1, nRotRay
-    ixy = RotRayInOutCell(iRotRay, idir) ! MoC
+    imxy = RotRayInOutCell(iRotRay, idir) ! Global Idx. of MoC Pin
     
-    IF (ixy .EQ. 0) CYCLE
+    IF (imxy .EQ. 0) CYCLE
     
-    isxy = hPinInfo(ixy)%ihcPin ! Suer-Pin
+    isxy = hPinInfo(imxy)%ihcPin          ! Global Idx. of Suer-Pin
     isv  = PhiAngInSvIdx(iRotRay, idir)
     
     DO iz = myzb, myze
@@ -257,10 +258,10 @@ DO idir = 1, 2
         phisum = ZERO
         
         DO izf = fmRange(iz, 1), fmRange(iz, 2)
-          phisum = phisum + mklCMFD%phis(isxy, izf, ig) * (hzfm(izf) / hz(iz))
+          phisum = phisum + phis(isxy, izf, ig) * (hzfm(izf) / hz(iz))
         END DO
         
-        fmult = phisum / PinXS(ixy, iz)%phi(ig)
+        fmult = phisum / PinXS(isxy, iz)%phi(ig)
         
         DO ipol = 1, nPolar
           PhiAngIn(ipol, isv, iz, ig) = PhiAngIn(ipol, isv, iz, ig) * fmult
@@ -275,28 +276,28 @@ IF (nTracerCntl%lDomainDcmp) THEN
     DO iAsy = 1, nAsy
       DO icnt = 1, DcmpAsyRayCount(iAsy)
         DO idir = 1, 2
-          ixy   = DcmpAsyRayInCell(idir, icnt, iAsy)
+          imxy  = DcmpAsyRayInCell(idir, icnt, iAsy) ! Global Idx. of MoC Pin
           isurf = DcmpAsyRayInSurf(idir, icnt, iAsy)
-          isxy  = hPinInfo(ixy)%ihcPin
-          ingh  = hPinInfo(ixy)%DcmpMP2slfSPngh(isurf)
-          jsxy  = hPinInfo(ixy)%DcmpMP2nghSPidx(isurf)
+          isxy  = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
+          ingh  = hPinInfo(imxy)%DcmpMP2slfSPngh(isurf)
+          jsxy  = hPinInfo(imxy)%DcmpMP2nghSPidx(isurf)
           smy   = superPin(isxy)%BdLength(ingh)
           
           DO ig = 1, ng
             myphi = ZERO
             DO izf = fmRange(iz, 1), fmRange(iz, 2)
-              myphi = myphi + mklCMFD%phis(isxy, izf, ig) * (hzfm(izf) / hz(iz))
+              myphi = myphi + phis(isxy, izf, ig) * (hzfm(izf) / hz(iz))
             END DO
             
             nghphi = ZERO
             IF (jsxy .GT. 0) THEN
               DO izf = fmRange(iz, 1), fmRange(iz, 2)
-                nghphi = nghphi + mklCMFD%phis(ingh, izf, ig) * (hzfm(izf) / hz(iz))
+                nghphi = nghphi + phis(ingh, izf, ig) * (hzfm(izf) / hz(iz))
               END DO
             END IF
             
-            atil = PinXS(ixy, iz)%atil(ingh, ig)
-            ahat = PinXS(ixy, iz)%ahat(ingh, ig)
+            atil = PinXS(isxy, iz)%atil(ingh, ig)
+            ahat = PinXS(isxy, iz)%ahat(ingh, ig)
             
             surfphi = atil * myphi + (smy - atil) * nghphi
             
@@ -304,7 +305,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
               AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / smy
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
-              fmult   = surfphi / RadJout(3, isurf, ixy, iz, ig)
+              fmult   = surfphi / RadJout(3, isurf, imxy, iz, ig)
               
               DO ipol = 1, nPolar
                 AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) * fmult
@@ -318,21 +319,22 @@ IF (nTracerCntl%lDomainDcmp) THEN
 END IF
 ! ----------------------------------------------------
 ! Dcmp.
-NULLIFY (RotRayInOutCell)
-NULLIFY (PhiAngInSvIdx)
-NULLIFY (PhiAngIn)
 NULLIFY (DcmpAsyRayCount)
 NULLIFY (DcmpAsyRayInSurf)
 NULLIFY (DcmpAsyRayInCell)
+
+! Loc.
+NULLIFY (RotRayInOutCell)
+NULLIFY (PhiAngInSvIdx)
+NULLIFY (phis)
+NULLIFY (PhiAngIn)
 NULLIFY (AsyPhiAngIn)
+NULLIFY (superPin)
 
 ! Geo
-NULLIFY (superPin)
-NULLIFY (RayInfo4Cmfd)
-NULLIFY (PhiC)
-NULLIFY (PhiFm)
-NULLIFY (PinXS)
-NULLIFY (RadJout)
+NULLIFY (fmRange)
+NULLIFY (hz)
+NULLIFY (hzfm)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetMocPhiIn

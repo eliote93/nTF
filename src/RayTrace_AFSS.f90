@@ -14,7 +14,7 @@ TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (nTracerCntl_Type) :: nTracerCntl
 TYPE (PE_TYPE)          :: PE
 ! ----------------------------------------------------
-INTEGER :: nAziAng, nPolarAng, nRotray, nFSR, nThread, OmpTemp, ithr, nAzi, iRotRay, iazi, iRay, jazi
+INTEGER :: nAziAng, nPolarAng, nRotray, nFSR, nthr, OmpTemp, ithr, nAzi, iRotRay, iazi, iRay, jazi
 
 TYPE(RotRayInfo_Type), POINTER :: LocRotRay, RotRay(:)
 
@@ -30,7 +30,7 @@ RotRay   => RayInfo%RotRay
 
 nFSR = CoreInfo%nCoreFsr
 
-nThread = PE%nThread
+nthr = PE%nThread
 ! ----------------------------------------------------
 IF (nTracerCntl%lScatBd) THEN
   ! Basic
@@ -44,18 +44,18 @@ IF (nTracerCntl%lScatBd) THEN
     nSegRotRay(iazi) = nSegRotRay(iazi) + RotRay(iRotRay)%nSeg
   END DO
   
-  CALL dmalloc(nAziRotRay0,   nThread)
-  CALL dmalloc0(OmpRayBeg, 0, nThread)
-  CALL dmalloc0(OmpRayEnd, 0, nThread)
+  CALL dmalloc(nAziRotRay0,   nthr)
+  CALL dmalloc0(OmpRayBeg, 0, nthr)
+  CALL dmalloc0(OmpRayEnd, 0, nthr)
   
   OmpRayBeg(0) = 1
   OmpRayEnd(0) = 0
   
-  nAzi    = nAziAng / 2 / nThread
+  nAzi    = nAziAng / 2 / nthr
   OmpTemp = 0
   jazi    = 0
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     OmpRayBeg(ithr) = OmpRayBeg(ithr-1) + OmpTemp
     
     DO iazi = 1, nAzi
@@ -88,9 +88,9 @@ IF (nTracerCntl%lScatBd) THEN
     END DO
   END DO
   
-  CALL dmalloc(OmpMap, nThread, nAzi*2)
+  CALL dmalloc(OmpMap, nthr, nAzi*2)
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO iazi = 1, nAzi
       OmpTemp = OmpTemp + 1
       
@@ -110,21 +110,21 @@ ELSE
     nSegRotRay(iazi) = nSegRotRay(iazi) + RotRay(iRotRay)%nSeg
   END DO
   
-  CALL dmalloc(nAziRotRay0,   2*nThread)
-  CALL dmalloc0(OmpRayBeg, 0, 2*nThread)
-  CALL dmalloc0(OmpRayEnd, 0, 2*nThread)
+  CALL dmalloc(nAziRotRay0,   2*nthr)
+  CALL dmalloc0(OmpRayBeg, 0, 2*nthr)
+  CALL dmalloc0(OmpRayEnd, 0, 2*nthr)
   
-  CALL dmalloc0(OmpRayBegBd, 1, 2, 0, nThread)
-  CALL dmalloc0(OmpRayEndBd, 1, 2, 0, nThread)
+  CALL dmalloc0(OmpRayBegBd, 1, 2, 0, nthr)
+  CALL dmalloc0(OmpRayEndBd, 1, 2, 0, nthr)
   
   OmpRayBegBd(1,0) = 1
   OmpRayEndBd(1,0) = 0
   
-  nAzi    = nAziAng / nThread / 2
+  nAzi    = nAziAng / nthr / 2
   OmpTemp = 0
   jazi    = 0
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     OmpRayBegBd(1, ithr) = OmpRayBegBd(1, ithr-1) + OmpTemp
     
     DO iazi = 1, nAzi
@@ -145,7 +145,7 @@ ELSE
   OmpRayBegBd(2, 0) = nRotRay + 1
   OmpRayEndBd(2, 0) = nRotRay
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     OmpRayEndBd(2, ithr) = OmpRayEndBd(2, ithr-1) - OmpTemp
     
     DO iazi = 1, nAzi
@@ -217,9 +217,9 @@ ELSE
     END IF
   END DO
   
-  CALL dmalloc(OmpMap, nThread, nAzi*2)
+  CALL dmalloc(OmpMap, nthr, nAzi*2)
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO iazi = 1, nAzi
       OmpTemp = OmpTemp + 1
       
@@ -229,11 +229,11 @@ ELSE
   END DO
 END IF
 ! ----------------------------------------------------
-IF (MOD(nAziANg / 2, nThread) .NE. 0) CALL terminate('WRONG_MOC_TRD')
+IF (MOD(nAziANg / 2, nthr) .NE. 0) CALL terminate('WRONG_MOC_TRD')
 
-nOmpAng = nAziAng / nThread
+nOmpAng = nAziAng / nthr
 
-DO ithr = 1, nThread
+DO ithr = 1, nthr
   CALL dmalloc(TrackingDat(ithr)%phi1a, nPolarAng, nFsr, nOmpAng)
   CALL dmalloc(TrackingDat(ithr)%phi2a, nPolarAng, nFsr, nOmpAng)
 END DO
@@ -275,15 +275,16 @@ INTEGER, OPTIONAL :: FastMocLv
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nPolarAng, nxy, nThread, iRotRay, ithr, FsrIdxSt, icel, iazi, ipol, OmpAng, ixy, iDir, iFSR, jFSR
+INTEGER :: nPolarAng, nxy, nthr, iRotRay, ithr, FsrIdxSt, icel, iazi, ipol, OmpAng, ixy, iDir, iFSR, jFSR
 ! ----------------------------------------------------
 
-nxy = CoreInfo%nxy
+nxy  = CoreInfo%nxy
+nthr = PE%nthread
 ! ----------------------------------------------------
 !$ call omp_set_dynamic(FALSE)
-!$ call omp_set_num_threads(nThread)
+!$ call omp_set_num_threads(nthr)
 
-DO ithr = 1, nThread
+DO ithr = 1, nthr
   TrackingDat(ithr)%PhiAngIn => PhiAngIn
   TrackingDat(ithr)%src      => src
   TrackingDat(ithr)%xst      => xst
@@ -317,7 +318,7 @@ ELSE
   END DO
 END IF
 !$OMP BARRIER
-DO ithr = 1, nThread
+DO ithr = 1, nthr
   DO iazi = 1, nOmpAng
    DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
       DO ipol = 1, nPolarAng
@@ -330,7 +331,7 @@ DO ithr = 1, nThread
 END DO
 
 IF (ljout) THEN
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
       jout(:, :, ixy) = jout(:, :, ixy) + TrackingDat(ithr)%jout(:, :, ixy)
     END DO
@@ -748,14 +749,15 @@ INTEGER, OPTIONAL :: FastMocLv
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nxy, nThread, iRotRay, ithr, FsrIdxSt, icel, ireg, iazi, ipol, OmpAng, ixy, iDir, iFSR, jFSR
+INTEGER :: nAziAng, nPolarAng, nxy, nthr, iRotRay, ithr, FsrIdxSt, icel, ireg, iazi, ipol, OmpAng, ixy, iDir, iFSR, jFSR
 REAL :: wttmp, tempsrc, ONETHREE, ONEFIVE, ONESEVEN
 ! ----------------------------------------------------
 
 nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
 
-nxy = CoreInfo%nxy
+nxy  = CoreInfo%nxy
+nthr = PE%nthread
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, iFSR, ipol, tempsrc)
 ithr = 1
@@ -817,9 +819,9 @@ END IF
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 !$ call omp_set_dynamic(FALSE)
-!$ call omp_set_num_threads(nThread)
+!$ call omp_set_num_threads(nthr)
 
-DO ithr = 1, nThread
+DO ithr = 1, nthr
   TrackingDat(ithr)%PhiAngIn => PhiAngIn
   TrackingDat(ithr)%src      => src
   TrackingDat(ithr)%xst      => xst
@@ -857,7 +859,7 @@ ELSE
 END IF
 !$OMP BARRIER
 IF (ScatOd .EQ. 1) THEN
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO iazi = 1, nOmpAng
       DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
         DO ipol = 1, nPolarAng
@@ -871,7 +873,7 @@ IF (ScatOd .EQ. 1) THEN
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 2) THEN
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO iazi = 1, nOmpAng
       DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
         DO ipol = 1, nPolarAng
@@ -886,7 +888,7 @@ ELSE IF (ScatOd .EQ. 2) THEN
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 3) THEN
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO iazi = 1, nOmpAng
       DO iFSR = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
         DO ipol = 1, nPolarAng
@@ -904,7 +906,7 @@ ELSE IF (ScatOd .EQ. 3) THEN
 END IF
 
 IF (ljout) THEN
-  DO ithr = 1, nThread
+  DO ithr = 1, nthr
     DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
       jout(:, :, ixy) = jout(:, :, ixy) + TrackingDat(ithr)%jout(:, :, ixy)
     END DO
