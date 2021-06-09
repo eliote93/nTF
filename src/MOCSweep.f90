@@ -10,14 +10,14 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
-                        SetRtMacXsNM, SetRtSrcNM, AddBucklingNM, SetRtP1SrcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, phimnm, srcmnm, &
+                        SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisNM, PhiAngInNM, MocJoutNM, xstNM, srcNM, phimNM, srcmNM, &
                         DcmpPhiAngIn, DcmpGatherCurrent
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
 USE FILES,       ONLY : io8
 USE XSLIB_MOD,   ONLY : igresb, igrese
-USE SPH_mod,     ONLY : ssphf, ssphfnm, calcPinSSPH
+USE SPH_mod,     ONLY : ssphf, ssphfNM, calcPinSSPH
 USE HexData,     ONLY : nInnMOCItr
 
 use SubChCoupling_mod, ONLY : last_TH
@@ -276,21 +276,21 @@ ELSE
       ! SET : XS
       IF (RTMASTER) THEN
         DO ig = 1, ng
-          phisnm(ig, :) = phis(:, iz, ig)
+          phisNM(ig, :) = phis(:, iz, ig)
           
-          PhiAngInnm(:, ig, :) = FmInfo%PhiAngIn(:, :, iz, ig)
+          PhiAngInNM(:, ig, :) = FmInfo%PhiAngIn(:, :, iz, ig)
         END DO
         
-        IF (lscat1) phimnm => phim(:, :, :, iz)
+        IF (lscat1) phimNM => phim(:, :, :, iz)
         
         IF (ldcmp) DcmpPhiAngIn => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
         
-        CALL SetRtMacXsNM(Core, Fxr(:, iz), xstnm, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
+        CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNM, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
-        CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
+        CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNM, iz, ng, GroupInfo, l3dim)
 #endif
 #ifdef Buckling
-        IF (lbsq) CALL AddBucklingNM(Core, Fxr, xstnm, nTracerCntl%bsq, iz, ng, lxslib, lRST)
+        IF (lbsq) CALL AddBucklingNM(Core, Fxr, xstNM, nTracerCntl%bsq, iz, ng, lxslib, lRST)
 #endif
       END IF
       
@@ -306,11 +306,11 @@ ELSE
           ! SET : Src.
           IF (RTMASTER) THEN
             IF (.NOT. lLSCASMO) THEN
-              CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+              CALL SetRtsrcNM(Core, Fxr(:, iz), srcNM, phisNM, psi, AxSrc, xstNM, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lScat1) CALL SetRtP1SrcNM(Core, Fxr(:, iz), srcmnm, phimnm, xstnm, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
+              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNM, phimNM, xstNM, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
             ELSE
-              CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope, AxSrc, xstnm, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
+              CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNM, phisSlope, srcNM, srcSlope, psi, psiSlope, AxSrc, xstNM, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
             END IF
           END IF
           
@@ -318,12 +318,12 @@ ELSE
           IF (.NOT. ldcmp) THEN
             IF (.NOT. lLSCASMO) THEN
               IF (lscat1) THEN
-                CALL RayTraceP1NM_OMP(RayInfo, Core, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, MocJoutnm, iz, GrpBeg, GrpEnd, ljout)
+                CALL RayTraceP1NM_OMP(RayInfo, Core, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, GrpBeg, GrpEnd, ljout)
               ELSE
-                CALL RayTraceNM_OMP  (RayInfo, Core, phisnm,         PhiAngInnm, xstnm, srcnm,         MocJoutnm, iz, GrpBeg, GrpEnd, ljout, fmoclv)
+                CALL RayTraceNM_OMP  (RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, ljout, fmoclv)
               END IF
             ELSE
-              CALL RayTraceLS_CASMO(RayInfo, Core, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, MocJoutnm, iz, GrpBeg, GrpEnd, lJout)
+              CALL RayTraceLS_CASMO(RayInfo, Core, phisNM, phisSlope, PhiAngInNM, srcNM, srcSlope, xstNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
             END IF
           ELSE
             CALL RayTrace_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, FALSE, lScat1, lLSCASMO, nTracerCntl%lHybrid)
@@ -335,7 +335,7 @@ ELSE
           ist = max(igresb, GrpBeg)
           ied = min(igrese, GrpEnd)
           
-          phisnm(ist:ied, :) = phisnm(ist:ied, :) * ssphfnm(ist:ied, :, iz)
+          phisNM(ist:ied, :) = phisNM(ist:ied, :) * ssphfNM(ist:ied, :, iz)
         END DO
         
         tnged        = nTracer_dclock(FALSE, FALSE)
@@ -343,16 +343,16 @@ ELSE
       END DO
       
 #ifdef MPI_ENV
-      IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrent(Core, MocJoutnm)
+      IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrent(Core, MocJoutNM)
 #endif
 
       ! CnP
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng
-        phis(:, iz, ig) = phisnm(ig, :)
-        FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInnm(:, ig, :)
-        RadJout(:, :, :, iz, ig) = MocJoutnm(:, ig, :, :)
+        phis              (:, iz, ig) = phisNM       (ig, :)
+        FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInNM(:, ig, :)
+        RadJout     (:, :, :, iz, ig) = MocJoutNM (:, ig, :, :)
       END DO
     END DO
     

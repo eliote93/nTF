@@ -928,17 +928,16 @@ REAL :: FxrAvgPhi(ng)
 
 END FUNCTION FxrAvgPhi
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
-USE PE_Mod,  ONLY : PE
 
 IMPLICIT NONE
 
 TYPE (CoreInfo_Type) :: CoreInfo
 TYPE (RayInfo_Type)  :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
 INTEGER :: gb, ge
@@ -946,7 +945,7 @@ INTEGER, OPTIONAL :: color
 
 END SUBROUTINE DcmpLinkBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngIn, DcmpPhiAngIn)
+SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -954,7 +953,7 @@ IMPLICIT NONE
 
 TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn
 
 END SUBROUTINE DcmpScatterBoundaryFlux

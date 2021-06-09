@@ -850,7 +850,7 @@ DEALLOCATE(w, wbuf, scatsum)
 
 END SUBROUTINE MOCUnderRelaxationFactor
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -860,7 +860,7 @@ IMPLICIT NONE
 TYPE (CoreInfo_Type) :: CoreInfo
 TYPE (RayInfo_Type)  :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
 INTEGER :: gb, ge
@@ -890,7 +890,7 @@ DO iAsy = 1, CoreInfo%nxya
       nextRay = DcmpAsyLinkInfo(2, irot, iRay, iAsy)
       
       IF (nextAsy .EQ. 0) THEN
-        PhiAngIn(:, gb:ge, nextRay) = DcmpPhiAngOut(:, gb:ge, irot, iRay, iAsy)  
+        PhiAngInNM(:, gb:ge, nextRay) = DcmpPhiAngOut(:, gb:ge, irot, iRay, iAsy)  
       ELSE
         DcmpPhiAngIn(:, gb:ge, irot, nextRay, nextAsy) = DcmpPhiAngOut(:, gb:ge, irot, iRay, iAsy)
       END IF
@@ -901,7 +901,7 @@ END DO
 
 END SUBROUTINE DcmpLinkBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngIn, DcmpPhiAngIn)
+SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_Type
@@ -915,7 +915,7 @@ INCLUDE 'mpif.h'
 
 TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:) :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:) :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, buf_DcmpPhiAngIn
 
 INTEGER :: nPolarAngle, nModRay, nPhiAngSv, nAsy, nDat, ierr
@@ -929,7 +929,7 @@ nPhiAngSv   = RayInfo%nPhiAngSv
 nAsy = PE%nAsy(PE%myRTRank)
 nDat = nPolarAngle * ng * nPhiAngSv
 
-CALL MPI_BCAST(PhiAngIn, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+CALL MPI_BCAST(PhiAngInNM, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
 CALL dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy) ! Can be Huge Time-consuming
 

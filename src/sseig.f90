@@ -52,10 +52,10 @@ USE AuxilDriver, ONLY : CUDASubGrpEffXSGen
 IMPLICIT NONE
 
 INTEGER :: iout
-LOGICAL :: lTHconv, lsubgrp
-LOGICAL :: Master, RTMaster, lCmfdGrp
-LOGICAL :: lCMFD, lMOC
-LOGICAL :: lSearchConv
+LOGICAL :: lTHconv, lsubgrp, Master, RTMaster, lCmfdGrp, lCMFD, lMOC, lSearchConv
+
+! DEBUG
+!INTEGER :: ig, ifsr, iz
 ! ----------------------------------------------------
 
 Master   = PE%Master
@@ -401,6 +401,19 @@ DO iout = 1, ItrCntl%OuterMax
   END IF
 END DO
 ! ----------------------------------------------------
+! DEBUG START
+!OPEN (42, FILE = 'tst.out')
+!
+!DO ig = 1, GroupInfo%ng
+!  DO iz = 1, Core%nz
+!    DO ifsr = 1, Core%nCoreFSR
+!      WRITE (42, '(I2, X, I20, ES13.5)') ig, ifsr, fminfo%phis(iFSR, iz, ig)
+!    END DO
+!  END DO
+!END DO
+!
+!CLOSE (42)
+! DEBUG END
 IF (nTracerCntl%lXeDyn) CALL XeDynRelaxContrl(FALSE)
 
 xkconv = eigv

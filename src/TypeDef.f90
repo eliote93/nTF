@@ -353,14 +353,18 @@ END TYPE
 
 !--- CNJ Edit : Domain Decomposition
 TYPE DcmpAsyRayInfo_Type
-  INTEGER :: iRotRay, iAsy
-  INTEGER :: iRay ! # of Counts
-  INTEGER :: nMaxRaySeg, nMaxCellRay
-  INTEGER :: nAsyRay ! # of Reflections
-  INTEGER, POINTER :: AsyRayList(:)
-  INTEGER, POINTER :: AziList(:)
-  INTEGER, POINTER :: DirList(:)
-  LOGICAL :: lRotRayBeg(2) = .FALSE.
+  INTEGER :: iRotRay
+  INTEGER :: iAsy        ! Global Index of Assembly
+  INTEGER :: iRay        ! Numeric # for each Assembly
+  INTEGER :: nMaxRaySeg
+  INTEGER :: nMaxCellRay
+  INTEGER :: nAsyRay     ! # of Reflections
+
+  INTEGER, POINTER, DIMENSION(:) :: AsyRayList ! (iRef), Index of Modular Ray
+  INTEGER, POINTER, DIMENSION(:) :: AziList    ! (iRef), Index of Azimuthal Angle
+  INTEGER, POINTER, DIMENSION(:) :: DirList    ! (iRef). Index of Direction
+
+  LOGICAL :: lRotRayBeg(2) = .FALSE. ! T : End Point is Starting Point of Rotational Ray
 END TYPE
 
 !--- CNJ Edit : Angular Multigrid Ray Tracing

@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout, FastMocLv)
+SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInNM, xstnm, srcnm, joutnm, iz, gb, ge, ljout, FastMocLv)
 
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO
@@ -19,7 +19,7 @@ INTEGER :: iz, gb, ge, FastMocLv
 LOGICAL :: ljout
 
 REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInnm
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 ! ----------------------------------------------------
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
@@ -46,7 +46,7 @@ TrackingDat(ithr)%phisnm = ZERO
 
 TrackingDat(ithr)%srcnm      => srcnm
 TrackingDat(ithr)%xstnm      => xstnm
-TrackingDat(ithr)%PhiAngInnm => PhiAngInnm
+TrackingDat(ithr)%PhiAngInNM => PhiAngInNM
 
 IF (ljout) TrackingDat(ithr)%joutnm = ZERO
 
@@ -140,7 +140,7 @@ REAL :: wt(10), wt2(10, 4)
 
 REAL, POINTER, DIMENSION(:)       :: LenSeg
 REAL, POINTER, DIMENSION(:,:)     :: phis, src, xst, ExpA, ExpB, wtang
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngIn, wtsurf
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNM, wtsurf
 REAL, POINTER, DIMENSION(:,:,:,:) :: jout
 
 DATA mp /2, 1/
@@ -156,22 +156,22 @@ Pin     => CoreInfo%Pin
 PinInfo => CoreInfo%Pininfo
 Cell    => CoreInfo%CellInfo
 
-wtang    => TrackingDat%wtang
-wtsurf   => TrackingDat%wtsurf
-phis     => TrackingDat%phisnm
-src      => TrackingDat%srcnm
-xst      => TrackingDat%xstnm
-jout     => TrackingDat%joutnm
-PhiAngIn => TrackingDat%phiAngInnm
-ExpA     => TrackingDat%ExpA
-ExpB     => TrackingDat%ExpB
+wtang      => TrackingDat%wtang
+wtsurf     => TrackingDat%wtsurf
+phis       => TrackingDat%phisnm
+src        => TrackingDat%srcnm
+xst        => TrackingDat%xstnm
+jout       => TrackingDat%joutnm
+PhiAngInNM => TrackingDat%PhiAngInNM
+ExpA       => TrackingDat%ExpA
+ExpB       => TrackingDat%ExpB
 
 nCoreRay = RotRay(irotRay)%nRay
 
 PhiAngInSvIdx  = RayInfo%PhiAngInSvIdx (iRotRay, krot)
 PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 
-PhiAngOut = PhiAngIn(:, gb:ge, PhiAnginSvIdx)
+PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM(1:nPolarAng, gb:ge, PhiAnginSvIdx)
 
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1
@@ -337,7 +337,7 @@ DO icray = jbeg, jend, jinc
   END IF
 END DO
 
-PhiAngIn(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
+PhiAngInNM(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
 ! ----------------------------------------------------
 ! Geo.
 NULLIFY (Asy)
@@ -358,7 +358,7 @@ NULLIFY (Phis)
 NULLIFY (src)
 NULLIFY (xst)
 NULLIFY (jout)
-NULLIFY (PhiAngIn)
+NULLIFY (PhiAngInNM)
 NULLIFY (ExpA)
 NULLIFY (ExpB)
 NULLIFY (wtang)
@@ -392,6 +392,7 @@ REAL :: wtazi(10)
 REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: PhiAngOut
 
 REAL, POINTER, DIMENSION(:,:)     :: phis, src, xst, ExpA, ExpB, wtang
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:) :: jout
 
 TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
@@ -407,14 +408,16 @@ PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 
 Pin => CoreInfo%Pin
 
-wtang    => TrackingDat%wtang
-Phis     => TrackingDat%phisnm
-src      => TrackingDat%srcnm
-xst      => TrackingDat%xstnm
-jout     => TrackingDat%joutnm
-PhiAngOut = TrackingDat%phiAngInnm(:, gb:ge, PhiAnginSvIdx)
-ExpA     => TrackingDat%ExpA
-ExpB     => TrackingDat%ExpB
+wtang      => TrackingDat%wtang
+Phis       => TrackingDat%phisnm
+src        => TrackingDat%srcnm
+xst        => TrackingDat%xstnm
+jout       => TrackingDat%joutnm
+PhiAngInNM => TrackingDat%PhiAngInNM
+ExpA       => TrackingDat%ExpA
+ExpB       => TrackingDat%ExpB
+
+PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM(1:nPolarAng, gb:ge, PhiAnginSvIdx)
 
 hRotRay_Loc => hRotRay(iRotRay)
 nCoreRay     = hRotRay_Loc%ncRay
@@ -574,7 +577,7 @@ DO icRay = jbeg, jend, jinc
   END IF
 END DO
 
-TrackingDat%PhiAngInNM(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
+PhiAngInNM(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
 ! ----------------------------------------------------
 ! Loc.
 NULLIFY (wtang)
@@ -584,6 +587,7 @@ NULLIFY (xst)
 NULLIFY (jout)
 NULLIFY (ExpA)
 NULLIFY (ExpB)
+NULLIFY (PhiAngInNM)
 NULLIFY (Pin)
 
 ! Hex.
