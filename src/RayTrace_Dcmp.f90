@@ -588,7 +588,7 @@ DO imray = jbeg, jend, jinc
       
       DO ipol = 1, nPolarAng
         wtsurf = abs(wt2cs(ipol) * CelRay_Loc%hsn(isfed) - wt2sn(ipol) * CelRay_Loc%hcs(isfed))
-        
+                
         DO ig = gb, ge
           joutNM(2, ig, isurf, jhpin) = joutNM(2, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtazi(ipol)
           joutNM(3, ig, isurf, jhpin) = joutNM(3, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtsurf

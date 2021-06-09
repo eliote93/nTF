@@ -746,8 +746,8 @@ IF (Albedo(2) .EQ. VoidCell) THEN
 ELSE
   DO iRotRay = 1, RayInfo%nRotRay
     RayInfo%PhiAngInSvIdx (iRotRay, 1) = 2*iRotRay
-    RayInfo%PhiAngOutSvIdx(iRotRay, 1) = 2*iRotRay
     RayInfo%PhiAngInSvIdx (iRotRay, 2) = 2*iRotRay + 1
+    RayInfo%PhiAngOutSvIdx(iRotRay, 1) = 2*iRotRay
     RayInfo%PhiAngOutSvIdx(iRotRay, 2) = 2*iRotRay + 1
   END DO
 END IF

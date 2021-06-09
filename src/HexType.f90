@@ -13,7 +13,6 @@ INTEGER, PARAMETER :: nMaxFXR = 30 ! ARBITRARY
 !               01. Rod Cel
 ! ----------------------------------------------------
 TYPE Type_HexRodCel
-  SEQUENCE
   
   LOGICAL :: luse = FALSE
   
@@ -35,7 +34,6 @@ END TYPE Type_HexRodCel
 !               02. Rod Cel Basis
 ! ----------------------------------------------------
 TYPE Type_HexRodCelBss
-  SEQUENCE
   
   !LOGICAL :: luse = TRUE ! Set only for used cel type
   
@@ -68,7 +66,6 @@ END TYPE Type_HexRodCelBss
 !               03. Gap Cel
 ! ----------------------------------------------------
 TYPE Type_HexGapCel
-  SEQUENCE
   
   LOGICAL :: luse = FALSE
   
@@ -88,7 +85,6 @@ END TYPE Type_HexGapCel
 !               04. Gap Cel Basis
 ! ----------------------------------------------------
 TYPE Type_HexGapCelBss
-  SEQUENCE
   
   !LOGICAL :: luse = TRUE ! Set only for used cel type
   
@@ -122,7 +118,6 @@ END TYPE Type_HexGapCelBss
 !               01. Pin
 ! ----------------------------------------------------
 TYPE Type_HexPin
-  SEQUENCE
   
   LOGICAL :: luse = FALSE
   LOGICAL :: lRod = FALSE
@@ -137,7 +132,6 @@ END TYPE
 !               02. Pin Info
 ! ----------------------------------------------------
 TYPE Type_HexPinInfo
-  SEQUENCE
   
   INTEGER :: PinTyp = 0 ! Index of "HexPin" or "GapPin"
   INTEGER :: AsyIdx = 0 ! Global Index of "hAsy"
@@ -174,7 +168,6 @@ END TYPE Type_HexPinInfo
 !               03. CMFD Pin
 ! ----------------------------------------------------
 TYPE Type_HexCmfdPin
-  SEQUENCE
   
   REAL :: Area = ZERO
   
@@ -209,7 +202,6 @@ END TYPE Type_HexCmfdPin
 !               01. Asy Type Info
 ! ----------------------------------------------------
 TYPE Type_HexAsyTypInfo
-  SEQUENCE
   
   ! ivTyp =  1 : Inn 060
   ! ivTyp =  2 : Inn 180
@@ -282,7 +274,6 @@ END TYPE Type_HexAsyTypInfo
 !               02. Asy Geo Typ Info
 ! ----------------------------------------------------
 TYPE Type_HexGeoTypInfo
-  SEQUENCE
   
   INTEGER :: nBndy = 0
   
@@ -299,7 +290,6 @@ END TYPE Type_HexGeoTypInfo
 !               03. Hex Asy
 ! ----------------------------------------------------
 TYPE Type_HexAsy
-  SEQUENCE
   
   INTEGER :: AsyTyp    = 0
   INTEGER :: GeoTyp    = 1
@@ -328,7 +318,6 @@ END TYPE Type_HexAsy
 !               01. Ray Cel
 ! ----------------------------------------------------
 TYPE Type_HexRayCel
-  SEQUENCE
   
   INTEGER :: nEqn = 0
   INTEGER :: nMsh = 0
@@ -349,7 +338,6 @@ END TYPE Type_HexRayCel
 !               02. Ray Pin Info
 ! ----------------------------------------------------
 TYPE Type_HexRayPinInfo
-  SEQUENCE
   
   INTEGER :: iCel   = 1
   REAL    :: Cnt(2) = ZERO ! (x/y)
@@ -369,7 +357,6 @@ END TYPE Type_HexRayPinInfo
 !               01. Pin Ray
 ! ----------------------------------------------------
 TYPE Type_HexPinRay ! Temporary
-  SEQUENCE
   
   INTEGER :: PinIdx      = 0
   INTEGER :: SurfIdx(2)  = 0    ! (y¢Ö)
@@ -383,7 +370,6 @@ END TYPE Type_HexPinRay
 !               02. Cel Ray
 ! ----------------------------------------------------
 TYPE Type_HexCelRay
-  SEQUENCE
   
   INTEGER :: hPinIdx    = 0
   INTEGER :: hSufIdx(2) = 0 ! y¢Ö
@@ -402,7 +388,6 @@ END TYPE Type_HexCelRay
 !               03. Asy Ray
 ! ----------------------------------------------------
 TYPE Type_HexAsyRay
-  SEQUENCE
   
   INTEGER :: nhpRay = 0
   
@@ -416,7 +401,6 @@ END TYPE Type_HexAsyRay
 !               01. Mod Ray
 ! ----------------------------------------------------
 TYPE Type_HexModRay
-  SEQUENCE
   
   INTEGER :: AzmIdx = 0
   
@@ -439,7 +423,6 @@ END TYPE Type_HexModRay
 !               02. Core Ray
 ! ----------------------------------------------------
 TYPE Type_HexCoreRay
-  SEQUENCE
   
   INTEGER :: nmRay  = 0
   INTEGER :: AzmIdx = 0
@@ -452,7 +435,6 @@ END TYPE Type_HexCoreRay
 !               03. Rot Ray
 ! ----------------------------------------------------
 TYPE Type_HexRotRay
-  SEQUENCE
   
   INTEGER :: ncRay = 0
   
@@ -466,7 +448,6 @@ END TYPE Type_HexRotRay
 !               01. Vss.
 ! ----------------------------------------------------
 TYPE Type_HexVss
-  SEQUENCE
   
   INTEGER :: Mat = 0
   INTEGER :: zSt = 0
@@ -480,7 +461,6 @@ END TYPE Type_HexVss
 !               02. Logical
 ! ----------------------------------------------------
 TYPE Type_HexLogical
-  SEQUENCE
   
   LOGICAL :: l060      = FALSE
   LOGICAL :: l120      = FALSE

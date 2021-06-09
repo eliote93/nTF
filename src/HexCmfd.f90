@@ -157,7 +157,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
       
       ! Out-going Surf.
       haRay_Loc => haRay(iGeoTyp, icBss, imRayEd)
-      npRay     = haRay_Loc%nhpRay
+      npRay      = haRay_Loc%nhpRay
       
       IF (DcmpAsyRay(iCnt, iAsy)%DirList(DcmpAsyRay(iCnt, iAsy)%nAsyRay) .EQ. 1) THEN
         jPin = haRay_Loc%CelRay(npRay)%hPinIdx
@@ -185,20 +185,22 @@ END SUBROUTINE HexRayInfo4CmfdGen
 ! ------------------------------------------------------------------------------------------------------------
 #include <defines.h>
 #ifdef __INTEL_MKL
-SUBROUTINE HexSetMocPhiIn(Core, PinXS)
+SUBROUTINE HexSetMocPhiIn(Core, PinXS, ItrCntl, nTracerCntl)
 
 USE MKL_3D,      ONLY : mklGeom, mklCMFD, superPin_Type
 USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : CoreInfo_Type, PinXs_Type
 USE Core_mod,    ONLY : RadJout
 USE RAYS,        ONLY : RayInfo4CMFD
-USE CNTL,        ONLY : nTracerCntl
-USE itrcntl_mod, ONLY : ItrCntl
+USE CNTL,        ONLY : nTracerCntl_Type
+USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE HexData,     ONLY : hPinInfo
 
 IMPLICIT NONE
 
-TYPE (CoreInfo_Type) :: Core
+TYPE (CoreInfo_Type)     :: Core
+TYPE (ItrCntl_TYPE)      :: ItrCntl
+TYPE (nTracerCntl_TYPE)  :: nTracerCntl
 
 TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: PinXs
 ! ----------------------------------------------------

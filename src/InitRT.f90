@@ -28,8 +28,8 @@ PolarAng => RayInfo%PolarAngle
 nPolarAng = RayInfo%nPolarAngle
 nAziAng   = RayInfo%nAziAngle
 
-CALL omp_set_num_threads(PE%nThread)
 nthr = PE%nThread
+CALL omp_set_num_threads(nThr)
 
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy

@@ -918,23 +918,23 @@ TYPE (RayInfo_Type) :: RayInfo
 REAL, POINTER, DIMENSION(:,:,:) :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, buf_DcmpPhiAngIn
 
-INTEGER :: nPolarAngle, nModRay, nPhiAngSv, nAsy, nDat, ierr
+INTEGER :: nPolarAng, nModRay, nPhiAngSv, nAsy, nDat, ierr
 INTEGER :: sendcounts(0:PE%nRTProc-1), displs(0:PE%nRTProc-1)
 ! ----------------------------------------------------
 
-nPolarAngle = RayInfo%nPolarAngle
-nModRay     = RayInfo%nModRay
-nPhiAngSv   = RayInfo%nPhiAngSv
+nPolarAng = RayInfo%nPolarAngle
+nModRay   = RayInfo%nModRay
+nPhiAngSv = RayInfo%nPhiAngSv
 
 nAsy = PE%nAsy(PE%myRTRank)
-nDat = nPolarAngle * ng * nPhiAngSv
+nDat = nPolarAng * ng * nPhiAngSv
 
 CALL MPI_BCAST(PhiAngInNM, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
-CALL dmalloc(buf_DcmpPhiAngIn, nPolarAngle, ng, 2, nModRay, nAsy) ! Can be Huge Time-consuming
+CALL dmalloc(buf_DcmpPhiAngIn, nPolarAng, ng, 2, nModRay, nAsy) ! Can be Huge Time-consuming
 
-sendcounts = nPolarAngle * ng * 2 * nModRay * PE%nAsy
-displs     = nPolarAngle * ng * 2 * nModRay * PE%Asy_displs
+sendcounts = nPolarAng * ng * 2 * nModRay * PE%nAsy
+displs     = nPolarAng * ng * 2 * nModRay * PE%Asy_displs
 
 nDat = sendcounts(PE%myRTRank)
 

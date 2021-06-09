@@ -229,7 +229,7 @@ END IF
 
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
 
-CALL HexSetMOCPhiIn(CoreInfo, PinXS)
+CALL HexSetMOCPhiIn(CoreInfo, PinXS, ItrCntl, nTracerCntl)
 
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)
@@ -240,6 +240,7 @@ IF (lFirstCMFD) lFirstCMFD = FALSE
 
 CmfdTImeEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%CmfdTime = TimeChk%CmfdTime + (CmfdTimeEnd - CmfdTimeBeg)
+! ----------------------------------------------------
 
 END SUBROUTINE MKL_CmfdPower
 ! ------------------------------------------------------------------------------------------------------------

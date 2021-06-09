@@ -72,6 +72,8 @@ DO imRay = 1, NumMray(0)
       
       CelRay_Loc%hPinIdx      = hpRay(ihpRay)%PinIdx
       CelRay_Loc%hSufIdx(1:2) = hpRay(ihpRay)%SurfIdx(1:2)
+      CelRay_Loc%hsn    (1:2) = hpRay(ihpRay)%hsn    (1:2)
+      CelRay_Loc%hcs    (1:2) = hpRay(ihpRay)%hcs    (1:2)
       
       CALL HexSetRayIntSct_Msh(CelRay_Loc, RayEqn, iGeo, CelRay_Loc%hPinIdx, hpRay(ihpRay)%PinPt)
     END DO
