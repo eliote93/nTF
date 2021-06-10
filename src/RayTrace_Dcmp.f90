@@ -5,7 +5,7 @@ SUBROUTINE RayTrace_Dcmp(RayInfo, CoreInfo, iz, gb, ge, lJout, lSubGrp, lScat1, 
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, phisNM, phimNM, srcNM, xstNM, MocjoutNM, PhiAngInnm, DcmpPhiAngIn, DcmpPhiAngOut, &
+USE Moc_Mod,     ONLY : TrackingDat, phisNM, phimNM, srcNM, xstNM, MocjoutNM, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, &
                         RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
 USE Core_mod,    ONLY : phisSlope, srcSlope
 USE PE_MOD,      ONLY : PE
@@ -74,7 +74,7 @@ DO color = startColor, endColor, colorInc
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   
-  TrackingDat(ithr)%PhiAngInnm    => PhiAngInnm
+  TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
   TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
   TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
   !$OMP BARRIER
@@ -268,7 +268,7 @@ Cell => CoreInfo%CellInfo
 ! Tracking Dat Pointing
 srcNM         => TrackingDat%srcNM
 xstNM         => TrackingDat%xstNM
-PhiAngInNM    => TrackingDat%phiAngInnm
+PhiAngInNM    => TrackingDat%PhiAngInNM
 DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
 DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA          => TrackingDat%EXPA
@@ -474,7 +474,7 @@ Pin => CoreInfo%Pin
 ! Tracking Dat
 srcNM         => TrackingDat%srcNM
 xstNM         => TrackingDat%xstNM
-PhiAngInNM    => TrackingDat%phiAngInnm
+PhiAngInNM    => TrackingDat%PhiAngInNM
 DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
 DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA          => TrackingDat%EXPA
@@ -831,7 +831,7 @@ cmOptLen => TrackingDat%cmOptLen; cmOptLenInv => TrackingDat%cmOptLenInv
 srcC => TrackingDat%srcNM; srcSlope => TrackingDat%srcSlope
 xstNM => TrackingDat%xstNM
 PhiAngOut => TrackingDat%PhiAngOutnm
-PhiAngInNM => TrackingDat%phiAngInnm
+PhiAngInNM => TrackingDat%PhiAngInNM
 DcmpPhiAngIn => TrackingDat%DcmpPhiAngIn
 DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA => TrackingDat%EXPA
@@ -1490,7 +1490,7 @@ Cell => CoreInfo%CellInfo
 
 ! Tracking Dat
 xstNM         => TrackingDat%xstNM
-PhiAngInNM    => TrackingDat%PhiAngInnm
+PhiAngInNM    => TrackingDat%PhiAngInNM
 DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
 DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA          => TrackingDat%EXPA

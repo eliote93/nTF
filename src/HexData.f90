@@ -4,7 +4,7 @@ USE HexType
   
 IMPLICIT NONE
 
-! Param
+! Parameter
 REAL, PARAMETER :: hEps   = 1E-7
 REAL, PARAMETER :: Sq3    = 1.73205080756888_8
 REAL, PARAMETER :: Sq3Inv = 0.577350269189626_8
@@ -19,9 +19,9 @@ INTEGER, PARAMETER :: spTypNumNgh(7)  = [3, 4, 6,  & ! Inn
                                          5, 5, 4, 4] ! Bndy
 
 ! Global
-INTEGER :: nAsyCore   = 0 ! # of Asy. along Core Bndy.
-INTEGER :: ncBndy     = 0 ! # of Core Bndy.
-INTEGER :: nhAsy      = 0 ! # of Asy. in Core
+INTEGER :: nAsyCore   = 0 ! # of Asssemblies along Core Boundary
+INTEGER :: ncBndy     = 0 ! # of Core Boundary
+INTEGER :: nhAsy      = 0 ! # of Assemblies in Core
 INTEGER :: ncBss      = 0 ! # of Rod Cell Basis
 INTEGER :: ngBss      = 0 ! # of Gap Cell Basis
 INTEGER :: ncTyp      = 0 ! # of Cell Types
@@ -35,7 +35,7 @@ INTEGER :: nhcPin     = 0 ! # of CMFD Pins in Core
 INTEGER :: nGeoTyp    = 1
 INTEGER :: nInnMOCItr = 2
 
-! Geom
+! Geometry
 REAL :: aoF2F = ZERO
 REAL :: aoPch = ZERO
 
@@ -46,7 +46,7 @@ REAL :: cBndyEq(3,6) = ZERO ! Origin : Cnt Asy
 
 INTEGER, POINTER, DIMENSION(:,:) :: Asy2Dto1DMap ! (iax, iay)
 INTEGER, POINTER, DIMENSION(:,:) :: Asy1Dto2DMap ! (iax/aiy, iAsy)
-INTEGER, POINTER, DIMENSION(:,:) :: hCore ! (iax, iay), Global Idx of Asy.
+INTEGER, POINTER, DIMENSION(:,:) :: hCore ! (iax, iay), Global Index of Assembly
 
 ! Vygorodka
 INTEGER :: vFxr    = 0
@@ -63,7 +63,7 @@ INTEGER :: csMat = 0
 REAL :: csWdt = ZERO
 REAL :: csLgh = ZERO
 
-! mRay
+! Modular Ray
 REAL :: Del_Inp = ZERO
 
 INTEGER, POINTER, DIMENSION(:)   :: NumMray

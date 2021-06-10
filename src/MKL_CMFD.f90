@@ -229,7 +229,7 @@ END IF
 
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
 
-CALL HexSetMOCPhiIn(CoreInfo, PinXS, ItrCntl, nTracerCntl)
+CALL HexSetMOCPhiIn(CoreInfo, mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
 
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)

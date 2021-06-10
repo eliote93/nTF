@@ -185,12 +185,12 @@ END SUBROUTINE HexRayInfo4CmfdGen
 ! ------------------------------------------------------------------------------------------------------------
 #include <defines.h>
 #ifdef __INTEL_MKL
-SUBROUTINE HexSetMocPhiIn(Core, PinXS, ItrCntl, nTracerCntl)
+SUBROUTINE HexSetMocPhiIn(Core, Pin, PinXS, Jout, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
 
 USE MKL_3D,      ONLY : mklGeom, mklCMFD, superPin_Type
 USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : CoreInfo_Type, PinXs_Type
-USE Core_mod,    ONLY : RadJout
+USE geom,        ONLY : ncbd
 USE RAYS,        ONLY : RayInfo4CMFD
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
@@ -202,20 +202,26 @@ TYPE (CoreInfo_Type)     :: Core
 TYPE (ItrCntl_TYPE)      :: ItrCntl
 TYPE (nTracerCntl_TYPE)  :: nTracerCntl
 
-TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: PinXs
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout
+
+INTEGER :: ng, nxy, myzb, myze
+
+TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
+TYPE (PinXs_Type),    POINTER, DIMENSION(:,:) :: PinXs
 ! ----------------------------------------------------
 INTEGER :: iz, izf, ig, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
-INTEGER :: myzb, myze, ng, nRotRay, nAsy
+INTEGER :: nRotRay, nAsy
 
 INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx, fmRange
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAsyRayInSurf, DcmpAsyRayInCell
 
-REAL :: myphi, nghphi, surfphi, atil, ahat, smy, fmult, phisum
+REAL :: myphi, nghphi, surfphi, atil, ahat, slgh, fmult, phisum
 
 REAL, POINTER, DIMENSION(:)           :: hz, hzfm
 REAL, POINTER, DIMENSION(:,:,:)       :: phis
 REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:)   :: superJout
 REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn
 
 TYPE (superPin_Type), POINTER, DIMENSION(:) :: superPin
@@ -226,9 +232,6 @@ IF (.NOT.hLgc%lRadRef .AND. .NOT.nTracerCntl%lDomainDcmp)    RETURN
 
 nAsy = Core%nxya
 
-ng        = mklGeom%ng
-myzb      = mklGeom%myzb
-myze      = mklGeom%myze
 fmRange  => mklGeom%fmRange
 hzfm     => mklGeom%hzfm
 hz       => mklGeom%hz
@@ -273,6 +276,10 @@ IF (hLgc%lRadRef) THEN
 END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
+  ALLOCATE (superJout(3, ncbd, nxy, myzb:myze, ng)) ! # of Ngh is fixed as 15, artibrary #
+  
+  CALL HexsuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
+  
   DO iz = myzb, myze
     DO iAsy = 1, nAsy
       DO icnt = 1, DcmpAsyRayCount(iAsy)
@@ -282,8 +289,8 @@ IF (nTracerCntl%lDomainDcmp) THEN
           isxy  = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
           ingh  = hPinInfo(imxy)%DcmpMP2slfSPngh(isurf)
           jsxy  = hPinInfo(imxy)%DcmpMP2nghSPidx(isurf)
-          smy   = superPin(isxy)%BdLength(ingh)
-          
+          slgh  = superPin(isxy)%BdLength(ingh)
+                    
           DO ig = 1, ng
             myphi = ZERO
             DO izf = fmRange(iz, 1), fmRange(iz, 2)
@@ -300,14 +307,14 @@ IF (nTracerCntl%lDomainDcmp) THEN
             atil = PinXS(isxy, iz)%atil(ingh, ig)
             ahat = PinXS(isxy, iz)%ahat(ingh, ig)
             
-            surfphi = atil * myphi + (smy - atil) * nghphi
+            surfphi = atil * myphi + (slgh - atil) * nghphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN
-              AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / smy
+              AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / slgh
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
-              fmult   = surfphi / RadJout(3, isurf, imxy, iz, ig)
-                            
+              fmult   = surfphi / superJout(3, ingh, isxy, iz, ig)
+              
               AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
             END IF
           END DO
@@ -315,6 +322,8 @@ IF (nTracerCntl%lDomainDcmp) THEN
       END DO
     END DO
   END DO
+  
+  DEALLOCATE(superJout)
 END IF
 ! ----------------------------------------------------
 ! Dcmp.
