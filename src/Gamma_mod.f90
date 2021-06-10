@@ -15,7 +15,6 @@ END TYPE
 
 
 TYPE GamMacXS_TYPE
-  SEQUENCE
   INTEGER :: id = 0               ! FOR TEMPORARY DATA IN CMFD CUSPING PIN CALCULATION
   INTEGER :: ng = 0, ngg = 0, niso = 0
 !  LOGICAL :: lprodalloc = .FALSE.

@@ -450,7 +450,7 @@ TYPE TrackingDat_Type
   INTEGER, POINTER, DIMENSION(:,:,:) :: ExpAppIdxnm
   
   ! Basic
-  REAL, POINTER, DIMENSION(:,:)   :: wtang, wthcs, wthsn
+  REAL, POINTER, DIMENSION(:,:)   :: wtang, hwt
   REAL, POINTER, DIMENSION(:,:,:) :: wtsurf, comp, mwt, mwt2
   
   ! GM TRC
@@ -562,6 +562,17 @@ TYPE AXFLX_TYPE
   REAL,POINTER :: S(:,:), KSQ(:,:), QT(:,:) !EIGENVECTOR,KAFFA SQUARE,QHAT TRANS
   REAL, POINTER :: partialDhat(:, :, :)   !--- CNJ Edit : p-CMFD Acceleration
   REAL, POINTER :: TranPsi(:), TranPsid(:), Prec(:, :), TranSrc(:, :)
+END TYPE
+
+TYPE AxGEOM_TYPE
+  INTEGER :: IX, IY, NG, idum
+  INTEGER :: myzb, myze, myzbf, myzef
+  INTEGER :: NMESH, NCOMP
+  INTEGER :: BC(2)
+  REAL :: Area
+  REAL, POINTER :: H(:), HINV(:)
+  INTEGER, POINTER :: COMP(:), idum2
+  LOGICAL :: lTransient = .FALSE.
 END TYPE
 
 TYPE BiLU_TYPE

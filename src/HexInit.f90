@@ -34,7 +34,7 @@ IF (nTracerCntl%lDcpl) CALL initDcpl
 ! Dcmp
 IF (nTracerCntl%lDomainDcmp) THEN
 #ifdef DetailedIO
-  mesg = '  Generating Decomposed Assembly Rays...'
+  mesg = 'Generating Decomposed Assembly Rays...'
   IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
 #endif
   CALL HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)

@@ -1,7 +1,7 @@
 #include <defines.h>
 MODULE MPIAxSolver_Mod
 USE PARAM
-USE TYPEDEF,        ONLY : AxFlx_TYPE,   PinXS_TYPE,     GroupInfo_TYPE,   PE_TYPE
+USE TYPEDEF,        ONLY : AxFlx_TYPE,   PinXS_TYPE,     GroupInfo_TYPE,   PE_TYPE, AxGeom_Type
 !USE Core_Mod,       ONLY : GroupInfo
 USE TIMER,       ONLY : nTracer_dclock, TimeChk
 #ifdef MPI_ENV
@@ -21,18 +21,6 @@ TYPE AxNCntl_TYPE
   LOGICAL :: lXsComm = .FALSE.
   
 END TYPE
-
-TYPE AxGEOM_TYPE
-  SEQUENCE
-  INTEGER :: IX, IY, NG, idum
-  INTEGER :: myzb, myze, myzbf, myzef
-  INTEGER :: NMESH, NCOMP
-  INTEGER :: BC(2)
-  REAL :: Area
-  REAL, POINTER :: H(:), HINV(:)
-  INTEGER, POINTER :: COMP(:), idum2
-  LOGICAL :: lTransient = .FALSE.
-END TYPE     
 
 INTEGER, PRIVATE :: nxy, myzb, myze, myzbf, myzef, nzfm, nz, ng
 INTEGER, PRIVATE :: myNxyBeg, myNxyEnd

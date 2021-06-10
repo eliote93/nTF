@@ -32,7 +32,6 @@ MODULE XSLIB_MOD
     END TYPE
     
     TYPE pwxs_type ! point-wise XS file
-      SEQUENCE
       INTEGER :: nid, ntemp, nbyte, location
       REAL(4) :: awr, xspot, emin, emax
       LOGICAL :: lfis
@@ -149,7 +148,6 @@ MODULE XSLIB_MOD
     ! Fuel : f_nmaclv : # of MLG   / f_maclv : MLG   / f_maclv_log : MLG_log
     ! AIC  : f_nmaclv1G : # of MLG / f_maclv1G : MLG / f_maclv1G_log : MLG_log
     ! Clad : c_nmaclv1G : # of MLG / c_maclv1G : MLG / c_maclv1G_log : MLG_log => Identical in whole planes
-        SEQUENCE
         integer :: f_nmaclv,f_nmaclv1G,c_nmaclv1G ! # of macro level grid for fuel and AIC(f~1G) (DEF:8) and cladding(DEF:5)
         real,pointer,dimension(:) :: f_maclv,f_maclv1G,c_maclv1G
         real,pointer,dimension(:) :: f_maclv_log,f_maclv1G_log,c_maclv1G_log

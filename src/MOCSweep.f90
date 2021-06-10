@@ -148,7 +148,7 @@ IF (RTMASTER) THEN
 END IF
 ! ----------------------------------------------------
 IF (.NOT. nTracerCntl%lNodeMajor) THEN
-  DO iout = 1, ItrCntl%MocItrCntl%nitermax
+  DO iout = 1, nitermax
     itrcntl%mocit = itrcntl%mocit + 1
     
     tdel = ZERO
@@ -256,7 +256,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
   END DO
 ! ----------------------------------------------------
 ELSE
-  DO iout = 1, ItrCntl%MocItrCntl%nitermax
+  DO iout = 1, nitermax
     itrcntl%mocit = itrcntl%mocit + 1
     
     tngdel = ZERO

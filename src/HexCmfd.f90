@@ -194,7 +194,7 @@ USE Core_mod,    ONLY : RadJout
 USE RAYS,        ONLY : RayInfo4CMFD
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
-USE HexData,     ONLY : hPinInfo
+USE HexData,     ONLY : hPinInfo, hLgc
 
 IMPLICIT NONE
 
@@ -204,8 +204,8 @@ TYPE (nTracerCntl_TYPE)  :: nTracerCntl
 
 TYPE (PinXs_Type), POINTER, DIMENSION(:,:) :: PinXs
 ! ----------------------------------------------------
-INTEGER :: iz, izf, ig, ipol, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
-INTEGER :: myzb, myze, ng, nRotRay, nCoreRay, nPolar, nAsy
+INTEGER :: iz, izf, ig, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
+INTEGER :: myzb, myze, ng, nRotRay, nAsy
 
 INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx, fmRange
@@ -222,6 +222,7 @@ TYPE (superPin_Type), POINTER, DIMENSION(:) :: superPin
 ! ----------------------------------------------------
 
 IF (.NOT.nTracerCntl%lHex .OR. .NOT.nTracerCntl%lDomainDcmp) RETURN
+IF (.NOT.hLgc%lRadRef .AND. .NOT.nTracerCntl%lDomainDcmp)    RETURN
 
 nAsy = Core%nxya
 
@@ -236,8 +237,6 @@ superPin => mklGeom%superPin
 phis => mklCMFD%phis
 
 nRotRay           = RayInfo4CMFD%nRotRay
-nCoreRay          = RayInfo4CMFD%nCoreRay
-nPolar            = RayInfo4CMFD%nPolAngle
 RotRayInOutCell  => RayInfo4CMFD%RotRayInOutCell
 PhiAngInSvIdx    => RayInfo4CMFD%PhiAngInSvIdx
 PhiAngIn         => RayInfo4CMFD%PhiAngIn
@@ -246,32 +245,32 @@ DcmpAsyRayInSurf => RayInfo4CMFD%DcmpAsyRayInSurf
 DcmpAsyRayInCell => RayInfo4CMFD%DcmpAsyRayInCell
 AsyPhiAngIn      => RayInfo4CMFD%AsyPhiAngIn
 ! ----------------------------------------------------
-DO idir = 1, 2
-  DO iRotRay = 1, nRotRay
-    imxy = RotRayInOutCell(iRotRay, idir) ! Global Idx. of MoC Pin
-    
-    IF (imxy .EQ. 0) CYCLE
-    
-    isxy = hPinInfo(imxy)%ihcPin          ! Global Idx. of Suer-Pin
-    isv  = PhiAngInSvIdx(iRotRay, idir)
-    
-    DO iz = myzb, myze
-      DO ig = 1, ng
-        phisum = ZERO
-        
-        DO izf = fmRange(iz, 1), fmRange(iz, 2)
-          phisum = phisum + phis(isxy, izf, ig) * (hzfm(izf) / hz(iz))
-        END DO
-        
-        fmult = phisum / PinXS(isxy, iz)%phi(ig)
-        
-        DO ipol = 1, nPolar
-          PhiAngIn(ipol, isv, iz, ig) = PhiAngIn(ipol, isv, iz, ig) * fmult
+IF (hLgc%lRadRef) THEN
+  DO idir = 1, 2
+    DO iRotRay = 1, nRotRay
+      imxy = RotRayInOutCell(iRotRay, idir) ! Global Idx. of MoC Pin
+      
+      IF (imxy .EQ. 0) CYCLE
+      
+      isxy = hPinInfo(imxy)%ihcPin          ! Global Idx. of Suer-Pin
+      isv  = PhiAngInSvIdx(iRotRay, idir)
+      
+      DO iz = myzb, myze
+        DO ig = 1, ng
+          phisum = ZERO
+          
+          DO izf = fmRange(iz, 1), fmRange(iz, 2)
+            phisum = phisum + phis(isxy, izf, ig) * (hzfm(izf) / hz(iz))
+          END DO
+          
+          fmult = phisum / PinXS(isxy, iz)%phi(ig)
+          
+          PhiAngIn(:, isv, iz, ig) = PhiAngIn(:, isv, iz, ig) * fmult
         END DO
       END DO
     END DO
   END DO
-END DO
+END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
   DO iz = myzb, myze
@@ -294,7 +293,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
             nghphi = ZERO
             IF (jsxy .GT. 0) THEN
               DO izf = fmRange(iz, 1), fmRange(iz, 2)
-                nghphi = nghphi + phis(ingh, izf, ig) * (hzfm(izf) / hz(iz))
+                nghphi = nghphi + phis(jsxy, izf, ig) * (hzfm(izf) / hz(iz))
               END DO
             END IF
             
@@ -308,10 +307,8 @@ IF (nTracerCntl%lDomainDcmp) THEN
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
               fmult   = surfphi / RadJout(3, isurf, imxy, iz, ig)
-              
-              DO ipol = 1, nPolar
-                AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(ipol, ig, idir, icnt, iAsy, iz) * fmult
-              END DO
+                            
+              AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
             END IF
           END DO
         END DO

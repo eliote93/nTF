@@ -5,7 +5,7 @@ USE allocs
 USE PARAM,   ONLY : TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, wthcs, wthsn, AziMap
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, hwt, AziMap
 USE geom,    ONLY : nbd, ng
 
 IMPLICIT NONE
@@ -60,22 +60,20 @@ DO ipol = 1, nPolarAng
   DO iazi = 1, nAziAng
     wtang(ipol, iazi) = wttmp * AziAng(iazi)%weight * AziAng(iazi)%del
     
-    wtsurf(ipol, iazi, 1) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%sinv)
-    wtsurf(ipol, iazi, 3) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%sinv)
-    wtsurf(ipol, iazi, 2) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv)
-    wtsurf(ipol, iazi, 4) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv)
+    wtsurf(ipol, iazi, 1) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%sinv) ! S
+    wtsurf(ipol, iazi, 3) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%sinv) ! N
+    wtsurf(ipol, iazi, 2) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv) ! W
+    wtsurf(ipol, iazi, 4) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del / ABS(AziAng(iazi)%cosv) ! E
   END DO
 END DO
 
 ! Hex.
 IF (nTracerCntl%lHex) THEN
-  CALL dmalloc(wthcs, nPolarAng, nAziAng)
-  CALL dmalloc(wthsn, nPolarAng, nAziAng)
+  CALL dmalloc(hwt, nPolarAng, nAziAng)
   
   DO ipol = 1, nPolarAng
     DO iazi = 1, nAziAng
-      wthcs(ipol, iazi) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del * AziAng(iazi)%cosv
-      wthsn(ipol, iazi) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del * AziAng(iazi)%sinv
+      hwt(ipol, iazi) = PolarAng(ipol)%weight * AziAng(iazi)%weight * AziAng(iazi)%del
     END DO
   END DO
 END IF
@@ -95,8 +93,7 @@ DO ithr = 1, nThr
   
   IF (.NOT. nTracerCntl%lHex) CYCLE
   
-  TrackingDat(ithr)%wthcs => wthcs
-  TrackingDat(ithr)%wthsn => wthsn
+  TrackingDat(ithr)%hwt => hwt
 END DO
 
 ! Basic : GM vs. NM

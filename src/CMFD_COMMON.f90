@@ -935,7 +935,7 @@ DO ig = 1, ng
         ! Dcmp.
         IF (.NOT. nTracerCntl%ldomaindcmp) CYCLE
         
-        atil       = mybeta / (mybeta + neighbeta) * smy
+        atil       = smy * mybeta / (mybeta + neighbeta) 
         surfphifdm = atil * myphi + (smy - atil) * neighphi
         ahat       = (superJout(3, iNgh, ipin, iz, ig) - surfphifdm) / (myphi + neighphi)
         

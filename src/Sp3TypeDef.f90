@@ -1,5 +1,5 @@
 MODULE SP3DEF
-USE TYPEDEF, ONLY : PinXS_Type, AxFLX_TYPE
+USE TYPEDEF, ONLY : PinXS_Type, AxFLX_TYPE, AxGeom_Type
 !TYPE PinXS_Type
 !!  REAL,POINTER :: TRSPT(:),AB(:),RMV(:),NUFS(:),CHI(:),SC(:,:)
 !!  REAL,POINTER :: D0(:),D2(:)
@@ -31,24 +31,6 @@ TYPE MODALFLX_TYPE
   REAL,POINTER :: QH(:,:) !Source, MODAL SPACE SOURCE
   REAL,POINTER :: A(:,:),B(:,:),PSOL(:,:,:)
 END TYPE
-
-TYPE AxGEOM_TYPE
-  SEQUENCE
-!  INTEGER :: NG
-!  INTEGER :: NMESH,NCOMP
-!  INTEGER :: BC(2)
-!  REAL,POINTER :: H(:),HINV(:) 
-!  INTEGER,POINTER :: COMP(:)  
-  
-  INTEGER :: IX, IY, NG, idum
-  INTEGER :: myzb, myze, myzbf, myzef
-  INTEGER :: NMESH, NCOMP
-  INTEGER :: BC(2)
-  REAL :: Area
-  REAL, POINTER :: H(:), HINV(:)
-  INTEGER, POINTER :: COMP(:), idum2    
-  LOGICAL :: lTransient = .FALSE.
-END TYPE     
 
 TYPE AxSolItrCntl_TYPE
   INTEGER :: GroupItr = 10

@@ -182,7 +182,7 @@ CALL SetRayPEVariables(PE, Core, RayInfo)
 !--- CNJ Edit : Domain Decomposition
 IF (nTracerCntl%lDomainDcmp) THEN
 #ifdef DetailedIO
-  mesg = '  Generating Decomposed Assembly Rays...'
+  mesg = 'Generating Decomposed Assembly Rays...'
   IF(master) CALL message(io8,TRUE, TRUE, mesg)
 #endif
   CALL DcmpRayGen(Core, RayInfo, DcmpAsyRay)

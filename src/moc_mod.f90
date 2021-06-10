@@ -18,7 +18,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: phiaNM, srcAngNM, MocJoutNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
 ! Track Rotational Ray
-REAL, POINTER, DIMENSION(:,:)     :: wtang, wthcs, wthsn
+REAL, POINTER, DIMENSION(:,:)     :: wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)   :: wtsurf, SrcAng1, SrcAng2, comp, mwt, mwt2, phia1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAng, SrcAngNM1, SrcAngNM2
 

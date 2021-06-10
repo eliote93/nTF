@@ -1,8 +1,7 @@
 #include <CUDADEFINES.h>
 #include <defines.h>
-
-#ifdef __PGI
 MODULE CUDA_PWDIST
+#ifdef __PGI
 USE CUDA_MASTER
 USE CUDA_UTIL
 IMPLICIT NONE
@@ -303,6 +302,5 @@ CALL finalizeSortCsr(CMConverter, .TRUE.)
 
 NULLIFY(superPin, hz, hzfm, PinMap, fmRange)
 END SUBROUTINE
-
-END MODULE
 #endif
+END MODULE

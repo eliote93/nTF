@@ -148,7 +148,7 @@ ENDIF
 
 IF (RTMASTER) reserr = GammaMocResidual(Core, FmInfo, GroupInfo, PE, nTracerCntl)
 
-WRITE(mesg, '(2x, a10, i2, a14, 1p, e10.4)') 'Iteration ', iter, ' / Residual = ', reserr
+WRITE(mesg, '(2x, a10, i2, a14, 1p, e14.4)') 'Iteration ', iter, ' / Residual = ', reserr
 IF(Master) CALL message(io8, TRUE, TRUE, mesg)
 
 ItrCntl%lGammaConv = reserr .LT. resconv

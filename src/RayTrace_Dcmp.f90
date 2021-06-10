@@ -421,7 +421,7 @@ END SUBROUTINE RecTrackRotRayOMP_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, phisNM, joutNM, ljout, iz, gb, ge, krot)
 
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type, AziAngleInfo_Type
 USE HexData, ONLY : hAsy
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
 USE HexData, ONLY : haRay, hAsyTypInfo
@@ -439,12 +439,13 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
 LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: iz, gb, ge, krot
 ! ----------------------------------------------------
-TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
-
+TYPE (Pin_Type),          POINTER, DIMENSION(:) :: Pin
+TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
+  
 TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
-REAL, POINTER, DIMENSION(:,:)       :: srcNM, xstNM, EXPA, EXPB, wtang, wthcs, wthsn
+REAL, POINTER, DIMENSION(:,:)       :: srcNM, xstNM, EXPA, EXPB, wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
@@ -455,7 +456,7 @@ INTEGER :: iazi, ipol, irotray, iasyray, iray, irayseg, idir, icel, iasy, iFSR, 
 INTEGER :: ipst, iped, ipinc, isfst, isfed, isgst, isged, isginc, iAsyTyp, iGeoTyp, icBss, jhPin, jcBss
 INTEGER :: nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, PhiAnginSvIdx, ExpAppIdx
 
-REAL :: wtazi(10), wt2cs(10), wt2sn(10)
+REAL :: wtazi(10), locwt(10), loccs, locsn
 
 REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: PhiAngOut
 REAL :: phid, tau, ExpApp, wtsurf
@@ -465,6 +466,7 @@ DATA mp /2, 1/
 
 ! Ray Info.
 nPolarAng = RayInfo%nPolarAngle
+AziAng   => RayInfo%AziAngle
 
 ! Geo.
 Pin => CoreInfo%Pin
@@ -478,8 +480,7 @@ DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA          => TrackingDat%EXPA
 EXPB          => TrackingDat%EXPB
 wtang         => TrackingDat%wtang
-wthcs         => TrackingDat%wthcs
-wthsn         => TrackingDat%wthsn
+hwt           => TrackingDat%hwt
 
 ! Dcmp.
 nAsyRay     = DcmpAsyRay%nAsyRay
@@ -517,9 +518,11 @@ DO imray = jbeg, jend, jinc
   
   DO ipol = 1, nPolarAng
     wtazi(ipol) = wtang(ipol, iazi)
-    wt2cs(ipol) = wthcs(ipol, iazi)
-    wt2sn(ipol) = wthsn(ipol, iazi)
+    locwt(ipol) = hwt  (ipol, iazi)
   END DO
+  
+  loccs = AziAng(iazi)%cosv
+  locsn = AziAng(iazi)%sinv
   
   haRay_Loc => haRay(iGeoTyp, icBss, iAsyRay)
   
@@ -543,7 +546,7 @@ DO imray = jbeg, jend, jinc
       iSurf = CelRay_Loc%hSufIdx(isfst)
       
       DO ipol = 1, nPolarAng
-        wtsurf = abs(wt2cs(ipol) * CelRay_Loc%hsn(isfst) - wt2sn(ipol) * CelRay_Loc%hcs(isfst))
+        wtsurf = locwt(ipol) / abs(loccs * CelRay_Loc%hsn(isfst) - locsn * CelRay_Loc%hcs(isfst))
         
         DO ig = gb, ge
           joutNM(1, ig, isurf, jhpin) = joutNM(1, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtazi(ipol)
@@ -587,8 +590,8 @@ DO imray = jbeg, jend, jinc
       isurf = CelRay_Loc%hSufIdx(isfed) ! y : Big
       
       DO ipol = 1, nPolarAng
-        wtsurf = abs(wt2cs(ipol) * CelRay_Loc%hsn(isfed) - wt2sn(ipol) * CelRay_Loc%hcs(isfed))
-                
+        wtsurf = locwt(ipol) / abs(loccs * CelRay_Loc%hsn(isfed) - locsn * CelRay_Loc%hcs(isfed))
+        
         DO ig = gb, ge
           joutNM(2, ig, isurf, jhpin) = joutNM(2, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtazi(ipol)
           joutNM(3, ig, isurf, jhpin) = joutNM(3, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtsurf
@@ -603,7 +606,8 @@ DcmpPhiAngOut(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut(1:nPolarAng, gb:
 ! Geo.
 NULLIFY (Pin)
 
-! Hex.
+! Ray
+NULLIFY (AziAng)
 NULLIFY (haRay_Loc)
 NULLIFY (CelRay_Loc)
 
@@ -613,8 +617,7 @@ NULLIFY (xstNM)
 NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (wtang)
-NULLIFY (wthcs)
-NULLIFY (wthsn)
+NULLIFY (hwt)
 NULLIFY (PhiAngInNM)
 
 ! Dcmp.
