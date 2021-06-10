@@ -800,158 +800,169 @@ ELSE
 ENDIF
 
 END FUNCTION
-
-SUBROUTINE SetRadialCoupling(Pin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
-USE PARAM
-USE geom,           ONLY : ncbd
-USE TYPEDEF,        ONLY : PinXS_Type
-USE CNTL,           ONLY : nTracerCntl
-IMPLICIT NONE
-
-TYPE(superPin_Type), POINTER :: Pin(:)
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
-REAL, POINTER :: Jout(:, :, :, :, :)
-INTEGER :: ng, nxy, myzb, myze
-LOGICAL :: lDhat
-
-INTEGER :: ig, ipin, ineighpin, iz, ibd, inbd
-REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy
-REAL, POINTER :: superJout(:, :, :, :, :)
-
-IF (nTracerCntl%lHex) THEN
-  CALL HexSetRadialCoupling(Pin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
-
-  RETURN
-END IF
-ALLOCATE(superJout(3, ncbd, nxy, myzb : myze, ng))
-
-CALL superPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
-
-!$OMP PARALLEL PRIVATE(ineighpin, inbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
-DO ig = 1, ng
-  DO iz = myzb, myze
-    DO ipin = 1, nxy
-      DO ibd = 1, 4
-        ineighpin = Pin(ipin)%NeighIdx(ibd)
-        inbd = Pin(ipin)%NeighSurfIdx(ibd)
-        smy = Pin(ipin)%BdLength(ibd)
-        myphi = PinXS(ipin, iz)%Phi(ig)
-        mybeta = PinXS(ipin, iz)%XSD(ig) / Pin(ipin)%Center2SurfaceL(ibd)
-        IF (ineighpin .GT. 0) THEN
-          neighphi = PinXS(ineighpin, iz)%Phi(ig)
-          neighbeta = PinXS(ineighpin, iz)%XSD(ig) / Pin(ineighpin)%Center2SurfaceL(inbd)
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          jnet = superJout(2, ibd, ipin, iz, ig) - superJout(1, ibd, ipin, iz, ig)
-          Dhat = - (jnet - jfdm) / (myphi + neighphi)
-        ELSE
-          IF (ineighpin .EQ. VoidCell) THEN
-            neighbeta = 0.5; neighphi = 0.0
-          ELSEIF (ineighpin .EQ. RefCell) THEN
-            neighbeta = 0.0; neighphi = myphi
-          ENDIF
-          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-          jfdm = - Dtil * (neighphi - myphi)
-          jnet = superJout(2, ibd, ipin, iz, ig) - superJout(1, ibd, ipin, iz, ig)
-          Dhat = - (jnet - jfdm) / (myphi + neighphi)
-        ENDIF
-        PinXS(ipin, iz)%Dtil(ibd, ig) = Dtil
-        IF (lDhat) PinXS(ipin, iz)%Dhat(ibd, ig) = Dhat
-      ENDDO
-    ENDDO
-  ENDDO
-ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-DEALLOCATE(superJout)
-
-END SUBROUTINE
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexSetRadialCoupling(Pin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
+SUBROUTINE SetRadialCoupling(Pin, superJout, PinXS, RadJout, ng, nxy, myzb, myze, lDhat)
 
-USE geom,    ONLY : ncbd
 USE TYPEDEF, ONLY : PinXS_Type
-USE HexCmfd, ONLY : HexSuperPinCurrent
 USE CNTL,    ONLY : nTracerCntl
+USE HexCmfd, ONLY : HexSuperPinCurrent
 
 IMPLICIT NONE
 
-TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
-TYPE (PinXS_Type),    POINTER, DIMENSION(:,:) :: PinXS
-
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout
-
+TYPE(superPin_Type), POINTER, DIMENSION(:)   :: Pin
+TYPE(PinXS_Type),    POINTER, DIMENSION(:,:) :: PinXS
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout, RadJout
 INTEGER :: ng, nxy, myzb, myze
 LOGICAL :: lDhat
 ! ----------------------------------------------------
-INTEGER :: ig, ipin, ineighpin, iz, iNgh, ibd, jNgh, jbd
+INTEGER :: ig, ipin, ineighpin, iz, ingh, jngh, ibd, jbd, inbd
 REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy, atil, surfphifdm, ahat
-
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout
 ! ----------------------------------------------------
 
-ALLOCATE (superJout(3, ncbd, nxy, myzb:myze, ng)) ! # of Ngh is fixed as 15, artibrary #
+IF (.NOT. nTracerCntl%lHex) THEN
+  CALL superPinCurrent   (Pin, RadJout, superJout, ng, nxy, myzb, myze)
+ELSE
+  CALL HexsuperPinCurrent(Pin, RadJout, superJout, ng, nxy, myzb, myze)
+END IF
 
-CALL HexsuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
-
-!$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
-DO ig = 1, ng
-  DO iz = myzb, myze
-    DO ipin = 1, nxy
-      DO iNgh = 1, Pin(ipin)%nNgh
-        ibd       = Pin(ipin)%NghBd(iNgh)
-        ineighpin = Pin(ipin)%NeighIdx(iNgh)
-        jNgh      = Pin(ipin)%NeighSurfIdx(iNgh)
-        smy       = Pin(ipin)%NghLgh(iNgh)
-        
-        myphi  = PinXS(ipin, iz)%Phi(ig)
-        mybeta = PinXS(ipin, iz)%XSD(ig) / Pin(ipin)%Center2SurfaceL(ibd)
-        
-        IF (ineighpin .GT. 0) THEN
-          jbd = Pin(ineighpin)%NghBd(jNgh)
+IF (.NOT. nTracerCntl%lHex) THEN
+  !$OMP PARALLEL PRIVATE(ineighpin, inbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+  DO ig = 1, ng
+    DO iz = myzb, myze
+      DO ipin = 1, nxy
+        DO ibd = 1, 4
+          ineighpin = Pin(ipin)%NeighIdx(ibd)
+          inbd      = Pin(ipin)%NeighSurfIdx(ibd)
+          smy       = Pin(ipin)%BdLength(ibd)
           
-          neighphi  = PinXS(ineighpin, iz)%Phi(ig)
-          neighbeta = PinXS(ineighpin, iz)%XSD(ig) / Pin(ineighpin)%Center2SurfaceL(jbd)
-        ELSE
-          IF (ineighpin .EQ. VoidCell) THEN
-            neighbeta = 0.5; neighphi = 0.0
-          ELSEIF (ineighpin .EQ. RefCell) THEN
-            neighbeta = 0.0; neighphi = myphi
-          ENDIF
-        ENDIF
-        
-        Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
-        jfdm = -Dtil * (neighphi - myphi)
-        jnet = superJout(2, iNgh, ipin, iz, ig) - superJout(1, iNgh, ipin, iz, ig)
-        Dhat = -(jnet - jfdm) / (myphi + neighphi)
-        
-        PinXS(ipin, iz)%Dtil(iNgh, ig) = Dtil
-        
-        IF (lDhat) PinXS(ipin, iz)%Dhat(iNgh, ig) = Dhat
-        
-        ! Dcmp.
-        IF (.NOT. nTracerCntl%ldomaindcmp) CYCLE
-        
-        atil       = smy * mybeta / (mybeta + neighbeta) 
-        surfphifdm = atil * myphi + (smy - atil) * neighphi
-        ahat       = (superJout(3, iNgh, ipin, iz, ig) - surfphifdm) / (myphi + neighphi)
-        
-        PinXS(ipin, iz)%atil(ingh, ig) = atil ! Multiplied with Surf. Lgh.
-        PinXS(ipin, iz)%ahat(ingh, ig) = ahat ! Multiplied with Surf. Lgh.
+          myphi  = PinXS(ipin, iz)%Phi(ig)
+          mybeta = PinXS(ipin, iz)%XSD(ig) / Pin(ipin)%Center2SurfaceL(ibd)
+          
+          IF (ineighpin .GT. 0) THEN
+            neighphi  = PinXS(ineighpin, iz)%Phi(ig)
+            neighbeta = PinXS(ineighpin, iz)%XSD(ig) / Pin(ineighpin)%Center2SurfaceL(inbd)
+            
+            Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+            jfdm = - Dtil * (neighphi - myphi)
+            jnet = superJout(2, ibd, ipin, iz, ig) - superJout(1, ibd, ipin, iz, ig)
+            Dhat = - (jnet - jfdm) / (myphi + neighphi)
+          ELSE
+            IF (ineighpin .EQ. VoidCell) THEN
+              neighbeta = 0.5; neighphi = 0.0
+            ELSE IF (ineighpin .EQ. RefCell) THEN
+              neighbeta = 0.0; neighphi = myphi
+            END IF
+            
+            Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+            jfdm = - Dtil * (neighphi - myphi)
+            jnet = superJout(2, ibd, ipin, iz, ig) - superJout(1, ibd, ipin, iz, ig)
+            Dhat = - (jnet - jfdm) / (myphi + neighphi)
+          END IF
+          
+          PinXS(ipin, iz)%Dtil(ibd, ig) = Dtil
+          
+          IF (lDhat) PinXS(ipin, iz)%Dhat(ibd, ig) = Dhat
+          
+          ! Dcmp.
+          IF (.NOT. nTracerCntl%ldomaindcmp) CYCLE
+          
+          atil       = smy * mybeta / (mybeta + neighbeta) 
+          surfphifdm = atil * myphi + (smy - atil) * neighphi
+          ahat       = (superJout(3, ibd, ipin, iz, ig) - surfphifdm) / (myphi + neighphi)
+          
+          PinXS(ipin, iz)%atil(ibd, ig) = atil ! Multiplied with Surf. Lgh.
+          PinXS(ipin, iz)%ahat(ibd, ig) = ahat ! Multiplied with Surf. Lgh.
+        END DO
       END DO
     END DO
   END DO
-END DO
-!$OMP END DO
-!$OMP END PARALLEL
-
-DEALLOCATE(superJout)
+  !$OMP END DO
+  !$OMP END PARALLEL
+ELSE
+  !$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
+  DO ig = 1, ng
+    DO iz = myzb, myze
+      DO ipin = 1, nxy
+        DO iNgh = 1, Pin(ipin)%nNgh
+          ibd       = Pin(ipin)%NghBd(iNgh)
+          ineighpin = Pin(ipin)%NeighIdx(iNgh)
+          jNgh      = Pin(ipin)%NeighSurfIdx(iNgh)
+          smy       = Pin(ipin)%NghLgh(iNgh)
+          
+          myphi  = PinXS(ipin, iz)%Phi(ig)
+          mybeta = PinXS(ipin, iz)%XSD(ig) / Pin(ipin)%Center2SurfaceL(ibd)
+          
+          IF (ineighpin .GT. 0) THEN
+            jbd = Pin(ineighpin)%NghBd(jNgh)
+            
+            neighphi  = PinXS(ineighpin, iz)%Phi(ig)
+            neighbeta = PinXS(ineighpin, iz)%XSD(ig) / Pin(ineighpin)%Center2SurfaceL(jbd)
+          ELSE
+            IF (ineighpin .EQ. VoidCell) THEN
+              neighbeta = 0.5; neighphi = 0.0
+            ELSEIF (ineighpin .EQ. RefCell) THEN
+              neighbeta = 0.0; neighphi = myphi
+            ENDIF
+          ENDIF
+          
+          Dtil = mybeta * neighbeta / (mybeta + neighbeta) * smy
+          jfdm = -Dtil * (neighphi - myphi)
+          jnet = superJout(2, iNgh, ipin, iz, ig) - superJout(1, iNgh, ipin, iz, ig)
+          Dhat = -(jnet - jfdm) / (myphi + neighphi)
+          
+          PinXS(ipin, iz)%Dtil(iNgh, ig) = Dtil
+          
+          IF (lDhat) PinXS(ipin, iz)%Dhat(iNgh, ig) = Dhat
+          
+          ! Dcmp.
+          IF (.NOT. nTracerCntl%ldomaindcmp) CYCLE
+          
+          atil       = smy * mybeta / (mybeta + neighbeta) 
+          surfphifdm = atil * myphi + (smy - atil) * neighphi
+          ahat       = (superJout(3, iNgh, ipin, iz, ig) - surfphifdm) / (myphi + neighphi)
+          
+          PinXS(ipin, iz)%atil(ingh, ig) = atil ! Multiplied with Surf. Lgh.
+          PinXS(ipin, iz)%ahat(ingh, ig) = ahat ! Multiplied with Surf. Lgh.
+        END DO
+      END DO
+    END DO
+  END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
+END IF
 ! ----------------------------------------------------
 
-END SUBROUTINE HexSetRadialCoupling
+END SUBROUTINE SetRadialCoupling
+!! ------------------------------------------------------------------------------------------------------------
+!SUBROUTINE HexSetRadialCoupling(Pin, superJout, PinXS, RadJout, ng, nxy, myzb, myze, lDhat)
+!
+!USE geom,    ONLY : ncbd
+!USE TYPEDEF, ONLY : PinXS_Type
+!USE HexCmfd, ONLY : HexSuperPinCurrent
+!USE CNTL,    ONLY : nTracerCntl
+!
+!IMPLICIT NONE
+!
+!TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
+!TYPE (PinXS_Type),    POINTER, DIMENSION(:,:) :: PinXS
+!
+!REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout, RadJout
+!
+!INTEGER :: ng, nxy, myzb, myze
+!LOGICAL :: lDhat
+!! ----------------------------------------------------
+!INTEGER :: ig, ipin, ineighpin, iz, iNgh, ibd, jNgh, jbd
+!REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy, atil, surfphifdm, ahat
+!! ----------------------------------------------------
+!
+!CALL HexsuperPinCurrent(Pin, RadJout, superJout, ng, nxy, myzb, myze)
+!
+!
+!! ----------------------------------------------------
+!
+!END SUBROUTINE HexSetRadialCoupling
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE superPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 

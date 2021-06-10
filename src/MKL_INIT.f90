@@ -375,94 +375,106 @@ IF (GcGroupInfo%lUpScat) THEN
 ENDIF
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim, lGamma)
-USE TYPEDEF,        ONLY : GroupInfo_Type
-USE CMFD_COMMON,    ONLY : AllocPinXS
+
+USE allocs
+USE TYPEDEF,     ONLY : GroupInfo_Type
+USE CMFD_COMMON, ONLY : AllocPinXS
+USE geom,        ONLY : ncbd
+
 IMPLICIT NONE
 
-TYPE(mklCMFD_Type) :: CMFD
+TYPE(mklCMFD_Type)   :: CMFD
 TYPE(GroupInfo_Type) :: GroupInfo
 INTEGER :: myzb, myze
 LOGICAL :: l3dim, lGammaAlloc = .FALSE.
 LOGICAL, OPTIONAL :: lGamma
-
+! ----------------------------------------------------
 INTEGER :: ig, ng, nxy, nzCMFD
+! ----------------------------------------------------
 
 IF (PRESENT(lGamma)) lGammaAlloc = lGamma
 
 IF (lGammaAlloc) THEN
   CALL AllocGammaCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim)
+  
   RETURN
-ENDIF
+END IF
 
 ng = CMFD%ng
-nxy = mklGeom%nxy
+
+nxy    = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
-CMFD%bottomRange = (/ 1, nxy /)
-CMFD%topRange = (/ nxy * (nzCMFD - 1) + 1, nxy * nzCMFD /)
-ALLOCATE(CMFD%InScatRange(2, ng)); CMFD%InScatRange = GroupInfo%InScatRange
+CMFD%bottomRange = (/1, nxy/)
+CMFD%topRange    = (/nxy * (nzCMFD - 1) + 1, nxy * nzCMFD/)
 
-ALLOCATE(CMFD%M(ng))
-ALLOCATE(CMFD%S(nxy * nzCMFD, ng, ng))
-ALLOCATE(CMFD%F(nxy * nzCMFD, ng))
-ALLOCATE(CMFD%Chi(nxy * nzCMFD, ng))
+ALLOCATE(CMFD%InScatRange(2, ng))
+CMFD%InScatRange = GroupInfo%InScatRange
+
+ALLOCATE(CMFD%M (ng))
+
+CALL dmalloc(CMFD%S,   nxy * nzCMFD, ng, ng)
+CALL dmalloc(CMFD%F,   nxy * nzCMFD, ng)
+CALL dmalloc(CMFD%Chi, nxy * nzCMFD, ng)
 
 IF (mklCntl%lJacobi) THEN
-  ALLOCATE(CMFD%Jacobi(ng))
+  ALLOCATE(CMFD%Jacobi (ng))
+  
   DO ig = 1, ng
-    ALLOCATE(CMFD%Jacobi(ig)%invDiag(nxy * nzCMFD))
-    IF (l3dim) ALLOCATE(CMFD%Jacobi(ig)%offDiag(nxy, 2))
-  ENDDO
-ENDIF
+    ALLOCATE(CMFD%Jacobi(ig)%invDiag (nxy * nzCMFD))
+    
+    IF (l3dim) CALL dmalloc(CMFD%Jacobi(ig)%offDiag, nxy, 2)
+  END DO
+END IF
 
 IF (l3dim) THEN
   IF (mklCntl%lDavidson) THEN
-    ALLOCATE(CMFD%AxOffDiag(ng, nxy, 2))
-    ALLOCATE(CMFD%trAxOffDiag(ng, nxy, 2))
-    CMFD%AxOffDiag = 0.0
-    CMFD%trAxOffDiag = 0.0
+    CALL dmalloc(CMFD%AxOffDiag,   ng, nxy, 2)
+    CALL dmalloc(CMFD%trAxOffDiag, ng, nxy, 2)
   ELSE
-    ALLOCATE(CMFD%AxOffDiag(nxy, 2, ng))
-    CMFD%AxOffDiag = 0.0
-  ENDIF
-  IF (mklCntl%DcplLv .EQ. 2) THEN
-    ALLOCATE(CMFD%dcplAxOffDiag(nxy, nzCMFD, 2, ng)); CMFD%dcplAxOffDiag = 0.0
-  ENDIF
-ENDIF
+    CALL dmalloc(CMFD%AxOffDiag, nxy, 2, ng)
+  END IF
   
-ALLOCATE(CMFD%phis(nxy, nzCMFD, ng))
-ALLOCATE(CMFD%phic(nxy, myzb : myze, ng))
-ALLOCATE(CMFD%neighphis(nxy, ng, 2))
-ALLOCATE(CMFD%src(nxy * nzCMFD, ng))
-ALLOCATE(CMFD%psi(nxy, nzCMFD))
-ALLOCATE(CMFD%psid(nxy, nzCMFD))
-IF (mklCntl%lChebyshev) ALLOCATE(CMFD%phisd(nxy, nzCMFD, ng, 2))
+  IF (mklCntl%DcplLv .EQ. 2) CALL dmalloc(CMFD%dcplAxOffDiag, nxy, nzCMFD, 2, ng)
+END IF
+  
+CALL dmalloc(CMFD%phis,      nxy, nzCMFD, ng)
+CALL dmalloc(CMFD%neighphis, nxy, ng, 2)
+CALL dmalloc(CMFD%src,       nxy * nzCMFD, ng)
+CALL dmalloc(CMFD%psi,       nxy, nzCMFD)
+CALL dmalloc(CMFD%psid,      nxy, nzCMFD)
+
+IF (mklCntl%lChebyshev) CALL dmalloc(CMFD%phisd, nxy, nzCMFD, ng, 2)
+
+CALL dmalloc0(CMFD%phic, 1, nxy, myzb, myze, 1, ng)
+CALL dmalloc0(CMFD%superJout, 1, 3, 1, ncbd, 1, nxy, myzb, myze, 1, ng)
 
 IF (mklCntl%lSPAI) THEN
-  ALLOCATE(CMFD%SPAI(ng))
+  ALLOCATE(CMFD%SPAI (ng))
 ELSE
-  ALLOCATE(CMFD%ILU(ng))
-ENDIF
+  ALLOCATE(CMFD%ILU (ng))
+END IF
 
 IF (mklCntl%lDavidson) THEN
   ALLOCATE(CMFD%Davidson)
-  ALLOCATE(CMFD%Davidson%u(ng * nxy * nzCMFD))
-  ALLOCATE(CMFD%Davidson%t(ng * nxy * nzCMFD))
-  ALLOCATE(CMFD%Davidson%r(ng * nxy * nzCMFD))
-ENDIF
+  
+  CALL dmalloc(CMFD%Davidson%u, ng * nxy * nzCMFD)
+  CALL dmalloc(CMFD%Davidson%t, ng * nxy * nzCMFD)
+  CALL dmalloc(CMFD%Davidson%r, ng * nxy * nzCMFD)
+END IF
 
-ALLOCATE(CMFD%AxDtil(2, nxy, nzCMFD, ng))
-ALLOCATE(CMFD%AxDhat(2, nxy, nzCMFD, ng))
-CMFD%AxDhat = 0.0
+CALL dmalloc(CMFD%AxDtil, 2, nxy, nzCMFD, ng)
+CALL dmalloc(CMFD%AxDhat, 2, nxy, nzCMFD, ng)
 
-ALLOCATE(CMFD%theta(ng, nxy, nzCMFD)); CMFD%theta = 0.0
+CALL dmalloc(CMFD%theta, ng, nxy, nzCMFD)
 
 CALL AllocPinXS(CMFD%PinXS, GroupInfo, nxy, myzb, myze)
+! ----------------------------------------------------
 
-END SUBROUTINE
-
+END SUBROUTINE AllocCMFDVar
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocGammaCMFDVar(CMFD, GroupInfo, myzb, myze, l3dim)
 USE TYPEDEF,        ONLY : GroupInfo_Type
 USE GAMMA_HOMOXS,   ONLY : AllocPinXS

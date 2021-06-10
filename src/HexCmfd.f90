@@ -6,7 +6,7 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 !                                     01. HEX : Super Pin Currnet
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexSuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
+SUBROUTINE HexSuperPinCurrent(Pin, RadJout, superJout, ng, nxy, myzb, myze)
 
 USE TYPEDEF_COMMON, ONLY : superPin_Type
 
@@ -14,7 +14,7 @@ IMPLICIT NONE
 
 TYPE(superPin_Type), POINTER, DIMENSION(:) :: Pin
 
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout, superJout
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: RadJout, superJout
 
 INTEGER :: ig, ix, iy, iz, ixy, jxy, ipin, iNgh, iBndy, jBndy
 INTEGER :: ng, nxy, myzb, myze
@@ -36,7 +36,7 @@ DO ig = 1, ng
           iPin  = Pin(ixy)%BdMPidx(jxy, iBndy) ! MOC Pin
           jBndy = Pin(ixy)%BdMPsuf(jxy, iBndy) ! MOC Suf
           
-          superJout(:, iNgh, ixy, iz, ig) = superJout(:, iNgh, ixy, iz, ig) + Jout(:, jBndy, iPin, iz, ig) * ratio
+          superJout(:, iNgh, ixy, iz, ig) = superJout(:, iNgh, ixy, iz, ig) + RadJout(:, jBndy, iPin, iz, ig) * ratio
         END DO
       END DO
     END DO
@@ -185,7 +185,7 @@ END SUBROUTINE HexRayInfo4CmfdGen
 ! ------------------------------------------------------------------------------------------------------------
 #include <defines.h>
 #ifdef __INTEL_MKL
-SUBROUTINE HexSetMocPhiIn(Core, Pin, PinXS, Jout, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
+SUBROUTINE HexSetMocPhiIn(Core, Pin, superJout, PinXS, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
 
 USE MKL_3D,      ONLY : mklGeom, mklCMFD, superPin_Type
 USE PARAM,       ONLY : ZERO
@@ -202,7 +202,7 @@ TYPE (CoreInfo_Type)     :: Core
 TYPE (ItrCntl_TYPE)      :: ItrCntl
 TYPE (nTracerCntl_TYPE)  :: nTracerCntl
 
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: Jout
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout
 
 INTEGER :: ng, nxy, myzb, myze
 
@@ -221,7 +221,6 @@ REAL :: myphi, nghphi, surfphi, atil, ahat, slgh, fmult, phisum
 REAL, POINTER, DIMENSION(:)           :: hz, hzfm
 REAL, POINTER, DIMENSION(:,:,:)       :: phis
 REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn
-REAL, POINTER, DIMENSION(:,:,:,:,:)   :: superJout
 REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn
 
 TYPE (superPin_Type), POINTER, DIMENSION(:) :: superPin
@@ -276,10 +275,6 @@ IF (hLgc%lRadRef) THEN
 END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
-  ALLOCATE (superJout(3, ncbd, nxy, myzb:myze, ng)) ! # of Ngh is fixed as 15, artibrary #
-  
-  CALL HexsuperPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
-  
   DO iz = myzb, myze
     DO iAsy = 1, nAsy
       DO icnt = 1, DcmpAsyRayCount(iAsy)
@@ -322,8 +317,6 @@ IF (nTracerCntl%lDomainDcmp) THEN
       END DO
     END DO
   END DO
-  
-  DEALLOCATE(superJout)
 END IF
 ! ----------------------------------------------------
 ! Dcmp.

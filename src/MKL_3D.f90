@@ -1,17 +1,18 @@
 #include <defines.h>
-!--- CNJ Edit : 3D Calculation Master Module with Intel MKL
 #ifdef __INTEL_MKL
-
 MODULE MKL_3D
 
 USE PARAM
 USE TYPEDEF,        ONLY : PinXS_Type
 USE TYPEDEF_COMMON
+
 #ifdef __GAMMA_TRANSPORT
 USE GammaTYPEDEF,   ONLY : GPinXS_Type
 #endif
+
 USE CSRMATRIX
 USE OMP_LIB
+
 IMPLICIT NONE
 
 INCLUDE 'mpif.h'
@@ -32,26 +33,31 @@ TYPE blockMat_Type
 END TYPE
 
 TYPE mklCMFD_Type
-  TYPE(CSR_DOUBLE), POINTER :: M(:)
-  TYPE(CSR_DOUBLE), POINTER :: ILU(:)
-  TYPE(CSR_DOUBLE), POINTER :: SPAI(:)
+  TYPE(CSR_DOUBLE), POINTER, DIMENSION(:) :: M
+  TYPE(CSR_DOUBLE), POINTER, DIMENSION(:) :: ILU
+  TYPE(CSR_DOUBLE), POINTER, DIMENSION(:) :: SPAI
+  
   TYPE(mklDavidson_Type), POINTER :: Davidson
-  TYPE(mklJacobi_Type), POINTER :: Jacobi(:)
-  TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+  
+  TYPE(mklJacobi_Type),   POINTER, DIMENSION(:)   :: Jacobi
+  TYPE(PinXS_Type),       POINTER, DIMENSION(:,:) :: PinXS
+  
 #ifdef __GAMMA_TRANSPORT
-  TYPE(GPinXS_Type), POINTER :: GPinXS(:, :)
+  TYPE(GPinXS_Type), POINTER, DIMENSION(:,:) :: GPinXS
 #endif
-  REAL, POINTER :: S(:, :, :), F(:, :), Chi(:, :)
-  REAL, POINTER :: phis(:, :, :), phisd(:, :, :, :), phic(:, :, :), neighphis(:, :, :)
-  REAL, POINTER :: src(:, :), psi(:, :), psid(:, :)
-  REAL, POINTER :: theta(:, :, :)   !--- odCMFD Coefficient
-  REAL, POINTER :: AxDtil(:, :, :, :), AxDhat(:, :, :, :), partialAxDhat(:, :, :, :, :)
-  REAL, POINTER :: AxOffDiag(:, :, :), trAxOffDiag(:, :, :), dcplAxOffDiag(:, :, :, :)
-  INTEGER, POINTER :: planeMap(:)
-  INTEGER, POINTER :: InScatRange(:, :)
-  INTEGER :: bottomRange(2), topRange(2)
+
+  REAL, POINTER, DIMENSION(:,:)       :: F, Chi, src, psi, psid
+  REAL, POINTER, DIMENSION(:,:,:)     :: S, phis, phic, neighphis, theta, AxOffDiag, trAxOffDiag
+  REAL, POINTER, DIMENSION(:,:,:,:)   :: phisd, AxDtil, AxDhat, dcplAxOffDiag
+  REAL, POINTER, DIMENSION(:,:,:,:,:) :: partialAxDhat, superJout
+  
+  INTEGER, POINTER, DIMENSION(:)   :: planeMap
+  INTEGER, POINTER, DIMENSION(:,:) :: InScatRange
+  
+  INTEGER, DIMENSION(2) :: bottomRange, topRange
   INTEGER :: ng
-END TYPE
+  
+END TYPE mklCMFD_Type
 
 TYPE mklDavidson_Type
   TYPE(CSR_DOUBLE) :: M, ILU, F
@@ -419,5 +425,4 @@ CALL MPI_ALLREDUCE(dot, buf_dot, 1, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
 END FUNCTION
 
 END MODULE
-
 #endif

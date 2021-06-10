@@ -39,7 +39,7 @@ TYPE (CmInfo_Type)   :: CmInfo
 TYPE (FmInfo_Type)   :: FmInfo
 
 REAL :: eigv
-
+! ----------------------------------------------------
 TYPE (FxrInfo_type), POINTER, DIMENSION(:,:) :: Fxr
 TYPE (PinXS_Type),   POINTER, DIMENSION(:,:) :: PinXS
 
@@ -103,7 +103,7 @@ IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 
 CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
 CALL HomogenizeXS(CoreInfo, mklGeom%superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, FALSE)
-CALL SetRadialCoupling(mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
+CALL SetRadialCoupling(mklGeom%superPin, mklCMFD%superJout, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
 
 IF (lAxRefFDM) CALL SetReflectorDhatZero(PinXS)
 IF (l3dim) CALL SetAxialDtil(mklCMFD, mklAxial)
@@ -229,7 +229,7 @@ END IF
 
 CALL SetMOCPhis(CoreInfo, PinXS, phis, phic)
 
-CALL HexSetMOCPhiIn(CoreInfo, mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
+CALL HexSetMOCPhiIn(CoreInfo, mklGeom%superPin, mklCMFD%superJout, PinXS, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
 
 IF (l3dim) THEN
   CALL GetNeighborFlux(mklCMFD)
@@ -240,6 +240,15 @@ IF (lFirstCMFD) lFirstCMFD = FALSE
 
 CmfdTImeEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%CmfdTime = TimeChk%CmfdTime + (CmfdTimeEnd - CmfdTimeBeg)
+! ----------------------------------------------------
+NULLIFY (Fxr)
+NULLIFY (PinXS)
+NULLIFY (phis)
+NULLIFY (phic)
+NULLIFY (AxSrc)
+NULLIFY (AxPXS)
+NULLIFY (phim)
+NULLIFY (Jout)
 ! ----------------------------------------------------
 
 END SUBROUTINE MKL_CmfdPower
@@ -316,7 +325,7 @@ IF (nTracerCntl%lBsq) THEN
   CALL HomBuckling(CoreInfo, Fxr, phis, PinXS, myzb, myze, ng, nTracerCntl%bsq, lxsLib)
 END IF
 #endif
-CALL SetRadialCoupling(mklGeom%superPin, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
+CALL SetRadialCoupling(mklGeom%superPin, mklCMFD%superJout, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
 IF (l3dim) CALL SetAxialDtil(mklCMFD, mklAxial)
 
 WRITE(mesg, '(a)') 'Performing CMFD Calculation...'
