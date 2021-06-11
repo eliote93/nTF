@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInNM, xstnm, srcnm, joutnm, iz, gb, ge, ljout, FastMocLv)
+SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInNM, xstnm, srcnm, joutnm, iz, gb, ge, ljout)
 
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO
@@ -15,7 +15,7 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-INTEGER :: iz, gb, ge, FastMocLv
+INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
 REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
@@ -25,16 +25,11 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nthr
-INTEGER :: iRotRay, krot, ithr, FsrIdxSt, ipin, icel, ibd, ifsr, jfsr, ig
-REAL :: wttmp
+INTEGER :: nFsr, nxy, nthr, iRotRay, krot, ithr, FsrIdxSt, ipin, icel, ibd, ifsr, jfsr, ig, ixy
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
-
-nAziAng   = RayInfo%nAziAngle
-nPolarAng = RayInfo%nPolarAngle
 
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
@@ -42,8 +37,7 @@ CALL omp_set_num_threads(nthr)
 !$OMP PARALLEL PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
 
-TrackingDat(ithr)%phisnm = ZERO
-
+TrackingDat(ithr)%phisnm      = ZERO
 TrackingDat(ithr)%srcnm      => srcnm
 TrackingDat(ithr)%xstnm      => xstnm
 TrackingDat(ithr)%PhiAngInNM => PhiAngInNM
@@ -70,12 +64,23 @@ END DO
 phisnm(gb:ge, :) = ZERO
 IF (ljout) joutnm(:, gb:ge, :, :) = ZERO
 
+! Iter. is Necessary to avoid Stack Over-flow
 DO ithr = 1, nthr
-  phisnm(gb:ge, 1:nfsr) = phisnm(gb:ge, 1:nfsr) + TrackingDat(ithr)%phisnm(gb:ge, 1:nfsr)
+  DO ig = gb, ge
+    DO ifsr = 1, nfsr
+      phisnm(ig, ifsr) = phisnm(ig, ifsr) + TrackingDat(ithr)%phisnm(ig, ifsr)
+    END DO
+  END DO
   
   IF (.NOT. ljout) CYCLE
-    
-  joutnm(:, gb:ge, 1:nbd, 1:nxy) = joutnm(:, gb:ge, 1:nbd, 1:nxy) + TrackingDat(ithr)%joutnm(:, gb:ge, 1:nbd, 1:nxy)
+  
+  DO ixy = 1, nxy
+    DO ibd = 1, nbd
+      DO ig = gb, ge
+        joutnm(:, ig, ibd, ixy) = joutnm(:, ig, ibd, ixy) + TrackingDat(ithr)%joutnm(:, ig, ibd, ixy)
+      END DO
+    END DO
+  END DO
 END DO
 ! ----------------------------------------------------
 Cell => CoreInfo%CellInfo

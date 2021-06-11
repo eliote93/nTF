@@ -322,7 +322,7 @@ ELSE
               IF (lscat1) THEN
                 CALL RayTraceP1NM_OMP(RayInfo, Core, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, GrpBeg, GrpEnd, ljout)
               ELSE
-                CALL RayTraceNM_OMP  (RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, ljout, fmoclv)
+                CALL RayTraceNM_OMP  (RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, ljout)
               END IF
             ELSE
               CALL RayTraceLS_CASMO(RayInfo, Core, phisNM, phisSlope, PhiAngInNM, srcNM, srcSlope, xstNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)

@@ -180,7 +180,7 @@ LOGICAL, OPTIONAL :: lAFSS
 
 END SUBROUTINE RayTrace_Tran_OMP_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout, FastMocLv)
+SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -195,8 +195,6 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
-
-INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceNM_OMP
 ! ------------------------------------------------------------------------------------------------------------
