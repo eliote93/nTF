@@ -935,34 +935,6 @@ END IF
 ! ----------------------------------------------------
 
 END SUBROUTINE SetRadialCoupling
-!! ------------------------------------------------------------------------------------------------------------
-!SUBROUTINE HexSetRadialCoupling(Pin, superJout, PinXS, RadJout, ng, nxy, myzb, myze, lDhat)
-!
-!USE geom,    ONLY : ncbd
-!USE TYPEDEF, ONLY : PinXS_Type
-!USE HexCmfd, ONLY : HexSuperPinCurrent
-!USE CNTL,    ONLY : nTracerCntl
-!
-!IMPLICIT NONE
-!
-!TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
-!TYPE (PinXS_Type),    POINTER, DIMENSION(:,:) :: PinXS
-!
-!REAL, POINTER, DIMENSION(:,:,:,:,:) :: superJout, RadJout
-!
-!INTEGER :: ng, nxy, myzb, myze
-!LOGICAL :: lDhat
-!! ----------------------------------------------------
-!INTEGER :: ig, ipin, ineighpin, iz, iNgh, ibd, jNgh, jbd
-!REAL :: Dtil, Dhat, myphi, neighphi, mybeta, neighbeta, jnet, jfdm, smy, atil, surfphifdm, ahat
-!! ----------------------------------------------------
-!
-!CALL HexsuperPinCurrent(Pin, RadJout, superJout, ng, nxy, myzb, myze)
-!
-!
-!! ----------------------------------------------------
-!
-!END SUBROUTINE HexSetRadialCoupling
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE superPinCurrent(Pin, Jout, superJout, ng, nxy, myzb, myze)
 

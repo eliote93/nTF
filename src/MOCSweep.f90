@@ -64,6 +64,9 @@ REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
 REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
 REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
+
+! DEBUG
+INTEGER :: iFSR
 ! ----------------------------------------------------
 
 tmocst = nTracer_dclock(FALSE, FALSE)
@@ -87,7 +90,6 @@ IF (nTracerCntl%lLinSrc) LinSrcSlope => FmInfo%LinSrcSlope
 ! sSPH
 IF (nTracerCntl%lsSPHreg) THEN
   WRITE (mesg, '(a24)') 'Calculating Pin SSPH...'
-  
   IF (Master) CALL message(io8, TRUE, TRUE, mesg)
   
   CALL calcPinSSPH(Core, Fxr, PE)
@@ -350,6 +352,12 @@ ELSE
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng
+        DO iFSR = 1, Core%nCoreFSR
+          !IF (phisNM(ig, iFSR) .NE. phisNM(ig, iFSR)) THEN
+          !  STOP
+          !END IF
+        END DO
+        
         phis              (:, iz, ig) = phisNM       (ig, :)
         FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInNM(:, ig, :)
         RadJout     (:, :, :, iz, ig) = MocJoutNM (:, ig, :, :)

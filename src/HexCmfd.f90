@@ -248,6 +248,8 @@ DcmpAsyRayInCell => RayInfo4CMFD%DcmpAsyRayInCell
 AsyPhiAngIn      => RayInfo4CMFD%AsyPhiAngIn
 ! ----------------------------------------------------
 IF (hLgc%lRadRef) THEN
+  !$OMP PARALLEL PRIVATE(idir, iRotRay, imxy, isxy, isv, iz, ig, phisum, izf, fmult)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
   DO idir = 1, 2
     DO iRotRay = 1, nRotRay
       imxy = RotRayInOutCell(iRotRay, idir) ! Global Idx. of MoC Pin
@@ -272,9 +274,13 @@ IF (hLgc%lRadRef) THEN
       END DO
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
+  !$OMP PARALLEL PRIVATE(iz, iAsy, icnt, idir, imxy, isurf, isxy, ingh, jsxy, slgh, ig, myphi, izf, nghphi, atil, ahat, surfphi, fmult)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
   DO iz = myzb, myze
     DO iAsy = 1, nAsy
       DO icnt = 1, DcmpAsyRayCount(iAsy)
@@ -317,6 +323,8 @@ IF (nTracerCntl%lDomainDcmp) THEN
       END DO
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 END IF
 ! ----------------------------------------------------
 ! Dcmp.
