@@ -11,7 +11,7 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisNM, PhiAngInNM, MocJoutNM, xstNM, srcNM, phimNM, srcmNM, &
-                        DcmpPhiAngIn, DcmpGatherCurrent
+                        RayTrace_Dcmp, RayTraceP1_Dcmp, RayTraceLin_Dcmp, DcmpPhiAngIn, DcmpGatherCurrent
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
@@ -328,7 +328,15 @@ ELSE
               CALL RayTraceLS_CASMO(RayInfo, Core, phisNM, phisSlope, PhiAngInNM, srcNM, srcSlope, xstNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
             END IF
           ELSE
-            CALL RayTrace_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, FALSE, lScat1, lLSCASMO, nTracerCntl%lHybrid)
+            IF (lScat1) THEN
+              CALL RayTraceP1_Dcmp(RayInfo, Core, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
+            ELSE
+              IF (.NOT.lLSCASMO) THEN
+                CALL RayTrace_Dcmp(RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
+              ELSE
+                CALL RayTraceLin_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lHybrid)
+              END IF
+            END IF
           END IF
           
           ! Spectral SPH

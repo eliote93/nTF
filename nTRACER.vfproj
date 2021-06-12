@@ -306,9 +306,10 @@
 		<File RelativePath=".\src\moc_mod.f90"/>
 		<File RelativePath=".\src\MocEtc.f90"/>
 		<File RelativePath=".\src\MOCSweep.f90"/></Filter>
-		<Filter Name="Etc">
-		<File RelativePath=".\src\RayTrace_AFSS.f90"/>
-		<File RelativePath=".\src\RayTrace_Dcmp.f90"/></Filter>
+		<Filter Name="Dcmp">
+		<File RelativePath=".\src\RayTrace_Dcmp.f90"/>
+		<File RelativePath=".\src\RayTraceLin_Dcmp.f90"/>
+		<File RelativePath=".\src\RayTraceP1_Dcmp.f90"/></Filter>
 		<Filter Name="Group Major">
 		<File RelativePath=".\src\RayTrace_GM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_GM.f90"/>
@@ -317,6 +318,8 @@
 		<Filter Name="Linear Src">
 		<File RelativePath=".\src\RayTrace_Lin.f90"/>
 		<File RelativePath=".\src\SetRtSrc_Lin.f90"/></Filter>
+		<Filter Name="AFSS">
+		<File RelativePath=".\src\RayTrace_AFSS.f90"/></Filter>
 		<Filter Name="Node Major">
 		<File RelativePath=".\src\RayTrace_NM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_NM.f90"/>

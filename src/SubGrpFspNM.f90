@@ -6,8 +6,6 @@ MODULE SubGrpFspNM
 
 IMPLICIT NONE
 
-PRIVATE :: SubgroupRT
-
 CONTAINS
 
 SUBROUTINE SubGrpFsp_MLG_NM(Core, Fxr, THInfo, RayInfo, GroupInfo)
@@ -84,8 +82,13 @@ DO iz = myzb, myze
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
     rtTbeg = nTracer_dclock(FALSE, FALSE)
-    !CALL SubgroupRT(RayInfo, Core, phis, PhiAngIn, xst, src, iz, mg, nTracerCntl%lDomainDcmp)
-    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    
+    IF (.NOT. nTracerCntl%lDomainDcmp) THEN
+      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    ELSE
+      
+    END IF
+    
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     CALL EquipXSGen_MLG_NM(Core, Fxr, Siglp, xst, phis, iz, gb, ge)
@@ -139,8 +142,13 @@ DO iz = myzb, myze
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
     rtTbeg = nTracer_dclock(FALSE, FALSE)
-    !CALL SubgroupRT(RayInfo, Core, phis, PhiAngIn, xst, src, iz, mg, nTracerCntl%lDomainDcmp)
-    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    
+    IF (.NOT. nTracerCntl%lDomainDcmp) THEN
+      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    ELSE
+      
+    END IF
+    
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
@@ -191,8 +199,13 @@ DO iz = myzb, myze
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
     rtTbeg = nTracer_dclock(FALSE, FALSE)
-    !CALL SubgroupRT(RayInfo, Core, phis, PhiAngIn, xst, src, iz, mg, nTracerCntl%lDomainDcmp)
-    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    
+    IF (.NOT. nTracerCntl%lDomainDcmp) THEN
+      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    ELSE
+      
+    END IF
+    
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
@@ -232,106 +245,6 @@ Tend = nTracer_dclock(FALSE, FALSE)
 TimeChk%SubGrpTime = TimeChk%SubGrpTime + (Tend - Tbeg)
 
 END SUBROUTINE
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SubgroupRT(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, iz, mg, lDomainDcmp)
-! NOTICE : # of E. Grp. for Sub-Group Calculation can be different
-
-USE allocs
-USE OMP_LIB
-USE PARAM,   ONLY : TRUE, FALSE, ZERO
-USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE CNTL,    ONLY : nTracerCntl
-USE PE_MOD,  ONLY : PE
-USE MOC_MOD, ONLY : TrackingDat
-USE geom,    ONLY : ng
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)  :: RayInfo
-TYPE (CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER, DIMENSION(:,:)   :: phisNM, xstNM, srcNM
-REAL, POINTER, DIMENSION(:,:,:) :: PhiAngInNM
-
-INTEGER :: iz, mg
-LOGICAL :: lDomainDcmp
-! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
-TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
-
-INTEGER :: nFsr, nxy, nThr, iRotRay, krot, ithr
-INTEGER :: FsrIdxSt, ipin, icel, ig, ifsr, jfsr
-! ----------------------------------------------------
-
-nFsr = CoreInfo%nCoreFsr
-nxy  = CoreInfo%nxy
-
-nThr = PE%nThread
-
-DO ithr = 1, nThr
-  DEALLOCATE (TrackingDat(ithr)%phisNM)
-  CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
-END DO
-! ----------------------------------------------------
-!$OMP PARALLEL PRIVATE(ithr, krot, iRotRay)
-ithr = omp_get_thread_num() + 1
-
-TrackingDat(ithr)%phisNM      = ZERO
-TrackingDat(ithr)%srcNM      => srcNM
-TrackingDat(ithr)%xstNM      => xstNM
-TrackingDat(ithr)%PhiAngInNM => PhiAngInNM
-
-DO krot = 1, 2
-  IF (nTracerCntl%lHex) THEN
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
-      CALL HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), FALSE, iRotRay, iz, krot, 1, mg)
-    END DO
-    !$OMP END DO NOWAIT
-  ELSE
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
-      CALL RecTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), FALSE, iRotRay, iz, krot, 1, mg)
-    END DO
-    !$OMP END DO NOWAIT
-  END IF
-END DO
-!$OMP END PARALLEL
-! ----------------------------------------------------
-phisNM = ZERO
-
-DO ithr = 1, nThr
-  phisNM(1:mg, 1:nfsr) = phisNM(1:mg, 1:nfsr) + TrackingDat(ithr)%phisNM(1:mg, 1:nfsr)
-    
-  DEALLOCATE (TrackingDat(ithr)%phisNM)
-  CALL dmalloc(TrackingDat(ithr)%phisNM, ng, nFsr)
-END DO
-! ----------------------------------------------------
-Cell => CoreInfo%CellInfo
-Pin  => CoreInfo%Pin
-
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr, ig)
-!$OMP DO SCHEDULE(GUIDED)
-DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt
-  icel     = Pin(ipin)%Cell(iz)
-  
-  DO ifsr = 1, Cell(icel)%nFsr
-    jfsr = FsrIdxSt + ifsr - 1
-    
-    DO ig = 1, mg
-      phisNM(ig, jfsr) = phisNM(ig, jfsr) / (xstNM(ig, jfsr) * Cell(icel)%vol(ifsr)) + srcNM(ig, jfsr)
-    END DO
-  END DO
-END DO
-!$OMP END DO
-!$OMP END PARALLEL
-
-NULLIFY (Cell)
-NULLIFY (Pin)
-! ----------------------------------------------------
-
-END SUBROUTINE SubgroupRT
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
 USE TYPEDEF,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Pin_Type,           Cell_Type
