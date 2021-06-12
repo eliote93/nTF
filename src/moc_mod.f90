@@ -17,6 +17,8 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: phiaNM, srcAngNM, MocJoutNM
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
+INTEGER, POINTER, DIMENSION(:,:) :: DcmpColorAsy
+
 ! Track Rotational Ray
 REAL, POINTER, DIMENSION(:,:)     :: wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)   :: wtsurf, SrcAng1, SrcAng2, comp, mwt, mwt2, phia1g
@@ -248,7 +250,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
 END SUBROUTINE RayTraceP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_OMP(RayInfo, CoreInfo, phisnm, joutnm, iz, iasy, gb, ge, ljout)
+SUBROUTINE RayTraceDcmp_OMP(RayInfo, CoreInfo, iz, iasy, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -257,15 +259,12 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
-
 INTEGER :: iz, iasy, gb, ge
 LOGICAL :: ljout
 
 END SUBROUTINE RayTraceDcmp_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, phis, jout, ljout, iz, gb, ge, krot)
+SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -273,16 +272,13 @@ TYPE (RayInfo_Type)        :: RayInfo
 TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-REAL, POINTER, DIMENSION(:,:)     :: phis
-REAL, POINTER, DIMENSION(:,:,:,:) :: jout
 
 LOGICAL :: ljout
 INTEGER :: iz, gb, ge, krot
 
 END SUBROUTINE RecTrackRotRayOMP_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, phis, jout, ljout, iz, gb, ge, krot)
+SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -290,9 +286,6 @@ TYPE (RayInfo_Type)        :: RayInfo
 TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-REAL, POINTER, DIMENSION(:,:)     :: phis
-REAL, POINTER, DIMENSION(:,:,:,:) :: jout
 
 LOGICAL :: ljout
 INTEGER :: iz, gb, ge, krot

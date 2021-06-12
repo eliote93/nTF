@@ -5,7 +5,7 @@ USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
 USE PE_Mod,  ONLY : PE
-USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay
+USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay, DcmpColorAsy
 USE HexData, ONLY : hAsy
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
 USE HexData, ONLY : haRay, hcRay, hRotRay, hAsyTypInfo
@@ -22,7 +22,7 @@ INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
 INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nRaySeg, nRaySeg0, nAziAngle
-INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, iAzi, iz, iasy, ipin, iCnt, iAsyTyp, iGeoTyp, icBss, jcBss, iDir, itmp
+INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, iAzi, iz, iasy, ipin, iCnt, iAsyTyp, iGeoTyp, icBss, jcBss, iDir, itmp, icolor
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prvAsy, prvCnt, nRef
 
 TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
@@ -193,14 +193,22 @@ DO iRotRay = 1, nRotRay
 END DO
 ! ----------------------------------------------------
 ! Hex Color
+CALL dmalloc0(DcmpColorAsy, 0, nAsy, 1, 3)
+
 DO iAsy = 1, nAsy
   itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
   
   SELECT CASE (itmp)
-    CASE (1); Core%Asy(iAsy)%color = RED
-    CASE (2); Core%Asy(iAsy)%color = BLACK
-    CASE (0); Core%Asy(iAsy)%color = GREEN
+    CASE (1); icolor = RED
+    CASE (2); icolor = BLACK
+    CASE (0); icolor = GREEN
   END SELECT
+  
+  Core%Asy(iAsy)%color = icolor
+    
+  DcmpColorAsy(0, icolor) = DcmpColorAsy(0, icolor) + 1
+  
+  DcmpColorAsy(DcmpColorAsy(0, icolor), icolor) = iAsy
 END DO
 ! ----------------------------------------------------
 !DO iAsy = 1, nAsy

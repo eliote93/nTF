@@ -1,12 +1,12 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInNM, xstNM, srcNM, joutNM, iz, gb, ge, ljout)
+SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, joutNM, iz, gb, ge, ljout)
 
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : TrackingDat
-USE geom,    ONLY : ng, nbd
+USE geom,    ONLY : nbd
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
@@ -18,14 +18,14 @@ TYPE (CoreInfo_Type) :: CoreInfo
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstNM, srcNM
+REAL, POINTER, DIMENSION(:,:)     :: phisNM, xstNM, srcNM
 REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
 ! ----------------------------------------------------
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nFsr, nxy, nthr, iRotRay, krot, ithr, FsrIdxSt, ipin, icel, ibd, ifsr, jfsr, ig, ixy
+INTEGER :: nFsr, nxy, nthr, iRotRay, krot, ithr, FsrIdxSt, icel, ibd, ifsr, jfsr, ig, ixy
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
@@ -37,38 +37,34 @@ CALL omp_set_num_threads(nthr)
 !$OMP PARALLEL PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
 
-TrackingDat(ithr)%phisnm      = ZERO
 TrackingDat(ithr)%srcNM      => srcNM
 TrackingDat(ithr)%xstNM      => xstNM
 TrackingDat(ithr)%PhiAngInNM => PhiAngInNM
 
+TrackingDat(ithr)%phisNM = ZERO
 IF (ljout) TrackingDat(ithr)%joutNM = ZERO
 
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO krot = 1, 2
-  IF (nTracerCntl%lHex) THEN
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+  DO iRotRay = 1, RayInfo%nRotRay
+    IF (nTracerCntl%lHex) THEN
       CALL HexTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
-    END DO
-    !$OMP END DO NOWAIT
-  ELSE
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+    ELSE
       CALL RecTrackRotRayNM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
-    END DO
-    !$OMP END DO NOWAIT
-  END IF
+    END IF
+  END DO
 END DO
+!$OMP END DO NOWAIT
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-phisnm(gb:ge, :) = ZERO
+phisNM(gb:ge, :) = ZERO
 IF (ljout) joutNM(:, gb:ge, :, :) = ZERO
 
 ! Iter. is Necessary to avoid Stack Over-flow
 DO ithr = 1, nthr
   DO ig = gb, ge
     DO ifsr = 1, nfsr
-      phisnm(ig, ifsr) = phisnm(ig, ifsr) + TrackingDat(ithr)%phisnm(ig, ifsr)
+      phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)
     END DO
   END DO
   
@@ -86,17 +82,17 @@ END DO
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr, ig)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
 !$OMP DO SCHEDULE(GUIDED)
-DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt
-  icel     = Pin(ipin)%Cell(iz)
+DO ixy = 1, nxy
+  FsrIdxSt = Pin(ixy)%FsrIdxSt
+  icel     = Pin(ixy)%Cell(iz)
   
   DO ifsr = 1, Cell(icel)%nFsr
     jfsr = FsrIdxSt + ifsr - 1
     
     DO ig = gb, ge
-      phisnm(ig, jfsr) = phisnm(ig, jfsr) / (xstNM(ig, jfsr) * Cell(icel)%vol(ifsr)) + srcNM(ig, jfsr)
+      phisNM(ig, jfsr) = phisNM(ig, jfsr) / (xstNM(ig, jfsr) * Cell(icel)%vol(ifsr)) + srcNM(ig, jfsr)
     END DO
   END DO
 END DO
@@ -164,7 +160,7 @@ Cell    => CoreInfo%CellInfo
 
 wtang      => TrackingDat%wtang
 wtsurf     => TrackingDat%wtsurf
-phisNM     => TrackingDat%phisnm
+phisNM     => TrackingDat%phisNM
 srcNM      => TrackingDat%srcNM
 xstNM      => TrackingDat%xstNM
 joutNM     => TrackingDat%joutNM
@@ -308,7 +304,7 @@ NULLIFY (CellRay)
 ! Local
 NULLIFY (LocalFsrIdx)
 NULLIFY (LenSeg)
-NULLIFY (PhisNM)
+NULLIFY (phisNM)
 NULLIFY (srcNM)
 NULLIFY (xstNM)
 NULLIFY (joutNM)
@@ -364,7 +360,7 @@ PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 Pin => CoreInfo%Pin
 
 wtang      => TrackingDat%wtang
-PhisNM     => TrackingDat%phisnm
+phisNM     => TrackingDat%phisNM
 srcNM      => TrackingDat%srcNM
 xstNM      => TrackingDat%xstNM
 joutNM     => TrackingDat%joutNM

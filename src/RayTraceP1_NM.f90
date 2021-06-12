@@ -27,7 +27,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThread, scatod, nod
-INTEGER :: iRotRay, ipol, iazi, krot, ithr, FsrIdxSt, ipin, icel, ibd, ig, ifsr, jfsr, iod
+INTEGER :: iRotRay, ipol, iazi, krot, ithr, FsrIdxSt, icel, ibd, ig, ifsr, jfsr, iod, ixy
 REAL :: wttmp, srctmp
 ! ----------------------------------------------------
 
@@ -84,14 +84,13 @@ ithr = omp_get_thread_num() + 1
 
 TrackingDat(ithr)%phisNM = ZERO
 TrackingDat(ithr)%phimNM = ZERO
+IF (ljout) TrackingDat(ithr)%joutNM = ZERO
 
 TrackingDat(ithr)%srcNM      => srcNM
 TrackingDat(ithr)%xstNM      => xstNM
 TrackingDat(ithr)%PhiAngInNM => PhiAngInNM
 TrackingDat(ithr)%SrcAngNM1  => SrcAngNM1
 TrackingDat(ithr)%SrcAngNM2  => SrcAngNM2
-
-IF (ljout) TrackingDat(ithr)%joutNM = ZERO
 
 DO krot = 1, 2
   IF (nTracerCntl%lHex) THEN
@@ -127,10 +126,10 @@ DO ithr = 1, nThread
   
   IF (.NOT. ljout) CYCLE
   
-  DO ipin = 1, nxy
+  DO ixy = 1, nxy
     DO ibd = 1, nbd
       DO ig = gb, ge
-        joutNM(:, ig, ibd, ipin) = joutNM(:, ig, ibd, ipin) + TrackingDat(ithr)%joutNM(:, ig, ibd, ipin)
+        joutNM(:, ig, ibd, ixy) = joutNM(:, ig, ibd, ixy) + TrackingDat(ithr)%joutNM(:, ig, ibd, ixy)
       END DO
     END DO
   END DO
@@ -139,11 +138,11 @@ END DO
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr, ig, wttmp)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig, wttmp)
 !$OMP DO SCHEDULE(GUIDED)
-DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt
-  icel     = Pin(ipin)%Cell(iz)
+DO ixy = 1, nxy
+  FsrIdxSt = Pin(ixy)%FsrIdxSt
+  icel     = Pin(ixy)%Cell(iz)
   
   DO ifsr = 1, Cell(icel)%nFsr
     jfsr = FsrIdxSt + ifsr - 1

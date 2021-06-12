@@ -58,6 +58,9 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%srcNM => srcNM
   TrackingDat(ithr)%xstNM => xstNM
   
+  TrackingDat(ithr)%phisNM(gb:ge, :) = ZERO
+  IF (ljout) TrackingDat(ithr)%JoutNM(:, gb:ge, :, :) = ZERO
+  
   TrackingDat(ithr)%srcSlope => srcSlope(:, :, :, iz) ! Lin. CASMO
 END DO
 
@@ -83,7 +86,7 @@ DO color = startColor, endColor, colorInc
     AsyType = Asy(iAsy)%AsyType
     
     IF (lHybrid .AND. AsyInfo(AsyType)%lFuel) THEN
-      CALL RayTraceDcmp_OMP(RayInfo, CoreInfo, phisNM, MocjoutNM, iz, iAsy, gb, ge, ljout)
+      !CALL RayTraceDcmp_OMP(RayInfo, CoreInfo, iz, iAsy, gb, ge, ljout)
     ELSE
       CALL RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNM, phisSlope, MocjoutNM, iz, iAsy, gb, ge, ljout)
     END IF

@@ -850,7 +850,7 @@ DEALLOCATE(w, wbuf, scatsum)
 
 END SUBROUTINE MOCUnderRelaxationFactor
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, icolor)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -865,7 +865,7 @@ REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
 INTEGER :: gb, ge
 
-INTEGER, OPTIONAL :: color
+INTEGER, OPTIONAL :: icolor
 ! ----------------------------------------------------
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
@@ -880,8 +880,8 @@ DcmpAsyLinkInfo => RayInfo%DcmpAsyLinkInfo
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
 DO iAsy = 1, CoreInfo%nxya
-  IF (PRESENT(color)) THEN
-    IF (CoreInfo%Asy(iAsy)%color .NE. color) CYCLE
+  IF (PRESENT(icolor)) THEN
+    IF (CoreInfo%Asy(iAsy)%color .NE. icolor) CYCLE
   END IF
   
   DO iRay = 1, DcmpAsyRayCount(iAsy)

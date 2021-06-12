@@ -4,12 +4,13 @@ SUBROUTINE RayTrace_Dcmp(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, Mo
 
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
-USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, &
+USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, DcmpColorAsy, &
                         RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
 USE Core_mod,    ONLY : phisSlope, srcSlope
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
+USE geom,        ONLY : nbd
 USE itrcntl_mod, ONLY : itrcntl
 
 IMPLICIT NONE
@@ -24,35 +25,31 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 ! ----------------------------------------------------
-TYPE (AsyInfo_Type), POINTER, DIMENSION(:) :: AsyInfo
-TYPE (Asy_Type),     POINTER, DIMENSION(:) :: Asy
+TYPE (Asy_Type),  POINTER, DIMENSION(:) :: Asy
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: color, startColor, endColor, colorInc, ithr, nThr, iAsy
+TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
+
+INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
+
+INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, nfsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, iAsyRay, krot, icolor, jcolor, ncolor, iit
+
+INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
+INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
-AsyInfo => CoreInfo%AsyInfo
-Asy     => CoreInfo%Asy
+nFsr = CoreInfo%nCoreFsr
+nxy  = CoreInfo%nxy
+Asy => CoreInfo%Asy
+
+DcmpAsyRay      => RayInfo%DcmpAsyRay
+DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
 IF (.NOT. nTracerCntl%lHex) THEN
-  IF (mod(itrcntl%mocit, 2) .EQ. 0) THEN
-    startColor = BLACK
-    endColor   = RED
-    colorInc   = RED - BLACK
-  ELSE
-    startColor = RED
-    endColor   = BLACK
-    colorInc   = BLACK - RED
-  END IF
+  ncolor = 2; iit = mod(itrcntl%mocit, 2)
 ELSE
-  IF (mod(itrcntl%mocit, 2) .EQ. 0) THEN
-    startColor = GREEN
-    endColor   = RED
-    colorInc   = (RED - GREEN)/2
-  ELSE
-    startColor = RED
-    endColor   = GREEN
-    colorInc   = (GREEN - RED)/2
-  END IF
+  ncolor = 3; iit = mod(itrcntl%mocit, 3)
 END IF
 
 nthr = PE%nthread
@@ -61,169 +58,161 @@ CALL OMP_SET_NUM_THREADS(nThr)
 DO ithr = 1, nThr
   TrackingDat(ithr)%srcNM => srcNM
   TrackingDat(ithr)%xstNM => xstNM
+  
+  TrackingDat(ithr)%phisNM(gb:ge, :) = ZERO
+  IF (ljout) TrackingDat(ithr)%JoutNM(:, gb:ge, :, :) = ZERO
 END DO
 
 DcmpPhiAngOut(:, gb:ge, :, :, :) = ZERO
 ! ----------------------------------------------------
-DO color = startColor, endColor, colorInc
+DO icolor = 1, ncolor
+  IF (.NOT. nTracerCntl%lHex) THEN
+    jcolor = AuxRec(icolor, iit)
+  ELSE
+    jcolor = AuxHex(icolor, iit)
+  END IF
+  
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 #endif
 
-  !$OMP PARALLEL PRIVATE(ithr, iAsy)
+  !$OMP PARALLEL PRIVATE(ithr, iAsy, krot, jAsy, iAsyRay)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   
   TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
   TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
   TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
-  !$OMP BARRIER
-  !$OMP DO SCHEDULE(GUIDED)
-  DO iAsy = PE%myAsyBeg, PE%myAsyEnd
-    IF (Asy(iAsy)%color .NE. color) CYCLE
+  
+  DO iAsy = 1, DcmpColorAsy(0, jcolor)
+    jAsy = DcmpColorAsy(iAsy, jcolor)
     
-    CALL RayTraceDcmp_OMP(RayInfo, CoreInfo, phisNM, MocjoutNM, iz, iAsy, gb, ge, ljout)
+    !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+    DO krot = 1, 2
+      DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
+        IF (nTracerCntl%lHex) THEN
+          CALL HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
+        ELSE
+          CALL RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
+        END IF
+      END DO
+    END DO
+    !$OMP END DO NOWAIT
   END DO
-  !$OMP END DO NOWAIT
   !$OMP END PARALLEL
   
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, jcolor)
 END DO
-
-NULLIFY (Asy)
-NULLIFY (AsyInfo)
 ! ----------------------------------------------------
+phisNM(gb:ge, :) = ZERO
+IF (ljout) MocjoutNM(:, gb:ge, :, :) = ZERO
 
-END SUBROUTINE RayTrace_Dcmp
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_OMP(RayInfo, CoreInfo, phisNM, joutNM, iz, iasy, gb, ge, ljout)
-
-USE OMP_LIB
-USE PARAM,   ONLY : ZERO
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, AsyInfo_Type, Asy_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-USE Moc_Mod, ONLY : RecTrackRotRayOMP_Dcmp, HexTrackRotRayOMP_Dcmp, TrackingDat
-USE CNTL,    ONLY : nTracerCntl
-USE HexData, ONLY : hAsy
-
-! DEBUG
-USE PARAM, ONLY : mesg, TRUE
-USE FILES, ONLY : io8
-USE IOUTIL,ONLY : message
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)  :: RayInfo
-TYPE (CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER, DIMENSION(:,:)     :: phisNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
-
-INTEGER :: iz, iAsy, gb, ge
-LOGICAL :: ljout
-! ----------------------------------------------------
-TYPE (AsyInfo_Type),        POINTER, DIMENSION(:)   :: AsyInfo
-TYPE (Asy_Type),            POINTER, DIMENSION(:)   :: Asy
-TYPE (Cell_Type),           POINTER, DIMENSION(:)   :: Cell
-TYPE (Pin_Type),            POINTER, DIMENSION(:)   :: Pin
-TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
-
-INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
-
-REAL, POINTER, DIMENSION(:,:) :: xstNM, srcNM
-
-INTEGER :: nxy, iAsyRay, ithr, icel, ig, ipin, ifsr, jfsr, krot, FsrIdxSt, FsrIdxEnd, PinIdxSt, PinIdxEd
-! ----------------------------------------------------
-
-AsyInfo => CoreInfo%AsyInfo
-Asy     => CoreInfo%Asy
-Cell    => CoreInfo%CellInfo
-Pin     => CoreInfo%Pin
-
-DcmpAsyRay      => RayInfo%DcmpAsyRay
-DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-! ----------------------------------------------------
-IF (.NOT. nTracerCntl%lHex) THEN
-  nxy = AsyInfo(Asy(iAsy)%AsyType)%nxy
+! Iter. is Necessary to avoid Stack Over-flow
+DO ithr = 1, nthr
+  DO ig = gb, ge
+    DO ifsr = 1, nfsr
+      phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)
+    END DO
+  END DO
   
-  PinIdxSt = Asy(iAsy)%GlobalPinIdx(1)
-  PinIdxEd = Asy(iAsy)%GlobalPinIdx(nxy)
-ELSE
-  PinIdxSt = hAsy(iAsy)%PinIdxSt
-  PinIdxEd = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
-END IF
-
-FsrIdxSt  = Pin(PinIdxSt)%FsrIdxSt
-FsrIdxEnd = Pin(PinIdxEd)%FsrIdxSt + Cell(Pin(PinIdxEd)%Cell(iz))%nFsr - 1
-
-phisNM(gb:ge, FsrIdxSt:FsrIdxEnd) = ZERO
-
-IF (ljout) joutNM(:, gb:ge, :, PinIdxSt:PinIdxEd) = ZERO
-! ----------------------------------------------------
-ithr = omp_get_thread_num() + 1
-
-! DEBUG
-!WRITE (mesg, '(I2, X, I2, X, I1)') ithr, iAsy, 1
-!CALL message(io8, TRUE, TRUE, mesg)
-
-IF (nTracerCntl%lHex) THEN
-  DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
-    DO krot = 1, 2
-      CALL HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, iAsy), phisNM, joutNM, ljout, iz, gb, ge, krot)
+  IF (.NOT. ljout) CYCLE
+  
+  DO ixy = 1, nxy
+    DO ibd = 1, nbd
+      DO ig = gb, ge
+        MocjoutNM(:, ig, ibd, ixy) = MocjoutNM(:, ig, ibd, ixy) + TrackingDat(ithr)%joutNM(:, ig, ibd, ixy)
+      END DO
     END DO
   END DO
-ELSE
-  DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
-    DO krot = 1, 2
-      CALL RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, iAsy), phisNM, joutNM, ljout, iz, gb, ge, krot)
-    END DO
-  END DO
-END IF
-
-! DEBUG
-!WRITE (mesg, '(I2, X, I2, X, I1)') ithr, iAsy, 2
-!CALL message(io8, TRUE, TRUE, mesg)
+END DO
 ! ----------------------------------------------------
-xstNM => TrackingDat(ithr)%xstNM
-srcNM => TrackingDat(ithr)%srcNM
+Cell => CoreInfo%CellInfo
+Pin  => CoreInfo%Pin
 
-DO ipin = PinIdxSt, PinIdxEd
-  FsrIdxSt = Pin(ipin)%FsrIdxSt
-  icel     = Pin(ipin)%Cell(iz)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
+!$OMP DO SCHEDULE(GUIDED)
+DO ixy = 1, nxy
+  FsrIdxSt = Pin(ixy)%FsrIdxSt
+  icel     = Pin(ixy)%Cell(iz)
   
   DO ifsr = 1, Cell(icel)%nFsr
     jfsr = FsrIdxSt + ifsr - 1
     
     DO ig = gb, ge
-      !IF (abs(xstNM(ig, jfsr)) .LT. 1E-7) THEN
-      !  STOP
-      !END IF
-      
       phisNM(ig, jfsr) = phisNM(ig, jfsr) / (xstNM(ig, jfsr) * Cell(icel)%vol(ifsr)) + srcNM(ig, jfsr)
     END DO
   END DO
 END DO
-
-! DEBUG
-!WRITE (mesg, '(I2, X, I2, X, I1)') ithr, iAsy, 3
-!CALL message(io8, TRUE, TRUE, mesg)
+!$OMP END DO
+!$OMP END PARALLEL
 ! ----------------------------------------------------
-NULLIFY (AsyInfo)
-NULLIFY (Asy)
 NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Asy)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
-NULLIFY (xstNM)
-NULLIFY (srcNM)
 ! ----------------------------------------------------
 
-END SUBROUTINE RayTraceDcmp_OMP
+END SUBROUTINE RayTrace_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, phisNM, joutNM, ljout, iz, gb, ge, krot)
+!SUBROUTINE RayTraceDcmp_OMP(RayInfo, CoreInfo, iz, iasy, gb, ge, ljout)
+!
+!USE OMP_LIB
+!USE PARAM,   ONLY : ZERO
+!USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, AsyInfo_Type, Asy_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
+!USE Moc_Mod, ONLY : RecTrackRotRayOMP_Dcmp, HexTrackRotRayOMP_Dcmp, TrackingDat
+!USE CNTL,    ONLY : nTracerCntl
+!USE HexData, ONLY : hAsy
+!
+!IMPLICIT NONE
+!
+!TYPE (RayInfo_Type)  :: RayInfo
+!TYPE (CoreInfo_Type) :: CoreInfo
+!
+!INTEGER :: iz, iAsy, gb, ge
+!LOGICAL :: ljout
+!! ----------------------------------------------------
+!TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
+!
+!INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
+!
+!REAL, POINTER, DIMENSION(:,:) :: xstNM, srcNM
+!
+!INTEGER :: iAsyRay, ithr, icel, ig, krot
+!! ----------------------------------------------------
+!
+!DcmpAsyRay      => RayInfo%DcmpAsyRay
+!DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
+!! ----------------------------------------------------
+!ithr = omp_get_thread_num() + 1
+!
+!IF (nTracerCntl%lHex) THEN
+!  DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
+!    DO krot = 1, 2
+!      CALL HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, iAsy), ljout, iz, gb, ge, krot)
+!    END DO
+!  END DO
+!ELSE
+!  DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
+!    DO krot = 1, 2
+!      CALL RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, iAsy), ljout, iz, gb, ge, krot)
+!    END DO
+!  END DO
+!END IF
+!! ----------------------------------------------------
+!NULLIFY (DcmpAsyRay)
+!NULLIFY (DcmpAsyRayCount)
+!NULLIFY (xstNM)
+!NULLIFY (srcNM)
+!! ----------------------------------------------------
+!
+!END SUBROUTINE RayTraceDcmp_OMP
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, Cell_Type, AsyRayInfo_type, CellRayInfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -233,9 +222,6 @@ TYPE (RayInfo_Type)        :: RayInfo
 TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-REAL, POINTER, DIMENSION(:,:)     :: phisNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
 
 LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: iz, gb, ge, krot
@@ -248,8 +234,9 @@ TYPE (AsyRayInfo_type), POINTER, DIMENSION(:) :: AsyRay
 TYPE (CellRayInfo_Type),  POINTER :: CellRay
 
 REAL, POINTER, DIMENSION(:)         :: LenSeg
-REAL, POINTER, DIMENSION(:,:)       :: srcNM, xstNM, EXPA, EXPB, wtang
+REAL, POINTER, DIMENSION(:,:)       :: phisNM, srcNM, xstNM, EXPA, EXPB, wtang
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM, wtsurf
+REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
 INTEGER, POINTER, DIMENSION(:) :: LocalFsrIdx, AsyRayList, DirList, AziList
@@ -277,9 +264,11 @@ Pin  => CoreInfo%Pin
 Cell => CoreInfo%CellInfo
 
 ! Tracking Dat Pointing
+phisNM        => TrackingDat%phisNM
 srcNM         => TrackingDat%srcNM
 xstNM         => TrackingDat%xstNM
 PhiAngInNM    => TrackingDat%PhiAngInNM
+joutNM        => TrackingDat%joutNM
 DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
 DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA          => TrackingDat%EXPA
@@ -411,8 +400,10 @@ NULLIFY (CellRay)
 
 ! Loc.
 NULLIFY (LenSeg)
+NULLIFY (phisNM)
 NULLIFY (srcNM)
 NULLIFY (xstNM)
+NULLIFY (joutNM)
 NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (wtang)
@@ -430,7 +421,7 @@ NULLIFY (AziList)
 
 END SUBROUTINE RecTrackRotRayOMP_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, phisNM, joutNM, ljout, iz, gb, ge, krot)
+SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type, AziAngleInfo_Type
 USE HexData, ONLY : hAsy
@@ -444,9 +435,6 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-REAL, POINTER, DIMENSION(:,:)     :: phisNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
-
 LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: iz, gb, ge, krot
 ! ----------------------------------------------------
@@ -456,8 +444,9 @@ TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
-REAL, POINTER, DIMENSION(:,:)       :: srcNM, xstNM, EXPA, EXPB, wtang, hwt
+REAL, POINTER, DIMENSION(:,:)       :: phisNM, srcNM, xstNM, EXPA, EXPB, wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
+REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
 
 INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
@@ -483,9 +472,11 @@ AziAng   => RayInfo%AziAngle
 Pin => CoreInfo%Pin
 
 ! Tracking Dat
+phisNM        => TrackingDat%phisNM
 srcNM         => TrackingDat%srcNM
 xstNM         => TrackingDat%xstNM
 PhiAngInNM    => TrackingDat%PhiAngInNM
+joutNM        => TrackingDat%joutNM
 DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
 DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
 EXPA          => TrackingDat%EXPA
@@ -623,6 +614,7 @@ NULLIFY (haRay_Loc)
 NULLIFY (CelRay_Loc)
 
 ! Loc.
+NULLIFY (phisNM)
 NULLIFY (srcNM)
 NULLIFY (xstNM)
 NULLIFY (EXPA)
@@ -630,6 +622,7 @@ NULLIFY (EXPB)
 NULLIFY (wtang)
 NULLIFY (hwt)
 NULLIFY (PhiAngInNM)
+NULLIFY (joutNM)
 
 ! Dcmp.
 NULLIFY (DcmpPhiAngIn)

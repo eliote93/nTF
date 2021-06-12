@@ -280,11 +280,11 @@ END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
   !$OMP PARALLEL PRIVATE(iz, iAsy, icnt, idir, imxy, isurf, isxy, ingh, jsxy, slgh, ig, myphi, izf, nghphi, atil, ahat, surfphi, fmult)
-  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO iz = myzb, myze
     DO iAsy = 1, nAsy
-      DO icnt = 1, DcmpAsyRayCount(iAsy)
-        DO idir = 1, 2
+      DO idir = 1, 2
+        DO icnt = 1, DcmpAsyRayCount(iAsy)
           imxy  = DcmpAsyRayInCell(idir, icnt, iAsy) ! Global Idx. of MoC Pin
           isurf = DcmpAsyRayInSurf(idir, icnt, iAsy)
           isxy  = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin

@@ -26,7 +26,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nFsr, nxy, nThread
-INTEGER :: ithr, FsrIdxSt, icel, iRotRay, ifsr, jfsr, ipin, krot
+INTEGER :: ithr, FsrIdxSt, icel, iRotRay, ifsr, jfsr, ixy, krot
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
@@ -38,7 +38,7 @@ nThread = PE%nThread
 ithr = omp_get_thread_num() + 1
 
 TrackingDat(ithr)%phis = ZERO
-TrackingDat(ithr)%jout = ZERO
+IF (ljout) TrackingDat(ithr)%jout = ZERO
 
 TrackingDat(ithr)%src      => src
 TrackingDat(ithr)%xst      => xst
@@ -62,7 +62,6 @@ END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 phis = ZERO
-
 IF (ljout) jout = ZERO
 
 DO ithr = 1, nThread
@@ -76,11 +75,11 @@ END DO
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ipin, FsrIdxSt, icel, ifsr, jfsr)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr)
 !$OMP DO
-DO ipin = 1, nxy
-  FsrIdxSt = Pin(ipin)%FsrIdxSt
-  icel     = Pin(ipin)%Cell(iz)
+DO ixy = 1, nxy
+  FsrIdxSt = Pin(ixy)%FsrIdxSt
+  icel     = Pin(ixy)%Cell(iz)
   
   DO ifsr = 1, Cell(icel)%nFsr
     jfsr = FsrIdxSt + ifsr - 1

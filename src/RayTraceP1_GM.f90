@@ -28,7 +28,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThread
-INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ipin, krot
+INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ixy, krot
 REAL :: wttmp, tmpsrc, ONETHREE, ONEFIVE, ONESEVEN
 ! ----------------------------------------------------
 
@@ -123,12 +123,12 @@ ONESEVEN = ONE / 7.
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, ipin, FsrIdxSt, icel, ifsr, jfsr, wttmp)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)
 ithr = omp_get_thread_num() + 1
 
-DO ipin = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
-  FsrIdxSt = Pin(ipin)%FsrIdxSt
-  icel     = Pin(ipin)%Cell(iz)
+DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+  FsrIdxSt = Pin(ixy)%FsrIdxSt
+  icel     = Pin(ixy)%Cell(iz)
   
   DO ifsr = 1, Cell(icel)%nFsr
     jfsr  = FsrIdxSt + ifsr - 1

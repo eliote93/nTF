@@ -5,7 +5,7 @@ USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK
 USE TYPEDEF, ONLY : RayInfo_type, RotRayInfo_type, CoreRayInfo_type, AsyRayInfo_Type, CoreInfo_type, DcmpAsyRayInfo_Type, Asy_Type, Pin_Type, Cell_Type
 USE PE_Mod,  ONLY : PE
-USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay
+USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay, DcmpColorAsy
 
 IMPLICIT NONE
 
@@ -26,7 +26,7 @@ INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
 INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nPinRay, nRaySeg, nRaySeg0, nAziAngle
-INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, jcelray, iAzi, iDir, iz, iasy, icel, ibcel, ipin, iCnt
+INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, jcelray, iAzi, iDir, iz, iasy, icel, ibcel, ipin, iCnt, icolor
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prvAsy, prvCnt, nRef
 ! ----------------------------------------------------
 
@@ -203,13 +203,21 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
+CALL dmalloc0(DcmpColorAsy, 0, nAsy, 1, 2)
+
 DO iAsy = 1, nAsy
   IF (mod(Asy(iAsy)%ixa, 2) .EQ. mod(Asy(iAsy)%iya, 2)) THEN
-    Asy(iAsy)%color = RED
+    icolor = RED
   ELSE
-    Asy(iAsy)%color = BLACK
+    icolor = BLACK
   END IF
   
+  Asy(iAsy)%color = icolor
+  
+  DcmpColorAsy(0, icolor) = DcmpColorAsy(0, icolor) + 1
+  
+  DcmpColorAsy(DcmpColorAsy(0, icolor), icolor) = iAsy
+    
   DO iCnt = 1, DcmpAsyRayCount(iAsy)
     DO iAzi = 1, nAziAngle / 2
       IF (ANY(DcmpAsyRay(iCnt, iAsy)%AziList.NE.iAzi .OR. DcmpAsyRay(iCnt, iAsy)%AziList.NE.nAziAngle - iAzi + 1)) CYCLE
