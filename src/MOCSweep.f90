@@ -361,21 +361,28 @@ ELSE
       END DO
       
       ! Time
-      DO jswp = 1, nginfo
-        CALL MPI_MAX_REAL(tnmdel(jswp), PE%MPI_NTRACER_COMM, TRUE)
+      IF (.NOT. l3dim) THEN
+        DO jswp = 1, nginfo
+          CALL MPI_MAX_REAL(tnmdel(jswp), PE%MPI_NTRACER_COMM, TRUE)
+          
+          GrpBeg = grpbndy(1, jswp)
+          GrpEnd = grpbndy(2, jswp)
+          
+          IF (master) THEN
+            WRITE (mesg, '(10X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
+            CALL message(io8, FALSE, TRUE, mesg)
+          END IF
+        END DO
+      ELSE
+        tgmdel = sum(tnmdel(1:nginfo))
         
-        GrpBeg = grpbndy(1, jswp)
-        GrpEnd = grpbndy(2, jswp)
+        CALL MPI_MAX_REAL(tgmdel, PE%MPI_NTRACER_COMM, TRUE)
         
         IF (master) THEN
-          IF (jswp .EQ. 1) THEN
-            WRITE (mesg, '(10X, A5, I4, 2X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Plane ', iz, 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
-          ELSE
-            WRITE (mesg, '(10X,        11X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)')               'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
-          END IF
+          WRITE (mesg, '(10X, A5, I4, 2X, A, F10.3, 2X, A)') 'Plane ', iz, ' finished in ', tgmdel, 'Sec'
           CALL message(io8, FALSE, TRUE, mesg)
         END IF
-      END DO
+      END IF
     END DO
     
 #ifdef MPI_ENV
