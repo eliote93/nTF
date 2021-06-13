@@ -2,11 +2,13 @@ SUBROUTINE initRT(RayInfo, CoreInfo, nTracerCntl, PE)
 
 USE OMP_LIB
 USE allocs
-USE PARAM,   ONLY : TRUE
+USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
 USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, hwt, AziMap, DcmpColorAsy
 USE geom,    ONLY : nbd, ng
+USE files,   ONLY : io8
+USE ioutil,  ONLY : message
 
 IMPLICIT NONE
 
@@ -22,6 +24,9 @@ LOGICAL :: lscat1, ldcmp, lLinSrcCASMO
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
 ! ----------------------------------------------------
+
+mesg = 'Allocating RT Variables...'
+IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
 
 AziAng   => RayInfo%AziAngle
 PolarAng => RayInfo%PolarAngle

@@ -1,4 +1,4 @@
-#include <defines.h>
+#include <defines.h> 
 SUBROUTINE MOCSweep(Core, RayInfo, FMInfo, eigv, ng, PE, nTracerCntl, ItrCntl)
 
 USE PARAM,       ONLY : TRUE, FALSE, ZERO, mesg
@@ -41,12 +41,11 @@ TYPE (ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-
 INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
-REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, t1gst, t1ged, tngst, tnged, tdel
-REAL :: errdat(3), tngdel(2)
+REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
+REAL :: errdat(3), tnmdel(2)
 
 LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp
 
@@ -64,9 +63,6 @@ REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
 REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
 REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
-
-! DEBUG
-INTEGER :: iFSR
 ! ----------------------------------------------------
 
 tmocst = nTracer_dclock(FALSE, FALSE)
@@ -153,7 +149,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
   DO iout = 1, nitermax
     itrcntl%mocit = itrcntl%mocit + 1
     
-    tdel = ZERO
+    tgmdel = ZERO
     
     IF (Master) THEN
       WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
@@ -169,13 +165,13 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
       GrpEnd = grpbndy(2, jswp)
       
       DO ig = GrpBeg, GrpEnd
-        t1gst = nTracer_dclock(FALSE, FALSE)
+        tgmst = nTracer_dclock(FALSE, FALSE)
         
         DO iz = myzb, myze
           IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
-        
+          
           IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
-                    
+          
           DO iinn = 1, ninn
             ljout = iinn.EQ.ninn .OR. lmocUR
             
@@ -239,19 +235,20 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
           END DO
           
-          t1ged = nTracer_dclock(FALSE, FALSE)
-          tdel  = tdel + t1ged - t1gst
+          ! Time
+          tgmed  = nTracer_dclock(FALSE, FALSE)
+          tgmdel = tgmdel + tgmed - tgmst
           
           IF (.NOT.lDmesg .AND. MOD(ig, 10).NE.0 .AND. ig.NE.ng) CYCLE
           
-          CALL MPI_MAX_REAL(tdel, PE%MPI_RTMASTER_COMM, TRUE)
+          CALL MPI_MAX_REAL(tgmdel, PE%MPI_RTMASTER_COMM, TRUE)
           
           IF (master) THEN
-            WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tdel, 'Sec'
+            WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tgmdel, 'Sec'
             CALL message(io8, FALSE, TRUE, mesg)
           END IF
           
-          tdel = ZERO
+          tgmdel = ZERO
         END DO
       END DO
     END DO
@@ -260,8 +257,6 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
 ELSE
   DO iout = 1, nitermax
     itrcntl%mocit = itrcntl%mocit + 1
-    
-    tngdel = ZERO
     
     IF (MASTER) THEN
       WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
@@ -300,7 +295,7 @@ ELSE
         GrpBeg = grpbndy(1, jswp)
         GrpEnd = grpbndy(2, jswp)
         
-        tngst = nTracer_dclock(FALSE, FALSE)
+        tnmst = nTracer_dclock(FALSE, FALSE)
         
         DO iinn = 1, ninn
           ljout = iinn .EQ. ninn
@@ -348,8 +343,8 @@ ELSE
           phisNM(ist:ied, :) = phisNM(ist:ied, :) * ssphfNM(ist:ied, :, iz)
         END DO
         
-        tnged        = nTracer_dclock(FALSE, FALSE)
-        tngdel(jswp) = tngdel(jswp) + (tnged - tngst)
+        tnmed        = nTracer_dclock(FALSE, FALSE)
+        tnmdel(jswp) = (tnmed - tnmst)
       END DO
       
 #ifdef MPI_ENV
@@ -360,35 +355,32 @@ ELSE
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng
-        DO iFSR = 1, Core%nCoreFSR
-          !IF (phisNM(ig, iFSR) .NE. phisNM(ig, iFSR)) THEN
-          !  STOP
-          !END IF
-        END DO
-        
         phis              (:, iz, ig) = phisNM       (ig, :)
         FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInNM(:, ig, :)
         RadJout     (:, :, :, iz, ig) = MocJoutNM (:, ig, :, :)
+      END DO
+      
+      ! Time
+      DO jswp = 1, nginfo
+        CALL MPI_MAX_REAL(tnmdel(jswp), PE%MPI_NTRACER_COMM, TRUE)
+        
+        GrpBeg = grpbndy(1, jswp)
+        GrpEnd = grpbndy(2, jswp)
+        
+        IF (master) THEN
+          IF (jswp .EQ. 1) THEN
+            WRITE (mesg, '(10X, A5, I4, 2X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Plane ', iz, 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
+          ELSE
+            WRITE (mesg, '(10X,        11X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)')               'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
+          END IF
+          CALL message(io8, FALSE, TRUE, mesg)
+        END IF
       END DO
     END DO
     
 #ifdef MPI_ENV
     CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
-    
-    DO jswp = 1, nginfo
-      tdel = tngdel(jswp)
-      
-      CALL MPI_MAX_REAL(tdel, PE%MPI_NTRACER_COMM, TRUE)
-      
-      GrpBeg = grpbndy(1, jswp)
-      GrpEnd = grpbndy(2, jswp)
-      
-      IF (master) THEN
-        WRITE (mesg, '(10X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tdel, 'Sec'
-        CALL message(io8, FALSE, TRUE, mesg)
-      END IF
-    END DO
   END DO
 END IF
 ! ----------------------------------------------------
