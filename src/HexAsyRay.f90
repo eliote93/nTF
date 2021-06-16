@@ -1,5 +1,6 @@
 SUBROUTINE HexSetAsyRay(icBss)
 
+USE OMP_LIB
 USE PARAM,   ONLY : TRUE, FALSE, MESG
 USE PE_MOD,  ONLY : PE
 USE IOUTIL,  ONLY : message, terminate
@@ -46,6 +47,8 @@ CALL HexSetRayRodCel_12(RayCel, icBss)
 CALL HexSetRayGapCel   (RayCel, icBss)
 ! ----------------------------------------------------
 nMaxPinPt = 10 * hCelBss(icBss)%nPin ! ARBITRARY
+
+CALL OMP_SET_NUM_THREADS(PE%nthread)
 
 !$OMP PARALLEL PRIVATE(imRay, hpRay, RayEqn, iGeo, nhpRay, haRay_Loc, ihpRay, CelRay_Loc)
 !$OMP DO SCHEDULE(GUIDED)

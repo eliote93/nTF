@@ -211,7 +211,10 @@ END SUBROUTINE HexSetPinFSR
 SUBROUTINE HexSetVss()
 
 USE allocs
-USE PARAM,   ONLY : FALSE, TRUE
+USE PARAM,   ONLY : FALSE, TRUE, MESG
+USE PE_Mod,  ONLY : PE
+USE ioutil,  ONLY : message
+USE FILES,   ONLY : io8
 USE geom,    ONLY : nVssTyp, nCellType, nGapType, nPinType, nGapPinType, nZ
 USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexPin
 USE HexData, ONLY : nHexPin, hPinInfo, hVss, hLgc, RodPin, GapPin, hCel, gCel
@@ -225,10 +228,13 @@ INTEGER :: nhc0, ngc0, nhp0, ngp0
 REAL :: Lgh, Cnt(2)
 
 LOGICAL, POINTER, DIMENSION(:,:,:) :: lvssCel, lvssPin
-INTEGER, POINTER, DIMENSION(:,:,:):: aux01, aux02
+INTEGER, POINTER, DIMENSION(:,:,:) :: aux01, aux02
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVss) RETURN
+
+WRITE (MESG, '(A)') '      Set Vessel ...'
+IF (PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
 CALL dmalloc(lvssCel, nVssTyp, max(nCellType, nGapType),    2)
 CALL dmalloc(lvssPin, nVssTyp, max(nPinType,  nGapPinType), 2)
@@ -249,21 +255,21 @@ DO iPin = 1, nHexPin
   DO iVss = 1, nVssTyp
     Lgh = FindPtLgh(Cnt, hVss(iVss)%Cnt)
     
-    IF (Lgh < hVss(iVss)%Rad(1)) CYCLE
-    IF (Lgh > hVss(iVss)%Rad(2)) CYCLE
+    IF (Lgh .LT. hVss(iVss)%Rad(1)) CYCLE
+    IF (Lgh .GT. hVss(iVss)%Rad(2)) CYCLE
     
     iTyp = hPinInfo(iPin)%PinTyp
     
     IF (hPinInfo(iPin)%lRod) THEN
       lvssPin(iVss, iTyp, 1) = TRUE
       
-      DO iz = 1, hVss(iVss)%zSt, hVss(iVss)%zEd
+      DO iz = hVss(iVss)%zSt, hVss(iVss)%zEd
         lvssCel(iVss, RodPin(iTyp)%iCel(iz), 1) = TRUE
       END DO
     ELSE
       lvssPin(iVss, iTyp, 2) = TRUE
       
-      DO iz = 1, hVss(iVss)%zSt, hVss(iVss)%zEd
+      DO iz = hVss(iVss)%zSt, hVss(iVss)%zEd
         lvssCel(iVss, GapPin(iTyp)%iCel(iz), 2) = TRUE
       END DO
     END IF
@@ -373,8 +379,8 @@ DO iPin = 1, nHexPin
   DO iVss = 1, nVssTyp
     Lgh = FindPtLgh(Cnt, hVss(iVss)%Cnt)
     
-    IF (Lgh < hVss(iVss)%Rad(1)) CYCLE
-    IF (Lgh > hVss(iVss)%Rad(2)) CYCLE
+    IF (Lgh .LT. hVss(iVss)%Rad(1)) CYCLE
+    IF (Lgh .GT. hVss(iVss)%Rad(2)) CYCLE
     
     iTyp = hPinInfo(iPin)%PinTyp
     

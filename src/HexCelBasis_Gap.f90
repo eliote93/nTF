@@ -14,7 +14,7 @@ USE ioutil,  ONLY : terminate
 
 USE HexType, ONLY : Type_HexGapCel, Type_HexGapCelBss, nMaxFXR
 USE HexData, ONLY : hLgc, gCel, gCelBss, ngBss, hLgc, vFxr, vAsyTyp, vMat1, vMat2, GapPin, hAsyTypInfo, vzSt, vzEd
-USE HexUtil, ONLY : HexChkRange_INT
+USE HexUtil, ONLY : ChkRange_INT
 
 IMPLICIT NONE
 
@@ -34,7 +34,7 @@ IF (hLgc%lvyg) THEN
   CALL HexPushGapCel(nGapType-1, GapPin(jgPin)%iCel(1)) ! VYG Cel : Edge, iz is fixed as 1
   CALL HexPushGapCel(nGapType,   GapPin(jgPin)%iCel(1)) ! VYG Cel : Corn
   
-  CALL HexChkRange_INT(vFXR, 1, gCel(nGapType-1)%nFXR, "WRONG VFXR")
+  CALL ChkRange_INT(vFXR, 1, gCel(nGapType-1)%nFXR, "WRONG VFXR")
   
   gCel(nGapType-1)%xMix(gCel(nGapType-1)%nFXR - vFXR + 1) = vMat1
   gCel(nGapType)  %xMix(:)                                = vMat2

@@ -952,7 +952,7 @@ END FUNCTION FindRodSubRad
 ! ------------------------------------------------------------------------------------------------------------
 !                                     31. CHK ERR : Bndy - INTEGER
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexChkRange_INT(x, b1, b2, errmesg)
+SUBROUTINE ChkRange_INT(x, b1, b2, errmesg)
 
 IMPLICIT NONE
 
@@ -966,11 +966,11 @@ Tmp = (x - b1) * (x - b2)
 
 IF (Tmp .GT. 0) CALL terminate(errmesg)
 
-END SUBROUTINE HexChkRange_INT
+END SUBROUTINE ChkRange_INT
 ! ------------------------------------------------------------------------------------------------------------
 !                                     32. CHK ERR : Bndy - REAL
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexChkRange_REAL(x, b1, b2, errmesg)
+SUBROUTINE ChkRange_REAL(x, b1, b2, errmesg)
 
 IMPLICIT NONE
 
@@ -985,11 +985,11 @@ Tmp = (x - b1) * (x - b2)
 
 IF (Tmp .GT. Eps) CALL terminate(errmesg)
 
-END SUBROUTINE HexChkRange_REAL
+END SUBROUTINE ChkRange_REAL
 ! ------------------------------------------------------------------------------------------------------------
 !                                     33. CHK ERR - Equal - INTEGER
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexChkEqual_INT(x, y, i, errmesg)
+SUBROUTINE ChkEqual_INT(x, y, i, errmesg)
 
 IMPLICIT NONE
 
@@ -1005,11 +1005,11 @@ CASE(2)
 END SELECT
 ! ----------------------------------------------------
 
-END SUBROUTINE HexChkEqual_INT
+END SUBROUTINE ChkEqual_INT
 ! ------------------------------------------------------------------------------------------------------------
 !                                     34. CHK ERR - Equal - REAL
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexChkEqual_REAL(x, y, i, errmesg)
+SUBROUTINE ChkEqual_REAL(x, y, i, errmesg)
 
 IMPLICIT NONE
 
@@ -1031,11 +1031,11 @@ CASE(2)
 END SELECT
 ! ----------------------------------------------------
 
-END SUBROUTINE HexChkEqual_REAL
+END SUBROUTINE ChkEqual_REAL
 ! ------------------------------------------------------------------------------------------------------------
 !                                     35. CHK ERR - INC - REAL
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexChkInc_REAL(x, y, errmesg)
+SUBROUTINE ChkInc_REAL(x, y, errmesg)
 
 IMPLICIT NONE
 
@@ -1048,7 +1048,7 @@ REAL, PARAMETER :: Eps = 1E-7
 
 IF (x .GT. y) CALL terminate(errmesg)
 
-END SUBROUTINE HexChkInc_REAL
+END SUBROUTINE ChkInc_REAL
 ! ------------------------------------------------------------------------------------------------------------
 !                                     36. FIND : Pt Ang
 ! ------------------------------------------------------------------------------------------------------------

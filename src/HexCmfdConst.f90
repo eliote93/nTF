@@ -41,7 +41,9 @@ END SUBROUTINE HexSetHcPin
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetHcPinSlf_SP()
 
+USE OMP_LIB
 USE allocs
+USE PE_MOD,  ONLY : PE
 USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexCmfdPin
 USE HexData, ONLY : nhAsy, hAsy, hAsyTypInfo, nHexPin, hcPin, hPinInfo, spTypNumNgh, nhcPin
 USE HexUtil, ONLY : SetEqn, FindCnt
@@ -51,8 +53,9 @@ IMPLICIT NONE
 INTEGER :: iAsy, iGeo, iPin, jPin, kPin, tPin, sPin, ivTyp, iBndy, nPin, nBndy
 REAL    :: Cnt(2)
 
-INTEGER, POINTER :: cnpSlfMPnum(:, :), cnpSlfMPidx(:, :, :)
-INTEGER, POINTER :: cnpSufMPnum(:, :, :), cnpSufMPidx(:, :, :, :), cnpSufMPsuf(:, :, :, :)
+INTEGER, POINTER, DIMENSION(:,:)     :: cnpSlfMPnum
+INTEGER, POINTER, DIMENSION(:,:,:)   :: cnpSlfMPidx, cnpSufMPnum
+INTEGER, POINTER, DIMENSION(:,:,:,:) :: cnpSufMPidx, cnpSufMPsuf
 
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 TYPE(Type_HexCmfdPin),    POINTER :: cPin_Loc
@@ -73,6 +76,8 @@ END DO
 
 ALLOCATE (hcPin (nhcPin))
 ! ----------------------------------------------------
+CALL OMP_SET_NUM_THREADS(PE%nthread)
+
 DO iAsy = 1, nhAsy
   iGeo = hAsy(iAsy)%GeoTyp
   
@@ -155,7 +160,9 @@ END SUBROUTINE HexSetHcPinSlf_SP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetHcPinSlf_MP()
 
+USE OMP_LIB
 USE allocs
+USE PE_MOD,  ONLY : PE
 USE HexType, ONLY : Type_HexAsyTypInfo, Type_HexCmfdPin
 USE HexData, ONLY : nhAsy, hAsy, hAsyTypInfo, nHexPin, hcPin, hPinInfo, mpTypNumNgh, nhcPin
 USE HexUtil, ONLY : SetEqn, FindCnt
@@ -180,6 +187,8 @@ END DO
 
 ALLOCATE (hcPin (nhcPin))
 ! ----------------------------------------------------
+CALL OMP_SET_NUM_THREADS(PE%nthread)
+
 DO iAsy = 1, nhAsy
   iGeo = hAsy(iAsy)%GeoTyp
   
@@ -259,7 +268,9 @@ END SUBROUTINE HexSetHcPinSlf_MP
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetHcPinNgh()
 
+USE OMP_LIB
 USE PARAM,   ONLY : ZERO, VoidCell, RefCell, TRUE, FALSE, HALF
+USE PE_MOD,  ONLY : PE
 USE HexType, ONLY : Type_HexCmfdPin
 USE HexData, ONLY : hcPin, nhcPin, hLgc, cBndyEq, hAsy, hAsyTypInfo, Sq3
 USE HexUtil, ONLY : SetEqn, ChkPtEqn, ChkSamePts, SetPtsPri
@@ -276,6 +287,8 @@ TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc, jPin_Loc
 Cnt    = ZERO
 Lgh    = hAsyTypInfo(hAsy(1)%AsyTyp)%pPch
 EqnTst = SetEqn([Lgh, ZERO], [Lgh * HALF, -Lgh * HALF * Sq3], Cnt)
+
+CALL OMP_SET_NUM_THREADS(PE%nthread)
 
 !$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, jPin_Loc, jBndy, PtsNgh, Lgh)
 !$OMP DO SCHEDULE(GUIDED)

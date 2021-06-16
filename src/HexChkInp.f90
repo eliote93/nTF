@@ -9,7 +9,7 @@ SUBROUTINE HexChkInp()
 USE CNTL,    ONLY : nTracerCntl
 USE PARAM,   ONLY : TRUE, FALSE, HALF
 USE geom,    ONLY : nCellType, nPinType, nGapType, nGapPinType, nAsyType0, nVssTyp, nZ
-USE HexUtil, ONLY : ChkSameVal, HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
+USE HexUtil, ONLY : ChkSameVal, ChkRange_INT, ChkEqual_INT, ChkEqual_REAL, ChkInc_REAL
 USE HexType, ONLY : Type_HexRodCel, Type_HexGapCel, Type_HexAsyTypInfo
 USE IOUTIL,  ONLY : terminate
 USE HexData
@@ -57,7 +57,7 @@ DO iaTyp = 1, nAsyType0
   IF (nPin .LT. 2) CALL terminate("# of Pin")
   IF (abs(aiF2F - aoF2F) .LT. hEps) CALL terminate("UNDERC-ONSTRUCTION - NO GAP")
   
-  CALL HexChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN 1")
+  CALL ChkRange_INT(aInf_Loc%gTyp, 1, nGapPinType, "GAP PIN 1")
   
   ! Rod Pin
   DO ix = 1, 2 * nPin - 1
@@ -66,14 +66,14 @@ DO iaTyp = 1, nAsyType0
       
       IF (iPin < 1) CYCLE
       
-      CALL HexChkRange_INT(iPin, 1, nPinType, "ASY PIN")
+      CALL ChkRange_INT(iPin, 1, nPinType, "ASY PIN")
       
       DO iz = 1, nZ
         iCel = RodPin(iPin)%iCel(iz)
         
-        CALL HexChkEqual_REAL(pF2F,  hCel(iCel)%pF2F,  1, "LENGTH OF PIN IN ASY & CEL ARE DIFFERENT")
-        CALL HexChkEqual_INT (nPin,  hCel(iCel)%nPin,  1, "NUMBER OF PIN IN ASY & CEL ARE DIFFERENT")
-        CALL HexChkEqual_REAL(aiF2F, hCel(iCel)%aiF2F, 1, "LENGTH OF GAP IN ASY & CEL ARE DIFFERENT")
+        CALL ChkEqual_REAL(pF2F,  hCel(iCel)%pF2F,  1, "LENGTH OF PIN IN ASY & CEL ARE DIFFERENT")
+        CALL ChkEqual_INT (nPin,  hCel(iCel)%nPin,  1, "NUMBER OF PIN IN ASY & CEL ARE DIFFERENT")
+        CALL ChkEqual_REAL(aiF2F, hCel(iCel)%aiF2F, 1, "LENGTH OF GAP IN ASY & CEL ARE DIFFERENT")
       END DO
     END DO
   END DO
@@ -82,13 +82,13 @@ DO iaTyp = 1, nAsyType0
   DO iz = 1, nZ
     iCel = GapPin(aInf_Loc%gTyp)%iCel(iz)
     
-    CALL HexChkEqual_REAL(aiF2F, gCel(iCel)%aiF2F, 1, "LENGTH OF GAP IN ASY & CEL ARE DIFFERENT")
+    CALL ChkEqual_REAL(aiF2F, gCel(iCel)%aiF2F, 1, "LENGTH OF GAP IN ASY & CEL ARE DIFFERENT")
   END DO
   
   ! Cstt.
   IF (aInf_Loc%cstTyp .NE. 0) THEN
-    CALL HexChkRange_INT(aInf_Loc%cstTyp, 1, nGapPinType, "CORNER STIFFENER Type")
-    CALL HexChkRange_INT(aInf_Loc%cstNum, 1, nPin / 2,    "CORNER STIFFENER Number")
+    CALL ChkRange_INT(aInf_Loc%cstTyp, 1, nGapPinType, "CORNER STIFFENER Type")
+    CALL ChkRange_INT(aInf_Loc%cstNum, 1, nPin / 2,    "CORNER STIFFENER Number")
   END IF
 END DO
 
@@ -97,7 +97,7 @@ DO iPin = 1, nPinType
   IF (.NOT. RodPin(iPin)%luse) CYCLE
   
   DO iz = 1, nZ
-    CALL HexChkRange_INT(RodPin(iPin)%iCel(iz), 1, nCellType, "ROD PIN")
+    CALL ChkRange_INT(RodPin(iPin)%iCel(iz), 1, nCellType, "ROD PIN")
   END DO
 END DO
 
@@ -105,7 +105,7 @@ DO iPin = 1, nGapPinType
   IF (.NOT. GapPin(iPin)%luse) CYCLE
   
   DO iz = 1, nZ
-    CALL HexChkRange_INT(GapPin(iPin)%iCel(iz), 1, nGapType, "GAP PIN 2")
+    CALL ChkRange_INT(GapPin(iPin)%iCel(iz), 1, nGapType, "GAP PIN 2")
   END DO
 END DO
 
@@ -126,17 +126,25 @@ DO iCel = 1, nCellType
   IF (hCel_Loc%nPin .LT. 2) CALL terminate("# of Pin")
     
   DO iFXR = 1, hCel_Loc%nFXR
-    CALL HexChkRange_INT(hCel_Loc%xMix(iFXR), 1, nMix, "ROD CEL MIXTURE")
+    CALL ChkRange_INT(hCel_Loc%xMix(iFXR), 1, nMix, "ROD CEL MIXTURE")
   END DO
   
   DO iFXR = 2, hCel_Loc%nFXR
-    CALL HexChkInc_REAL(hCel_Loc%xRad(iFXR + 1), hCel_Loc%xRad(iFXR), "ROD CEL RADIUS")
+    CALL ChkInc_REAL(hCel_Loc%xRad(iFXR + 1), hCel_Loc%xRad(iFXR), "ROD CEL RADIUS")
   END DO
   
   IF (hCel_Loc%xRad(2) > hCel_Loc%pF2F * rSq3) hCel_Loc%xDiv(1) = 1
   
   IF (hCel_Loc%nSct .NE. 12) CALL terminate("CEL # OF SECTORS")
 END DO
+
+IF (nTracerCntl%lDomainDcmp) THEN
+  DO iCel = 2, nCellType
+    IF (ChkSameVal(hCel(1)%pF2F, hCel(iCel)%pF2F)) CYCLE
+    
+    CALL terminate("INVALID GEOMETRY FOR DCMP.")
+  END DO
+END IF
 
 ! Gap Cel
 IF (nGapType .EQ. 0) CALL terminate("GAP DOES NOT EXIST")
@@ -147,29 +155,29 @@ DO iCel = 1, nGapType
   IF (.NOT. gCel_Loc%luse) CYCLE
   
   DO iFXR = 1, gCel_Loc%nFXR
-    CALL HexChkRange_INT(gCel_Loc%xMix(iFXR), 1, nMix, "GAP CEL MIXTURE")
+    CALL ChkRange_INT(gCel_Loc%xMix(iFXR), 1, nMix, "GAP CEL MIXTURE")
   END DO
   
   DO iFXR = 1, gCel_Loc%nFXR
-    CALL HexChkInc_REAL(gCel_Loc%xHgt(iFXR + 1), gCel_Loc%xHgt(iFXR), "GAP CEL HIGHT")
+    CALL ChkInc_REAL(gCel_Loc%xHgt(iFXR + 1), gCel_Loc%xHgt(iFXR), "GAP CEL HIGHT")
   END DO
 END DO
 
 ! Etc.
 DO iBss = 1, nVssTyp
-  CALL HexChkInc_REAL(hVss(iBss)%Rad(1), hVss(iBss)%Rad(2), "VESSEL RAD")
+  CALL ChkInc_REAL(hVss(iBss)%Rad(1), hVss(iBss)%Rad(2), "VESSEL RAD")
   
-  CALL HexChkRange_INT(hVss(iBss)%zSt,  1, hVss(iBss)%zEd, "WRONG VSS Z")
-  CALL HexChkRange_INT(hVss(iBss)%zEd, hVss(iBss)%zSt, nZ,  "WRONG VSS Z")
+  CALL ChkRange_INT(hVss(iBss)%zSt,  1, hVss(iBss)%zEd, "WRONG VSS Z")
+  CALL ChkRange_INT(hVss(iBss)%zEd, hVss(iBss)%zSt, nZ,  "WRONG VSS Z")
 END DO
 
 IF (hLgc%lVyg) THEN
-  CALL HexChkRange_INT(vAsyTyp, 1, nAsyType0, "WRONG VASYTYPE")
-  CALL HexChkRange_INT(vRefTyp, 1, nAsyType0, "WRONG VREFTYPE")
-  CALL HexChkRange_INT(vMat1,   1, nMixType,  "WRONG VMAT")
-  CALL HexChkRange_INT(vMat2,   1, nMixType,  "WRONG VMAT")
-  CALL HexChkRange_INT(vzSt,    1, vzEd,      "WRONG VZ")
-  CALL HexChkRange_INT(vzEd, vzSt, nZ,        "WRONG VZ")
+  CALL ChkRange_INT(vAsyTyp, 1, nAsyType0, "WRONG VASYTYPE")
+  CALL ChkRange_INT(vRefTyp, 1, nAsyType0, "WRONG VREFTYPE")
+  CALL ChkRange_INT(vMat1,   1, nMixType,  "WRONG VMAT")
+  CALL ChkRange_INT(vMat2,   1, nMixType,  "WRONG VMAT")
+  CALL ChkRange_INT(vzSt,    1, vzEd,      "WRONG VZ")
+  CALL ChkRange_INT(vzEd, vzSt, nZ,        "WRONG VZ")
 END IF  
 
 IF (nZ.LT.1 .AND. .NOT.nTracerCntl%lCMFD) CALL terminate("3D CALCULATION MUST USE CMFD")
@@ -187,7 +195,7 @@ USE geom,    ONLY : nAsyType0, nPinType, nGapPinType, nZ
 USE CNTL,    ONLY : nTracerCntl
 USE ioutil,  ONLY : terminate
 USE HexData, ONLY : ncBss, hCelBss, ngBss, gCelBss, hCel, gCel, RodPin, GapPin
-USE HexUtil, ONLY : HexChkRange_INT, HexChkEqual_INT, HexChkEqual_REAL, HexChkInc_REAL
+USE HexUtil, ONLY : ChkRange_INT, ChkEqual_INT, ChkEqual_REAL, ChkInc_REAL
 
 IMPLICIT NONE
 
@@ -200,7 +208,7 @@ DO iCel = 1, ncBss
   Tmp = 3 * (hCelBss(iCel)%nPin - 1) * hCelBss(iCel)%pPch &
       + 2 * hCelBss(iCel)%sRad(hCelBss(iCel)%nSub-1)
   
-  CALL HexChkInc_REAL(Tmp, hCelBss(iCel)%aiF2F, "RAD EXCEEDS ASY F2F INN")
+  CALL ChkInc_REAL(Tmp, hCelBss(iCel)%aiF2F, "RAD EXCEEDS ASY F2F INN")
 END DO
 
 ! CHK : EXTRUDED
@@ -212,7 +220,7 @@ DO iPin = 1, nPinType
   DO iZ = 2, nZ
     jCB = hCel(RodPin(iPin)%iCel(iz))%icBss
     
-    CALL HexChkEqual_INT(iCB, jCB, 1, "NOT EXTRUDED GEOM")
+    CALL ChkEqual_INT(iCB, jCB, 1, "NOT EXTRUDED GEOM")
   END DO
 END DO
 
@@ -222,7 +230,7 @@ DO iPin = 1, nGapPinType
   DO iZ = 2, nZ
     jCB = gCel(GapPin(iPin)%iCel(iz))%igBss
     
-    CALL HexChkEqual_INT(iCB, jCB, 1, "NOT EXTRUDED GEOM")
+    CALL ChkEqual_INT(iCB, jCB, 1, "NOT EXTRUDED GEOM")
   END DO
 END DO
 ! ----------------------------------------------------

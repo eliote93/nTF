@@ -8,9 +8,11 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetCoreRay()
 
+USE OMP_LIB
 USE allocs
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE geom,    ONLY : nZ
+USE PE_MOD,  ONLY : PE
 USE ioutil,  ONLY : terminate
 USE Moc_Mod, ONLY : nMaxCellRay, nMaxRaySeg
 USE HexType, ONLY : Type_HexCoreRay, Type_HexAsyRay
@@ -126,6 +128,8 @@ ALLOCATE (hcRay (ncRay))
 ! ----------------------------------------------------
 !               03. CnP : hcRay
 ! ----------------------------------------------------
+CALL OMP_SET_NUM_THREADS(PE%nthread)
+
 !$OMP PARALLEL PRIVATE(icRay, imRay)
 !$OMP DO SCHEDULE(GUIDED)
 DO icRay = 1, ncRay
@@ -201,8 +205,10 @@ END SUBROUTINE HexSetCoreRay
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetRotRay()
 
+USE OMP_LIB
 USE allocs
 USE PARAM,   ONLY : ZERO, FALSE, TRUE
+USE PE_MOD,  ONLY : PE
 USE ioutil,  ONLY : terminate
 USE HexData, ONLY : ncRay, nRotRay, hcRay, hAsy, hRotRay, hLgc, hmRay, Asy2Dto1Dmap, Asy1Dto2DMap
 USE HexUtil, ONLY : SetSgn_INT
@@ -236,6 +242,8 @@ ALLOCATE (tLst (ncRay))
 !               01. CONNECT : cRay
 ! ----------------------------------------------------
 lErr = FALSE
+
+CALL OMP_SET_NUM_THREADS(PE%nthread)
 
 !$OMP PARALLEL PRIVATE(icRay, tDir, iDir, iNum, imRay, iAsy, iGeo, jmRay, jDir, jxAsy, jyAsy, jAsy, jcRay, jNum)
 !$OMP DO SCHEDULE (GUIDED)

@@ -162,7 +162,10 @@ END SUBROUTINE HexSetCore
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexSetVyg()
 
-USE PARAM,   ONLY : TRUE, FALSE
+USE PARAM,   ONLY : TRUE, FALSE, MESG
+USE PE_Mod,  ONLY : PE
+USE ioutil,  ONLY : message
+USE FILES,   ONLY : io8
 USE geom,    ONLY : nGapPinType
 USE HexData, ONLY : hLgc, vAsyTyp, vRefTyp, hAsy, hPinInfo, nhAsy, hAsyTypInfo, nHexPin
 
@@ -173,6 +176,9 @@ INTEGER :: nRod, nPch, iRodGlb, iTotGlb
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lVyg) RETURN
+
+WRITE (MESG, '(A)') '      Set Vygorodka ...'
+IF (PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
 DO iAsy = 1, nhAsy
   iaTyp = hAsy(iAsy)%AsyTyp

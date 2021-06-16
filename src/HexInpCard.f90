@@ -388,7 +388,7 @@ SUBROUTINE HexRead_Core(indev, dataline0)
 
 USE geom,    ONLY : Core, Albedo, nAsyType0, nZ, nPinType, nGapPinType
 USE ioutil,  ONLY : toupper
-USE HexUtil, ONLY : HexChkRange_INT
+USE HexUtil, ONLY : ChkRange_INT
 USE HexData, ONLY : hCore, nAsyCore, nhAsy, Asy2Dto1DMap, Asy1Dto2DMap, hAsyTypInfo, nVA, RodPin, GapPin, hCel, gCel
 USE PE_MOD,  ONLY : PE
 
@@ -604,7 +604,7 @@ nhAsy = nAsy
 DO iAsy = 1, nhAsy
   jAsy = hCore(Asy1Dto2DMap(1, iAsy), Asy1Dto2DMap(2, iAsy))
   
-  CALL HexChkRange_INT(jAsy, 1, nAsyType0, "WRONG [RAD_CONF] - CORE ASY INPUT")
+  CALL ChkRange_INT(jAsy, 1, nAsyType0, "WRONG [RAD_CONF] - CORE ASY INPUT")
   
   ! Asy.
   hAsyTypInfo(jAsy)%luse = TRUE

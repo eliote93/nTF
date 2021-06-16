@@ -1,7 +1,7 @@
 #include <defines.h>
 MODULE HexTst
 
-USE HexUtil, ONLY : HexChkRange_INT, HexChkEqual_INT
+USE HexUtil, ONLY : ChkRange_INT, ChkEqual_INT
 USE PARAM,   ONLY : TRUE, FALSE, ZERO, HALF
 USE ioutil,  ONLY : terminate
 
@@ -31,7 +31,7 @@ USE HexData, ONLY : nhcPin, hcPin
 
 IMPLICIT NONE
 
-INTEGER :: iPin
+INTEGER :: iPin, iNgh
 
 INTEGER, POINTER, DIMENSION(:)     :: tnNgh, tnmPin
 INTEGER, POINTER, DIMENSION(:,:)   :: tmpIdx, tnBdmPin, tNghPin, tNghSuf
@@ -51,15 +51,20 @@ ALLOCATE (tNghSuf  (ncbd, nhcPin));  tNghSuf = -1
 ALLOCATE (tNghLgh  (ncbd, nhcPin));  tNghLgh = ZERO
 
 DO iPin = 1, nhcPin
-  tnNgh         (iPin) = hcPin(iPin)%nNgh
-  tnmPin        (iPin) = hcPin(iPin)%nmPin
-  tmpIdx     (:, iPin) = hcPin(iPin)%mpIdx
-  tnBdmPin   (:, iPin) = hcPin(iPin)%nBdmPin
-  tBdMPidx(:, :, iPin) = hcPin(iPin)%BdMPidx
-  tBdMPsuf(:, :, iPin) = hcPin(iPin)%BdMPsuf
-  tNghPin    (:, iPin) = hcPin(iPin)%NghPin
-  tNghSuf    (:, iPin) = hcPin(iPin)%NghSuf
-  tNghLgh    (:, iPin) = hcPin(iPin)%NghLgh
+  tnNgh (iPin) = hcPin(iPin)%nNgh
+  tnmPin(iPin) = hcPin(iPin)%nmPin
+  
+  tmpIdx  (:, iPin) = hcPin(iPin)%mpIdx  (:)
+  tnBdmPin(:, iPin) = hcPin(iPin)%nBdmPin(:)
+  
+  tBdMPidx(:, :, iPin) = hcPin(iPin)%BdMPidx(:, :)
+  tBdMPsuf(:, :, iPin) = hcPin(iPin)%BdMPsuf(:, :)
+  
+  DO iNgh = 1, hcPin(iPin)%nNgh
+    tNghPin(iNgh, iPin) = hcPin(iPin)%NghPin(iNgh)
+    tNghSuf(iNgh, iPin) = hcPin(iPin)%NghSuf(iNgh)
+    tNghLgh(iNgh, iPin) = hcPin(iPin)%NghLgh(iNgh)
+  END DO
 END DO
 
 NULLIFY (tnNgh, tnmPin, tmpIdx, tnBdmPin, tBdMPidx, tBdMPsuf, tNghPin, tNghSuf, tNghLgh)
@@ -176,33 +181,33 @@ DO i = 1, nTracerCntl%OutpCntl%nRegXsOut
   xSt = nTracerCntl%OutpCntl%RegXsOutList(6, i)
   xEd = nTracerCntl%OutpCntl%RegXsOutList(7, i)
   
-  CALL HexChkRange_INT( iz, 1,       nZ, "EFF XS : IZ")
-  CALL HexChkRange_INT(ixa, 1, Core%nya, "EFF XS : IXA")
-  CALL HexChkRange_INT(iya, 1, Core%nya, "EFF XS : IYA")
+  CALL ChkRange_INT( iz, 1,       nZ, "EFF XS : IZ")
+  CALL ChkRange_INT(ixa, 1, Core%nya, "EFF XS : IXA")
+  CALL ChkRange_INT(iya, 1, Core%nya, "EFF XS : IYA")
   
   ixya = hCore(ixa, iya)
   
-  CALL HexChkRange_INT(ixya, 1, nhAsy, "EFF XS : IXYA")
+  CALL ChkRange_INT(ixya, 1, nhAsy, "EFF XS : IXYA")
   
   iaTyp = hAsy(ixya)%AsyTyp
   iaGeo = hAsy(ixya)%GeoTyp
   !nPin  = hAsy(ixya)%nPin
   nRng  = 2 * nPin - 1
   
-  CALL HexChkRange_INT(ixc, 1, nRng, "EFF XS : IXC")
-  CALL HexChkRange_INT(iyc, 1, nRng, "EFF XS : IYC")
+  CALL ChkRange_INT(ixc, 1, nRng, "EFF XS : IXC")
+  CALL ChkRange_INT(iyc, 1, nRng, "EFF XS : IYC")
   
   ixyc = hAsyTypInfo(iaTyp)%Pin2Dto1Dmap(ixc, iyc)
   ixyc = hAsyTypInfo(iaTyp)%PinLocIdx(iaGeo, ixyc)
   
-  CALL HexChkRange_INT(ixyc, 1, hAsy(ixya)%nTotPin, "EFF XS : IXYC")
+  CALL ChkRange_INT(ixyc, 1, hAsy(ixya)%nTotPin, "EFF XS : IXYC")
   
   ixy  = hAsy(ixya)%PinIdxSt + ixyc - 1
   iCel = Pin(ixy)%Cell(iz)
   nFXR = CellInfo(iCel)%nFXR
   
-  CALL HexChkRange_INT(xSt, 1, nFXR, "EFF XS : FXR BOUNDARY")
-  CALL HexChkRange_INT(xEd, 1, nFXR, "EFF XS : FXR BOUNDARY")
+  CALL ChkRange_INT(xSt, 1, nFXR, "EFF XS : FXR BOUNDARY")
+  CALL ChkRange_INT(xEd, 1, nFXR, "EFF XS : FXR BOUNDARY")
 END DO
 ! ----------------------------------------------------
 

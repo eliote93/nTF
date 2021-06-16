@@ -12,7 +12,7 @@ USE BasicOperation
 
 USE CNTL,    ONLY : nTracerCntl_Type, OutpCntl_Type
 USE FILES,   ONLY : io16, caseid
-USE HexUtil, ONLY : HexChkInc_REAL
+USE HexUtil, ONLY : ChkInc_REAL
 USE HexData, ONLY : hCore, hAsyTypInfo, hAsy
 
 IMPLICIT NONE
@@ -155,7 +155,7 @@ DO i = 1, nTracerCntl%OutpCntl%nRegXsOut
   !      2. XS / Flx / #
   ! ----------------------------
   DO j = 1, nTracerCntl%OutpCntl%IsoXsOutList(0, i)
-    CALL HexChkInc_REAL(0._8, Num(j, i), "EFF XS : ISOTOPE DOES NOT EXIST IN FXR")
+    CALL ChkInc_REAL(0._8, Num(j, i), "EFF XS : ISOTOPE DOES NOT EXIST IN FXR")
     
     NUM(j, i) = NUM(j, i) / Area(i)
     

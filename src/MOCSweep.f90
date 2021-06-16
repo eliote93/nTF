@@ -234,22 +234,22 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             
             IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
           END DO
-          
-          ! Time
-          tgmed  = nTracer_dclock(FALSE, FALSE)
-          tgmdel = tgmdel + tgmed - tgmst
-          
-          IF (.NOT.lDmesg .AND. MOD(ig, 10).NE.0 .AND. ig.NE.ng) CYCLE
-          
-          CALL MPI_MAX_REAL(tgmdel, PE%MPI_RTMASTER_COMM, TRUE)
-          
-          IF (master) THEN
-            WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tgmdel, 'Sec'
-            CALL message(io8, FALSE, TRUE, mesg)
-          END IF
-          
-          tgmdel = ZERO
         END DO
+        
+        ! Time
+        tgmed  = nTracer_dclock(FALSE, FALSE)
+        tgmdel = tgmdel + tgmed - tgmst
+        
+        IF (.NOT.lDmesg .AND. MOD(ig, 10).NE.0 .AND. ig.NE.ng) CYCLE
+        
+        CALL MPI_MAX_REAL(tgmdel, PE%MPI_RTMASTER_COMM, TRUE)
+        
+        IF (master) THEN
+          WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tgmdel, 'Sec'
+          CALL message(io8, FALSE, TRUE, mesg)
+        END IF
+        
+        tgmdel = ZERO
       END DO
     END DO
   END DO
