@@ -4,8 +4,8 @@ SUBROUTINE RayTraceP1_Dcmp(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM,
 
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
-USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, &
+USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, DcmpColorAsy, &
                         RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
 USE Core_mod,    ONLY : phisSlope, srcSlope
 USE PE_MOD,      ONLY : PE
@@ -24,37 +24,22 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 ! ----------------------------------------------------
-TYPE (AsyInfo_Type), POINTER, DIMENSION(:) :: AsyInfo
-TYPE (Asy_Type),     POINTER, DIMENSION(:) :: Asy
+TYPE (Asy_Type), POINTER, DIMENSION(:) :: Asy
 
-INTEGER :: color, startColor, endColor, colorInc, ithr, nThr, ScatOd, iAsy
+INTEGER :: ithr, nThr, ScatOd, iAsy, jAsy, iit, icolor, jcolor, ncolor
+
+INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
+INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
-AsyInfo => CoreInfo%AsyInfo
-Asy     => CoreInfo%Asy
+Asy => CoreInfo%Asy
 
 ScatOd = nTracerCntl%ScatOd
 
 IF (.NOT. nTracerCntl%lHex) THEN
-  IF (mod(itrcntl%mocit, 2) .EQ. 0) THEN
-    startColor = BLACK
-    endColor   = RED
-    colorInc   = RED - BLACK
-  ELSE
-    startColor = RED
-    endColor   = BLACK
-    colorInc   = BLACK - RED
-  END IF
+  ncolor = 2; iit = mod(itrcntl%mocit, 2)
 ELSE
-  IF (mod(itrcntl%mocit, 2) .EQ. 0) THEN
-    startColor = GREEN
-    endColor   = RED
-    colorInc   = (RED - GREEN)/2
-  ELSE
-    startColor = RED
-    endColor   = GREEN
-    colorInc   = (GREEN - RED)/2
-  END IF
+  ncolor = 3; iit = mod(itrcntl%mocit, 3)
 END IF
 
 nthr = PE%nthread
@@ -67,7 +52,13 @@ END DO
 
 DcmpPhiAngOut(:, gb:ge, :, :, :) = ZERO
 ! ----------------------------------------------------
-DO color = startColor, endColor, colorInc
+DO icolor = 1, ncolor
+  IF (.NOT. nTracerCntl%lHex) THEN
+    jcolor = AuxRec(icolor, iit)
+  ELSE
+    jcolor = AuxHex(icolor, iit)
+  END IF
+  
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 #endif
@@ -81,10 +72,10 @@ DO color = startColor, endColor, colorInc
   TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
   !$OMP BARRIER
   !$OMP DO SCHEDULE(GUIDED)
-  DO iAsy = PE%myAsyBeg, PE%myAsyEnd
-    IF (Asy(iAsy)%color .NE. color) CYCLE
+  DO iAsy = 1, DcmpColorAsy(0, jcolor)
+    jAsy = DcmpColorAsy(iAsy, jcolor)
     
-    CALL RayTraceDcmp_Pn(RayInfo, CoreInfo, phisNM, phimNM, srcmNM, MocjoutNM, iz, iAsy, gb, ge, ScatOd, lJout)
+    CALL RayTraceDcmp_Pn(RayInfo, CoreInfo, phisNM, phimNM, srcmNM, MocjoutNM, iz, jAsy, gb, ge, ScatOd, lJout)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -93,11 +84,10 @@ DO color = startColor, endColor, colorInc
   IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, jcolor)
 END DO
 
 NULLIFY (Asy)
-NULLIFY (AsyInfo)
 ! ----------------------------------------------------
 
 END SUBROUTINE RayTraceP1_Dcmp

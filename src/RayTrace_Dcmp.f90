@@ -3,8 +3,9 @@
 SUBROUTINE RayTrace_Dcmp(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE OMP_LIB
+USE allocs
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
-USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
+USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, DcmpColorAsy, &
                         RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
 USE Core_mod,    ONLY : phisSlope, srcSlope
@@ -12,6 +13,7 @@ USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
 USE itrcntl_mod, ONLY : itrcntl
+USE HexData,     ONLY : hAsy
 
 IMPLICIT NONE
 
@@ -25,31 +27,38 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 ! ----------------------------------------------------
-TYPE (Asy_Type),  POINTER, DIMENSION(:) :: Asy
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
-TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (AsyInfo_Type), POINTER, DIMENSION(:) :: AsyInfo
+TYPE (Asy_Type),     POINTER, DIMENSION(:) :: Asy
+TYPE (Cell_Type),    POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),     POINTER, DIMENSION(:) :: Pin
 
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, nfsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, iAsyRay, krot, icolor, jcolor, ncolor, iit
+INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, nfsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, iAsyRay, krot, icolor, jcolor, ncolor, iit, PinSt, PinEd, FsrSt, FsrEd
+LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
 INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
-nFsr = CoreInfo%nCoreFsr
-nxy  = CoreInfo%nxy
-Asy => CoreInfo%Asy
+nFsr     = CoreInfo%nCoreFsr
+nxy      = CoreInfo%nxy
+Asy     => CoreInfo%Asy
+AsyInfo => CoreInfo%AsyInfo
+Cell    => CoreInfo%CellInfo
+Pin     => CoreInfo%Pin
 
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
-IF (.NOT. nTracerCntl%lHex) THEN
-  ncolor = 2; iit = mod(itrcntl%mocit, 2)
-ELSE
+lHex = nTracerCntl%lHex
+
+IF (lHex) THEN
   ncolor = 3; iit = mod(itrcntl%mocit, 3)
+ELSE
+  ncolor = 2; iit = mod(itrcntl%mocit, 2)
 END IF
 
 nthr = PE%nthread
@@ -58,47 +67,80 @@ CALL OMP_SET_NUM_THREADS(nThr)
 DO ithr = 1, nThr
   TrackingDat(ithr)%srcNM => srcNM
   TrackingDat(ithr)%xstNM => xstNM
-  
-  TrackingDat(ithr)%phisNM(gb:ge, :) = ZERO
-  IF (ljout) TrackingDat(ithr)%JoutNM(:, gb:ge, :, :) = ZERO
 END DO
 
 DcmpPhiAngOut(:, gb:ge, :, :, :) = ZERO
+phisNM(gb:ge, :) = ZERO
+IF (ljout) MocjoutNM(:, gb:ge, :, :) = ZERO
 ! ----------------------------------------------------
 DO icolor = 1, ncolor
-  IF (.NOT. nTracerCntl%lHex) THEN
-    jcolor = AuxRec(icolor, iit)
-  ELSE
+  IF (lHex) THEN
     jcolor = AuxHex(icolor, iit)
+  ELSE
+    jcolor = AuxRec(icolor, iit)
   END IF
   
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 #endif
 
-  !$OMP PARALLEL PRIVATE(ithr, iAsy, krot, jAsy, iAsyRay)
+  DO ithr = 1, nthr
+    TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
+    TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
+    TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
+  END DO
+  
+  !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ig, ifsr, ixy, ibd)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
-  
-  TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
-  TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
-  TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
-  
+  !$OMP DO SCHEDULE(GUIDED)
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
     
-    !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+    IF (lHex) THEN
+      PinSt = hAsy(jAsy)%PinIdxSt
+      PinEd = hAsy(jAsy)%PinIdxSt + hAsy(jAsy)%nTotPin - 1
+    ELSE
+      PinSt = Asy(jAsy)%GlobalPinIdx(1)
+      PinEd = Asy(jAsy)%GlobalPinIdx(AsyInfo(Asy(jAsy)%AsyType)%nxy)
+    END IF
+    
+    FsrSt = Pin(PinSt)%FsrIdxSt
+    FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
+    
+    CALL dmalloc0(TrackingDat(ithr)%phisNM, gb, ge, FsrSt, FsrEd)
+    IF (ljout) CALL dmalloc0(TrackingDat(ithr)%JoutNM, 1, 3, gb, ge, 1, nbd, PinSt, PinEd)
+    
     DO krot = 1, 2
       DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
-        IF (nTracerCntl%lHex) THEN
+        IF (lHex) THEN
           CALL HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
         ELSE
           CALL RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
         END IF
       END DO
     END DO
-    !$OMP END DO NOWAIT
+    
+    DO ig = gb, ge
+      DO ifsr = FsrSt, FsrEd
+        phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)
+      END DO
+    END DO
+    
+    IF (ljout) THEN
+      DO ixy = PinSt, PinEd
+        DO ibd = 1, nbd
+          DO ig = gb, ge
+            MocjoutNM(:, ig, ibd, ixy) = MocjoutNM(:, ig, ibd, ixy) + TrackingDat(ithr)%joutNM(:, ig, ibd, ixy)
+          END DO
+        END DO
+      END DO
+    END IF
+    
+    DEALLOCATE (TrackingDat(ithr)%phisNM)
+    IF (ljout) DEALLOCATE (TrackingDat(ithr)%JoutNM)
   END DO
+  !$OMP END DO NOWAIT
   !$OMP END PARALLEL
   
 #ifdef MPI_ENV
@@ -108,31 +150,6 @@ DO icolor = 1, ncolor
   IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, jcolor)
 END DO
 ! ----------------------------------------------------
-phisNM(gb:ge, :) = ZERO
-IF (ljout) MocjoutNM(:, gb:ge, :, :) = ZERO
-
-! Iter. is Necessary to avoid Stack Over-flow
-DO ithr = 1, nthr
-  DO ig = gb, ge
-    DO ifsr = 1, nfsr
-      phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)
-    END DO
-  END DO
-  
-  IF (.NOT. ljout) CYCLE
-  
-  DO ixy = 1, nxy
-    DO ibd = 1, nbd
-      DO ig = gb, ge
-        MocjoutNM(:, ig, ibd, ixy) = MocjoutNM(:, ig, ibd, ixy) + TrackingDat(ithr)%joutNM(:, ig, ibd, ixy)
-      END DO
-    END DO
-  END DO
-END DO
-! ----------------------------------------------------
-Cell => CoreInfo%CellInfo
-Pin  => CoreInfo%Pin
-
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
 !$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
@@ -153,6 +170,7 @@ END DO
 NULLIFY (Cell)
 NULLIFY (Pin)
 NULLIFY (Asy)
+NULLIFY (AsyInfo)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 ! ----------------------------------------------------

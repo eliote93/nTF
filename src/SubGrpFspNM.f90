@@ -220,10 +220,12 @@ CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
 !WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (AIC)  ', iter, errmax
 !IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
-DO ithr = 1, PE%nThread
-  DEALLOCATE (TrackingDat(ithr)%phisNM)
-  CALL dmalloc(TrackingDat(ithr)%phisNM, ng, nFsr)
-END DO
+IF (.NOT. nTracerCntl%lDomainDcmp) THEN
+  DO ithr = 1, PE%nThread
+    DEALLOCATE (TrackingDat(ithr)%phisNM)
+    CALL dmalloc(TrackingDat(ithr)%phisNM, ng, nFsr)
+  END DO
+END IF
 
 nTracerCntl%lSubGrpSweep = TRUE
 #ifdef MPI_ENV
