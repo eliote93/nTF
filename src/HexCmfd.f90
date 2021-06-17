@@ -191,6 +191,7 @@ USE MKL_3D,      ONLY : mklGeom, mklCMFD, superPin_Type
 USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : CoreInfo_Type, PinXs_Type
 USE geom,        ONLY : ncbd
+USE ioutil,      ONLY : terminate
 USE RAYS,        ONLY : RayInfo4CMFD
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
@@ -290,8 +291,14 @@ IF (nTracerCntl%lDomainDcmp) THEN
           isxy  = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
           ingh  = hPinInfo(imxy)%DcmpMP2slfSPngh(isurf)
           jsxy  = hPinInfo(imxy)%DcmpMP2nghSPidx(isurf)
+          
+          IF (ingh.LE.0 .OR. ingh.GT.6) THEN
+            WRITE (*,*), imxy, isurf, isxy, ingh, jsxy
+            CALL terminate("DCMP NGH")
+          END IF
+          
           slgh  = superPin(isxy)%BdLength(ingh)
-                    
+          
           DO ig = 1, ng
             myphi = ZERO
             DO izf = fmRange(iz, 1), fmRange(iz, 2)
@@ -312,6 +319,10 @@ IF (nTracerCntl%lDomainDcmp) THEN
             
             IF (ItrCntl%mocit .EQ. 0) THEN
               AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / slgh
+              
+              IF (AsyPhiAngIn(1, ig, idir, icnt, iAsy, iz).NE.AsyPhiAngIn(1, ig, idir, icnt, iAsy, iz)) THEN
+                PAUSE
+              END IF
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
               fmult   = surfphi / superJout(3, ingh, isxy, iz, ig)

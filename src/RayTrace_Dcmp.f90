@@ -159,59 +159,6 @@ NULLIFY (DcmpAsyRayCount)
 
 END SUBROUTINE RayTrace_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-!SUBROUTINE RayTraceDcmp_OMP(RayInfo, CoreInfo, iz, iasy, gb, ge, ljout)
-!
-!USE OMP_LIB
-!USE PARAM,   ONLY : ZERO
-!USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, AsyInfo_Type, Asy_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-!USE Moc_Mod, ONLY : RecTrackRotRayOMP_Dcmp, HexTrackRotRayOMP_Dcmp, TrackingDat
-!USE CNTL,    ONLY : nTracerCntl
-!USE HexData, ONLY : hAsy
-!
-!IMPLICIT NONE
-!
-!TYPE (RayInfo_Type)  :: RayInfo
-!TYPE (CoreInfo_Type) :: CoreInfo
-!
-!INTEGER :: iz, iAsy, gb, ge
-!LOGICAL :: ljout
-!! ----------------------------------------------------
-!TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
-!
-!INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
-!
-!REAL, POINTER, DIMENSION(:,:) :: xstNM, srcNM
-!
-!INTEGER :: iAsyRay, ithr, icel, ig, krot
-!! ----------------------------------------------------
-!
-!DcmpAsyRay      => RayInfo%DcmpAsyRay
-!DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-!! ----------------------------------------------------
-!ithr = omp_get_thread_num() + 1
-!
-!IF (nTracerCntl%lHex) THEN
-!  DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
-!    DO krot = 1, 2
-!      CALL HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, iAsy), ljout, iz, gb, ge, krot)
-!    END DO
-!  END DO
-!ELSE
-!  DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
-!    DO krot = 1, 2
-!      CALL RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, iAsy), ljout, iz, gb, ge, krot)
-!    END DO
-!  END DO
-!END IF
-!! ----------------------------------------------------
-!NULLIFY (DcmpAsyRay)
-!NULLIFY (DcmpAsyRayCount)
-!NULLIFY (xstNM)
-!NULLIFY (srcNM)
-!! ----------------------------------------------------
-!
-!END SUBROUTINE RayTraceDcmp_OMP
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, Cell_Type, AsyRayInfo_type, CellRayInfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type

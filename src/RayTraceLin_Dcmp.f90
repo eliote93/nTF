@@ -110,6 +110,8 @@ END SUBROUTINE RayTraceLin_Dcmp
 SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNM, phisSlope, joutNM, iz, iasy, gb, ge, ljout)
 
 USE PARAM
+USE ALLOCS
+USE OMP_LIB
 USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,           Asy_Type,               &
                         AsyInfo_Type,       PinInfo_Type,       Cell_Type,          DcmpAsyRayInfo_Type
 USE Moc_Mod,    ONLY :  nMaxRaySeg,         nMaxCellRay,        nMaxAsyRay,         nMaxCoreRay,            &
@@ -117,8 +119,7 @@ USE Moc_Mod,    ONLY :  nMaxRaySeg,         nMaxCellRay,        nMaxAsyRay,     
                         DcmpPhiAngIn,       DcmpPhiAngOut,      TrackRotRayLSDcmp_CASMO
 USE geom,       ONLY :  ng
 USE PE_Mod,     ONLY :  PE
-USE ALLOCS
-USE OMP_LIB
+
 IMPLICIT NONE
 
 TYPE(RayInfo_Type) :: RayInfo

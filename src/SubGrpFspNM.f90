@@ -23,7 +23,7 @@ USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock,  TimeChk
 USE OMP_LIB
 USE xslib_mod,      ONLY : mlgdata,         mlgdata0
-USE MOC_MOD,        ONLY : TrackingDat, RayTraceNM_OMP, RayTrace_Dcmp, DcmpPhiAngOut, DcmpPhiAngIn
+USE MOC_MOD,        ONLY : TrackingDat, RayTraceNM_OMP
 USE GEOM,           ONLY : ng
 IMPLICIT NONE
 
@@ -76,14 +76,6 @@ DO iz = myzb, myze
     CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
   END DO
   
-  IF (nTracerCntl%lDomainDcmp) THEN
-    DEALLOCATE (DcmpPhiAngOut)
-    DEALLOCATE (DcmpPhiAngIn)
-    
-    CALL Dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-    CALL Dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-  END IF
-  
   CALL UpdtFnAdj_NM(Core, Fxr, iz, gb, ge)
   CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
   CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
@@ -91,11 +83,7 @@ DO iz = myzb, myze
     CALL CopyFlux(phis, phisd, nFsr, mg)
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
-    IF (.NOT. nTracerCntl%lDomainDcmp) THEN
-      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-    ELSE
-      CALL RayTrace_Dcmp(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-    END IF
+    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
@@ -145,25 +133,13 @@ DO iz = myzb, myze
     CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
   END DO
   
-  IF (nTracerCntl%lDomainDcmp) THEN
-    DEALLOCATE (DcmpPhiAngOut)
-    DEALLOCATE (DcmpPhiAngIn)
-    
-    CALL Dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-    CALL Dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-  END IF
-  
   CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
   CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
-    IF (.NOT. nTracerCntl%lDomainDcmp) THEN
-      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-    ELSE
-      CALL RayTrace_Dcmp(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-    END IF
+    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
@@ -210,26 +186,14 @@ DO iz = myzb, myze
     CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
   END DO
   
-  IF (nTracerCntl%lDomainDcmp) THEN
-    DEALLOCATE (DcmpPhiAngOut)
-    DEALLOCATE (DcmpPhiAngIn)
-    
-    CALL Dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-    CALL Dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-  END IF
-  
   CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
   CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
-    IF (.NOT. nTracerCntl%lDomainDcmp) THEN
-      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-    ELSE
-      CALL RayTrace_Dcmp(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-    END IF
-    
+    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+        
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
@@ -260,14 +224,6 @@ DO ithr = 1, PE%nThread
   DEALLOCATE (TrackingDat(ithr)%phisNM)
   CALL dmalloc(TrackingDat(ithr)%phisNM, ng, nFsr)
 END DO
-
-IF (nTracerCntl%lDomainDcmp) THEN
-  DEALLOCATE (DcmpPhiAngOut)
-  DEALLOCATE (DcmpPhiAngIn)
-  
-  CALL Dmalloc(DcmpPhiAngOut, nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
-  CALL Dmalloc(DcmpPhiAngIn,  nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
-END IF
 
 nTracerCntl%lSubGrpSweep = TRUE
 #ifdef MPI_ENV

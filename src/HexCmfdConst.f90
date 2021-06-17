@@ -746,13 +746,17 @@ DO ihcPin = 1, nhcPin
   
   iAsy = cPin_Loc%aIdx
   
+  IF (ihcPin .EQ. 152) THEN
+    iNgh = 1
+  END IF
+  
   DO iNgh = 1, cPin_Loc%nNgh
     jhcPin = cPin_Loc%NghPin(iNgh)
     
     IF (jhcPin .GT. 0) THEN
       jAsy = hcPin(jhcPin)%aIdx
       
-      IF (iAsy .EQ. jAsy) CYCLE
+      IF (iAsy .EQ. jAsy) CYCLE ! Dcmp. Data Valid for Asy. Ngh.
     END IF
     
     iBndy = cPin_Loc%NghBd(iNgh)
@@ -765,17 +769,22 @@ DO ihcPin = 1, nhcPin
       
       ivTyp = mPin_Loc%VtxTyp
       
-      SELECT CASE (ivTyp) ! NOTICE : No 4, 5
-      CASE (1); isurf = 2 ! Inn 060
-      CASE (2); isurf = 4 ! Inn 180
-      CASE (3); isurf = 6 ! Inn 360
-      CASE (6); isurf = 1 ! Bndy Typ 2 Spt NE 01
-      CASE (7); isurf = 1 ! Bndy Typ 2 Spt NW 02
-      CASE (8); isurf = 4 ! Gap Typ 1 NE R
-      CASE (9); isurf = 4 ! Gap Typ 1 NE L
-      CASE (10)           ! Gap Typ 2
-        IF (jhcPin .LT. 0) isurf = 1 ! REF
-        IF (jhcPin .GE. 0) isurf = 4 ! VAC + Other Asy.
+      SELECT CASE (ivTyp)  ! NOTICE : No 4, 5
+      CASE (1);  isurf = 2 ! Inn 060
+      CASE (2);  isurf = 4 ! Inn 180
+      CASE (3);  isurf = 6 ! Inn 360
+      CASE (6);  isurf = 1 ! Bndy Typ 2 Spt NE 01
+      CASE (7);  isurf = 1 ! Bndy Typ 2 Spt NW 02
+      CASE (8);  isurf = 4 ! Gap Typ 1 NE R
+      CASE (9);  isurf = 4 ! Gap Typ 1 NE L
+      CASE (10)
+        IF (cPin_Loc%nBndy.EQ.4 .AND. iBndy.EQ.4) THEN
+          isurf = 4 ! Bndy Typ 2 Spt.
+        ELSE IF (cPin_Loc%nBndy.EQ.5 .AND. iBndy.EQ.5) THEN
+          isurf = 4 ! Bndy Typ 2 Not Spt.
+        ELSE
+          isurf = 1 ! REF
+        END IF
       END SELECT
       
       mPin_Loc%DcmpMP2nghSPidx(isurf) = jhcPin
@@ -783,13 +792,18 @@ DO ihcPin = 1, nhcPin
       
       SELECT CASE (ivTyp)
       CASE (1)
-        mPin_Loc%DcmpMP2nghSPidx(3) = -1   ! VAC
+        mPin_Loc%DcmpMP2nghSPidx(3) = jhcPin
         mPin_Loc%DcmpMP2slfSPngh(3) = iNgh
       CASE (3)
-        mPin_Loc%DcmpMP2nghSPidx(2) = -1   ! VAC
+        mPin_Loc%DcmpMP2nghSPidx(2) = jhcPin
         mPin_Loc%DcmpMP2slfSPngh(2) = iNgh
-        mPin_Loc%DcmpMP2nghSPidx(4) = -1   ! VAC
+        mPin_Loc%DcmpMP2nghSPidx(4) = jhcPin
         mPin_Loc%DcmpMP2slfSPngh(4) = iNgh
+      CASE (10)
+        IF (isurf .EQ. 1) THEN
+          mPin_Loc%DcmpMP2nghSPidx(3) = jhcPin
+          mPin_Loc%DcmpMP2slfSPngh(3) = iNgh
+        END IF
       END SELECT
     END DO
   END DO
