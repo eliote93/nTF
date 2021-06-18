@@ -97,6 +97,7 @@ DO icolor = 1, ncolor
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
     
+    ! SET : Range
     IF (lHex) THEN
       PinSt = hAsy(jAsy)%PinIdxSt
       PinEd = hAsy(jAsy)%PinIdxSt + hAsy(jAsy)%nTotPin - 1
@@ -108,9 +109,11 @@ DO icolor = 1, ncolor
     FsrSt = Pin(PinSt)%FsrIdxSt
     FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
     
+    ! ALLOC
     CALL dmalloc0(TrackingDat(ithr)%phisNM, gb, ge, FsrSt, FsrEd)
     IF (ljout) CALL dmalloc0(TrackingDat(ithr)%JoutNM, 1, 3, gb, ge, 1, nbd, PinSt, PinEd)
     
+    ! RT
     DO krot = 1, 2
       DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
         IF (lHex) THEN
@@ -121,6 +124,7 @@ DO icolor = 1, ncolor
       END DO
     END DO
     
+    ! GATHER
     DO ig = gb, ge
       DO ifsr = FsrSt, FsrEd
         phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)
@@ -137,6 +141,7 @@ DO icolor = 1, ncolor
       END DO
     END IF
     
+    ! FREE
     DEALLOCATE (TrackingDat(ithr)%phisNM)
     IF (ljout) DEALLOCATE (TrackingDat(ithr)%JoutNM)
   END DO

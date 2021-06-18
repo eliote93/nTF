@@ -351,7 +351,7 @@ LOGICAL :: ljout
 
 END SUBROUTINE RayTraceDcmp_Pn
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, Jout, ljout, iz, gb, ge, krot)
+SUBROUTINE RecTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -362,11 +362,26 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-REAL, POINTER, DIMENSION(:, :, :, :) :: Jout
 LOGICAL :: lJout
 INTEGER :: iz, gb, ge, krot
 
 END SUBROUTINE RecTrackRotRayPn_Dcmp
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
+
+LOGICAL :: lJout
+INTEGER :: iz, gb, ge, krot
+
+END SUBROUTINE HexTrackRotRayPn_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, LinSrc, Slope1g, jout, iz, ljout)
 
