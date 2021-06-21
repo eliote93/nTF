@@ -89,13 +89,15 @@ DO icolor = 1, ncolor
     TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
     TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
   END DO
-  
+    
   !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ig, ifsr, ixy, ibd)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   !$OMP DO SCHEDULE(GUIDED)
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
+    
+    IF (jAsy .LE. 0) CYCLE
     
     ! SET : Range
     IF (lHex) THEN
@@ -394,9 +396,8 @@ END SUBROUTINE RecTrackRotRayOMP_Dcmp
 SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type, AziAngleInfo_Type
-USE HexData, ONLY : hAsy
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
-USE HexData, ONLY : haRay, hAsyTypInfo
+USE HexData, ONLY : hAsy, haRay, hAsyTypInfo
 
 IMPLICIT NONE
 

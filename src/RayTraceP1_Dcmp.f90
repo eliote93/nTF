@@ -208,6 +208,9 @@ CALL dmalloc0(TrackingDat(ithr)%SrcAngNM, 1, nPolarAng, gb, ge, FsrSt, FsrEd, 1,
 srcNM    => TrackingDat(ithr)%srcNM
 SrcAngNM => TrackingDat(ithr)%SrcAngNM
 ! ----------------------------------------------------
+
+! Need to Compress into One DO Loop with using IF
+
 DO iAzi = 1, nAziAng / 2
   IF (ScatOd .EQ. 1) THEN
     DO iFSR = FsrSt, FsrEd
@@ -326,6 +329,10 @@ DO iAzi = 1, nAziAng / 2
   END IF
 END DO
 ! ----------------------------------------------------
+
+! Need to Go Back to the Previous Version
+! To Achieve Angle Decomposition
+
 IF (nTracerCntl%lHex) THEN
   DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
     DO krot = 1, 2

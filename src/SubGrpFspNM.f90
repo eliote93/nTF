@@ -7,197 +7,268 @@ MODULE SubGrpFspNM
 IMPLICIT NONE
 
 CONTAINS
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SubGrpFsp_MLG_NM(Core, Fxr, THInfo, RayInfo, GroupInfo)
-USE PARAM
+
 USE allocs
-USE TYPEDEF,        ONLY : CoreInfo_Type,   RayInfo_Type,       Fxrinfo_type,       GroupInfo_Type,                 &
-                           THInfo_Type
-USE CNTL,           ONLY : nTracerCntl
-USE PE_MOD,         ONLY : PE
-#ifdef MPI_ENV
-USE MPICOMM_MOD,    ONLY : REDUCE,          MPI_SYNC
-#endif
-USE FILES,          ONLY : io8
-USE IOUTIL,         ONLY : message
-USE TIMER,          ONLY : nTracer_dclock,  TimeChk
 USE OMP_LIB
-USE xslib_mod,      ONLY : mlgdata,         mlgdata0
-USE MOC_MOD,        ONLY : TrackingDat, RayTraceNM_OMP
-USE GEOM,           ONLY : ng
+USE PARAM,     ONLY : TRUE, FALSE, MESG, ONE, ZERO, EPSM3, VOIDCELL
+USE TYPEDEF,   ONLY : CoreInfo_Type, RayInfo_Type, Fxrinfo_type, GroupInfo_Type, THInfo_Type
+USE CNTL,      ONLY : nTracerCntl
+USE PE_MOD,    ONLY : PE
+USE FILES,     ONLY : io8
+USE IOUTIL,    ONLY : message
+USE TIMER,     ONLY : nTracer_dclock,  TimeChk
+USE xslib_mod, ONLY : mlgdata, mlgdata0
+USE MOC_MOD,   ONLY : RayTraceNM_OMP, RayTrace_Dcmp, DcmpPhiAngOut, DcmpPhiAngIn
+USE GEOM,      ONLY : ng
+
+#ifdef MPI_ENV
+USE MPICOMM_MOD, ONLY : REDUCE, MPI_SYNC
+#endif
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
-TYPE(THInfo_Type) :: THInfo
-TYPE(RayInfo_Type) :: RayInfo
+TYPE(CoreInfo_Type)  :: Core
+TYPE(THInfo_Type)    :: THInfo
+TYPE(RayInfo_Type)   :: RayInfo
 TYPE(GroupInfo_Type) :: GroupInfo
 
-INTEGER :: ig, iz, ilv, iter, itersum, itermax, ithr
-INTEGER :: mg, nlv, nFsr, nFxr, nPhiAngSv, nPolarAngle
-INTEGER :: gb, ge, myzb, myze
+TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
+! ----------------------------------------------------
+INTEGER :: ig, iz, ilv, iter, itersum, itermax, mg, nlv, nFsr, nFxr, nPhiAngSv, nPolarAngle, gb, ge, myzb, myze
 REAL :: errmax, Tbeg, Tend, rtTbeg, rtTend
-REAL, POINTER :: phis(:, :), phisd(:, :), PhiAngIn(:, :, :)
-REAL, POINTER :: Siglp(:, :), xst(:, :), src(:, :), joutNM(:,:,:,:)
-LOGICAL :: lCLD, lAIC
+LOGICAL :: ldcmp, lCLD, lAIC
+
+REAL, POINTER, DIMENSION(:,:)     :: phis, phisd, Siglp, xst, src
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
+! ----------------------------------------------------
 
 Tbeg = nTracer_dclock(FALSE, FALSE)
 
-nFxr = Core%nCoreFxr; nFsr = Core%nCoreFsr
-myzb = PE%myzb; myze = PE%myze
+nFxr = Core%nCoreFxr
+nFsr = Core%nCoreFsr
+
+myzb = PE%myzb
+myze = PE%myze
+
 nPolarAngle = RayInfo%nPolarAngle
-nPhiAngSv = RayInfo%nPhiAngSv
+nPhiAngSv   = RayInfo%nPhiAngSv
+
+ldcmp = nTracerCntl%lDomainDcmp
 
 itermax = 100
-IF (any(Core%RadBC(1 : 4) .EQ. VoidCell)) itermax = 1
+IF (.NOT.ldcmp .AND. any(Core%RadBC(1 : 4) .EQ. VoidCell)) itermax = 1
 
 CALL omp_set_num_threads(PE%nThread)
 
-WRITE(mesg,'(a, f10.2, a)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
-WRITE(mesg,'(a)') 'Solving Subgroup FSP...'
+WRITE (mesg, '(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
 IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
-itersum = 0; errmax = 0.0
+WRITE (mesg, '(A)') 'Solving Subgroup FSP...'
+IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
+! ----------------------------------------------------
+itersum = ZERO
+errmax  = ZERO
 
 DO iz = myzb, myze
-
   IF (.NOT. Core%lFuelPlane(iz)) CYCLE
-
-  gb = GroupInfo%nofg + 1; ge = GroupInfo%nofg + GroupInfo%norg
+  
+  gb = GroupInfo%nofg + 1
+  ge = GroupInfo%nofg + GroupInfo%norg
   mg = mlgdata(iz)%f_nmaclv * GroupInfo%norg
 
-  ALLOCATE(phis(mg, nFsr)); ALLOCATE(phisd(mg, nFsr)); ALLOCATE(PhiAngIn(nPolarAngle, mg, nPhiAngSv))
-  ALLOCATE(Siglp(mg, nFxr)); ALLOCATE(xst(mg, nFsr)); ALLOCATE(src(mg, nFsr))
-  phis = 1.0; PhiAngIn = 1.0; PhiAngIn(:, :, 1) = 0.0
+  CALL dmalloc(phis,  mg, nFsr)
+  CALL dmalloc(phisd, mg, nFsr)
+  CALL dmalloc(xst,   mg, nFsr)
+  CALL dmalloc(src,   mg, nFsr)
+  CALL dmalloc(Siglp, mg, nFsr)
   
-  DO ithr = 1, PE%nThread
-    DEALLOCATE (TrackingDat(ithr)%phisNM)
-    CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
-  END DO
+  CALL dmalloc(PhiAngIn, nPolarAngle, mg, nPhiAngSv)
   
-  CALL UpdtFnAdj_NM(Core, Fxr, iz, gb, ge)
+  phis     = ONE
+  PhiAngIn = ONE
+  PhiAngIn(:, :, 1) = ZERO
+    
+  IF (ldcmp) THEN
+    DEALLOCATE (DcmpPhiAngOut)
+    DEALLOCATE (DcmpPhiAngIn)
+    
+    CALL dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    
+    DcmpPhiAngIn = ONE
+  END IF
+  
+  CALL UpdtFnAdj_NM      (Core, Fxr, iz, gb, ge)
   CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
-  CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  CALL SetSubGrpSrc_NM   (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
+    
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
-    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    IF (.NOT. ldcmp) THEN
+      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+    ELSE
+      CALL RayTrace_Dcmp (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+    END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
+    
     CALL EquipXSGen_MLG_NM(Core, Fxr, Siglp, xst, phis, iz, gb, ge)
-    CALL UpdtFtAdj_NM(Core, Fxr, iz, gb, ge)
+    CALL UpdtFtAdj_NM     (Core, Fxr, iz, gb, ge)
+    
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
-    IF (errmax .LT. epsm3) EXIT
+    
+    IF (errmax .LT. EPSM3) EXIT
     IF (iter .EQ. itermax) EXIT
+    
     CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
-    CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
-  ENDDO
+    CALL SetSubGrpSrc_NM   (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  END DO
   
   WRITE (mesg, '(2X, A, I3, A, I5,1P, E13.3)') '[Fuel] Pln', iz, '  In_itr', iter, errmax
   IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
   
   itersum = itersum + iter
 
-  DEALLOCATE(phis, phisd, PhiAngIn)
-  DEALLOCATE(Siglp, xst, src)
-
-ENDDO
+  DEALLOCATE (phis, phisd, PhiAngIn)
+  DEALLOCATE (Siglp, xst, src)
+END DO
 
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
-CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
+CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, FALSE)
 #endif
-
-!WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Fuel) ', iter, errmax
-!IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
-
-itersum = 0; errmax = 0.0
+! ----------------------------------------------------
+itersum = ZERO
+errmax  = ZERO
 
 DO iz = myzb, myze
-
   IF (.NOT. Core%lFuelPlane(iz)) CYCLE
   IF (.NOT. Core%lCladPlane(iz)) CYCLE
-
-  lCLD = .TRUE.; lAIC = .FALSE.
-  mg = mlgdata0%c_nmaclv1G
-
-  ALLOCATE(phis(mg, nFsr)); ALLOCATE(phisd(mg, nFsr)); ALLOCATE(PhiAngIn(nPolarAngle, mg, nPhiAngSv))
-  ALLOCATE(Siglp(mg, nFxr)); ALLOCATE(xst(mg, nFsr)); ALLOCATE(src(mg, nFsr))
-  phis = 1.0; PhiAngIn = 1.0; PhiAngIn(:, :, 1) = 0.0
   
-  DO ithr = 1, PE%nThread
-    DEALLOCATE (TrackingDat(ithr)%phisNM)
-    CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
-  END DO
+  lCLD = TRUE
+  lAIC = FALSE
+  mg   = mlgdata0%c_nmaclv1G
+  
+  CALL dmalloc(phis,  mg, nFsr)
+  CALL dmalloc(phisd, mg, nFsr)
+  CALL dmalloc(xst,   mg, nFsr)
+  CALL dmalloc(src,   mg, nFsr)
+  CALL dmalloc(Siglp, mg, nFsr)
+  
+  CALL dmalloc(PhiAngIn, nPolarAngle, mg, nPhiAngSv)
+  
+  phis     = ONE
+  PhiAngIn = ONE
+  PhiAngIn(:, :, 1) = ZERO
+    
+  IF (ldcmp) THEN
+    DEALLOCATE (DcmpPhiAngOut)
+    DEALLOCATE (DcmpPhiAngIn)
+    
+    CALL dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    
+    DcmpPhiAngIn = ONE
+  END IF
   
   CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
-  CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  CALL SetSubGrpSrc_NM     (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
+    
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
-    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
+    IF (.NOT. ldcmp) THEN
+      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+    ELSE
+      CALL RayTrace_Dcmp (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+    END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
-    IF (errmax .LT. epsm3) EXIT
+    
+    IF (errmax .LT. EPSM3) EXIT
     IF (iter .EQ. itermax) EXIT
-  ENDDO
+  END DO
   
   WRITE (mesg, '(2X, A, I3, A, I5,1P, E13.3)') '[Clad] Pln', iz, '  In_itr', iter, errmax
   IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
   
   itersum = itersum + iter
+  
   CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, mg, lCLD, lAIC)
 
-  DEALLOCATE(phis, phisd, PhiAngIn)
-  DEALLOCATE(Siglp, xst, src)
-
-ENDDO
+  DEALLOCATE (phis, phisd, PhiAngIn)
+  DEALLOCATE (Siglp, xst, src)
+END DO
 
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
-CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
+CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, FALSE)
 #endif
-
-!WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (Clad) ', iter, errmax
-!IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
-
-itersum = 0; errmax = 0.0
+! ----------------------------------------------------
+itersum = ZERO
+errmax  = ZERO
 
 DO iz = myzb, myze
 
   IF (.NOT. Core%lFuelPlane(iz)) CYCLE
   IF (.NOT. Core%lAICPlane(iz)) CYCLE
 
-  lCLD = .FALSE.; lAIC = .TRUE.
-  mg = mlgdata(iz)%f_nmaclv1G
-
-  ALLOCATE(phis(mg, nFsr)); ALLOCATE(phisd(mg, nFsr)); ALLOCATE(PhiAngIn(nPolarAngle, mg, nPhiAngSv))
-  ALLOCATE(Siglp(mg, nFxr)); ALLOCATE(xst(mg, nFsr)); ALLOCATE(src(mg, nFsr))
-  phis = 1.0; PhiAngIn = 1.0; PhiAngIn(:, :, 1) = 0.0
+  lCLD = FALSE
+  lAIC = TRUE
+  mg   = mlgdata(iz)%f_nmaclv1G
   
-  DO ithr = 1, PE%nThread
-    DEALLOCATE (TrackingDat(ithr)%phisNM)
-    CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
-  END DO
+  CALL dmalloc(phis,  mg, nFsr)
+  CALL dmalloc(phisd, mg, nFsr)
+  CALL dmalloc(xst,   mg, nFsr)
+  CALL dmalloc(src,   mg, nFsr)
+  CALL dmalloc(Siglp, mg, nFsr)
+  
+  CALL dmalloc(PhiAngIn, nPolarAngle, mg, nPhiAngSv)
+  
+  phis     = ONE
+  PhiAngIn = ONE
+  PhiAngIn(:, :, 1) = ZERO
+  
+  IF (ldcmp) THEN
+    DEALLOCATE (DcmpPhiAngOut)
+    DEALLOCATE (DcmpPhiAngIn)
+    
+    CALL dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    
+    DcmpPhiAngIn = ONE
+  END IF
   
   CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
-  CALL SetSubGrpSrc_NM(Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  CALL SetSubGrpSrc_NM     (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  
   DO iter = 1, itermax
     CALL CopyFlux(phis, phisd, nFsr, mg)
+    
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
-    CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, .FALSE.)
-        
+    IF (.NOT. ldcmp) THEN
+      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+    ELSE
+      CALL RayTrace_Dcmp (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+    END IF
+    
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
-    IF (errmax .LT. epsm3) EXIT
+    
+    IF (errmax .LT. EPSM3) EXIT
     IF (iter .EQ. itermax) EXIT
   ENDDO
   
@@ -205,36 +276,37 @@ DO iz = myzb, myze
   IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
   
   itersum = itersum + iter
+  
   CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, mg, lCLD, lAIC)
 
-  DEALLOCATE(phis, phisd, PhiAngIn)
-  DEALLOCATE(Siglp, xst, src)
-
-ENDDO
+  DEALLOCATE (phis, phisd, PhiAngIn)
+  DEALLOCATE (Siglp, xst, src)
+END DO
 
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
-CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, .FALSE.)
+CALL REDUCE(itersum, iter, PE%MPI_NTRACER_COMM, FALSE)
 #endif
-
-!WRITE(mesg,'(a, i9, 1p, E20.5)') 'Subgroup FSP (AIC)  ', iter, errmax
-!IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
-
-IF (.NOT. nTracerCntl%lDomainDcmp) THEN
-  DO ithr = 1, PE%nThread
-    DEALLOCATE (TrackingDat(ithr)%phisNM)
-    CALL dmalloc(TrackingDat(ithr)%phisNM, ng, nFsr)
-  END DO
+! ----------------------------------------------------
+IF (ldcmp) THEN
+  DEALLOCATE (DcmpPhiAngOut)
+  DEALLOCATE (DcmpPhiAngIn)
+  
+  CALL dmalloc(DcmpPhiAngOut, nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
+  CALL dmalloc(DcmpPhiAngIn,  nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
 END IF
-
+! ----------------------------------------------------
 nTracerCntl%lSubGrpSweep = TRUE
+
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
+
 Tend = nTracer_dclock(FALSE, FALSE)
 TimeChk%SubGrpTime = TimeChk%SubGrpTime + (Tend - Tbeg)
+! ----------------------------------------------------
 
-END SUBROUTINE
+END SUBROUTINE SubGrpFsp_MLG_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
 USE TYPEDEF,        ONLY : CoreInfo_Type,   FxrInfo_Type,       Pin_Type,           Cell_Type

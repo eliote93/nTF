@@ -4,6 +4,7 @@ SUBROUTINE HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
 USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
+USE ioutil,  ONLY : terminate
 USE PE_Mod,  ONLY : PE
 USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay, DcmpColorAsy
 USE HexData, ONLY : hAsy
@@ -199,9 +200,9 @@ DO iAsy = 1, nAsy
   itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
   
   SELECT CASE (itmp)
-    CASE (1); icolor = RED
-    CASE (2); icolor = BLACK
-    CASE (0); icolor = GREEN
+  CASE (1); icolor = RED
+  CASE (2); icolor = BLACK
+  CASE (0); icolor = GREEN
   END SELECT
   
   Core%Asy(iAsy)%color = icolor
@@ -210,20 +211,6 @@ DO iAsy = 1, nAsy
   
   DcmpColorAsy(DcmpColorAsy(0, icolor), icolor) = iAsy
 END DO
-! ----------------------------------------------------
-!DO iAsy = 1, nAsy
-!  DO iCnt = 1, DcmpAsyRayCount(iAsy)
-!    DO iAzi = 1, nAziAngle / 2
-!      IF (ANY(DcmpAsyRay(iCnt, iAsy)%AziList.NE.iAzi .AND. DcmpAsyRay(iCnt, iAsy)%AziList.NE.nAziAngle - iAzi + 1)) CYCLE
-!      
-!      DcmpAsyAziList(0, iAzi, iAsy) = DcmpAsyAziList(0, iAzi, iAsy) + 1
-!      
-!      DcmpAsyAziList(DcmpAsyAziList(0, iAzi, iAsy), iAzi, iAsy) = iCnt
-!      
-!      EXIT
-!    END DO
-!  END DO
-!END DO
 
 RayInfo%DcmpAsyRay => DcmpAsyRay
 ! ----------------------------------------------------

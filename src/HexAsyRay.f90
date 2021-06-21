@@ -82,13 +82,14 @@ DO imRay = 1, NumMray(0)
     END DO
   END DO
   
-  NULLIFY (hpRay)
+  DEALLOCATE (hpRay)
 END DO
 !$OMP END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-NULLIFY (RayCel)
-NULLIFY (RayPinInfo)
+DEALLOCATE (RayCel)
+DEALLOCATE (RayPinInfo)
+
 NULLIFY (haRay_Loc)
 NULLIFY (CelRay_Loc)
 ! ----------------------------------------------------

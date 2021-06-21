@@ -46,7 +46,7 @@ REAL :: cBndyEq(3,6) = ZERO ! Origin : Cnt Asy
 
 INTEGER, POINTER, DIMENSION(:,:) :: Asy2Dto1DMap ! (iax, iay)
 INTEGER, POINTER, DIMENSION(:,:) :: Asy1Dto2DMap ! (iax/aiy, iAsy)
-INTEGER, POINTER, DIMENSION(:,:) :: hCore ! (iax, iay), Global Index of Assembly
+INTEGER, POINTER, DIMENSION(:,:) :: hCore        ! (iax, iay), Global Index of Assembly
 
 ! Vygorodka
 INTEGER :: vFxr    = 0
@@ -66,12 +66,10 @@ REAL :: csLgh = ZERO
 ! Modular Ray
 REAL :: Del_Inp = ZERO
 
-INTEGER, POINTER, DIMENSION(:)   :: NumMray
-INTEGER, POINTER, DIMENSION(:,:) :: AngMray
+INTEGER, POINTER, DIMENSION(:)   :: NumMray ! (0:iazm), 0 : # of All mRays
+INTEGER, POINTER, DIMENSION(:,:) :: AngMray ! (1:2, iazm), Index of Starting & End mRay
 
-REAL, POINTER, DIMENSION(:) :: AzmAng, AzmWgt
-REAL, POINTER, DIMENSION(:) :: AzmDel, AzmDel_X, AzmDel_Y
-REAL, POINTER, DIMENSION(:) :: AzmTan, AzmSin, AzmCos
+REAL, POINTER, DIMENSION(:) :: AzmAng, AzmWgt, AzmDel, AzmDel_X, AzmDel_Y, AzmTan, AzmSin, AzmCos ! (iazm)
 ! ----------------------------------------------------
 TYPE(Type_HexLogical) :: hLgc
 

@@ -14,7 +14,7 @@ USE HexCmfdConst
 USE HexCnP
 USE HexTst
 
-USE HexData,     ONLY : hLgc, ncBss, ngBss, NumMray, haRay, nGeoTyp
+USE HexData,     ONLY : hLgc, ncBss, ngBss, NumMray, haRay, nGeoTyp, hmRay
 USE HexGeoConst, ONLY : HexSetVyg
 USE HexPinConst, ONLY : HexSetVss
 
@@ -90,6 +90,8 @@ CALL ConvertRay
 
 WRITE (MESG, '(A)') '-------------------------------------------------------------------'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, MESG)
+
+DEALLOCATE (hmRay)
 ! ----------------------------------------------------
 ! Tst
 !CALL HexTstHcPin

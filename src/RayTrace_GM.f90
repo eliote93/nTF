@@ -468,9 +468,8 @@ SUBROUTINE HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, 
 
 USE TYPEDEF,  ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type
 USE Moc_Mod,  ONLY : nMaxCellRay, nMaxCoreRay
-USE HexData,  ONLY : hAsy
 USE HexType,  ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
-USE HexData,  ONLY : haRay, hcRay, hRotRay, hAsyTypInfo
+USE HexData,  ONLY : hAsy, haRay, hcRay, hRotRay, hAsyTypInfo
 
 IMPLICIT NONE
 
