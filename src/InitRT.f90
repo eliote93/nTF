@@ -109,7 +109,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     
     TrackingDat(ithr)%lAlloc = TRUE
   END DO
-ELSE
+ELSE IF (.NOT. ldcmp) THEN
   DO ithr = 1, nThr
     CALL dmalloc(TrackingDat(ithr)%phisnm,    ng, nFsr)
     CALL dmalloc(TrackingDat(ithr)%Joutnm, 3, ng, nbd, nxy)

@@ -6,7 +6,7 @@ USE CNTL,         ONLY : nTracerCntl_Type
 USE SUBGRP_MOD,   ONLY : UpdtCoreIsoInfo, SubGrpFsp_CAT, SubGrpFsp_ISO, SubGrpFsp_MLG, CalcDancoff, CalcEscXSCP
 USE TH_Mod,       ONLY : Cal_RefFuelTemp
 USE FILES,        ONLY : IO8
-USE IOUTIL,       ONLY : message
+USE IOUTIL,       ONLY : message, terminate
 USE SubGrpFspNM,  ONLY : SubGrpFSP_MLG_NM   !--- CNJ Edit : Node Majors
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
@@ -52,6 +52,8 @@ ELSE
       CALL SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
     ENDIF
   ELSE
+    IF (nTracerCntl%lNodeMajor) CALL terminate("ONLY NODE MAJOR")
+    
     IF (nTracerCntl%lCAT) THEN
       IF(RTmaster) CALL UpdtResoCat(PE)
       CALL SubGrpFsp_CAT(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
