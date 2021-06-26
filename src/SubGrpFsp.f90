@@ -52,7 +52,7 @@ ELSE
       CALL SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
     ENDIF
   ELSE
-    IF (nTracerCntl%lNodeMajor) CALL terminate("ONLY NODE MAJOR")
+    IF (nTracerCntl%lNodeMajor) CALL terminate("ONLY GROUP MAJOR")
     
     IF (nTracerCntl%lCAT) THEN
       IF(RTmaster) CALL UpdtResoCat(PE)

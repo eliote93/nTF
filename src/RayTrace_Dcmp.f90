@@ -96,9 +96,7 @@ DO icolor = 1, ncolor
   !$OMP DO SCHEDULE(GUIDED)
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
-    
-    IF (jAsy .LE. 0) CYCLE
-    
+        
     ! SET : Range
     IF (lHex) THEN
       PinSt = hAsy(jAsy)%PinIdxSt

@@ -4,7 +4,6 @@ SUBROUTINE HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
 USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
-USE ioutil,  ONLY : terminate
 USE PE_Mod,  ONLY : PE
 USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay, DcmpColorAsy
 USE HexData, ONLY : hAsy
