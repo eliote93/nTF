@@ -286,10 +286,7 @@ ENDIF
 
 
 !--- CNJ Edit : Domain Decomposition
-IF (nTracerCntl%lDomainDcmp) THEN
-  CALL Dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
-  CALL Dmalloc(DcmpPhiAngIn,  nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
-ENDIF
+IF (nTracerCntl%lDomainDcmp) CALL Dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
 
 END SUBROUTINE
 

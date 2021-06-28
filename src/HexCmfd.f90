@@ -211,7 +211,7 @@ TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
 TYPE (PinXs_Type),    POINTER, DIMENSION(:,:) :: PinXs
 ! ----------------------------------------------------
 INTEGER :: iz, izf, ig, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
-INTEGER :: nRotRay, nAsy
+INTEGER :: nRotRay, nAsy, nPolarAng
 
 INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx, fmRange
@@ -239,6 +239,7 @@ superPin => mklGeom%superPin
 
 phis => mklCMFD%phis
 
+nPolarAng         = RayInfo4CMFD%nPolAngle
 nRotRay           = RayInfo4CMFD%nRotRay
 RotRayInOutCell  => RayInfo4CMFD%RotRayInOutCell
 PhiAngInSvIdx    => RayInfo4CMFD%PhiAngInSvIdx
@@ -280,7 +281,7 @@ IF (hLgc%lRadRef) THEN
 END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
-  !$OMP PARALLEL PRIVATE(iz, iAsy, icnt, idir, imxy, isurf, isxy, ingh, jsxy, slgh, ig, myphi, izf, nghphi, atil, ahat, surfphi, fmult)
+  !$OMP PARALLEL PRIVATE(iz, iAsy, idir, icnt, imxy, isurf, isxy, ingh, jsxy, slgh, ig, myphi, izf, nghphi, atil, ahat, surfphi, fmult)
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO iz = myzb, myze
     DO iAsy = 1, nAsy
@@ -291,12 +292,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
           isxy  = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
           ingh  = hPinInfo(imxy)%DcmpMP2slfSPngh(isurf)
           jsxy  = hPinInfo(imxy)%DcmpMP2nghSPidx(isurf)
-          
-          IF (ingh.LE.0 .OR. ingh.GT.6) THEN
-            WRITE (*,*), imxy, isurf, isxy, ingh, jsxy
-            CALL terminate("DCMP NGH")
-          END IF
-          
+                    
           slgh  = superPin(isxy)%BdLength(ingh)
           
           DO ig = 1, ng
@@ -318,16 +314,12 @@ IF (nTracerCntl%lDomainDcmp) THEN
             surfphi = atil * myphi + (slgh - atil) * nghphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN
-              AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = surfphi / slgh
-              
-              IF (AsyPhiAngIn(1, ig, idir, icnt, iAsy, iz).NE.AsyPhiAngIn(1, ig, idir, icnt, iAsy, iz)) THEN
-                PAUSE
-              END IF
+              AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = surfphi / slgh
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
               fmult   = surfphi / superJout(3, ingh, isxy, iz, ig)
               
-              AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
+              AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
             END IF
           END DO
         END DO

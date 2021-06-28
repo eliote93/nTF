@@ -13,7 +13,7 @@ USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
 USE itrcntl_mod, ONLY : itrcntl
-USE HexData,     ONLY : hAsy
+USE HexData,     ONLY : hAsy, hLgc
 
 IMPLICIT NONE
 
@@ -36,14 +36,13 @@ TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, nfsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, iAsyRay, krot, icolor, jcolor, ncolor, iit, PinSt, PinEd, FsrSt, FsrEd
+INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, iAsyRay, krot, icolor, jcolor, ncolor, iit, PinSt, PinEd, FsrSt, FsrEd
 LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
 INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
-nFsr     = CoreInfo%nCoreFsr
 nxy      = CoreInfo%nxy
 Asy     => CoreInfo%Asy
 AsyInfo => CoreInfo%AsyInfo
@@ -57,6 +56,8 @@ lHex = nTracerCntl%lHex
 
 IF (lHex) THEN
   ncolor = 3; iit = mod(itrcntl%mocit, 3)
+  
+  IF (hLgc%l060) ncolor = 1
 ELSE
   ncolor = 2; iit = mod(itrcntl%mocit, 2)
 END IF
@@ -76,6 +77,8 @@ IF (ljout) MocjoutNM(:, gb:ge, :, :) = ZERO
 DO icolor = 1, ncolor
   IF (lHex) THEN
     jcolor = AuxHex(icolor, iit)
+    
+    IF (hLgc%l060) jcolor = icolor
   ELSE
     jcolor = AuxRec(icolor, iit)
   END IF
@@ -83,20 +86,20 @@ DO icolor = 1, ncolor
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 #endif
-
+  
   DO ithr = 1, nthr
     TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
     TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
     TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
   END DO
-    
+  
   !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ig, ifsr, ixy, ibd)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   !$OMP DO SCHEDULE(GUIDED)
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
-        
+    
     ! SET : Range
     IF (lHex) THEN
       PinSt = hAsy(jAsy)%PinIdxSt
@@ -125,8 +128,8 @@ DO icolor = 1, ncolor
     END DO
     
     ! GATHER
-    DO ig = gb, ge
-      DO ifsr = FsrSt, FsrEd
+    DO ifsr = FsrSt, FsrEd
+      DO ig = gb, ge
         phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)
       END DO
     END DO
@@ -147,7 +150,7 @@ DO icolor = 1, ncolor
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
-  
+    
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 #endif
@@ -548,7 +551,7 @@ DO imray = jbeg, jend, jinc
           ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
           
           phid = (PhiAngOut(ipol, ig) - srcNM(ig, iFSR)) * ExpApp
-          
+                    
           PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
           
           phisNM(ig, iFSR) = phisNM(ig, iFSR) + wtazi(ipol) * phid

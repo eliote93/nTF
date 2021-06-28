@@ -6,7 +6,7 @@ USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
 USE PE_Mod,  ONLY : PE
 USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay, DcmpColorAsy
-USE HexData, ONLY : hAsy
+USE HexData, ONLY : hAsy, hLgc
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
 USE HexData, ONLY : haRay, hcRay, hRotRay, hAsyTypInfo
 
@@ -192,24 +192,34 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
-! Hex Color
-CALL dmalloc0(DcmpColorAsy, 0, nAsy, 1, 3)
-
-DO iAsy = 1, nAsy
-  itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
+IF (hLgc%l060) THEN
+  CALL dmalloc0(DcmpColorAsy, 0, nAsy, 1, 1)
   
-  SELECT CASE (itmp)
-  CASE (1); icolor = RED
-  CASE (2); icolor = BLACK
-  CASE (0); icolor = GREEN
-  END SELECT
+  DcmpColorAsy(0, 1) = nAsy
   
-  Core%Asy(iAsy)%color = icolor
+  DO iAsy = 1, nAsy
+    DcmpColorAsy(iAsy, 1) = iAsy
+    Core%Asy(iAsy)%color  = 1
+  END DO
+ELSE
+  CALL dmalloc0(DcmpColorAsy, 0, nAsy, 1, 3)
+  
+  DO iAsy = 1, nAsy
+    itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
     
-  DcmpColorAsy(0, icolor) = DcmpColorAsy(0, icolor) + 1
-  
-  DcmpColorAsy(DcmpColorAsy(0, icolor), icolor) = iAsy
-END DO
+    SELECT CASE (itmp)
+    CASE (1); icolor = RED
+    CASE (2); icolor = BLACK
+    CASE (0); icolor = GREEN
+    END SELECT
+    
+    Core%Asy(iAsy)%color = icolor
+      
+    DcmpColorAsy(0, icolor) = DcmpColorAsy(0, icolor) + 1
+    
+    DcmpColorAsy(DcmpColorAsy(0, icolor), icolor) = iAsy
+  END DO
+END IF
 
 RayInfo%DcmpAsyRay => DcmpAsyRay
 ! ----------------------------------------------------

@@ -73,6 +73,8 @@ IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
 itersum = 0
 errmax  = ZERO
 
+IF (ldcmp) CALL dmalloc(DcmpPhiAngIn, 1, 1, 1, 1, 1) ! Formality
+
 DO iz = myzb, myze
   IF (.NOT. Core%lFuelPlane(iz)) CYCLE
 
@@ -93,7 +95,6 @@ DO iz = myzb, myze
   
   IF (ldcmp) THEN
     DEALLOCATE (DcmpPhiAngOut)
-    DEALLOCATE (DcmpPhiAngIn)
     
     CALL dmalloc(DcmpPhiAngOut, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
     CALL dmalloc(DcmpPhiAngIn,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
@@ -304,7 +305,6 @@ IF (ldcmp) THEN
   DEALLOCATE (DcmpPhiAngIn)
   
   CALL dmalloc(DcmpPhiAngOut, nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
-  CALL dmalloc(DcmpPhiAngIn,  nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
 ELSE
   DO ithr = 1, PE%nThread
     DEALLOCATE (TrackingDat(ithr)%phisNM)

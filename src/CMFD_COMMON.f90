@@ -826,7 +826,7 @@ ELSE
 END IF
 
 IF (.NOT. nTracerCntl%lHex) THEN
-  !$OMP PARALLEL PRIVATE(ineighpin, inbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
+  !$OMP PARALLEL PRIVATE(ineighpin, inbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy, atil, surfphifdm, ahat)
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO ig = 1, ng
     DO iz = myzb, myze
@@ -880,7 +880,7 @@ IF (.NOT. nTracerCntl%lHex) THEN
   !$OMP END DO
   !$OMP END PARALLEL
 ELSE
-  !$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy)
+  !$OMP PARALLEL PRIVATE(ineighpin, iNgh, jNgh, ibd, jbd, myphi, neighphi, mybeta, neighbeta, Dtil, Dhat, jnet, jfdm, smy, atil, surfphifdm, ahat)
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO ig = 1, ng
     DO iz = myzb, myze
