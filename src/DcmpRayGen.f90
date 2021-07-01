@@ -5,7 +5,7 @@ USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK
 USE TYPEDEF, ONLY : RayInfo_type, RotRayInfo_type, CoreRayInfo_type, AsyRayInfo_Type, CoreInfo_type, DcmpAsyRayInfo_Type, Asy_Type, Pin_Type, Cell_Type
 USE PE_Mod,  ONLY : PE
-USE MOC_MOD, ONLY : nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay, DcmpColorAsy
+USE MOC_MOD, ONLY : DcmpColorAsy
 
 IMPLICIT NONE
 
@@ -54,10 +54,6 @@ CALL dmalloc0(RayInfo%DcmpAsyAziList,  0, nModRay, 1, nAziAngle/2, 1, nAsy)
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 DcmpAsyAziList  => RayInfo%DcmpAsyAziList
 DcmpAsyLinkInfo => RayInfo%DcmpAsyLinkInfo
-
-nMaxDcmpRaySeg  = 0
-nMaxDcmpCellRay = 0
-nMaxDcmpAsyRay  = 0
 ! ----------------------------------------------------
 DO iRotRay = 1, nRotRay
   nCoreRay = RotRay(iRotRay)%nRay
@@ -166,12 +162,8 @@ DO iRotRay = 1, nRotRay
           DcmpAsyLinkInfo(2, BACKWARD, iCnt, iAsy) = prvCnt
         END IF
       END IF
-      
-      nMaxDcmpRaySeg  = max(nMaxDcmpRaySeg,  nMaxRaySeg)
-      nMaxDcmpCellRay = max(nMaxDcmpCellRay, nMaxCellRay)
-      nMaxDcmpAsyRay  = max(nMaxDcmpAsyRay,  nRef)
-      
-      DcmpAsyRay(iCnt, iAsy)%nMaxRaySeg  = nMaxRaySeg
+            
+      !DcmpAsyRay(iCnt, iAsy)%nMaxRaySeg  = nMaxRaySeg, Useless
       DcmpAsyRay(iCnt, iAsy)%nMaxCellRay = nMaxCellRay
       
       DcmpAsyRay(iCnt, iAsy)%nAsyRay = nRef

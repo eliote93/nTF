@@ -24,7 +24,7 @@ REAL, POINTER, DIMENSION(:,:)     :: wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)   :: wtsurf, SrcAng1, SrcAng2, comp, mwt, mwt2, phia1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAng, SrcAngNM1, SrcAngNM2
 
-INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, nMaxDcmpRaySeg, nMaxDcmpCellRay, nMaxDcmpAsyRay
+INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay
 
 INTEGER, TARGET :: AziMap(360, 2)
 

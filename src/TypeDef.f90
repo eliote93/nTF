@@ -356,7 +356,6 @@ TYPE DcmpAsyRayInfo_Type
   INTEGER :: iRotRay
   INTEGER :: iAsy        ! Global Index of Assembly
   INTEGER :: iRay        ! Numeric # for each Assembly
-  INTEGER :: nMaxRaySeg
   INTEGER :: nMaxCellRay
   INTEGER :: nAsyRay     ! # of Reflections
 

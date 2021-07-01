@@ -1,309 +1,268 @@
 #include <defines.h>
 SUBROUTINE AllocPDM()
 !Allocate Problem Dependent Memomy
-USE PARAM
-USE CNTL,                 ONLY : nTracerCntl
-USE Core_mod,             ONLY : GroupInfo
-USE Geom,                 ONLY : ng
-USE PE_MOD,               ONLY : PE
-#ifdef MPI_ENV
-USE MpiAxSolver_Mod,      ONLY : AllocMpiAxSol
-!USE MPICOMM_Mod,          ONLY : MPI_SYNC
-#endif
-!USE AxSolver_mod, ONLY : AllocAxSol
 
-IF(PE%RtMaster) CALL AllocFluxVariables()
-CALL AllocXsVariables(nTracerCntl%lXsLib)
-CALL AllocMocVariables()
-IF(nTracerCntl%lCMFD .AND. PE%lCmfdGrp) THEN
+USE PARAM,    ONLY : TRUE, mesg
+USE CNTL,     ONLY : nTracerCntl
+USE Core_mod, ONLY : GroupInfo
+USE Geom,     ONLY : ng
+USE PE_MOD,   ONLY : PE
+USE files,    ONLY : io8
+USE ioutil,   ONLY : message
+
+#ifdef MPI_ENV
+USE MpiAxSolver_Mod, ONLY : AllocMpiAxSol
+#endif
+! ----------------------------------------------------
+
+mesg = 'Allocating Problem Dependent Memory...'
+IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
+
+IF (PE%RtMaster) CALL AllocFluxVariables
+
+CALL AllocMocVariables
+
+IF (nTracerCntl%lCMFD .AND. PE%lCmfdGrp) THEN
   CALL AllocCMFD(TRUE)
-  !IF(nTracerCntl%l3dim) CALL AllocAxSol(nTracerCntl%AxSolver)
   CALL AllocAxSol(nTracerCntl%AxSolver)
+  
 #ifdef MPI_ENV
-  IF(PE%nCmfdProc .GT. 1) THEN
-    CALL AllocMpiAxSol(nTracerCntl%AxSolver, GroupInfo, ng, PE)
-  ENDIF
+  IF (PE%nCmfdProc .GT. 1) CALL AllocMpiAxSol(nTracerCntl%AxSolver, GroupInfo, ng, PE)
 #endif
-ENDIF
+END IF
 
-IF(nTracerCntl%lCritSpec) CALL Alloc_CritSpec()
+IF (nTracerCntl%lCritSpec) CALL Alloc_CritSpec
 
-IF(.NOT. nTracerCntl%lBenchXs) THEN
-  CALL AllocTH()
-ENDIF
+IF (.NOT. nTracerCntl%lBenchXs) CALL AllocTH
 
-IF(nTracerCntl%lDcpl) THEN
-  CALL AllocDcplFmVariables()
+IF (nTracerCntl%lDcpl) THEN
+  CALL AllocDcplFmVariables
   CALL AllocDcplCMFD(TRUE)
-  CALL AllocDcplThInfo()
-  IF(nTracerCntl%XsFtnMod .EQ. 2) CALL AllocDcplMicXsFtn()
-ENDIF
+  CALL AllocDcplThInfo
+  
+  IF (nTracerCntl%XsFtnMod .EQ. 2) CALL AllocDcplMicXsFtn
+END IF
 
-IF(nTracerCntl%lGCCMFDGrp) THEN
-  CALL Init_GCCMFD()
-ENDIF
-!Transient Init
-IF(nTracerCntl%lProblem .EQ. lTransient) CALL AllocTransient()
+IF (nTracerCntl%lGCCMFDGrp) CALL Init_GCCMFD
 
-END SUBROUTINE
+IF (nTracerCntl%lProblem .EQ. lTransient) CALL AllocTransient
+! ----------------------------------------------------
 
+END SUBROUTINE AllocPDM
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocFluxVariables()
 
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type
-USE GEOM,         ONLY : Core,        ng,          nbd
-USE Core_mod,     ONLY : Phis,        psi,         psid,     &
-                         Psic,        Psicd,       Power,    &
-                         PhiAngin,    RadJout,               &
-                         LinSrcSlope, Phim,                  &
-                         nCoreFsr,    nCoreFxr,   nPhiAngSv, &
-                         CMInfo,      FmInfo,     wmoc,      &
-                         !--- CNJ Edit : CASMO Linear Source
-                         srcSlope,   phisSlope,   psiSlope,  &
-                         !--- CNJ Edit : Domain Decomposition
-                         AsyPhiAngIn
-USE PE_MOD,       ONLY : PE
-USE RAYS,         ONLY : RayInfo, RayInfo4CMfd
 USE ALLOCS
-USE CNTL,         ONLY : nTracerCntl
-USE SPH_mod,      ONLY : ssphf, ssphfnm
-USE XSLIB_MOD,    ONLY : igresb,igrese
-IMPLICIT NONE
-INTEGER :: nFsr, nz, nzfm, nModRay, nxy, nxya, myzb, myze
-INTEGER :: nPolar
+USE PARAM,     ONLY : ONE
+USE TYPEDEF,   ONLY : coreinfo_type
+USE GEOM,      ONLY : Core, ng, nbd
+USE Core_mod,  ONLY : Phis, psi, psid, Psic, Psicd, Power, PhiAngin, RadJout, LinSrcSlope, Phim, nCoreFsr, nCoreFxr, nPhiAngSv, CMInfo, FmInfo, wmoc, srcSlope, phisSlope, psiSlope, AsyPhiAngIn
+USE PE_MOD,    ONLY : PE
+USE RAYS,      ONLY : RayInfo, RayInfo4CMfd
+USE CNTL,      ONLY : nTracerCntl
+USE SPH_mod,   ONLY : ssphf, ssphfnm
+USE XSLIB_MOD, ONLY : igresb, igrese
 
-nFsr = Core%nCoreFsr; nz = Core%nz
-nxy = Core%nxy; nxya = Core%nxya
-myzb = PE%myzb; myze = PE%myze
-nPolar = RayInfo%nPolarAngle
-nModRay = RayInfo%nModRay
-nPhiAngSv = RayInfo%nPhiAngSv
+IMPLICIT NONE
+
+INTEGER :: nFsr, nz, nModRay, nxy, nxya, myzb, myze, nPolar
+! ----------------------------------------------------
+
+nFsr     = Core%nCoreFsr
+nz       = Core%nz
+nxy      = Core%nxy
+nxya     = Core%nxya
 nCoreFsr = Core%nCoreFsr
 nCoreFxr = Core%nCoreFxr
 
-CALL Dmalloc0(PHIS, 1, nFsr, myzb, myze, 1, ng)
+myzb = PE%myzb
+myze = PE%myze
 
-CALL Dmalloc0(ssphf, 1, nFsr, myzb, myze, igresb,igrese)
-ssphf=1._8
+nPolar    = RayInfo%nPolarAngle
+nModRay   = RayInfo%nModRay
+nPhiAngSv = RayInfo%nPhiAngSv
+
+! Spectral SPH
+CALL dmalloc0(ssphf, 1, nFsr, myzb, myze, igresb,igrese); ssphf = ONE
 
 IF (nTracerCntl%lNodeMajor) THEN
-  CALL Dmalloc0(ssphfnm, igresb, igrese, 1, nFsr, myzb, myze)
-  ssphfnm = 1.0D0
+  CALL dmalloc0(ssphfnm, igresb, igrese, 1, nFsr, myzb, myze); ssphfnm= ONE
 ENDIF
 
-!CALL Dmalloc0(Phis1g, 1, nFsr, myzb, myze)
-CALL Dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, myzb, myze, 1, ng)
+! Current, Flux
+CALL dmalloc0(RadJout, 1, 3, 1, nbd, 1, nxy, myzb, myze, 1, ng)
 
-!--- CNJ Edit : Domain Decomposition
+CALL dmalloc0(phis, 1, nFsr, myzb, myze, 1, ng)
+CALL dmalloc0(psi,  1, nFsr, myzb, myze)
+CALL dmalloc0(psid, 1, nFsr, myzb, myze)
+
+CALL dmalloc0(psic,  1, nxy, myzb, myze)
+CALL dmalloc0(psicd, 1, nxy, myzb, myze)
+
+CALL dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, myzb, myze, 1, ng)
+
 IF (nTracerCntl%lDomainDcmp) THEN
-  ALLOCATE(AsyPhiAngIn(nPolar, ng, 2, nModRay, nxya, myzb : myze))
-  AsyPhiAngIn(:, :, :, :, :, :) = 1._8
+  ALLOCATE (AsyPhiAngIn(nPolar, ng, 2, nModRay, nxya, myzb : myze)); AsyPhiAngIn = ONE
 ENDIF
 
-!Current
-!CALL Dmalloc0(RadJout, 1, 2, 1, nbd, 1, nxy, myzb, myze, 1, ng)
-CALL Dmalloc0(RadJout, 1, 3, 1, nbd, 1, nxy, myzb, myze, 1, ng) !---BYS edit / 150612 Surface flux
-CALL Dmalloc0(PSI, 1, nFsr, myzb, myze)
-CALL Dmalloc0(PSID, 1, nFsr, myzb, myze)
+! Power
+CALL dmalloc0(Power, 1, nFsr, 1, nz)
 
-CALL Dmalloc0(PSIC, 1, nxy, myzb, myze)
-CALL Dmalloc0(PSICD, 1, nxy, myzb, myze)
+! Under-Relaxation
+CALL dmalloc(wmoc, ng)
 
-CALL Dmalloc0(Power, 1, nFsr, 1, nz)
-!Under-Relaxation
-CALL Dmalloc(wmoc, ng)
-
-!--- CNJ Edit : CASMO Linear Source
+! CASMO Linear Source
 IF (nTracerCntl%lLinSrcCASMO) THEN
-  CALL Dmalloc0(srcSlope, 1, 4, 1, ng, 1, nFsr, myzb, myze) ! 1:2 - 1/xst, 3:4 - 1/xst^2
-  CALL Dmalloc0(phisSlope, 1, 2, 1, ng, 1, nFsr, myzb, myze)
-  CALL Dmalloc0(psiSlope, 1, 2, 1, nFsr, myzb, myze)
+  CALL dmalloc0(srcSlope,  1, 4, 1, ng, 1, nFsr, myzb, myze) ! 1:2 - 1/xst, 3:4 - 1/xst^2
+  CALL dmalloc0(phisSlope, 1, 2, 1, ng, 1, nFsr, myzb, myze)
+  CALL dmalloc0(psiSlope,  1, 2,        1, nFsr, myzb, myze)
 ENDIF
 
-!Linear Source Approximation
-IF(nTracerCntl%lLinSrc) CALL Dmalloc0(LinSrcSlope, 1, 2, 1, nfsr, myzb, myze, 1, ng)
+! Linear Source Approximation
+IF (nTracerCntl%lLinSrc) CALL dmalloc0(LinSrcSlope, 1, 2, 1, nfsr, myzb, myze, 1, ng)
 
-!--- CNJ Edit : Node Majors
-IF(nTracerCntl%lScat1) THEN
-  IF(nTracerCntl%SCatOd .EQ. 1) THEN
+! Flux Moments
+IF (nTracerCntl%lScat1) THEN
+  SELECT CASE (nTracerCntl%SCatOd)
+  CASE (1)
     IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL Dmalloc0(phim, 1, 2, 1, nfsr, myzb, myze, 1, ng)
+      CALL dmalloc0(phim, 1, 2, 1, nfsr, myzb, myze, 1, ng)
     ELSE
-      CALL Dmalloc0(phim, 1, 2, 1, ng, 1, nfsr, myzb, myze)
-    ENDIF
-  ELSEIF (nTracerCntl%SCatOd .EQ. 2) THEN
+      CALL dmalloc0(phim, 1, 2, 1, ng, 1, nfsr, myzb, myze)
+    END IF
+  CASE (2)
     IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL Dmalloc0(phim, 1, 5, 1, nfsr, myzb, myze, 1, ng)
+      CALL dmalloc0(phim, 1, 5, 1, nfsr, myzb, myze, 1, ng)
     ELSE
-      CALL Dmalloc0(phim, 1, 5, 1, ng, 1, nfsr, myzb, myze)
-    ENDIF
-  ELSEIF (nTracerCntl%SCatOd .EQ. 3) THEN
+      CALL dmalloc0(phim, 1, 5, 1, ng, 1, nfsr, myzb, myze)
+    END IF
+  CASE (3)
     IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL Dmalloc0(phim, 1, 9, 1, nfsr, myzb, myze, 1, ng)
+      CALL dmalloc0(phim, 1, 9, 1, nfsr, myzb, myze, 1, ng)
     ELSE
-      CALL Dmalloc0(phim, 1, 9, 1, ng, 1, nfsr, myzb, myze)
-    ENDIF
-  ENDIF
-ENDIF
-
-IF(nTracerCntl%lDecusp) THEN
-  ALLOCATE(FmInfo%neighphis(nFsr, ng, 2))
+      CALL dmalloc0(phim, 1, 9, 1, ng, 1, nfsr, myzb, myze)
+    END IF
+  END SELECT
 END IF
 
-FmInfo%phis => Phis; FmInfo%PhiAngIn => PhiAngin
-FMInfo%Psi => Psi;   FmInfo%PsiD => PsiD
-FMInfo%PsiC => PsiC;   FmInfo%PsiCD => PsiCD
-FMInfo%Power => Power
-FMInfo%RadJout => RadJout !ninout/ 1:in 2:out 3:surfphi ! BYS edit 16//02/11
-FmInfo%w => wmoc
-!RayInfo%RayInfo4Cmfd%PhiAngIn => PhiAngIn
-RayInfo4CMfd%PhiAngIn => PhiAngIn
+! Decusping
+IF (nTracerCntl%lDecusp) ALLOCATE(FmInfo%neighphis(nFsr, ng, 2))
 
-!--- CNJ Edit : Domain Decomposition
-FMInfo%AsyPhiAngIn => AsyPhiAngIn
-!RayInfo%RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
+! Pointing
+FmInfo%phis     => Phis
+FmInfo%PhiAngIn => PhiAngin
+FMInfo%Psi      => Psi
+FmInfo%PsiD     => PsiD
+FMInfo%PsiC     => PsiC
+FmInfo%PsiCD    => PsiCD
+FMInfo%Power    => Power
+FMInfo%RadJout  => RadJout !ninout/ 1:in 2:out 3:surfphi ! BYS edit 16//02/11
+FmInfo%w        => wmoc
+
+IF (nTracerCntl%lLinSrc) FmInfo%LinSrcSlope => LinSrcSlope
+IF(nTracerCntl%lScat1)   FmInfo%phim        => phim
+
+RayInfo4CMfd%PhiAngIn    => PhiAngIn
+FMInfo%AsyPhiAngIn       => AsyPhiAngIn
 RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
+! ----------------------------------------------------
 
-IF(nTracerCntl%lLinSrc) FmInfo%LinSrcSlope => LinSrcSlope
-
-IF(nTracerCntl%lScat1) FmInfo%phim => phim
-END SUBROUTINE
-
-SUBROUTINE AllocLinSrcVariables()
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type
-USE GEOM,         ONLY : Core,          ng
-USE Core_mod,     ONLY : FmInfo,        LinSrcSlope
-USE PE_MOD,       ONLY : PE
-USE ALLOCS
-IMPLICIT NONE
-INTEGER :: nFsr, nz, myzb, myze
-
-nFsr = Core%nCoreFsr; nz = Core%nz
-myzb = PE%myzb; myze = PE%myze
-
-
-END SUBROUTINE
-
-SUBROUTINE AllocXsVariables(lXsLib)
-USE PARAM
-USE TYPEDEF,    ONLY : XsMac_Type
-USE BenchXs,    ONLY : MacXsBen
-USE PE_MOD,     ONLY : PE
-!USE LibXs,      ONLY : Fxr
-USE GEOM,       ONLY : Core, ng !, myzb, myze
-IMPLICIT NONE
-Logical :: lxsLib
-INTEGER :: nFxr, nz, myzb, myze
-
-nFxr = Core%nCoreFxr; nz = Core%nz
-myzb = PE%myzb; myze = PE%myze
-
-!ALLOCATE(Fxr(nFxr, myzb:myze))
-
-IF(lXsLib) THEN
-
-ELSE
-
-ENDIF
-END SUBROUTINE
-
+END SUBROUTINE AllocFluxVariables
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocMocVariables()
-USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type
-USE GEOM,         ONLY : Core,     ng, nbd
-USE PE_MOD,       ONLY : PE
-USE Moc_mod,      ONLY : phis1g,     MocJout1g,   Xst1g,       tSrc,       &
-                         AxSrc1g,    LinSrc1g,    LinPsi,      srcm,       &
-                         AxPxs1g,    PhiAngIn1g,  phim1g,                  &
-                         nMaxRaySeg, nMaxCellRay, nMaxCoreRay, nMaxAsyRay, &
-                         !--- CNJ Edit : Node Majors
-                         phisnm,     PhiAngInnm,  MocJoutnm,   xstnm,      &
-                         srcnm,      srcmnm,      phimnm,                  &
-                         !--- CNJ Edit : Domain Decomposition
-                         DcmpPhiAngOut, DcmpPhiAngIn
-USE rays,         ONLY : RayInfo
-USE Setray,       ONLY : RayInfoMaxSize
-USE CNTL,         ONLY : nTracerCntl
+
 USE ALLOCS
-IMPLICIT NONE
-INTEGER  :: nxy, nFsr, myzb, myze
-INTEGER :: nPolar, nPhiAngSv
+USE GEOM,    ONLY : Core, ng, nbd
+USE PE_MOD,  ONLY : PE
+USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, phim1g, phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, phimnm, DcmpPhiAngOut, DcmpPhiAngIn
+USE rays,    ONLY : RayInfo
+USE CNTL,    ONLY : nTracerCntl
 
-nxy = Core%nxy
+IMPLICIT NONE
+
+INTEGER :: nxy, nFsr, myzb, myze, nPolar, nPhiAngSv
+! ----------------------------------------------------
+
+nxy  = Core%nxy
 nFsr = Core%nCoreFsr
-nPolar = RayInfo%nPolarAngle
+
+nPolar    = RayInfo%nPolarAngle
 nPhiAngSv = RayInfo%nPhiAngSv
-myzb = PE%myzb; myze = PE%myze
 
-!CALL RayInfoMaxSize(Core, RayInfo, myzb, myze, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay)
+myzb = PE%myzb
+myze = PE%myze
 
-CALL Dmalloc0(phis1g, 1, nFsr)
-CALL Dmalloc0(PhiAngin1g, 1, nPolar, 1, nPhiAngSv)
-!CALL Dmalloc0(MocJout1g, 1, 2, 1, nBd, 1, nxy)
-CALL Dmalloc0(MocJout1g, 1, 3, 1, nBd, 1, nxy)  !---BYS edit / 150612 Surface flux
-CALL Dmalloc0(xst1g, 1, nFsr)
-CALL Dmalloc0(tsrc, 1, nFsr)
-CALL Dmalloc0(AxSrc1g, 1, nxy)
-CALL Dmalloc0(AxPxs1g, 1, nxy)
-!Allocate Linear Source
+CALL dmalloc0(phis1g, 1, nFsr)
+CALL dmalloc0(PhiAngin1g, 1, nPolar, 1, nPhiAngSv)
+CALL dmalloc0(MocJout1g, 1, 3, 1, nBd, 1, nxy)
+
+CALL dmalloc0(xst1g,   1, nFsr)
+CALL dmalloc0(tsrc,    1, nFsr)
+CALL dmalloc0(AxSrc1g, 1, nxy)
+CALL dmalloc0(AxPxs1g, 1, nxy)
+
+! Linear Source
 IF(nTracerCntl%lLinSrc) Then
-  CALL Dmalloc(LinSrc1g, nFsr, RayInfo%nAziAngle)
-  CALL Dmalloc0(LinPsi, 1, 2, 1, nFsr, myzb, myze)
-ENDIF
+  CALL dmalloc(LinSrc1g, nFsr, RayInfo%nAziAngle)
+  CALL dmalloc0(LinPsi, 1, 2, 1, nFsr, myzb, myze)
+END IF
 
-!--- CNJ Edit : Node Majors
-IF(nTracerCntl%lscat1) THEN
-  IF(nTracerCntl%lNodeMajor) THEN
-    IF(nTracerCntl%ScatOd .EQ. 1) THEN
-      CALL Dmalloc(srcmnm, 2, ng, nFsr)
-    ELSEIF(nTracerCntl%ScatOd .EQ. 2) THEN
-      CALL Dmalloc(srcmnm, 5, ng, nFsr)
-    ELSEIF(nTracerCntl%ScatOd .EQ. 3) THEN
-      CALL Dmalloc(srcmnm, 9, ng, nFsr)
-    ENDIF
-  ENDIF
-  IF(nTracerCntl%ScatOd .EQ. 1) THEN
-    CALL Dmalloc(srcm, 2, nFsr)
-    CALL Dmalloc(phim1g, 2, nFsr)
-  ELSEIF(nTracerCntl%ScatOd .EQ. 2) THEN
-    CALL Dmalloc(srcm, 5, nFsr)
-    CALL Dmalloc(phim1g, 5, nFsr)
-  ELSEIF(nTracerCntl%ScatOd .EQ. 3) THEN
-    CALL Dmalloc(srcm, 9, nFsr)
-    CALL Dmalloc(phim1g, 9, nFsr)
-  ENDIF
-ENDIF
+! Src. Moment
+IF (nTracerCntl%lscat1) THEN
+  IF (nTracerCntl%lNodeMajor) THEN
+    SELECT CASE (nTracerCntl%ScatOd)
+    CASE (1); CALL dmalloc(srcmnm, 2, ng, nFsr)
+    CASE (2); CALL dmalloc(srcmnm, 5, ng, nFsr)
+    CASE (3); CALL dmalloc(srcmnm, 9, ng, nFsr)
+    END SELECT
+  END IF
+  
+  IF (nTracerCntl%lNodeMajor) THEN
+    SELECT CASE (nTracerCntl%ScatOd)
+    CASE (1)
+      CALL dmalloc(srcm,   2, nFsr)
+      CALL dmalloc(phim1g, 2, nFsr)
+    CASE (2)
+      CALL dmalloc(srcm,   5, nFsr)
+      CALL dmalloc(phim1g, 5, nFsr)
+    CASE (3)
+      CALL dmalloc(srcm, 9, nFsr)
+      CALL dmalloc(phim1g, 9, nFsr)
+    END SELECT
+  END IF
+END IF
 
-!--- CNJ Edit : Node Majors
 IF (nTracerCntl%lNodeMajor) THEN
-  CALL Dmalloc(phisnm, ng, nFsr)
-  CALL Dmalloc(PhiAngInnm, nPolar, ng, nPhiAngSv)
-  CALL Dmalloc(MocJoutnm, 3, ng, nbd, nxy)
-  CALL Dmalloc(xstnm, ng, nFsr)
-  CALL Dmalloc(srcnm, ng, nFsr)
-ENDIF
+  CALL dmalloc(phisnm, ng, nFsr)
+  CALL dmalloc(PhiAngInnm, nPolar, ng, nPhiAngSv)
+  CALL dmalloc(MocJoutnm, 3, ng, nbd, nxy)
+  CALL dmalloc(xstnm, ng, nFsr)
+  CALL dmalloc(srcnm, ng, nFsr)
+END IF
 
+IF (nTracerCntl%lDomainDcmp) CALL dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
+! ----------------------------------------------------
 
-!--- CNJ Edit : Domain Decomposition
-IF (nTracerCntl%lDomainDcmp) CALL Dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
-
-END SUBROUTINE
-
+END SUBROUTINE AllocMocVariables
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE Alloc_CritSpec()
-USE PARAM
-USE TYPEDEF,      ONLY : CoreInfo_Type,   FmInfo_Type
-USE GEOM,         ONLY : Core,            ng
-USE Core_mod,     ONLY : FmInfo,          PhiCrit,  SpecConv
-USE BasicOperation, ONLY : CP_CA
+
 USE Allocs
+USE GEOM,     ONLY : Core, ng
+USE Core_mod, ONLY : FmInfo, PhiCrit, SpecConv
+
+
 IMPLICIT NONE
-CALL Dmalloc(PhiCrit, ng)
-CALL Dmalloc(SpecConv, ng)
+! ----------------------------------------------------
 
-CALL CP_CA(SpecConv(1:ng), 1._8, ng)
+CALL dmalloc(PhiCrit,  ng)
+CALL dmalloc(SpecConv, ng)
 
-FmInfo%PhiCrit => PhiCrit
+SpecConv(1:ng) = 1.
+
+FmInfo%PhiCrit  => PhiCrit
 FmInfo%SpecConv => SpecConv
+! ----------------------------------------------------
 
-END SUBROUTINE
+END SUBROUTINE Alloc_CritSpec
+! ------------------------------------------------------------------------------------------------------------
