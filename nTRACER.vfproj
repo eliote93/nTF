@@ -211,7 +211,6 @@
 		<File RelativePath=".\src\HexPinConst.f90"/></Filter>
 		<Filter Name="IO">
 		<File RelativePath=".\src\HexChkInp.f90"/>
-		<File RelativePath=".\HexChkInpPcc.f90"/>
 		<File RelativePath=".\src\HexCorePowerCal.f90"/>
 		<File RelativePath=".\src\HexEffXsOut.f90"/>
 		<File RelativePath=".\src\HexInpCard.f90"/>
@@ -300,6 +299,8 @@
 		<File RelativePath=".\src\MCP_Util.f90"/>
 		<File RelativePath=".\src\ScanInput_include.f90"/></Filter>
 		<Filter Name="MOC">
+		<Filter Name="AFSS">
+		<File RelativePath=".\src\RayTrace_AFSS.f90"/></Filter>
 		<Filter Name="Common">
 		<File RelativePath=".\src\ApproxExp.f90"/>
 		<File RelativePath=".\src\InitRT.f90"/>
@@ -318,8 +319,6 @@
 		<Filter Name="Linear Src">
 		<File RelativePath=".\src\RayTrace_Lin.f90"/>
 		<File RelativePath=".\src\SetRtSrc_Lin.f90"/></Filter>
-		<Filter Name="AFSS">
-		<File RelativePath=".\src\RayTrace_AFSS.f90"/></Filter>
 		<Filter Name="Node Major">
 		<File RelativePath=".\src\RayTrace_NM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_NM.f90"/>

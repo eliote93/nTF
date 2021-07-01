@@ -271,17 +271,18 @@ SUBROUTINE HexSetHcPinNgh()
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, VoidCell, RefCell, TRUE, FALSE, HALF
 USE PE_MOD,  ONLY : PE
-USE HexType, ONLY : Type_HexCmfdPin
+USE HexType, ONLY : Type_HexCmfdPin, Type_HexAsy
 USE HexData, ONLY : hcPin, nhcPin, hLgc, cBndyEq, hAsy, hAsyTypInfo, Sq3
 USE HexUtil, ONLY : SetEqn, ChkPtEqn, ChkSamePts, SetPtsPri
 
 IMPLICIT NONE
 
-INTEGER :: iPin, jPin, iBndy, jBndy, nNgh, iPri
-LOGICAL :: lChk, lChk01, lChk02, lChk03, lChk04, lChk05, lNgh
+INTEGER :: iPin, jPin, iBndy, jBndy, nNgh, iPri, iAsy, jAsy
+LOGICAL :: lChk, lChk01, lChk02, lChk03, lChk04, lChk05, lNgh, lAsy
 REAL    :: Cnt(2), PtsSlf(2, 2), PtsNgh(2, 2), EqnSlf(3), Lgh, EqnTst(3)
 
 TYPE(Type_HexCmfdPin), POINTER :: cPin_Loc, jPin_Loc
+TYPE(Type_HexAsy),     POINTER :: hAsy_Loc
 ! ----------------------------------------------------
 
 Cnt    = ZERO
@@ -290,10 +291,13 @@ EqnTst = SetEqn([Lgh, ZERO], [Lgh * HALF, -Lgh * HALF * Sq3], Cnt)
 
 CALL OMP_SET_NUM_THREADS(PE%nthread)
 
-!$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, jPin_Loc, jBndy, PtsNgh, Lgh)
+!$OMP PARALLEL PRIVATE(cPin_Loc, nNgh, iBndy, EqnSlf, PtsSlf, iPri, lNgh, lChk, lChk01, lChk02, lChk03, lChk04, jPin_Loc, jBndy, PtsNgh, Lgh, iAsy, jAsy, lAsy, hAsy_Loc)
 !$OMP DO SCHEDULE(GUIDED)
 DO iPin = 1, nhcPin
   cPin_Loc => hcPin(iPin)
+  
+  iAsy = cPin_Loc%aIdx
+  hAsy_Loc => hAsy(iAsy)
   
   nNgh = 0
   ! ----------------------------
@@ -343,6 +347,19 @@ DO iPin = 1, nhcPin
       
       jPin_Loc => hcPin(jPin)
       
+      ! CHK : Ngh. Asy.
+      jAsy = jPin_Loc%aIdx
+      lAsy = iAsy .EQ. jAsy
+      
+      IF (.NOT.lAsy .AND. jPin_Loc%nBndy.EQ.6) CYCLE ! CHK : Gap
+      
+      DO jBndy = 1, 6
+        lAsy = lAsy .OR. jAsy.EQ.hAsy_Loc%NghIdx(jBndy)
+      END DO
+      
+      IF (.NOT.lAsy) CYCLE
+            
+      ! CHK : Pin Bndy.
       DO jBndy = 1, jPin_Loc%nBndy
         PtsNgh(1:2, 1) = jPin_Loc%BdPts(1:2, jBndy)
         PtsNgh(1:2, 2) = jPin_Loc%BdPts(1:2, jBndy+1)
@@ -410,7 +427,9 @@ END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-NULLIFY (cPin_Loc, jPin_Loc)
+NULLIFY (cPin_Loc)
+NULLIFY (jPin_Loc)
+NULLIFY (hAsy_Loc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetHcPinNgh

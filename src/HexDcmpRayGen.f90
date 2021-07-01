@@ -18,12 +18,13 @@ TYPE (RayInfo_type)  :: RayInfo
 TYPE (DcmpAsyRayInfo_type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 ! ----------------------------------------------------
 INTEGER, POINTER, DIMENSION(:)       :: DcmpAsyRayCount, AsyRayList, DirList, AziList
-INTEGER, POINTER, DIMENSION(:,:,:)   :: DcmpAsyAziList
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
-INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nRaySeg, nRaySeg0, nAziAngle
+INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxAziModRay, nMaxCellRay, nMaxRaySeg, nRaySeg, nRaySeg0
 INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, iAzi, iz, iasy, ipin, iCnt, iAsyTyp, iGeoTyp, icBss, jcBss, iDir, itmp, icolor
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prvAsy, prvCnt, nRef
+
+INTEGER :: PinSt, PinEd, FsrSt, FsrEd, maxNumPin, maxNumFsr ! DEBUG
 
 TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
 
@@ -35,9 +36,8 @@ TYPE (Type_HexRotRay), POINTER :: hRotRay_Loc
 nAsy = Core%nxya
 Pin => Core%Pin
 
-nModRay   = RayInfo%nModRay
-nRotRay   = RayInfo%nRotRay
-nAziAngle = RayInfo%nAziAngle
+nModRay = RayInfo%nModRay
+nRotRay = RayInfo%nRotRay
 
 myzb = PE%myzb
 myze = PE%myze
@@ -46,10 +46,8 @@ ALLOCATE (DcmpAsyRay(nModRay, nAsy))
 
 CALL dmalloc (RayInfo%DcmpAsyRayCount, nAsy) ! # of mRay (Considering reflections as one)
 CALL dmalloc (RayInfo%DcmpAsyLinkInfo, 2, 2, nModRay, nAsy) ! (iAsy/iCnt, iDir, ~)
-CALL dmalloc0(RayInfo%DcmpAsyAziList,  0, nModRay, 1, nAziAngle/2, 1, nAsy)
 
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-DcmpAsyAziList  => RayInfo%DcmpAsyAziList
 DcmpAsyLinkInfo => RayInfo%DcmpAsyLinkInfo
 
 nMaxDcmpRaySeg  = 0
@@ -221,13 +219,41 @@ ELSE
   END DO
 END IF
 
+! DEBUG
+!nRef = 0
+!
+!DO iAsy = 1, nAsy
+!  DO iCnt = 1, nModRay
+!    nRef = nRef + DcmpAsyRay(iCnt, iAsy)%nAsyRay
+!  END DO
+!END DO
+!
+!maxNumPin = 0
+!maxNumFsr = 0
+!
+!DO iAsy = 1, nAsy
+!  PinSt = hAsy(iAsy)%PinIdxSt
+!  PinEd = hAsy(iAsy)%PinIdxSt + hAsy(iAsy)%nTotPin - 1
+!  
+!  maxNumPin = max(maxNumPin, PinEd - PinSt + 1)
+!  
+!  DO iz = 1, Core%nz
+!    FsrSt = Core%Pin(PinSt)%FsrIdxSt
+!    FsrEd = Core%Pin(PinEd)%FsrIdxSt + Core%Cellinfo(Core%Pin(PinEd)%Cell(iz))%nFsr - 1
+!    
+!    maxNumFsr = max(maxNumFsr, FsrEd - FsrSt + 1)
+!  END DO
+!END DO
+!
+!PRINT *, nModRay, Core%nCoreFsr, Core%nxy, nAsy, nRef, maxNumPin, maxNumFsr
+!STOP
+
 RayInfo%DcmpAsyRay => DcmpAsyRay
 ! ----------------------------------------------------
 NULLIFY (DcmpAsyRayCount)
 NULLIFY (AsyRayList)
 NULLIFY (DirList)
 NULLIFY (AziList)
-NULLIFY (DcmpAsyAziList)
 NULLIFY (DcmpAsyLinkInfo)
 NULLIFY (Pin)
 NULLIFY (haRay_Loc)
