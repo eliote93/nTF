@@ -24,7 +24,13 @@ CALL SetRayPEVariables(PE, Core, RayInfo)
 #endif
 
 ! XS
+mesg = 'Allocating Res Iso Info...'
+IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
+  
 IF (nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo
+
+mesg = 'Preparing FXR...'
+IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
 
 CALL PrepFxr(nTracerCntl%lXsLib, nTracerCntl%lfxrlib)
 
@@ -33,10 +39,9 @@ IF (nTracerCntl%lDcpl) CALL initDcpl
 
 ! Dcmp
 IF (nTracerCntl%lDomainDcmp) THEN
-#ifdef DetailedIO
   mesg = 'Generating Decomposed Assembly Rays...'
   IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
-#endif
+  
   CALL HexDcmpRayGen(Core, RayInfo, DcmpAsyRay)
 END IF
 

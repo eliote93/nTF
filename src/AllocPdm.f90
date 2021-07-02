@@ -196,23 +196,23 @@ myzb = PE%myzb
 myze = PE%myze
 
 ! Ray Tracing
-CALL dmalloc0(AxSrc1g, 1, nxy)
-CALL dmalloc0(AxPxs1g, 1, nxy)
+CALL dmalloc(AxSrc1g, nxy)
+CALL dmalloc(AxPxs1g, nxy)
   
 IF (nTracerCntl%lNodeMajor) THEN
-  CALL dmalloc(phisnm, ng, nFsr)
+  CALL dmalloc(phisnm,     ng, nFsr)
   CALL dmalloc(PhiAngInnm, nPolar, ng, nPhiAngSv)
-  CALL dmalloc(MocJoutnm, 3, ng, nbd, nxy)
+  CALL dmalloc(MocJoutnm,  3, ng, nbd, nxy)
   
   CALL dmalloc(xstnm, ng, nFsr)
   CALL dmalloc(srcnm, ng, nFsr)
 ELSE
-  CALL dmalloc0(phis1g, 1, nFsr)
-  CALL dmalloc0(PhiAngin1g, 1, nPolar, 1, nPhiAngSv)
-  CALL dmalloc0(MocJout1g, 1, 3, 1, nBd, 1, nxy)
+  CALL dmalloc(phis1g,     nFsr)
+  CALL dmalloc(PhiAngin1g, nPolar, nPhiAngSv)
+  CALL dmalloc(MocJout1g,  3, nBd, nxy)
   
-  CALL dmalloc0(xst1g, 1, nFsr)
-  CALL dmalloc0(tsrc,  1, nFsr)
+  CALL dmalloc(xst1g, nFsr)
+  CALL dmalloc(tsrc,  nFsr)
 END IF
 
 ! Src. Moment

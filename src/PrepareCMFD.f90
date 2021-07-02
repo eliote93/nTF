@@ -136,7 +136,7 @@ CMInfo%PsiFmD       => PsiFmD
 CMInfo%RadJout      => RadJout ! 1 : In-coming / 2 : Out-going / 3 : Surf. phi
 CMInfo%PinXs        => PinXS
 CMInfo%RayInfo4Cmfd => RayInfo4Cmfd
-
+! ----------------------------------------------------
 IF (PE%lMKL) RETURN ! Does not used in MKL CMFD
 
 ! LS

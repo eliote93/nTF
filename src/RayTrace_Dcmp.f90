@@ -150,7 +150,7 @@ DO icolor = 1, ncolor
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
-    
+  
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 #endif
