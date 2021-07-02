@@ -576,7 +576,7 @@ USE IEEE_ARITHMETIC
 
 IF (.NOT.lCMFD .OR. .NOT.lCmfdGrp) RETURN
 
-IF(nTracerCntl%lMacro .AND. nTracerCntl%lCusping_MPI .AND. (ItrCntl%srcit0 .NE. ItrCntl%srcit)) THEN
+IF (nTracerCntl%lMacro .AND. nTracerCntl%lCusping_MPI .AND. (ItrCntl%srcit0 .NE. ItrCntl%srcit)) THEN
   CALL GetNeighborMocFlux(FmInfo%phis, FmInfo%neighphis, Core%nCoreFsr, PE%myzb, PE%myze, 1, GroupInfo%ng, Core%nz, Core%AxBC)
   CALL SetCoreMacXS_Cusping(Core, FmInfo)
 END IF
