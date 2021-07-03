@@ -348,16 +348,19 @@ DO iPin = 1, nhcPin
       jPin_Loc => hcPin(jPin)
       
       ! CHK : Ngh. Asy.
-      jAsy = jPin_Loc%aIdx
-      lAsy = iAsy .EQ. jAsy
-      
-      IF (.NOT.lAsy .AND. jPin_Loc%nBndy.EQ.6) CYCLE ! CHK : Gap
-      
-      DO jBndy = 1, 6
-        lAsy = lAsy .OR. jAsy.EQ.hAsy_Loc%NghIdx(jBndy)
-      END DO
-      
-      IF (.NOT.lAsy) CYCLE
+      ! NOTICE : Not Rot. Bndy.
+      IF (.NOT. hLgc%lAzmRot) THEN
+        jAsy = jPin_Loc%aIdx
+        lAsy = iAsy .EQ. jAsy
+        
+        IF (.NOT.lAsy .AND. jPin_Loc%nBndy.EQ.6) CYCLE ! CHK : Gap
+        
+        DO jBndy = 1, 6
+          lAsy = lAsy .OR. jAsy.EQ.hAsy_Loc%NghIdx(jBndy)
+        END DO
+        
+        IF (.NOT.lAsy) CYCLE
+      END IF
             
       ! CHK : Pin Bndy.
       DO jBndy = 1, jPin_Loc%nBndy
