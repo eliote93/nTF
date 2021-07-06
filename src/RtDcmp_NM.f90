@@ -1,14 +1,12 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTrace_Dcmp(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE OMP_LIB
 USE allocs
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, DcmpColorAsy, &
-                        RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
-USE Core_mod,    ONLY : phisSlope, srcSlope
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
@@ -120,9 +118,9 @@ DO icolor = 1, ncolor
     DO krot = 1, 2
       DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
         IF (lHex) THEN
-          CALL HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
+          CALL HexTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
         ELSE
-          CALL RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
+          CALL RecTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
         END IF
       END DO
     END DO
@@ -183,9 +181,9 @@ NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 ! ----------------------------------------------------
 
-END SUBROUTINE RayTrace_Dcmp
+END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
+SUBROUTINE RecTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, Cell_Type, AsyRayInfo_type, CellRayInfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -392,9 +390,9 @@ NULLIFY (DirList)
 NULLIFY (AziList)
 ! ----------------------------------------------------
 
-END SUBROUTINE RecTrackRotRayOMP_Dcmp
+END SUBROUTINE RecTrackRotRayDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
+SUBROUTINE HexTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type, AziAngleInfo_Type
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
@@ -586,23 +584,23 @@ NULLIFY (haRay_Loc)
 NULLIFY (CelRay_Loc)
 
 ! Loc.
-NULLIFY (phisNM)
-NULLIFY (srcNM)
-NULLIFY (xstNM)
 NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (wtang)
 NULLIFY (hwt)
+NULLIFY (phisNM)
+NULLIFY (srcNM)
+NULLIFY (xstNM)
 NULLIFY (PhiAngInNM)
 NULLIFY (joutNM)
 
 ! Dcmp.
-NULLIFY (DcmpPhiAngIn)
-NULLIFY (DcmpPhiAngOut)
 NULLIFY (AsyRayList)
 NULLIFY (DirList)
 NULLIFY (AziList)
+NULLIFY (DcmpPhiAngIn)
+NULLIFY (DcmpPhiAngOut)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexTrackRotRayOMP_Dcmp
+END SUBROUTINE HexTrackRotRayDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------

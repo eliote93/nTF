@@ -177,7 +177,8 @@ SUBROUTINE AllocMocVariables()
 USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
-USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, phim1g, phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, phimnm, DcmpPhiAngOut, DcmpPhiAngIn
+USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, phim1g, &
+                    phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, phimnm, DcmpPhiAngOut, DcmpPhiAngIn, DcmpPhiAngOut1g, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
@@ -245,7 +246,14 @@ IF (nTracerCntl%lLinSrc) Then
 END IF
 
 ! Dcmp.
-IF (nTracerCntl%lDomainDcmp) CALL dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
+IF (nTracerCntl%lDomainDcmp) THEN
+  IF (nTracerCntl%lNodeMajor) THEN
+    CALL dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
+  ELSE
+    CALL dmalloc(DcmpPhiAngIn1g,  nPolar, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngOut1g, nPolar, 2, RayInfo%nModRay, Core%nxya)
+  END IF
+END IF
 ! ----------------------------------------------------
 
 END SUBROUTINE AllocMocVariables

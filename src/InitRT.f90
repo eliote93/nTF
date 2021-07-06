@@ -97,10 +97,14 @@ END DO
 
 ! Basic : GM vs. NM
 IF (.NOT. nTracerCntl%lNodeMajor) THEN
+  IF (.NOT. ldcmp) THEN
+    DO ithr = 1, nThr
+      CALL dmalloc(TrackingDat(ithr)%Phis, nFsr)
+      CALL dmalloc(TrackingDat(ithr)%Jout, 3, nbd, nxy)
+    END DO
+  END IF
+  
   DO ithr = 1, nThr
-    CALL dmalloc(TrackingDat(ithr)%Phis, nFsr)
-    CALL dmalloc(TrackingDat(ithr)%Jout, 3, nbd, nxy)
-    
     CALL dmalloc(TrackingDat(ithr)%FsrIdx,                     nMaxRaySeg, nMaxCoreRay)
     CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,                  nMaxRaySeg, nMaxCoreRay)
     CALL dmalloc(TrackingDat(ithr)%OptLenList,                 nMaxRaySeg, nMaxCoreRay)

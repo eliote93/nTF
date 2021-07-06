@@ -349,7 +349,7 @@ USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_
 USE CNTL,           ONLY : nTracerCntl_Type
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP_MLG, SetPlnLsigP_1gMLG, SubGrpFspErr, EquipXSGen_MLG, EquipXsGen_1gMLG, SetSubGrpSrc1g, UpdtFnAdj, UpdtFtAdj
-USE MOC_MOD,        ONLY : RayTraceGM_OMP
+USE MOC_MOD,        ONLY : RayTraceGM_OMP, RayTraceDcmp_GM
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,      ONLY : mlgdata, mlgdata0
@@ -378,7 +378,7 @@ REAL, POINTER, DIMENSION(:)     :: phis1g, phis1gd, siglamPot, xstr1g, src1g
 REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g
 REAL, POINTER, DIMENSION(:,:,:) :: jout
 
-LOGICAL :: lCLD, lAIC, master, RTmaster, lDcpl, lSilent
+LOGICAL :: lCLD, lAIC, master, RTmaster, lDcpl, lSilent, ldcmp
 ! ----------------------------------------------------
 
 nofg = GroupInfo%nofg
@@ -398,6 +398,7 @@ RTmaster = PE%RTmaster
 nPolar    = RayInfo%nPolarAngle
 nPhiAngSv = RayInfo%nPhiAngSv
 
+ldcmp   = nTracerCntl%lDomainDcmp
 lSilent = FALSE
 
 #ifdef MPI_ENV
@@ -408,7 +409,7 @@ lSilent = lDcpl
 Tbeg = nTracer_Dclock(FALSE, FALSE)
 
 itermax = 100
-IF (any(Core%RadBC(1:4) .EQ. VoidCell)) itermax = 1
+IF (.NOT.ldcmp .AND. any(Core%RadBC(1:4) .EQ. VoidCell)) itermax = 1
 
 CALL dmalloc(phis1g,  nFsr)
 CALL dmalloc(phis1gd, nFsr)
@@ -422,7 +423,7 @@ IF (master) CALL message(io8,TRUE,TRUE,mesg)
 
 WRITE (mesg,'(A)') 'Solving Subgroup FSP (MLG)'
 IF (master) CALL message(io8, TRUE, TRUE, mesg)
-
+! ----------------------------------------------------
 itersum   = 0
 myitersum = 0
 
@@ -455,7 +456,11 @@ DO iz = myzb, myze
           IF (RtMaster) phis1gd(1:nFsr) = phis1g(1:nFsr) !Save Previous data
           
           rt1   = nTracer_dclock(FALSE, FALSE)
-          CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+          IF (ldcmp) THEN
+            CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE)
+          ELSE
+            CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+          END IF
           rt2   = nTracer_dclock(FALSE, FALSE)
           rtnet = rtnet + (rt2 - rt1)
           
@@ -509,7 +514,11 @@ DO iz = myzb, myze
         IF (RtMaster) phis1gd(1:nFsr) = phis1g(1:nFsr) ! Save Previous data
         
         rt1   = nTracer_dclock(FALSE, FALSE)
-        CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+        IF (ldcmp) THEN
+          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE)
+        ELSE
+          CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+        END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
         
@@ -553,7 +562,11 @@ DO iz = myzb, myze
         IF (RtMaster) phis1gd(1:nFsr) = phis1g(1:nFsr) ! Save Previous data
         
         rt1   = nTracer_dclock(FALSE, FALSE)
-        CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+        IF (ldcmp) THEN
+          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE)
+        ELSE
+          CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+        END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
         
@@ -578,7 +591,7 @@ DO iz = myzb, myze
 END DO
 
 DEALLOCATE (xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
-
+! ----------------------------------------------------
 nTracerCntl%lSubGrpSweep = TRUE
 itersum = myitersum
 
@@ -592,6 +605,7 @@ Tend = nTracer_Dclock(FALSE, FALSE)
 TimeChk%SubGrpRTniter   = TimeChk%SubGrpRTniter   + itersum
 TimeChk%SubGrpTime      = TimeChk%SubGrpTime      + (Tend - Tbeg)
 TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
+! ----------------------------------------------------
 
 END SUBROUTINE SubGrpFsp_MLG
 ! ------------------------------------------------------------------------------------------------------------

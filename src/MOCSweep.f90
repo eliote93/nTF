@@ -11,7 +11,7 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisNM, PhiAngInNM, MocJoutNM, xstNM, srcNM, phimNM, srcmNM, &
-                        RayTrace_Dcmp, RayTraceP1_Dcmp, RayTraceLin_Dcmp, DcmpPhiAngIn, DcmpGatherCurrent
+                        RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceP1_Dcmp, RayTraceLin_Dcmp, DcmpPhiAngIn, DcmpPhiAngIn1g, DcmpGatherCurrent, DcmpGatherCurrent1g
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
@@ -191,22 +191,28 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               
               IF (lscat1) phim1g = phim(:, :, iz, ig)
               IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
+              
+              IF (ldcmp) DcmpPhiAngIn1g(1:RayInfo%nPolarAngle, 1:2, 1:RayInfo%nModRay, 1:Core%nxya) = FMInfo%AsyPhiAngIn(1:RayInfo%nPolarAngle, ig, 1:2, 1:RayInfo%nModRay, 1:Core%nxya, iz)
             END IF
             
             ! Ray Trace
             IF (.NOT. lLinSrc) THEN
-              IF (.NOT. lscat1) THEN
-                IF (lAFSS) THEN
-                  CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
+              IF (.NOT. ldcmp) THEN
+                IF (.NOT. lscat1) THEN
+                  IF (lAFSS) THEN
+                    CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
+                  ELSE
+                    CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
+                  END IF
                 ELSE
-                  CALL RayTraceGM_OMP (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
+                  IF (lAFSS) THEN
+                    CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
+                  ELSE
+                    CALL RayTraceP1GM_OMP (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
+                  END IF
                 END IF
               ELSE
-                IF (lAFSS) THEN
-                  CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
-                ELSE
-                  CALL RayTraceP1GM_OMP (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
-                END IF
+                CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
               END IF
             ELSE
               CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
@@ -216,8 +222,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             
             ! Spectral SPH
             IF (lssph .AND. ig.GE.igresb .AND. ig.LE.igrese) phis1g = phis1g * ssphf(:, iz, ig)
-            
+           
             ! CnP
+#ifdef MPI_ENV
+            IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrent1g(Core, MocJout1g)
+#endif
             IF (.NOT. RTMASTER) CYCLE
             
             IF (.NOT. lmocUR) THEN
@@ -327,7 +336,7 @@ ELSE
               CALL RayTraceP1_Dcmp(RayInfo, Core, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
             ELSE
               IF (.NOT.lLSCASMO) THEN
-                CALL RayTrace_Dcmp(RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
+                CALL RayTraceDcmp_NM(RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
               ELSE
                 CALL RayTraceLin_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lHybrid)
               END IF
@@ -347,11 +356,10 @@ ELSE
         tnmdel(jswp) = (tnmed - tnmst)
       END DO
       
+      ! CnP
 #ifdef MPI_ENV
       IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrent(Core, MocJoutNM)
 #endif
-
-      ! CnP
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng

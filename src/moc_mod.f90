@@ -16,6 +16,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: phiaNM, srcAngNM, MocJoutNM
 
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:,:) :: DcmpColorAsy
 
@@ -103,7 +104,25 @@ LOGICAL, OPTIONAL :: lAFSS
 
 END SUBROUTINE RayTrace_Tran
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTrace_Dcmp(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmp_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, MocJout, iz, lJout)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+
+REAL, POINTER, DIMENSION(:)     :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:) :: Mocjout
+
+INTEGER :: iz
+LOGICAL :: lJout
+
+END SUBROUTINE RayTraceDcmp_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -119,7 +138,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocjoutNM
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 
-END SUBROUTINE RayTrace_Dcmp
+END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1_Dcmp(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, gb, ge, lJout)
 
@@ -263,34 +282,6 @@ INTEGER :: iz, iasy, gb, ge
 LOGICAL :: ljout
 
 END SUBROUTINE RayTraceDcmp_OMP
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
-
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
-
-TYPE (RayInfo_Type)        :: RayInfo
-TYPE (CoreInfo_Type)       :: CoreInfo
-TYPE (TrackingDat_Type)    :: TrackingDat
-TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-LOGICAL :: ljout
-INTEGER :: iz, gb, ge, krot
-
-END SUBROUTINE RecTrackRotRayOMP_Dcmp
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayOMP_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
-
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
-
-TYPE (RayInfo_Type)        :: RayInfo
-TYPE (CoreInfo_Type)       :: CoreInfo
-TYPE (TrackingDat_Type)    :: TrackingDat
-TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-LOGICAL :: ljout
-INTEGER :: iz, gb, ge, krot
-
-END SUBROUTINE HexTrackRotRayOMP_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1GM_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
@@ -983,6 +974,22 @@ INTEGER, OPTIONAL :: color
 
 END SUBROUTINE DcmpLinkBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE DcmpLinkBoundaryFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, color)
+
+USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
+
+INTEGER, OPTIONAL :: color
+
+END SUBROUTINE DcmpLinkBoundaryFlux1g
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
 
 USE TYPEDEF, ONLY : RayInfo_Type
@@ -996,7 +1003,20 @@ REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn
 
 END SUBROUTINE DcmpScatterBoundaryFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherCurrent(CoreInfo, jout)
+SUBROUTINE DcmpScatterBoundaryFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
+
+USE TYPEDEF, ONLY : RayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type) :: RayInfo
+
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g
+
+END SUBROUTINE DcmpScatterBoundaryFlux1g
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE DcmpGatherCurrent(CoreInfo, joutNM)
 
 USE TYPEDEF, ONLY : CoreInfo_Type
 
@@ -1004,9 +1024,21 @@ IMPLICIT NONE
 
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:,:,:) :: jout
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
 
 END SUBROUTINE DcmpGatherCurrent
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE DcmpGatherCurrent1g(CoreInfo, jout)
+
+USE TYPEDEF, ONLY : CoreInfo_Type
+
+IMPLICIT NONE
+
+TYPE (CoreInfo_Type) :: CoreInfo
+
+REAL, POINTER, DIMENSION(:,:,:) :: jout
+
+END SUBROUTINE DcmpGatherCurrent1g
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
 
@@ -1019,6 +1051,18 @@ TYPE (RayInfo_Type) :: RayInfo
 REAL, POINTER, DIMENSION(:,:,:,:,:)  :: DcmpPhiAngOut
 
 END SUBROUTINE DcmpGatherBoundaryFlux
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE DcmpGatherBoundaryFlux1g(RayInfo, DcmpPhiAngOut1g)
+
+USE TYPEDEF, ONLY : RayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type) :: RayInfo
+
+REAL, POINTER, DIMENSION(:,:,:,:)  :: DcmpPhiAngOut1g
+
+END SUBROUTINE DcmpGatherBoundaryFlux1g
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FluxUnderRelaxation(Core, Phis1g, Phis, w, iz, ig, PE)
 

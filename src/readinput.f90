@@ -133,11 +133,20 @@ IF (MASTER) THEN
         END IF
       END IF
     ELSE
-      IF (nTracerCntl%lAFSS) THEN
-        mesg = 'SCHEME : GROUP MAJOR / AFSS : T'
+      IF (nTracerCntl%lDomainDcmp) THEN
+        IF (nTracerCntl%lAFSS) THEN
+          mesg = 'SCHEME : GROUP MAJOR / DCMP : T / AFSS : T'
+        ELSE
+          mesg = 'SCHEME : GROUP MAJOR / DCMP : T / AFSS : F'
+        END IF
       ELSE
-        mesg = 'SCHEME : GROUP MAJOR / AFSS : F'
+        IF (nTracerCntl%lAFSS) THEN
+          mesg = 'SCHEME : GROUP MAJOR / DCMP : F / AFSS : T'
+        ELSE
+          mesg = 'SCHEME : GROUP MAJOR / DCMP : F / AFSS : F'
+        END IF
       END IF
+      
     END IF
   END IF
   

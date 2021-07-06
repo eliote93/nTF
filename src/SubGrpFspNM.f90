@@ -21,7 +21,7 @@ USE FILES,     ONLY : io8
 USE IOUTIL,    ONLY : message
 USE TIMER,     ONLY : nTracer_dclock, TimeChk
 USE xslib_mod, ONLY : mlgdata, mlgdata0
-USE MOC_MOD,   ONLY : TrackingDat, RayTraceNM_OMP, RayTrace_Dcmp, DcmpPhiAngOut, DcmpPhiAngIn
+USE MOC_MOD,   ONLY : TrackingDat, RayTraceNM_OMP, RayTraceDcmp_NM, DcmpPhiAngOut, DcmpPhiAngIn
 USE GEOM,      ONLY : ng
 
 #ifdef MPI_ENV
@@ -117,9 +117,9 @@ DO iz = myzb, myze
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTrace_Dcmp (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceNM_OMP (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -196,9 +196,9 @@ DO iz = myzb, myze
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTrace_Dcmp (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceNM_OMP (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -271,9 +271,9 @@ DO iz = myzb, myze
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTrace_Dcmp (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTraceNM_OMP(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceNM_OMP (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)

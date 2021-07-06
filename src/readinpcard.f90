@@ -773,30 +773,14 @@ IF (nTracerCntl%lNodeMajor) THEN
 !  ENDIF
 ENDIF
 
-IF (nTracerCntl%lDomainDcmp) THEN
-  IF (.NOT. nTracerCntl%lNodeMajor) THEN
-    nTracerCntl%lNodeMajor = TRUE
-    IF (PE%Master) THEN
-      mesg = 'Turning NODE MAJOR scheme on : NM must be followed to perform DCMP'
-      CALL message(io8, TRUE, TRUE, mesg)
-    ENDIF
-  ENDIF
-ELSE
-  IF (nTracerCntl%lHybrid) THEN
-    nTracerCntl%lDomainDcmp = TRUE
-    IF (PE%Master) THEN
-      mesg = 'Turning DCMP scheme on : DCMP must be followed to perform Hybrid CASMO LinSrc'
-      CALL message(io8, TRUE, TRUE, mesg)
-    ENDIF
-    iF (.NOT. nTracerCntl%lNodeMajor) THEN
-      nTracerCntl%lNodeMajor = TRUE
-      IF (PE%Master) THEN
-        mesg = 'Turning NODE MAJOR scheme on : NM must be followed to perform DCMP'
-        CALL message(io8, TRUE, TRUE, mesg)
-      ENDIF
-    ENDIF
-  ENDIF
-ENDIF
+
+IF (nTracerCntl%lHybrid) THEN
+  nTracerCntl%lDomainDcmp = TRUE
+  IF (PE%Master) THEN
+    mesg = 'Turning DCMP scheme on : DCMP must be followed to perform Hybrid CASMO LinSrc'
+    CALL message(io8, TRUE, TRUE, mesg)
+  END IF
+END IF
 
 !--- CNJ Edit : Group-wise Albedo (BYS Request)
 ALLOCATE(Core%groupAlbedo(4, ng)); Core%groupAlbedo = 1.0
