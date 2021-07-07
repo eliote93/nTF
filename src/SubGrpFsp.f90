@@ -1,345 +1,427 @@
 #include <defines.h>
 SUBROUTINE SubGrpFsp(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
-USE PARAM
-USE TYPEDEF,      ONLY : CoreInfo_Type,    FxrInfo_Type,   THInfo_Type,  RayInfo_Type,  GroupInfo_Type,   PE_Type
+
+USE PARAM,        ONLY : FALSE
+USE TYPEDEF,      ONLY : CoreInfo_Type, FxrInfo_Type, THInfo_Type, RayInfo_Type, GroupInfo_Type, PE_Type
 USE CNTL,         ONLY : nTracerCntl_Type
 USE SUBGRP_MOD,   ONLY : UpdtCoreIsoInfo, SubGrpFsp_CAT, SubGrpFsp_ISO, SubGrpFsp_MLG, CalcDancoff, CalcEscXSCP
 USE TH_Mod,       ONLY : Cal_RefFuelTemp
-USE FILES,        ONLY : IO8
-USE IOUTIL,       ONLY : message, terminate
-USE SubGrpFspNM,  ONLY : SubGrpFSP_MLG_NM   !--- CNJ Edit : Node Majors
+USE IOUTIL,       ONLY : terminate
+USE SubGrpFspNM,  ONLY : SubGrpFSP_MLG_NM
+
 IMPLICIT NONE
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type),POINTER :: Fxr(:, :)
-TYPE(THInfo_Type) :: THInfo
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(nTracerCntl_Type) :: nTracerCntl
-TYPE(PE_TYPE) :: PE
 
-INTEGER :: iz,myzb,myze
-LOGICAL :: lfuel, RTmaster, master
+TYPE (CoreInfo_Type)    :: Core
+TYPE (THInfo_Type)      :: THInfo
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (GroupInfo_Type)   :: GroupInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
 
-IF(.NOT. nTracerCntl%lXsLib) RETURN
+TYPE (FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
+! ----------------------------------------------------
+INTEGER :: iz, myzb, myze
+LOGICAL :: lfuel, RTmaster
+! ----------------------------------------------------
 
-myzb = PE%myzb; myze = PE%myze
-lFuel=.false.
+IF (.NOT. nTracerCntl%lXsLib) RETURN
+
+myzb = PE%myzb
+myze = PE%myze
+
+lFuel = FALSE
 DO iz = myzb, myze
   lFuel = lFuel .OR. Core%lFuelPlane(iz)
-ENDDO
+END DO
 
 #ifndef MPI_ENV
 IF(.NOT. lFuel) RETURN
 #endif
 
-master = PE%master; RTmaster = PE%RTmaster
+RTmaster = PE%RTmaster
 
-!Calculate the Reference Temperature
-IF(RTmaster) THEN
+ ! Calculate the Reference Temperature
+IF (RTmaster) THEN
   CALL Cal_RefFuelTemp(THInfo%RefFuelTemp, Core, Fxr, nTracerCntl, PE)
   CALL UpdtCoreIsoInfo(Core, Fxr, PE)
-ENDIF
-
+END IF
+! ----------------------------------------------------
 IF (nTracerCntl%lED) THEN
-  CALL CalcDancoff(Core, Fxr, RayInfo, THInfo, nTracerCntl, PE)
+  CALL CalcDancoff(Core, Fxr, RayInfo,   THInfo, nTracerCntl, PE)
   CALL CalcEscXSCP(Core, Fxr, GroupInfo, THInfo, nTracerCntl, PE)
 ELSE
   IF (nTracerCntl%lMLG) THEN
-    !--- CNJ Edit : Node Majors
     IF (nTracerCntl%lNodeMajor) THEN
       CALL SubGrpFsp_MLG_NM(Core, Fxr, THInfo, RayInfo, GroupInfo)
     ELSE
-      CALL SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
-    ENDIF
+      CALL SubGrpFsp_MLG   (Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
+    END IF
   ELSE
     IF (nTracerCntl%lNodeMajor) CALL terminate("ONLY GROUP MAJOR")
     
     IF (nTracerCntl%lCAT) THEN
-      IF(RTmaster) CALL UpdtResoCat(PE)
+      IF (RTmaster) CALL UpdtResoCat(PE)
       CALL SubGrpFsp_CAT(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
     ELSE
       CALL SubGrpFsp_ISO(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
-    ENDIF
-  ENDIF
-ENDIF
+    END IF
+  END IF
+END IF
+! ----------------------------------------------------
 
-END SUBROUTINE
+END SUBROUTINE SubGrpFsp
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE SubGrpFsp_CAT(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
 
-SUBROUTINE SubGrpFsp_CAT(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)  !!!!!!!!!!****************************************!!!!!!!!!!
-USE PARAM
-USE TYPEDEF,        ONLY : coreinfo_type,    Fxrinfo_type,   GroupInfo_Type,    RayInfo_Type,   PE_TYPE, THInfo_Type
+USE PARAM,          ONLY : TRUE, FALSE, mesg, ONE, EPSM3
+USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_Type, PE_TYPE, THInfo_Type
 USE CNTL,           ONLY : nTracerCntl_Type
-#ifdef MPI_ENV
-USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST
-#endif
 USE FILES,          ONLY : IO8
-USE SUBGRP_MOD,     ONLY : SetPlnLsigP_cat,    SubGrpFspErr,    EquipXSGen,    SetSubGrpSrc1g, UpdtNDAF_CAT
+USE SUBGRP_MOD,     ONLY : SetPlnLsigP_cat, SubGrpFspErr, EquipXSGen, SetSubGrpSrc1g, UpdtNDAF_CAT
 USE MOC_MOD,        ONLY : RayTraceGM_OMP
-USE BasicOperation, ONLY : CP_CA,                CP_VA
 USE IOUTIL,         ONLY : message
-USE TIMER,          ONLY : nTracer_dclock,       TimeChk
+USE TIMER,          ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,      ONLY : LIBDATA, nCat, ResoCat, mapnucl, ldiso, nActiveCat, ResoCatUse
+
+#ifdef MPI_ENV
+USE MPICOMM_MOD,    ONLY : MPI_SYNC, MPI_MAX_REAL, MPI_MAX_INT, BCAST
+#endif
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type),POINTER :: Fxr(:, :)
-TYPE(THInfo_Type) :: THInfo
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(nTracerCntl_Type) :: nTracerCntl
-TYPE(PE_TYPE) :: PE
+TYPE (CoreInfo_Type)    :: Core
+TYPE (THInfo_Type)      :: THInfo
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (GroupInfo_Type)   :: GroupInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
+
+TYPE (FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
+! ----------------------------------------------------
 TYPE(LIBDATA), POINTER :: isodata
 
-INTEGER :: nfsr, nfxr, myzb, myze, iz, nlvflx, ilv, nid, id, icat
-INTEGER :: ig, ig1, ig2, nofg, norg, niter, iter, nPhiAngSv, nPolar
+INTEGER :: nfsr, nfxr, myzb, myze, iz, nlvflx, ilv, nid, id, icat, ig, ig1, ig2, nofg, norg, niter, iter, nPhiAngSv, nPolar
 
 REAL :: lv, errmax, errmaxlv, niteravg, Tbeg, Tend, rt1, rt2, rtnet
-REAL, POINTER :: phis1g(:), phis1gd(:), PhiAngIn1g(:, :), jout(:,:,:)
-REAL, POINTER :: siglamPot(:), xstr1g(:), src1g(:)
+
+REAL, POINTER, DIMENSION(:)     :: phis1g, phis1gd, siglamPot, xstr1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g
+REAL, POINTER, DIMENSION(:,:,:) :: jout
 
 LOGICAL :: master, RTmaster, lDcpl, lSilent
+! ----------------------------------------------------
 
-nofg = GroupInfo%nofg; norg = GroupInfo%norg
-ig1 = nofg + 1; ig2 = nofg + norg
-nFxr = Core%nCoreFxr; nFsr = Core%nCoreFsr
-myzb = PE%myzb; myze = PE%myze
-nPolar = RayInfo%nPolarAngle; nPhiAngSv = RayInfo%nPhiAngSv
-lSilent = .FALSE.
-master = PE%master; RTmaster = PE%RTmaster
+nofg = GroupInfo%nofg
+norg = GroupInfo%norg
+ig1  = nofg + 1
+ig2  = nofg + norg
 
+nFxr = Core%nCoreFxr
+nFsr = Core%nCoreFsr
+
+myzb = PE%myzb
+myze = PE%myze
+
+nPolar = RayInfo%nPolarAngle
+nPhiAngSv = RayInfo%nPhiAngSv
+
+lSilent  = FALSE
+master   = PE%master
+RTmaster = PE%RTmaster
 #ifdef MPI_ENV
-lDcpl = nTracerCntl%lDcpl; lSilent = lDcpl
+lDcpl   = nTracerCntl%lDcpl
+lSilent = lDcpl
 #endif
 
-WRITE(mesg,'(a24)') 'Solving Subgroup FSP... '
-IF(master) CALL message(io8, TRUE, TRUE, mesg)
+WRITE (mesg,'(a24)') 'Solving Subgroup FSP... '
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
+
 Tbeg = nTracer_Dclock(FALSE, FALSE)
 
-ALLOCATE(phis1g(nFsr)); ALLOCATE(phis1gd(nFsr))
-ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
+ALLOCATE(phis1g(nFsr))
+ALLOCATE(phis1gd(nFsr))
+ALLOCATE(xstr1g(nFsr))
+ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
-IF(master) call message(io8,TRUE,TRUE,mesg)
-WRITE(mesg,'(a,i3)') 'Solving Subgroup FSP'
-IF(master) CALL message(io8, TRUE, TRUE, mesg)
+WRITE (mesg, '(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), " C"
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
 
+WRITE (mesg, '(A, I3)') 'Solving Subgroup FSP'
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
+! ----------------------------------------------------
 DO iz = myzb, myze
   IF(.NOT. Core%lFuelPlane(iz)) CYCLE
-  WRITE(mesg,'(a12,i3,a30,i3)') 'SGFSP : Pln ',iz,'  # Of Resonance Categories : ',nActiveCat(iz)
-  IF(RtMaster) CALL message(io8, TRUE, TRUE, mesg)
+  
+  WRITE (mesg, '(A12, I3, A30, I3)') 'SGFSP : Pln ', iz, '  # Of Resonance Categories : ', nActiveCat(iz)
+  IF (RtMaster) CALL message(io8, TRUE, TRUE, mesg)
+  
   rtnet = 0
+  
   DO icat = 1, nCat
-    if (.not.ResoCatUse(icat,iz)) CYCLE
-    nid = ResoCat(icat)%repid;  id = mapnucl(nid)
+    if (.NOT. ResoCatUse(icat,iz)) CYCLE
+    
+    nid      = ResoCat(icat)%repid
+    id       = mapnucl(nid)
     isodata => ldiso(id)
-    nlvflx = isodata%nlv
+    nlvflx   = isodata%nlv
     IF (nTracerCntl%l4Lv) nlvflx = isodata%nlvflx
 
     niteravg = 0
     DO ig = ig1, ig2
-
-        errmax = 0._8; niter = 0
+        errmax = 0._8
+        niter = 0
+        
         DO ilv = 1, nlvflx
           IF (nTracerCntl%l4Lv) THEN
               lv = isodata%lvflx(ilv,ig)
           ELSE
               lv = isodata%lvabs(ilv,ig)
-          ENDIF
-          !Initialize the flux variable
-          CALL CP_CA(phis1g, 1._8, nFsr); CALL CP_CA(PhiAngIn1g, 1._8, nPolar, nPhiAngSv)
-          PhiAngIn1g(:, 1) = 0;
-          !transport xs and source setup for Subgroup Fixed Source Problem
-          IF(RTMASTER) THEN
+          END IF
+          
+          phis1g     = ONE
+          PhiAngIn1g = ONE
+          PhiAngIn1g(:, 1) = 0
+          
+          ! Transport xs and source setup for Subgroup Fixed Source Problem
+          IF (RTMASTER) THEN
             CALL SetPlnLsigP_cat(SigLamPot, xstr1g, lv, icat, Core, Fxr, ilv, iz, ig, PE)
             CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
-          ENDIF
+          END IF
+          
           DO iter = 1, 100
-            !Solving FSP
-            IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
-            rt1 = nTracer_dclock(FALSE, FALSE)
-            CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE., nTracerCntl%FastMocLv)
-            rt2 = nTracer_dclock(FALSE, FALSE)
+            ! Solving FSP
+            phis1gd(1:nFsr) = phis1g(1:nFsr)
+            
+            rt1   = nTracer_dclock(FALSE, FALSE)
+            CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+            rt2   = nTracer_dclock(FALSE, FALSE)
             rtnet = rtnet + (rt2 - rt1)
-            !Update Equivalence XS
+            
+            ! Update Equivalence XS
             errmaxlv = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
-            niter = niter + 1
-            IF(RTMASTER) THEN
+            niter    = niter + 1
+            
+            IF (RTMASTER) THEN
               CALL EquipXSGen(Phis1g, SigLamPot, xstr1g, ilv, icat, Core, Fxr, iz, ig, PE)
               CALL UpdtNDAF_CAT(ilv, icat, Core, Fxr, iz, ig, PE)
-            ENDIF
-            IF(errmaxlv .lt. epsm3) EXIT
-            IF(RTMASTER) THEN
+            END IF
+            
+            IF (errmaxlv .LT. EPSM3) EXIT
+            
+            IF (RTMASTER) THEN
               CALL SetPlnLsigP_cat(SigLamPot, xstr1g, lv, icat, Core, Fxr, ilv, iz, ig, PE)
               CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
             ENDIF
-          ENDDO ! DO iter = 1, 100
+          END DO
+          
           errmax = max(errmax,errmaxlv)
           TimeChk%SubGrpFSPNum = TimeChk%SubGrpFSPNum + 1
-        ENDDO ! DO ilv = 1, nlvflx
+        END DO
+        
         niteravg = niteravg + niter
         TimeChk%SubGrpRTniter = TimeChk%SubGrpRTniter + niter
-    ENDDO ! DO ig = ig1, ig2
+    END DO
+    
     niteravg = niteravg / norg
-    WRITE(mesg,'(6x,a,i3,a,i6,a,f7.2,1p,e13.3)') 'Pln', iz,'  Istp.', nid, '  In_Itr_Avg', niteravg, errmax
-    IF(master.and..NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
-
-  ENDDO ! DO icat = 1, nCat
-ENDDO ! DO iz = myzb, myze
-
+    
+    WRITE (mesg, '(6X, A, I3, A, I6, A, F7.2, 1P, E13.3)') 'Pln', iz,'  Istp.', nid, '  In_Itr_Avg', niteravg, errmax
+    IF (master .AND. .NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+  END DO
+END DO
+! ----------------------------------------------------
 DEALLOCATE(xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
 
 nTracerCntl%lSubGrpSweep = TRUE
+
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
-Tend = nTracer_Dclock(FALSE, FALSE)
-TimeChk%SubGrpTime = TimeChk%SubGrpTime + (Tend - Tbeg)
-TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
 
-CONTINUE
-END SUBROUTINE
-SUBROUTINE SubGrpFsp_ISO(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)  !!!!!!!!!!****************************************!!!!!!!!!!
-USE PARAM
-USE TYPEDEF,        ONLY : coreinfo_type,    Fxrinfo_type,   GroupInfo_Type,    RayInfo_Type,   PE_TYPE, THInfo_Type
+Tend = nTracer_Dclock(FALSE, FALSE)
+TimeChk%SubGrpTime      = TimeChk%SubGrpTime      + (Tend - Tbeg)
+TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
+! ----------------------------------------------------
+
+END SUBROUTINE SubGrpFsp_CAT
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE SubGrpFsp_ISO(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
+
+USE PARAM,          ONLY : TRUE, FALSE, mesg, ONE, EPSM3
+USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_Type, PE_TYPE, THInfo_Type
 USE CNTL,           ONLY : nTracerCntl_Type
-#ifdef MPI_ENV
-USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST
-#endif
 USE FILES,          ONLY : IO8
-USE SUBGRP_MOD,     ONLY : SetPlnLsigP,    SubGrpFspErr,    EquipXsGen,    SetSubGrpSrc1g, UpdtNDAF
+USE SUBGRP_MOD,     ONLY : SetPlnLsigP, SubGrpFspErr, EquipXsGen, SetSubGrpSrc1g, UpdtNDAF
 USE MOC_MOD,        ONLY : RayTraceGM_OMP
-USE BasicOperation, ONLY : CP_CA,                CP_VA
 USE IOUTIL,         ONLY : message
-USE TIMER,          ONLY : nTracer_dclock,       TimeChk
+USE TIMER,          ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,      ONLY : LIBDATA, nRes_Cor, idRes_Cor, mapnucl, ldiso
+
+#ifdef MPI_ENV
+USE MPICOMM_MOD,    ONLY : MPI_SYNC, MPI_MAX_REAL, MPI_MAX_INT, BCAST
+#endif
 
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type),POINTER :: Fxr(:, :)
-TYPE(THInfo_Type) :: THInfo
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(nTracerCntl_Type) :: nTracerCntl
-TYPE(PE_TYPE) :: PE
-TYPE(LIBDATA), POINTER :: isodata
+TYPE (CoreInfo_Type)    :: Core
+TYPE (THInfo_Type)      :: THInfo
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (GroupInfo_Type)   :: GroupInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
 
-INTEGER :: nfsr, nfxr, myzb, myze, iz, nlvflx, ilv, nid, id, irc
-INTEGER :: ig, ig1, ig2, nofg, norg, niter, iter, nPhiAngSv, nPolar
+TYPE (FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
+! ----------------------------------------------------
+TYPE (LIBDATA), POINTER :: isodata
+
+INTEGER :: nfsr, nfxr, myzb, myze, iz, nlvflx, ilv, nid, id, irc, ig, ig1, ig2, nofg, norg, niter, iter, nPhiAngSv, nPolar
 
 REAL :: lv, niteravg, errmax, errmaxlv, Tbeg, Tend, rt1, rt2, rtnet
-REAL, POINTER :: phis1g(:), phis1gd(:), PhiAngIn1g(:, :), jout(:,:,:)
-REAL, POINTER :: siglamPot(:), xstr1g(:), src1g(:)
+
+REAL, POINTER, DIMENSION(:)     :: phis1g, phis1gd, siglamPot, xstr1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g
+REAL, POINTER, DIMENSION(:,:,:) :: jout
 
 LOGICAL :: master, RTmaster, lDcpl, lSilent
+! ----------------------------------------------------
 
-nofg = GroupInfo%nofg; norg = GroupInfo%norg
-ig1 = nofg + 1; ig2 = nofg + norg
-nFxr = Core%nCoreFxr; nFsr = Core%nCoreFsr
-myzb = PE%myzb; myze = PE%myze
-nPolar = RayInfo%nPolarAngle; nPhiAngSv = RayInfo%nPhiAngSv
-lSilent = .FALSE.
-master = PE%master; RTmaster = PE%RTmaster
+nofg = GroupInfo%nofg
+norg = GroupInfo%norg
+ig1  = nofg + 1
+ig2  = nofg + norg
 
+nFxr = Core%nCoreFxr
+nFsr = Core%nCoreFsr
+
+myzb     = PE%myzb
+myze     = PE%myze
+master   = PE%master
+RTmaster = PE%RTmaster
+
+nPolar    = RayInfo%nPolarAngle
+nPhiAngSv = RayInfo%nPhiAngSv
+
+lSilent = FALSE
 #ifdef MPI_ENV
-lDcpl = nTracerCntl%lDcpl; lSilent = lDcpl
+lDcpl   = nTracerCntl%lDcpl
+lSilent = lDcpl
 #endif
 
-WRITE(mesg,'(a24)') 'Solving Subgroup FSP... '
-IF(master) CALL message(io8, TRUE, TRUE, mesg)
+WRITE (mesg,'(A24)') 'Solving Subgroup FSP... '
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
+
 Tbeg = nTracer_Dclock(FALSE, FALSE)
 
-ALLOCATE(phis1g(nFsr)); ALLOCATE(phis1gd(nFsr))
-ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
+ALLOCATE(phis1g(nFsr))
+ALLOCATE(phis1gd(nFsr))
+ALLOCATE(xstr1g(nFsr))
+ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
-IF(master) call message(io8,TRUE,TRUE,mesg)
-WRITE(mesg,'(a,i3)') 'Solving Subgroup FSP'
-IF(master) CALL message(io8, TRUE, TRUE, mesg)
+WRITE (mesg, '(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), " C"
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
 
+WRITE (mesg, '(A, I3)') 'Solving Subgroup FSP'
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
+! ----------------------------------------------------
 DO iz = myzb, myze
-  IF(.NOT. Core%lFuelPlane(iz)) CYCLE
+  IF (.NOT. Core%lFuelPlane(iz)) CYCLE
 
-  WRITE(mesg,'(a12,i3,a28,i3)') 'SGFSP : Pln ',iz,'  # Of Resonance Isotopes : ',nRes_Cor(iz)
-  IF(RTmaster) CALL message(io8,TRUE,TRUE,mesg)
+  WRITE(mesg, '(A12, I3, A28, I3)') 'SGFSP : Pln ', iz, '  # Of Resonance Isotopes : ', nRes_Cor(iz)
+  IF (RTmaster) CALL message(io8,TRUE,TRUE,mesg)
 
   rtnet = 0
+  
   DO irc = 1, nRes_Cor(iz)
-    nid = idRes_Cor(irc,iz);  id = mapnucl(nid)
-    if (id.eq.0) id = mapnucl(nid+500)
+    nid = idRes_Cor(irc,iz)
+    id  = mapnucl(nid)
+    IF (id .EQ. 0) id = mapnucl(nid+500)
+    
     isodata => ldiso(id)
+    
     nlvflx = isodata%nlv
     IF (nTracerCntl%l4Lv) nlvflx = isodata%nlvflx
 
     niteravg = 0
+    
     DO ig = ig1, ig2
-
-        errmax = 0._8; niter = 0
-        DO ilv = 1, nlvflx
-          IF (nTracerCntl%l4Lv) THEN
-              lv = isodata%lvflx(ilv,ig)
-          ELSE
-              lv = isodata%lvabs(ilv,ig)
-          ENDIF
-          !Initialize the flux variable
-          CALL CP_CA(phis1g, 1._8, nFsr); CALL CP_CA(PhiAngIn1g, 1._8, nPolar, nPhiAngSv)
-          PhiAngIn1g(:, 1) = 0;
-          !transport xs and source setup for Subgroup Fixed Source Problem
-          IF(RTMASTER) THEN
+      errmax = 0._8
+      niter = 0
+      
+      DO ilv = 1, nlvflx
+        IF (nTracerCntl%l4Lv) THEN
+          lv = isodata%lvflx(ilv,ig)
+        ELSE
+          lv = isodata%lvabs(ilv,ig)
+        END IF
+        
+        phis1g     = ONE
+        PhiAngIn1g = ONE
+        PhiAngIn1g(:, 1) = 0
+        
+        ! Transport xs and source setup for Subgroup Fixed Source Problem
+        IF(RTMASTER) THEN
+          CALL SetPlnLsigP(SigLamPot, xstr1g, lv, irc, Core, Fxr, ilv, iz, ig, PE)
+          CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
+        END IF
+        
+        DO iter = 1, 100
+          ! Solving FSP
+          phis1gd(1:nFsr) = phis1g(1:nFsr)
+          
+          rt1   = nTracer_dclock(FALSE, FALSE)
+          CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+          rt2   = nTracer_dclock(FALSE, FALSE)
+          rtnet = rtnet + (rt2 - rt1)
+          
+          ! Update Equivalence XS
+          errmaxlv = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
+          niter    = niter + 1
+          
+          IF (RTMASTER) THEN
+            CALL EquipXSGen(Phis1g, SigLamPot, xstr1g, ilv, irc, Core, Fxr, iz, ig, PE)
+            CALL UpdtNDAF(id, ilv, irc, Core, Fxr, iz, ig, PE)
+          END IF
+          
+          IF (errmaxlv .LT. EPSM3) EXIT
+          
+          IF (RTMASTER) THEN
             CALL SetPlnLsigP(SigLamPot, xstr1g, lv, irc, Core, Fxr, ilv, iz, ig, PE)
             CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
-          ENDIF
-          DO iter = 1, 100
-            !Solving FSP
-            IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
-            rt1 = nTracer_dclock(FALSE, FALSE)
-            CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE., nTracerCntl%FastMocLv)
-            rt2 = nTracer_dclock(FALSE, FALSE)
-            rtnet = rtnet + (rt2 - rt1)
-            !Update Equivalence XS
-            errmaxlv = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
-            niter = niter + 1
-            IF(RTMASTER) THEN
-              CALL EquipXSGen(Phis1g, SigLamPot, xstr1g, ilv, irc, Core, Fxr, iz, ig, PE)
-              CALL UpdtNDAF(id, ilv, irc, Core, Fxr, iz, ig, PE)
-            ENDIF
-            IF(errmaxlv .lt. epsm3) EXIT
-            IF(RTMASTER) THEN
-              CALL SetPlnLsigP(SigLamPot, xstr1g, lv, irc, Core, Fxr, ilv, iz, ig, PE)
-              CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
-            ENDIF
-          ENDDO ! DO iter = 1, 100
-          errmax = max(errmax,errmaxlv)
-          TimeChk%SubGrpFSPNum = TimeChk%SubGrpFSPNum + 1
-        ENDDO ! DO ilv = 1, nlvflx
-        niteravg = niteravg + niter
-        TimeChk%SubGrpRTniter = TimeChk%SubGrpRTniter + niter
-
-    ENDDO ! DO ig = ig1, ig2
+          END IF
+        END DO
+        
+        errmax = max(errmax,errmaxlv)
+        TimeChk%SubGrpFSPNum = TimeChk%SubGrpFSPNum + 1
+      END DO
+      
+      niteravg = niteravg + niter
+      TimeChk%SubGrpRTniter = TimeChk%SubGrpRTniter + niter
+    END DO
+    
     niteravg = niteravg / norg
-    WRITE(mesg,'(6x,a,i3,a,i6,a,f7.2,1p,e13.3)') 'Pln', iz,'  Istp.', nid, '  In_Itr_Avg', niteravg, errmax
-    IF(master.and..NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
-
-  ENDDO ! DO irc = 1, nRes_Cor(iz)
-ENDDO ! DO iz = myzb, myze
-
+    
+    WRITE (mesg,'(6X, A, I3, A, I6, A, F7.2, 1P, E13.3)') 'Pln', iz,'  Istp.', nid, '  In_Itr_Avg', niteravg, errmax
+    IF (master .AND. .NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+  END DO
+END DO
+! ----------------------------------------------------
 DEALLOCATE(xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
 
 nTracerCntl%lSubGrpSweep = TRUE
+
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
-Tend = nTracer_Dclock(FALSE, FALSE)
-TimeChk%SubGrpTime = TimeChk%SubGrpTime + (Tend - Tbeg)
-TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
 
-CONTINUE
-END SUBROUTINE
+Tend = nTracer_Dclock(FALSE, FALSE)
+TimeChk%SubGrpTime      = TimeChk%SubGrpTime      + (Tend - Tbeg)
+TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
+! ----------------------------------------------------
+
+END SUBROUTINE SubGrpFsp_ISO
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
 
@@ -609,139 +691,172 @@ TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
 
 END SUBROUTINE SubGrpFsp_MLG
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE CalcDancoff(Core, Fxr, RayInfo, THInfo, nTracerCntl, PE)  !!!!!!!!!!****************************************!!!!!!!!!!
-USE PARAM
-USE TYPEDEF,        ONLY : coreinfo_type,    Fxrinfo_type,   RayInfo_Type,  THInfo_Type,   PE_TYPE
-USE CNTL,           ONLY : nTracerCntl_Type
-#ifdef MPI_ENV
-USE MPICOMM_MOD,    ONLY : MPI_SYNC,    MPI_MAX_REAL,   MPI_MAX_INT,     BCAST
-#endif
-USE FILES,          ONLY : IO8
-USE SUBGRP_MOD,     ONLY : SetPlnLsigP_Dancoff, SetPlnLsigP_DancoffAIC, SetSubGrpSrc1g, Set_Dancoff, Set_DancoffAIC, SubGrpFspErr
-USE MOC_MOD,        ONLY : RayTraceGM_OMP
-USE BasicOperation, ONLY : CP_CA,                CP_VA
-USE IOUTIL,         ONLY : message
-USE TIMER,          ONLY : nTracer_dclock,       TimeChk
+SUBROUTINE CalcDancoff(Core, Fxr, RayInfo, THInfo, nTracerCntl, PE)
+
 USE OMP_LIB
+USE PARAM,      ONLY : TRUE, FALSE, ONE, EPSM3, mesg
+USE TYPEDEF,    ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, THInfo_Type, PE_TYPE
+USE CNTL,       ONLY : nTracerCntl_Type
+USE FILES,      ONLY : IO8
+USE SUBGRP_MOD, ONLY : SetPlnLsigP_Dancoff, SetPlnLsigP_DancoffAIC, SetSubGrpSrc1g, Set_Dancoff, Set_DancoffAIC, SubGrpFspErr
+USE MOC_MOD,    ONLY : RayTraceGM_OMP
+USE IOUTIL,     ONLY : message
+USE TIMER,      ONLY : nTracer_dclock, TimeChk
+
+#ifdef MPI_ENV
+USE MPICOMM_MOD, ONLY : MPI_SYNC, MPI_MAX_REAL, MPI_MAX_INT, BCAST
+#endif
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: Core
-TYPE(FxrInfo_Type),POINTER :: Fxr(:, :)
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(THInfo_Type) :: THInfo
-TYPE(nTracerCntl_Type) :: nTracerCntl
-TYPE(PE_TYPE) :: PE
+TYPE (CoreInfo_Type)    :: Core
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (THInfo_Type)      :: THInfo
+TYPE (nTracerCntl_Type) :: nTracerCntl
+TYPE (PE_TYPE)          :: PE
 
-INTEGER :: nfsr, nfxr, myzb, myze, iz, ilv, nlv, niterCP
-INTEGER :: niter, iter, nPhiAngSv, nPolar
+TYPE (FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
+! ----------------------------------------------------
+INTEGER :: nfsr, nfxr, myzb, myze, iz, ilv, nlv, niterCP, niter, iter, nPhiAngSv, nPolar
 
 REAL :: errmax, Tbeg, Tend
-REAL, POINTER :: phis1g(:), phis1gd(:), PhiAngIn1g(:, :), jout(:,:,:)
-REAL, POINTER :: siglamPot(:), xstr1g(:), src1g(:)
+
+REAL, POINTER, DIMENSION(:)     :: phis1g, phis1gd, siglamPot, xstr1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g
+REAL, POINTER, DIMENSION(:,:,:) :: jout
 
 LOGICAL :: master, RTmaster, lDcpl, lSilent
+! ----------------------------------------------------
 
-nFxr = Core%nCoreFxr; nFsr = Core%nCoreFsr
-myzb = PE%myzb; myze = PE%myze
-nPolar = RayInfo%nPolarAngle; nPhiAngSv = RayInfo%nPhiAngSv
-lSilent = .FALSE.
-master = PE%master; RTmaster = PE%RTmaster
+nFxr = Core%nCoreFxr
+nFsr = Core%nCoreFsr
 
+myzb     = PE%myzb
+myze     = PE%myze
+master   = PE%master
+RTmaster = PE%RTmaster
+
+nPolar    = RayInfo%nPolarAngle
+nPhiAngSv = RayInfo%nPhiAngSv
+
+lSilent = FALSE
 #ifdef MPI_ENV
-lDcpl = nTracerCntl%lDcpl; lSilent = lDcpl
+lDcpl   = nTracerCntl%lDcpl
+lSilent = lDcpl
 #endif
 
 Tbeg = nTracer_Dclock(FALSE, FALSE)
 
-ALLOCATE(phis1g(nFsr)); ALLOCATE(phis1gd(nFsr))
-ALLOCATE(xstr1g(nFsr)); ALLOCATE(src1g(nFsr))
+ALLOCATE(phis1g(nFsr))
+ALLOCATE(phis1gd(nFsr))
+ALLOCATE(xstr1g(nFsr))
+ALLOCATE(src1g(nFsr))
 ALLOCATE(PhiAngIn1g(nPolar, nPhiAngSv))
 ALLOCATE(SigLamPot(nFxr))
 
-write(mesg,'(a,f10.2,a)') "Reference Fuel Temperature",THInfo%RefFuelTemp(0)," C"
-IF(master) call message(io8,TRUE,TRUE,mesg)
-WRITE(mesg,'(a,i3)') 'Solving FSP for Pin-wise Dancoff Factor'
-IF(master) CALL message(io8, TRUE, TRUE, mesg)
+WRITE (mesg, '(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), " C"
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
 
+WRITE (mesg, '(A, I3)') 'Solving Subgroup FSP'
+IF (master) CALL message(io8, TRUE, TRUE, mesg)
+! ----------------------------------------------------
 DO iz = myzb, myze
   IF(.NOT. Core%lFuelPlane(iz)) CYCLE
-
-  !Initialize the flux variable
-  CALL CP_CA(phis1g, 1._8, nFsr); CALL CP_CA(PhiAngIn1g, 1._8, nPolar, nPhiAngSv)
-  PhiAngIn1g(:, 1) = 0;
-
-  ! Enhanced Neutron Current Method to Calculate Dancoff Factor
-  errmax = 0._8; niter = 0
-  !transport xs and source setup for Subgroup Fixed Source Problem
-  IF(RTMASTER) THEN
-    CALL SetPlnLsigP_Dancoff(SigLamPot, xstr1g, Core, Fxr, iz, PE) ! set plane-wise XST, and XSP for Enhanced Neutron Current Method
+  
+  phis1g     = ONE
+  PhiAngIn1g = ONE
+  PhiAngIn1g(:, 1) = 0
+  
+  errmax = 0._8
+  niter  = 0
+  
+  ! Transport xs and source setup for SGFSP
+  IF (RTMASTER) THEN
+    CALL SetPlnLsigP_Dancoff  (SigLamPot, xstr1g, Core, Fxr, iz, PE) ! Set plane-wise XST, and XSP for Enhanced Neutron Current Method
     CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
-  ENDIF
+  END IF
+  
+  ! Fuel
   DO iter = 1, 100
-    !Solving ENCM
-    IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
-    CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE., nTracerCntl%FastMocLv)
-    !Update Equivalence XS
+    ! Solving ENCM
+    phis1gd(1:nFsr) = phis1g(1:nFsr)
+    
+    CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+    
+    ! Update Equivalence XS
     errmax = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
-    niter = niter + 1
-    IF(errmax .lt. epsm3) EXIT
-  ENDDO ! DO iter = 1, 100
-
-  IF(RTMASTER) then
-      CALL Set_Dancoff(SigLamPot, xstr1g, phis1g, Core, Fxr, iz, niterCP, PE)
-      nTracerCntl%nCP_er = nTracerCntl%nCP_er + niterCP
-  ENDIF
-
-  WRITE(mesg,'(2x,a,i3,a,i5,1p,e13.3,a,i6)') '[Fuel] Pln', iz,'  In_itr',niter,errmax,'   # of CP : ',niterCP
+    niter  = niter + 1
+    
+    IF (errmax .LT. EPSM3) EXIT
+  END DO
+  
+  IF (RTMASTER) then
+    CALL Set_Dancoff(SigLamPot, xstr1g, phis1g, Core, Fxr, iz, niterCP, PE)
+    
+    nTracerCntl%nCP_er = nTracerCntl%nCP_er + niterCP
+  END IF
+  
+  WRITE (mesg, '(2X, A, I3, A, I5, 1P, E13.3, A, I6)') '[Fuel] Pln', iz, '  In_itr', niter, errmax, '   # of CP : ', niterCP
+  
   TimeChk%SubGrpRTniter = TimeChk%SubGrpRTniter + niter
-  IF(master .AND. .NOT. lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
-
+  IF(master .AND. .NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+  
+  ! AIC
   IF (Core%lAICPlane(iz)) THEN
-
-    !Initialize the flux variable
-    CALL CP_CA(phis1g, 1._8, nFsr); CALL CP_CA(PhiAngIn1g, 1._8, nPolar, nPhiAngSv)
-    PhiAngIn1g(:, 1) = 0;
-
-    errmax = 0._8; niter = 0
-    !transport xs and source setup for Subgroup Fixed Source Problem
+    phis1g     = ONE
+    PhiAngIn1g = ONE
+    PhiAngIn1g(:, 1) = 0
+    
+    errmax = 0._8
+    niter  = 0
+    
+    ! Transport xs and Source setup for SGFSP
     IF(RTMASTER) THEN
       CALL SetPlnLsigP_DancoffAIC(SigLamPot, xstr1g, Core, Fxr, iz, PE)
-      CALL SetSubGrpSrc1g(src1g, SigLamPot, xstr1g, Core, Fxr, iz, PE)
-    ENDIF
+      CALL SetSubGrpSrc1g(src1g,  SigLamPot, xstr1g, Core, Fxr, iz, PE)
+    END IF
+    
     DO iter = 1, 100
-      !Solving FSP
-      IF(RtMaster) CALL CP_VA(phis1gd, phis1g, nfsr) !Save Previous data
-      CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, .FALSE., nTracerCntl%FastMocLv)
-      !Update Equivalence XS
+      ! Solving FSP
+      phis1gd(1:nFsr) = phis1g(1:nFsr)
+      
+      CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+      
+      ! Update Equivalence XS
       errmax = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
-      niter = niter + 1
-      IF(errmax .lt. epsm3) EXIT
-    ENDDO ! DO iter = 1, 100
-
-    IF(RTMASTER) THEN
-        CALL Set_DancoffAIC(SigLamPot, xstr1g, phis1g, Core, Fxr, iz, niterCP, PE)
-        nTracerCntl%nCP_er = nTracerCntl%nCP_er + niterCP
+      niter  = niter + 1
+      
+      IF (errmax .LT. EPSM3) EXIT
+    END DO
+    
+    IF (RTMASTER) THEN
+      CALL Set_DancoffAIC(SigLamPot, xstr1g, phis1g, Core, Fxr, iz, niterCP, PE)
+      
+      nTracerCntl%nCP_er = nTracerCntl%nCP_er + niterCP
     ENDIF
 
-    WRITE(mesg,'(2x,a,i3,a,i5,1p,e13.3,a,i6)') '[AIC]  Pln', iz,'  In_itr',niter,errmax,'   # of CP : ',niterCP
+    WRITE(mesg, '(2X, A, I3, A, I5, 1P, E13.3, A, I6)') '[AIC]  Pln', iz, '  In_itr', niter, errmax, '   # of CP : ', niterCP
+    
     TimeChk%SubGrpRTniter = TimeChk%SubGrpRTniter + niter
-    IF(master .AND. .NOT. lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
-
-  ENDIF
-
-ENDDO ! DO iz = myzb, myze
-
-DEALLOCATE(xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
+    
+    IF (master .AND. .NOT. lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+  END IF
+END DO
+! ----------------------------------------------------
+DEALLOCATE (xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
 
 nTracerCntl%lSubGrpSweep = TRUE
+
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
+
 Tend = nTracer_Dclock(FALSE, FALSE)
 TimeChk%DancoffTime = TimeChk%DancoffTime + (Tend - Tbeg)
+! ----------------------------------------------------
 
-CONTINUE
-END SUBROUTINE
+END SUBROUTINE CalcDancoff
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CalcEscXSCP(Core, Fxr, GroupInfo, THInfo, nTracerCntl, PE)  !!!!!!!!!!****************************************!!!!!!!!!!
 USE PARAM
 USE TYPEDEF,        ONLY : coreinfo_type,    Fxrinfo_type, ResVarPin_Type,  Cell_TYPE, Pin_TYPE,  GroupInfo_Type, PE_TYPE, THInfo_Type

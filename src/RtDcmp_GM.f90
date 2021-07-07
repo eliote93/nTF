@@ -34,7 +34,7 @@ TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, iAsyRay, krot, icolor, jcolor, ncolor, iit, PinSt, PinEd, FsrSt, FsrEd
+INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, iAsyRay, krot, icolor, jcolor, ncolor, iit, PinSt, PinEd, FsrSt, FsrEd
 LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
@@ -91,7 +91,7 @@ DO icolor = 1, ncolor
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
   END DO
   
-  !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ig, ifsr, ixy, ibd)
+  !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ifsr, ixy, ibd)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   !$OMP DO SCHEDULE(GUIDED)
@@ -152,7 +152,7 @@ DO icolor = 1, ncolor
   IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, jcolor)
 END DO
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr)
 !$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt
@@ -264,7 +264,7 @@ END IF
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nAsyRay; jinc = 1
 ELSE
-  jbeg = nAsyRay; jend = 1; jinc = -1
+  jend = 1; jbeg = nAsyRay; jinc = -1
 END IF
 ! ----------------------------------------------------
 DO imray = jbeg, jend, jinc
@@ -286,9 +286,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2;
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2
   ELSE
-    ipst = nPinRay; iped = 1; ipinc = -1; isfst = 2; isfed = 1;
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc
@@ -316,7 +316,7 @@ DO imray = jbeg, jend, jinc
     IF (idir .EQ. 1) THEN
       isgst = 1; isged = nRaySeg; isginc = 1
     ELSE
-      isgst = nRaySeg; isged = 1; isginc = -1
+      isged = 1; isgst = nRaySeg; isginc = -1
     END IF
     
     DO iRaySeg = isgst, isged, isginc
@@ -331,7 +331,7 @@ DO imray = jbeg, jend, jinc
         ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
         
         phid = (PhiAngOut1g(ipol) - src1g(iFSR)) * ExpApp
-                  
+        
         PhiAngOut1g(ipol) = PhiAngOut1g(ipol) - phid
         
         phis1g(iFSR) = phis1g(iFSR) + wtazi(ipol) * phid

@@ -41,7 +41,7 @@ TYPE (ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv, ipol, krot, imRay, iAsy
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
@@ -192,7 +192,17 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               IF (lscat1) phim1g = phim(:, :, iz, ig)
               IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
               
-              IF (ldcmp) DcmpPhiAngIn1g(1:RayInfo%nPolarAngle, 1:2, 1:RayInfo%nModRay, 1:Core%nxya) = FMInfo%AsyPhiAngIn(1:RayInfo%nPolarAngle, ig, 1:2, 1:RayInfo%nModRay, 1:Core%nxya, iz)
+              IF (ldcmp) THEN
+                DO iPol = 1, RayInfo%nPolarAngle
+                  DO kRot = 1, 2
+                    DO imRay = 1, RayInfo%nModRay
+                      DO iAsy = 1, Core%nxya
+                        DcmpPhiAngIn1g(iPol, kRot, imRay, iAsy) = FMInfo%AsyPhiAngIn(iPol, ig, kRot, imRay, iAsy, iz)
+                      END DO
+                    END DO
+                  END DO
+                END DO
+              END IF
             END IF
             
             ! Ray Trace

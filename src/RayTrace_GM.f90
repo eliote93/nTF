@@ -593,7 +593,7 @@ END DO
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1
 ELSE
-  jbeg = nCoreRay; jend = 1; jinc = -1
+  jend = 1; jbeg = nCoreRay; jinc = -1
 END IF
 
 DO icRay = jbeg, jend, jinc

@@ -268,7 +268,7 @@ END IF
 IF (krot .EQ. 2) THEN
   jbeg = nAsyRay; jend = 1; jinc = -1
 ELSE
-  jbeg = 1; jend = nAsyRay; jinc = 1
+  jend = nAsyRay; jbeg = 1; jinc = 1
 END IF
 ! ----------------------------------------------------  
 DO imray = jbeg, jend, jinc
@@ -288,7 +288,7 @@ DO imray = jbeg, jend, jinc
   IF (idir .EQ. 1) THEN
     ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2
   ELSE
-    ipst = nPinRay; iped = 1; ipinc = -1; isfst = 2; isfed = 1
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2
   END IF
   
   DO ipray = ipst, iped, ipinc
@@ -321,7 +321,7 @@ DO imray = jbeg, jend, jinc
     IF (idir .EQ. 1) THEN
       isgst = 1; isged = nRaySeg; isginc = 1
     ELSE
-      isgst = nRaySeg; isged = 1; isginc = -1
+      isged = 1; isgst = nRaySeg; isginc = -1
     END IF
     
     DO iRaySeg = isgst, isged, isginc
@@ -479,7 +479,7 @@ END IF
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nAsyRay; jinc = 1
 ELSE
-  jbeg = nAsyRay; jend = 1; jinc = -1
+  jend = 1; jbeg = nAsyRay; jinc = -1
 END IF
 ! ----------------------------------------------------
 DO imray = jbeg, jend, jinc
@@ -501,9 +501,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2;
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2
   ELSE
-    ipst = nPinRay; iped = 1; ipinc = -1; isfst = 2; isfed = 1;
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc
@@ -533,7 +533,7 @@ DO imray = jbeg, jend, jinc
     IF (idir .EQ. 1) THEN
       isgst = 1; isged = nRaySeg; isginc = 1
     ELSE
-      isgst = nRaySeg; isged = 1; isginc = -1
+      isged = 1; isgst = nRaySeg; isginc = -1
     END IF
     
     DO iRaySeg = isgst, isged, isginc
@@ -549,7 +549,7 @@ DO imray = jbeg, jend, jinc
           ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
           
           phid = (PhiAngOut(ipol, ig) - srcNM(ig, iFSR)) * ExpApp
-                    
+          
           PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
           
           phisNM(ig, iFSR) = phisNM(ig, iFSR) + wtazi(ipol) * phid

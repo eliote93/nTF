@@ -24,7 +24,7 @@ CALL SetRayPEVariables(PE, Core, RayInfo)
 #endif
 
 ! XS
-mesg = 'Allocating Res Iso Info...'
+mesg = 'Allocating Resnant Isotope Information...'
 IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
   
 IF (nTracerCntl%lXsLib .AND. nTracerCntl%lrestrmt .AND. PE%RTmaster) CALL AllocResIsoInfo
