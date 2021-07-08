@@ -5,8 +5,8 @@ SUBROUTINE RayTraceLin_Dcmp(RayInfo, CoreInfo, iz, gb, ge, lJout, lHybrid)
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, phisNM, phimNM, srcNM, xstNM, MocjoutNM, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, &
-                        RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
+USE Moc_Mod,     ONLY : TrackingDat, phisNM, phimNM, srcNM, xstNM, MocjoutNM, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, &
+                        RayTraceDcmp_OMP, RayTraceDcmp_Pn, RayTraceDcmp_LSCASMO, DcmpGatherBndyFlux, DcmpScatterBndyFlux, DcmpLinkBndyFlux
 USE Core_mod,    ONLY : phisSlope, srcSlope
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
@@ -64,11 +64,11 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%srcSlope => srcSlope(:, :, :, iz) ! Lin. CASMO
 END DO
 
-DcmpPhiAngOut(:, gb:ge, :, :, :) = ZERO
+DcmpPhiAngOutNg(:, gb:ge, :, :, :) = ZERO
 ! ----------------------------------------------------
 DO color = startColor, endColor, colorInc
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
+  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFlux(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
 #endif
 
   !$OMP PARALLEL PRIVATE(ithr, iAsy, AsyType)
@@ -76,8 +76,8 @@ DO color = startColor, endColor, colorInc
   !$ ithr = omp_get_thread_num()+1
   
   TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
-  TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
-  TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
+  TrackingDat(ithr)%DcmpPhiAngInNg  => DcmpPhiAngInNg
+  TrackingDat(ithr)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
   !$OMP BARRIER
   !$OMP DO SCHEDULE(GUIDED)
   DO iAsy = PE%myAsyBeg, PE%myAsyEnd
@@ -95,10 +95,10 @@ DO color = startColor, endColor, colorInc
   !$OMP END PARALLEL
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
+  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFlux(RayInfo, DcmpPhiAngOutNg)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+  IF (PE%RTMASTER) CALL DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
 END DO
 
 NULLIFY (Asy)
@@ -116,7 +116,7 @@ USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,       
                         AsyInfo_Type,       PinInfo_Type,       Cell_Type,          DcmpAsyRayInfo_Type
 USE Moc_Mod,    ONLY :  nMaxRaySeg,         nMaxCellRay,        nMaxAsyRay,         nMaxCoreRay,            &
                         Expa,               Expb,               ApproxExp,          TrackingDat,            &
-                        DcmpPhiAngIn,       DcmpPhiAngOut,      TrackRotRayLSDcmp_CASMO
+                        DcmpPhiAngInNg,       DcmpPhiAngOutNg,      TrackRotRayLSDcmp_CASMO
 USE geom,       ONLY :  ng
 USE PE_Mod,     ONLY :  PE
 
@@ -255,7 +255,7 @@ INTEGER, POINTER :: FsrIdx(:, :),  ExpAppIdx(:, :, :)
 REAL, POINTER :: OptLenList(:, :, :)
 REAL, POINTER :: srcC(:, :), srcSlope(:, :, :), xstNM(:, :)
 REAL, POINTER :: PhiAngOut(:, :, :), PhiAngInNM(:, :, :)
-REAL, POINTER :: DcmpPhiAngOut(:, :, :, :, :), DcmpPhiAngIn(:, :, :, :, :)
+REAL, POINTER :: DcmpPhiAngOutNg(:, :, :, :, :), DcmpPhiAngInNg(:, :, :, :, :)
 REAL, POINTER :: EXPA(:, :), EXPB(:, :)
 REAL, POINTER :: E1(:, :, :, :), E3(:, :, :, :), R1(:, :, :, :), R3(:, :, :, :)
 REAL, POINTER :: cmOptLen(:, :, :, :), cmOptLenInv(:, :, :, :)
@@ -310,8 +310,8 @@ srcC => TrackingDat%srcNM; srcSlope => TrackingDat%srcSlope
 xstNM => TrackingDat%xstNM
 PhiAngOut => TrackingDat%PhiAngOutnm
 PhiAngInNM => TrackingDat%PhiAngInNM
-DcmpPhiAngIn => TrackingDat%DcmpPhiAngIn
-DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
+DcmpPhiAngInNg => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
 EXPA => TrackingDat%EXPA
 EXPB => TrackingDat%EXPB
 E1 => TrackingDat%E1; E3 => TrackingDat%E3
@@ -417,7 +417,7 @@ DO irot = 1, 2
   IF (DcmpAsyRay%lRotRayBeg(irot)) THEN
     phiobd(1 : nPolarAng, gb : ge) = PhiAngInNM(1 : nPolarAng, gb : ge, PhiAnginSvIdx(irot))
   ELSE
-    phiobd(1 : nPolarAng, gb : ge) = DcmpPhiAngIn(1 : nPolarAng, gb : ge, irot, iRay, iAsy)
+    phiobd(1 : nPolarAng, gb : ge) = DcmpPhiAngInNg(1 : nPolarAng, gb : ge, irot, iRay, iAsy)
   END IF
   jinc = 1; jbeg = 1; jend = nAsyRay
   IF(irot .eq. 2) THEN
@@ -514,7 +514,7 @@ DO irot = 1, 2
       END IF
     END IF
   END DO
-  DcmpPhiAngOut(1 : nPolarAng, gb : ge, irot, iRay, iAsy) = phiobd(1 : nPolarAng, gb : ge)
+  DcmpPhiAngOutNg(1 : nPolarAng, gb : ge, irot, iRay, iAsy) = phiobd(1 : nPolarAng, gb : ge)
 END DO
 
 NULLIFY(AziAng); NULLIFY(PolarAng)

@@ -314,12 +314,20 @@ IF (nTracerCntl%lDomainDcmp) THEN
             surfphi = atil * myphi + (slgh - atil) * nghphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN
-              AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = surfphi / slgh
+              IF (nTracerCntl%lNodeMajor) THEN
+                AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = surfphi / slgh
+              ELSE
+                AsyPhiAngIn(1:nPolarAng, idir, icnt, iAsy, ig, iz) = surfphi / slgh
+              END IF
             ELSE
               surfphi = surfphi + ahat * (myphi + nghphi)
               fmult   = surfphi / superJout(3, ingh, isxy, iz, ig)
               
-              AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
+              IF (nTracerCntl%lNodeMajor) THEN
+                AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
+              ELSE
+                AsyPhiAngIn(1:nPolarAng, idir, icnt, iAsy, ig, iz) = AsyPhiAngIn(:, idir, icnt, iAsy, ig, iz) * fmult
+              END IF
             END IF
           END DO
         END DO

@@ -11,7 +11,7 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisNM, PhiAngInNM, MocJoutNM, xstNM, srcNM, phimNM, srcmNM, &
-                        RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceP1_Dcmp, RayTraceLin_Dcmp, DcmpPhiAngIn, DcmpPhiAngIn1g, DcmpGatherCurrent, DcmpGatherCurrent1g
+                        RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceP1_Dcmp, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrent, DcmpGatherCurrent1g
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
@@ -192,17 +192,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               IF (lscat1) phim1g = phim(:, :, iz, ig)
               IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
               
-              IF (ldcmp) THEN
-                DO iPol = 1, RayInfo%nPolarAngle
-                  DO kRot = 1, 2
-                    DO imRay = 1, RayInfo%nModRay
-                      DO iAsy = 1, Core%nxya
-                        DcmpPhiAngIn1g(iPol, kRot, imRay, iAsy) = FMInfo%AsyPhiAngIn(iPol, ig, kRot, imRay, iAsy, iz)
-                      END DO
-                    END DO
-                  END DO
-                END DO
-              END IF
+              IF (ldcmp) DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)
             END IF
             
             ! Ray Trace
@@ -299,7 +289,7 @@ ELSE
         
         IF (lscat1) phimNM => phim(:, :, :, iz)
         
-        IF (ldcmp) DcmpPhiAngIn => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
+        IF (ldcmp) DcmpPhiAngInNg => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
         
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNM, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit

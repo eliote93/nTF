@@ -6,7 +6,7 @@ USE OMP_LIB
 USE allocs
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBoundaryFlux1g, DcmpScatterBoundaryFlux1g, DcmpLinkBoundaryFlux1g
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBndyFlux1g, DcmpScatterBndyFlux1g, DcmpLinkBndyFlux1g
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
@@ -82,7 +82,7 @@ DO icolor = 1, ncolor
   END IF
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
+  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
 #endif
   
   DO ithr = 1, nthr
@@ -146,10 +146,10 @@ DO icolor = 1, ncolor
   !$OMP END PARALLEL
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux1g(RayInfo, DcmpPhiAngOut1g)
+  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFlux1g(RayInfo, DcmpPhiAngOut1g)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, jcolor)
+  IF (PE%RTMASTER) CALL DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, jcolor)
 END DO
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr)

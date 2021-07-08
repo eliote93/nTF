@@ -477,7 +477,7 @@ TYPE TrackingDat_Type
   
   ! Dcmp.
   REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
-  REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+  REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 END TYPE
 
 TYPE RayInfo4CMFD_TYPE

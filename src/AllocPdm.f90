@@ -102,8 +102,14 @@ CALL dmalloc0(psicd, 1, nxy, myzb, myze)
 CALL dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, myzb, myze, 1, ng)
 
 IF (nTracerCntl%lDomainDcmp) THEN
-  ALLOCATE (AsyPhiAngIn (nPolar, ng, 2, nModRay, nxya, myzb : myze)); AsyPhiAngIn = ONE
-ENDIF
+  IF (nTracerCntl%lNodeMajor) THEN
+    ALLOCATE (AsyPhiAngIn (nPolar, ng, 2, nModRay, nxya, myzb:myze))
+  ELSE
+    ALLOCATE (AsyPhiAngIn (nPolar, 2, nModRay, nxya, ng, myzb:myze))
+  END IF
+  
+  AsyPhiAngIn = ONE
+END IF
 
 ! Flux Moments
 IF (nTracerCntl%lScat1) THEN
@@ -165,7 +171,7 @@ IF (nTracerCntl%lScat1)  FmInfo%phim        => phim
 RayInfo4CMfd%PhiAngIn => PhiAngIn
 
 IF (nTracerCntl%lDomainDcmp) THEN
-  FMInfo%AsyPhiAngIn       => AsyPhiAngIn
+  FMInfo      %AsyPhiAngIn => AsyPhiAngIn
   RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
 END IF
 ! ----------------------------------------------------
@@ -178,7 +184,7 @@ USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
 USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, phim1g, &
-                    phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, phimnm, DcmpPhiAngOut, DcmpPhiAngIn, DcmpPhiAngOut1g, DcmpPhiAngIn1g
+                    phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, phimnm, DcmpPhiAngOutNg, DcmpPhiAngInNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
@@ -248,10 +254,9 @@ END IF
 ! Dcmp.
 IF (nTracerCntl%lDomainDcmp) THEN
   IF (nTracerCntl%lNodeMajor) THEN
-    CALL dmalloc(DcmpPhiAngOut, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngOutNg, nPolar, ng, 2, RayInfo%nModRay, Core%nxya)
   ELSE
-    CALL dmalloc(DcmpPhiAngIn1g,  nPolar, 2, RayInfo%nModRay, Core%nxya)
-    CALL dmalloc(DcmpPhiAngOut1g, nPolar, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngOut1g, nPolar,     2, RayInfo%nModRay, Core%nxya)
   END IF
 END IF
 ! ----------------------------------------------------

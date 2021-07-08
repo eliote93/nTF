@@ -369,7 +369,7 @@ USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,       
                         RotRayInfo_Type,    CellRayInfo_type,   DcmpAsyRayInfo_Type
 USE Moc_Mod,    ONLY :  nMaxRaySeg,         nMaxCellRay,        nMaxAsyRay,         nMaxCoreRay,            &
                         ExpA,               ExpB,               ApproxExp,          TrackingDat,            &
-                        DcmpPhiAngIn,       DcmpPhiAngOut,      TrackRotRayLSDcmp_CASMO
+                        DcmpPhiAngInNg,       DcmpPhiAngOutNg,      TrackRotRayLSDcmp_CASMO
 USE geom,       ONLY :  ng
 USE PE_Mod,     ONLY :  PE
 USE ALLOCS
@@ -451,8 +451,8 @@ IF(lfirst) THEN
     TrackingDat(tid)%PhiAngInnm => PhiAngInnm
     TrackingDat(tid)%srcnm => srcnm; TrackingDat(tid)%srcSlope => srcSlope(:, :, :, iz)
     TrackingDat(tid)%xstnm => xstnm
-    TrackingDat(tid)%DcmpPhiAngIn => DcmpPhiAngIn
-    TrackingDat(tid)%DcmpPhiAngOut => DcmpPhiAngOut
+    TrackingDat(tid)%DcmpPhiAngInNg => DcmpPhiAngInNg
+    TrackingDat(tid)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
     TrackingDat(tid)%lAllocLinSrc = .TRUE.
   ENDDO
 ENDIF

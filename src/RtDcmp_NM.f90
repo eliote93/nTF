@@ -6,7 +6,7 @@ USE OMP_LIB
 USE allocs
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn, DcmpPhiAngOut, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBoundaryFlux, DcmpScatterBoundaryFlux, DcmpLinkBoundaryFlux
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBndyFlux, DcmpScatterBndyFlux, DcmpLinkBndyFlux
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
@@ -68,7 +68,7 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%xstNM => xstNM
 END DO
 
-DcmpPhiAngOut(:, gb:ge, :, :, :) = ZERO
+DcmpPhiAngOutNg(:, gb:ge, :, :, :) = ZERO
 phisNM(gb:ge, :) = ZERO
 IF (ljout) MocjoutNM(:, gb:ge, :, :) = ZERO
 ! ----------------------------------------------------
@@ -82,13 +82,13 @@ DO icolor = 1, ncolor
   END IF
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
+  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFlux(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
 #endif
   
   DO ithr = 1, nthr
     TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
-    TrackingDat(ithr)%DcmpPhiAngIn  => DcmpPhiAngIn
-    TrackingDat(ithr)%DcmpPhiAngOut => DcmpPhiAngOut
+    TrackingDat(ithr)%DcmpPhiAngInNg  => DcmpPhiAngInNg
+    TrackingDat(ithr)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
   END DO
   
   !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ig, ifsr, ixy, ibd)
@@ -150,10 +150,10 @@ DO icolor = 1, ncolor
   !$OMP END PARALLEL
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
+  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFlux(RayInfo, DcmpPhiAngOutNg)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, jcolor)
+  IF (PE%RTMASTER) CALL DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, jcolor)
 END DO
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
@@ -208,7 +208,7 @@ REAL, POINTER, DIMENSION(:)         :: LenSeg
 REAL, POINTER, DIMENSION(:,:)       :: phisNM, srcNM, xstNM, EXPA, EXPB, wtang
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM, wtsurf
 REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER, POINTER, DIMENSION(:) :: LocalFsrIdx, AsyRayList, DirList, AziList
 
@@ -240,8 +240,8 @@ srcNM         => TrackingDat%srcNM
 xstNM         => TrackingDat%xstNM
 PhiAngInNM    => TrackingDat%PhiAngInNM
 joutNM        => TrackingDat%joutNM
-DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
-DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
+DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
 EXPA          => TrackingDat%EXPA
 EXPB          => TrackingDat%EXPB
 wtang         => TrackingDat%wtang
@@ -262,7 +262,7 @@ PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
   PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM  (1:nPolarAng, gb:ge, PhiAnginSvIdx)
 ELSE
-  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngIn(1:nPolarAng, gb:ge, krot, iRay, iAsy)
+  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngInNg(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF
   
 IF (krot .EQ. 2) THEN
@@ -358,7 +358,7 @@ DO imray = jbeg, jend, jinc
   END DO
 END DO
 
-DcmpPhiAngOut(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut
+DcmpPhiAngOutNg(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut
 ! ----------------------------------------------------
 ! Geo.
 NULLIFY (Pin)
@@ -383,8 +383,8 @@ NULLIFY (PhiAngInNM)
 NULLIFY (LocalFsrIdx)
 
 ! Dcmp.
-NULLIFY (DcmpPhiAngIn)
-NULLIFY (DcmpPhiAngOut)
+NULLIFY (DcmpPhiAngInNg)
+NULLIFY (DcmpPhiAngOutNg)
 NULLIFY (AsyRayList)
 NULLIFY (DirList)
 NULLIFY (AziList)
@@ -417,7 +417,7 @@ TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 REAL, POINTER, DIMENSION(:,:)       :: phisNM, srcNM, xstNM, EXPA, EXPB, wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
 
@@ -447,8 +447,8 @@ srcNM         => TrackingDat%srcNM
 xstNM         => TrackingDat%xstNM
 PhiAngInNM    => TrackingDat%PhiAngInNM
 joutNM        => TrackingDat%joutNM
-DcmpPhiAngIn  => TrackingDat%DcmpPhiAngIn
-DcmpPhiAngOut => TrackingDat%DcmpPhiAngOut
+DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
 EXPA          => TrackingDat%EXPA
 EXPB          => TrackingDat%EXPB
 wtang         => TrackingDat%wtang
@@ -473,7 +473,7 @@ PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
   PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM  (1:nPolarAng, gb:ge, PhiAnginSvIdx)
 ELSE
-  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngIn(1:nPolarAng, gb:ge, krot, iRay, iAsy)
+  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngInNg(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF
 
 IF (krot .EQ. 1) THEN
@@ -573,7 +573,7 @@ DO imray = jbeg, jend, jinc
   END DO
 END DO
 
-DcmpPhiAngOut(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut(1:nPolarAng, gb:ge)
+DcmpPhiAngOutNg(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut(1:nPolarAng, gb:ge)
 ! ----------------------------------------------------
 ! Geo.
 NULLIFY (Pin)
@@ -598,8 +598,8 @@ NULLIFY (joutNM)
 NULLIFY (AsyRayList)
 NULLIFY (DirList)
 NULLIFY (AziList)
-NULLIFY (DcmpPhiAngIn)
-NULLIFY (DcmpPhiAngOut)
+NULLIFY (DcmpPhiAngInNg)
+NULLIFY (DcmpPhiAngOutNg)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexTrackRotRayDcmp_NM

@@ -15,7 +15,7 @@ REAL, POINTER, DIMENSION(:,:,:)   :: phimNM, phiAngInNM, srcmNM
 REAL, POINTER, DIMENSION(:,:,:,:) :: phiaNM, srcAngNM, MocJoutNM
 
 ! Domain Decomposition
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:,:) :: DcmpColorAsy
@@ -957,7 +957,7 @@ REAL :: FxrAvgPhi(ng)
 
 END FUNCTION FxrAvgPhi
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBoundaryFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngIn, DcmpPhiAngOut, gb, ge, color)
+SUBROUTINE DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 
@@ -967,14 +967,14 @@ TYPE (CoreInfo_Type) :: CoreInfo
 TYPE (RayInfo_Type)  :: RayInfo
 
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn, DcmpPhiAngOut
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER :: gb, ge
 INTEGER, OPTIONAL :: color
 
-END SUBROUTINE DcmpLinkBoundaryFlux
+END SUBROUTINE DcmpLinkBndyFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBoundaryFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, color)
+SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, color)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 
@@ -988,9 +988,9 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, OPTIONAL :: color
 
-END SUBROUTINE DcmpLinkBoundaryFlux1g
+END SUBROUTINE DcmpLinkBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBoundaryFlux(RayInfo, PhiAngInNM, DcmpPhiAngIn)
+SUBROUTINE DcmpScatterBndyFlux(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -999,11 +999,11 @@ IMPLICIT NONE
 TYPE (RayInfo_Type) :: RayInfo
 
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngIn
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg
 
-END SUBROUTINE DcmpScatterBoundaryFlux
+END SUBROUTINE DcmpScatterBndyFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBoundaryFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
+SUBROUTINE DcmpScatterBndyFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -1014,7 +1014,7 @@ TYPE (RayInfo_Type) :: RayInfo
 REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g
 
-END SUBROUTINE DcmpScatterBoundaryFlux1g
+END SUBROUTINE DcmpScatterBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherCurrent(CoreInfo, joutNM)
 
@@ -1040,7 +1040,7 @@ REAL, POINTER, DIMENSION(:,:,:) :: jout
 
 END SUBROUTINE DcmpGatherCurrent1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherBoundaryFlux(RayInfo, DcmpPhiAngOut)
+SUBROUTINE DcmpGatherBndyFlux(RayInfo, DcmpPhiAngOutNg)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -1048,11 +1048,11 @@ IMPLICIT NONE
 
 TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:,:,:)  :: DcmpPhiAngOut
+REAL, POINTER, DIMENSION(:,:,:,:,:)  :: DcmpPhiAngOutNg
 
-END SUBROUTINE DcmpGatherBoundaryFlux
+END SUBROUTINE DcmpGatherBndyFlux
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherBoundaryFlux1g(RayInfo, DcmpPhiAngOut1g)
+SUBROUTINE DcmpGatherBndyFlux1g(RayInfo, DcmpPhiAngOut1g)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -1062,7 +1062,7 @@ TYPE (RayInfo_Type) :: RayInfo
 
 REAL, POINTER, DIMENSION(:,:,:,:)  :: DcmpPhiAngOut1g
 
-END SUBROUTINE DcmpGatherBoundaryFlux1g
+END SUBROUTINE DcmpGatherBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FluxUnderRelaxation(Core, Phis1g, Phis, w, iz, ig, PE)
 
