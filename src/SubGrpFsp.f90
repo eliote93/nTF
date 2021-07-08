@@ -426,18 +426,18 @@ END SUBROUTINE SubGrpFsp_ISO
 SUBROUTINE SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
 
 USE allocs
-USE PARAM,          ONLY : FALSE, ONE, ZERO, EPSM3, TRUE, VoidCell, mesg
-USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_Type, PE_TYPE, THInfo_Type
-USE CNTL,           ONLY : nTracerCntl_Type
-USE FILES,          ONLY : IO8
-USE SUBGRP_MOD,     ONLY : SetPlnLsigP_MLG, SetPlnLsigP_1gMLG, SubGrpFspErr, EquipXSGen_MLG, EquipXsGen_1gMLG, SetSubGrpSrc1g, UpdtFnAdj, UpdtFtAdj
-USE MOC_MOD,        ONLY : RayTraceGM_OMP, RayTraceDcmp_GM
-USE IOUTIL,         ONLY : message
-USE TIMER,          ONLY : nTracer_dclock, TimeChk
-USE XSLib_mod,      ONLY : mlgdata, mlgdata0
+USE PARAM,      ONLY : FALSE, ONE, ZERO, EPSM3, TRUE, VoidCell, mesg
+USE TYPEDEF,    ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_Type, PE_TYPE, THInfo_Type
+USE CNTL,       ONLY : nTracerCntl_Type
+USE FILES,      ONLY : IO8
+USE SUBGRP_MOD, ONLY : SetPlnLsigP_MLG, SetPlnLsigP_1gMLG, SubGrpFspErr, EquipXSGen_MLG, EquipXsGen_1gMLG, SetSubGrpSrc1g, UpdtFnAdj, UpdtFtAdj
+USE MOC_MOD,    ONLY : RayTraceGM_OMP, RayTraceDcmp_GM, DcmpPhiAngIn1g
+USE IOUTIL,     ONLY : message
+USE TIMER,      ONLY : nTracer_dclock, TimeChk
+USE XSLib_mod,  ONLY : mlgdata, mlgdata0
 
 #ifdef MPI_ENV
-USE MPICOMM_MOD,    ONLY : MPI_SYNC, MPI_MAX_REAL, MPI_MAX_INT, BCAST, REDUCE
+USE MPICOMM_MOD, ONLY : MPI_SYNC, MPI_MAX_REAL, MPI_MAX_INT, BCAST, REDUCE
 #endif
 
 IMPLICIT NONE
@@ -499,6 +499,8 @@ CALL dmalloc(xstr1g,  nFsr)
 CALL dmalloc(src1g,   nFsr)
 CALL dmalloc(PhiAngIn1g, nPolar, nPhiAngSv)
 CALL dmalloc(SigLamPot, nFxr)
+
+IF (ldcmp) CALL dmalloc(DcmpPhiAngIn1g, nPolar, 2, RayInfo%nModRay, Core%nxya)
 
 WRITE (mesg,'(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), " C"
 IF (master) CALL message(io8,TRUE,TRUE,mesg)
@@ -671,9 +673,10 @@ DO iz = myzb, myze
     myitersum = myitersum + niter
   END IF
 END DO
-
-DEALLOCATE (xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
 ! ----------------------------------------------------
+DEALLOCATE (xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
+IF (ldcmp) DEALLOCATE (DcmpPhiAngIn1g)
+
 nTracerCntl%lSubGrpSweep = TRUE
 itersum = myitersum
 
