@@ -188,7 +188,7 @@ END SUBROUTINE HexRayInfo4CmfdGen
 SUBROUTINE HexSetMocPhiIn(Core, Pin, superJout, PinXS, ng, nxy, myzb, myze, ItrCntl, nTracerCntl)
 
 USE MKL_3D,      ONLY : mklGeom, mklCMFD, superPin_Type
-USE PARAM,       ONLY : ZERO
+USE PARAM,       ONLY : ZERO, HALF, RFOUR
 USE TYPEDEF,     ONLY : CoreInfo_Type, PinXs_Type
 USE geom,        ONLY : ncbd
 USE ioutil,      ONLY : terminate
@@ -310,7 +310,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
             
             atil = PinXS(isxy, iz)%atil(ingh, ig)
             ahat = PinXS(isxy, iz)%ahat(ingh, ig)
-            
+                        
             surfphi = atil * myphi + (slgh - atil) * nghphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN

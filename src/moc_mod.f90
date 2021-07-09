@@ -140,7 +140,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_Dcmp(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -156,7 +156,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocjoutNM
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 
-END SUBROUTINE RayTraceP1_Dcmp
+END SUBROUTINE RayTraceDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLin_Dcmp(RayInfo, CoreInfo, iz, gb, ge, lJout, lHybrid)
 
@@ -324,7 +324,7 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_Pn(RayInfo, CoreInfo, phisnm, phimnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
+SUBROUTINE RtDcmpPnThr_NM(RayInfo, CoreInfo, phisnm, phimnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -340,7 +340,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 INTEGER :: iz, iAsy, gb, ge, ScatOd
 LOGICAL :: ljout
 
-END SUBROUTINE RayTraceDcmp_Pn
+END SUBROUTINE RtDcmpPnThr_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RecTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 

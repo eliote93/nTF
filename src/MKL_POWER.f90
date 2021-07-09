@@ -1,259 +1,91 @@
 #include <defines.h>
-!--- CNJ Edit : 3D CMFD Acceleration Modules with Intel MKL 
+! 3D CMFD Acceleration Modules with Intel MKL 
+! Power Method Routines
 #ifdef __INTEL_MKL
-
-!--- Chebyshev Acceleration Routines --------------------------------------------------------------
-
-MODULE MKL_CHEBYSHEV
-
-USE MKL_3D
-IMPLICIT NONE
-
-REAL :: sigma, xsi, err(2)
-REAL, POINTER :: chebyCoeff(:, :)
-INTEGER :: Order
-
-CONTAINS
-
-SUBROUTINE ChebyshevInit()
-
-IMPLICIT NONE
-
-INTEGER :: m, l
-
-ALLOCATE(chebyCoeff(0 : mklCntl%chebyOrder, 0 : mklCntl%chebyOrder))
-chebyCoeff = 0.0
-
-!--- Zeroth Order
-chebyCoeff(0, 0) = 1.0
-
-!--- First Order
-chebyCoeff(1, 1) = 1.0
-
-!--- Second Order
-chebyCoeff(0, 2) = - 1.0
-chebyCoeff(2, 2) = 2.0
-
-!--- Higher Order
-DO m = 3, mklCntl%chebyOrder
-  chebyCoeff(0, m) = - chebyCoeff(0, m - 2)
-  DO l = 1, m
-    chebyCoeff(l, m) = chebyCoeff(l - 1, m - 1) * 2.0 - chebyCoeff(l, m - 2)
-  ENDDO
-ENDDO
-
-END SUBROUTINE
-
-SUBROUTINE ChebyshevReset()
-USE IOUTIL,         ONLY : message
-USE FILES,          ONLY : io8
-USE PE_MOD,         ONLY : PE
-IMPLICIT NONE
-
-Order = 0
-
-WRITE(mesg, '(a)') 'Restarting Chebyshev Acceleration Cycle...'
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
-
-WRITE(mesg, '(a, f6.4)') 'Estimated Dominance Ratio = ', sigma
-IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
-
-END SUBROUTINE
-
-SUBROUTINE ChebyshevAcc(CMFD, lAcc)
-USE PE_MOD,         ONLY : PE
-IMPLICIT NONE
-
-TYPE(mklCMFD_Type) :: CMFD
-LOGICAL :: lAcc
-
-INTEGER :: n, ng, nxy, nzCMFD
-REAL :: alpha, beta, gamma, norm(2)
-REAL, POINTER :: errVec(:, :)
-
-ng = CMFD%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-n = ng * nxy * nzCMFD
-
-IF (lAcc) THEN
-  
-  !--- Determine Extrapolation Parameters
-  
-  IF (Order .EQ. 0) THEN
-    alpha = 1.0
-    beta = 0.0
-  ELSEIF (Order .EQ. 1) THEN
-    alpha = 2.0 / (2.0 - sigma)
-    beta = 0.0
-  ELSE
-    gamma = 2.0 / sigma - 1.0
-    alpha = 4.0 / sigma * Chebyshev(gamma, Order - 1) / Chebyshev(gamma, Order)
-    beta = Chebyshev(gamma, Order - 2) / Chebyshev(gamma, Order)
-  ENDIF
-
-  !--- Error Monitering
-  
-  ALLOCATE(errVec(n, 1))
-  
-  CALL vdsub(n, CMFD%phis(:, :, :), CMFD%phisd(:, :, :, 1), errVec(:, 1))
-  
-  norm(1) = normMPI(errVec(:, 1), n, PE%MPI_CMFD_COMM)
-  
-  err(2) = norm(1)
-  IF (Order .EQ. 1) err(1) = norm(1)
-  
-  DEALLOCATE(errVec)
-  
-  !--- Extrapolation
-  
-  CALL daxpby(n, 1.0 - alpha + beta, CMFD%phisd(:, :, :, 1), 1, alpha, CMFD%phis, 1)
-  CALL daxpy(n, -beta, CMFD%phisd(:, :, :, 2), 1, CMFD%phis, 1)
-  
-  !--- Increase Polynomial Order
-  
-  Order = Order + 1
-  
-  !--- Update Dominance Ratio and Check Cycle Status
-  
-  IF (Order .GT. 2) CALL ChebyshevCheckStatus()
-  
-ELSE
-
-  !--- Estimate Dominance Ratio
-
-  ALLOCATE(errVec(n, 2))
-
-  CALL vdsub(n, CMFD%phis(:, :, :), CMFD%phisd(:, :, :, 1), errVec(:, 1))
-  CALL vdsub(n, CMFD%phisd(:, :, :, 1), CMFD%phisd(:, :, :, 2), errVec(:, 2))
-
-  norm(1) = normMPI(errVec(:, 1), n, PE%MPI_CMFD_COMM)
-  norm(2) = normMPI(errVec(:, 2), n, PE%MPI_CMFD_COMM)
-  
-  sigma = norm(1) / norm(2)
-  
-  DEALLOCATE(errVec)
-  
-ENDIF
-
-CALL dcopy(n, CMFD%phisd(:, :, :, 1), 1, CMFD%phisd(:, :, :, 2), 1)
-CALL dcopy(n, CMFD%phis(:, :, :), 1, CMFD%phisd(:, :, :, 1), 1)
-  
-END SUBROUTINE
-
-SUBROUTINE ChebyshevCheckStatus()
-
-IMPLICIT NONE
-
-REAL :: gamma
-
-IF (Order .GT. mklCntl%chebyOrder) THEN
-  CALL ChebyshevReset(); RETURN
-ENDIF
-
-IF (mklCntl%lDcpl) RETURN
-
-! gamma = 2.0 / sigma - 1.0
-! xsi = err(2) / err(1) * Chebyshev(gamma, Order - 1)
-!  
-! IF (xsi .LE. 1.0) gamma = dcos(dacos(xsi) / (Order - 1))
-! IF (xsi .GT. 1.0) gamma = dcosh(dacosh(xsi) / (Order - 1))
-! 
-! IF (xsi .GT. 1.0) THEN
-!   sigma = sigma * (1.0 + gamma) / 2.0  
-!   CALL ChebyshevReset()
-! ENDIF
-
-END SUBROUTINE
-
-FUNCTION Chebyshev(x, m) RESULT(val)
-
-IMPLICIT NONE
-
-REAL :: x, val
-INTEGER :: m, l
-
-val = 0.0
-DO l = 0, m
-  val = val + chebyCoeff(l, m) * x ** l
-ENDDO
-
-END FUNCTION
-
-END MODULE
-    
-!--- Power Method Routines ------------------------------------------------------------------------
-    
 MODULE MKL_POWER
 
 USE MKL_3D
 IMPLICIT NONE
 
 CONTAINS
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetCsrBiCGSystem(CMFD, PinXS, l3dim, lPrecond, seigv)
-USE PARAM
-USE geom,           ONLY : ncbd
-USE TYPEDEF,        ONLY : PinXS_Type
-USE MKL_BILU,       ONLY : MKL_PrepareILU,     MKL_PrepareSPAI
+
+USE PARAM,    ONLY : FALSE
+USE geom,     ONLY : ncbd
+USE TYPEDEF,  ONLY : PinXS_Type
+USE MKL_BILU, ONLY : MKL_PrepareILU, MKL_PrepareSPAI
+
 IMPLICIT NONE
 
 TYPE(mklCMFD_Type) :: CMFD
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
+TYPE(PinXS_Type), POINTER, DIMENSION(:,:) :: PinXS
 LOGICAL :: l3dim, lPrecond
 REAL :: seigv
+! ----------------------------------------------------
+TYPE(superPin_Type), POINTER, DIMENSION(:) :: Pin
 
-TYPE(superPin_Type), POINTER :: Pin(:)
-INTEGER, POINTER :: pinMap(:), pinMapRev(:), planeMap(:)
-INTEGER :: DOWN, UP, SELF
-INTEGER :: ir, ic, iz, izf, ig, igf, igt, ibd, isurf, ipin, ipin_map, ineighpin
-INTEGER :: dz, gb, ge
-INTEGER :: ng, nxy, nzCMFD, nbd
-REAL, POINTER :: PinVolFm(:, :), hzfm(:)
+INTEGER, POINTER, DIMENSION(:) :: pinMap, pinMapRev, planeMap
+INTEGER :: DOWN, UP, SELF, ng, nxy, nzCMFD, nbd
+INTEGER :: ir, ic, iz, izf, ig, igf, igt, ibd, isurf, ipin, ipin_map, ineighpin, dz, gb, ge
+
+REAL, POINTER, DIMENSION(:)   :: hzfm
+REAL, POINTER, DIMENSION(:,:) :: PinVolFm
+
 REAL :: diagVal(ncbd+3), Dtil, Dhat, val
+! ----------------------------------------------------
 
-Pin => mklGeom%superPin
-ng = CMFD%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-hzfm => mklGeom%hzfm
-pinMap => mklGeom%pinMap
-pinMapRev => mklGeom%pinMapRev
+ng        = CMFD%ng
 planeMap => CMFD%planeMap
-PinVolFm => mklGeom%PinVolFm
+
+Pin       => mklGeom%superPin
+nxy        = mklGeom%nxy
+nzCMFD     = mklGeom%nzCMFD
+hzfm      => mklGeom%hzfm
+pinMap    => mklGeom%pinMap
+pinMapRev => mklGeom%pinMapRev
+PinVolFm  => mklGeom%PinVolFm
 
 DOWN = ncbd+1
 UP   = ncbd+2
 SELF = ncbd+3
 
-!--- Set Group Major Diffusion Operator
-
+! Set Group Major Diffusion Operator
 !$OMP PARALLEL PRIVATE(diagVal, iz, ipin_map, Dtil, Dhat, isurf, ineighpin, dz, ir, ic, val)
 !$OMP DO SCHEDULE(DYNAMIC)
 DO ig = 1, ng
   CALL createCsr(CMFD%M(ig), (ncbd+3) * nxy * nzCMFD, nxy * nzCMFD, nxy * nzCMFD)
+  
   DO izf = 1, nzCMFD
     iz = planeMap(izf)
+    
     DO ipin = 1, nxy
-      ir = ipin + (izf - 1) * nxy
+      ir       = ipin + (izf - 1) * nxy
       ipin_map = pinMap(ipin)
-      diagVal = 0.0
+      diagVal  = 0.0
+      
       DO ibd = 1, pin(ipin_map)%nNgh
         Dtil = PinXS(ipin_map, iz)%Dtil(ibd, ig)
         Dhat = PinXS(ipin_map, iz)%Dhat(ibd, ig)
-        diagVal(ibd) = - (Dtil + Dhat) * hzfm(izf)
-        diagVal(SELF) = diagVal(SELF) + (Dtil - Dhat) * hzfm(izf)
-      ENDDO
+        
+        diagVal(ibd)  = -(Dtil + Dhat) * hzfm(izf)
+        diagVal(SELF) =  (Dtil - Dhat) * hzfm(izf) + diagVal(SELF)
+      END DO
+      
       IF (l3dim) THEN
         DO ibd = DOWN, UP
           Dtil = CMFD%AxDtil(ibd - ncbd, ipin, izf, ig)
           Dhat = CMFD%AxDhat(ibd - ncbd, ipin, izf, ig)
-          diagVal(ibd) = - (Dtil + Dhat) * PinVolFm(ipin, izf) / hzfm(izf)
-          diagVal(SELF) = diagVal(SELF) + (Dtil - Dhat) * PinVolFm(ipin, izf) / hzfm(izf)
-        ENDDO
-      ENDIF
+          
+          diagVal(ibd)  = -(Dtil + Dhat) * PinVolFm(ipin, izf) / hzfm(izf)
+          diagVal(SELF) =  (Dtil - Dhat) * PinVolFm(ipin, izf) / hzfm(izf) + diagVal(SELF)
+        END DO
+      END IF
+      
       diagVal(SELF) = diagVal(SELF) + PinVolFm(ipin, izf) * PinXS(ipin_map, iz)%XSr(ig)
+      
       IF (mklCntl%lShift) diagVal(SELF) = diagVal(SELF) - CMFD%F(ir, ig) * CMFD%Chi(ir, ig) * seigv
+      
       DO ibd = 1, ncbd+3
         isurf = ibd
         
@@ -271,52 +103,57 @@ DO ig = 1, ng
         ELSE
           ineighpin = Pin(ipin_map)%NeighIdx(isurf)
           ineighpin = pinMapRev(ineighpin)
+          
           IF (ineighpin .LE. 0) diagVal(isurf) = 0.0
+          
           IF (ineighpin .EQ. ipin) THEN
             Dtil = PinXS(ipin_map, iz)%Dtil(isurf, ig)
             Dhat = PinXS(ipin_map, iz)%Dhat(isurf, ig)
-            diagVal(SELF) = diagVal(SELF) - (Dtil + Dhat) * hzfm(izf)
+            
+            diagVal(SELF)  = diagVal(SELF) - (Dtil + Dhat) * hzfm(izf)
             diagVal(isurf) = 0.0
-          ENDIF
+          END IF
+          
           dz = 0
         END IF
-        ic = ir + (ineighpin - ipin) + dz * nxy
+        
+        ic  = ir + (ineighpin - ipin) + dz * nxy
         val = diagVal(isurf)
+        
         CALL pushCsr(CMFD%M(ig), val, ir, ic)
-      ENDDO
-    ENDDO
-  ENDDO
+      END DO
+    END DO
+  END DO
+  
   CALL finalizeSortCsr(CMFD%M(ig), FALSE)
-ENDDO
+END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-!--- Factorization
-
+! Factorization
 IF (mklCntl%lPardiso) THEN
   DO ig = 1, ng
     CALL pardisoCreate(CMFD%M(ig))
-  ENDDO
+  END DO
 ELSE
   IF (lPrecond) THEN
     IF (mklCntl%lSPAI) THEN
       !$OMP PARALLEL DO SCHEDULE(DYNAMIC)
       DO ig = 1, ng
         CALL MKL_PrepareSPAI(CMFD%M(ig), CMFD%SPAI(ig))
-      ENDDO
+      END DO
       !$OMP END PARALLEL DO
     ELSE
       !$OMP PARALLEL DO SCHEDULE(DYNAMIC)
       DO ig = 1, ng
         CALL MKL_PrepareILU(CMFD%M(ig), CMFD%ILU(ig))
-      ENDDO
+      END DO
       !$OMP END PARALLEL DO
-    ENDIF
-  ENDIF
-ENDIF
+    END IF
+  END IF
+END IF
 
-!--- Set Axial Off-diagonals for MPI
-
+! Set Axial Off-diagonals for MPI
 IF (l3dim) THEN
   IF (.NOT. mklGeom%lBottom) THEN
     !$OMP PARALLEL PRIVATE(Dtil, Dhat, val)
@@ -325,13 +162,15 @@ IF (l3dim) THEN
       DO ipin = 1, nxy
         Dtil = CMFD%AxDtil(bottom, ipin, 1, ig)
         Dhat = CMFD%AxDhat(bottom, ipin, 1, ig)
-        val = - (Dtil + Dhat) * PinVolFm(ipin, 1) / hzfm(1)
+        val  = - (Dtil + Dhat) * PinVolFm(ipin, 1) / hzfm(1)
+        
         CMFD%AxOffDiag(ipin, bottom, ig) = val
-      ENDDO
-    ENDDO
+      END DO
+    END DO
     !$OMP END DO
     !$OMP END PARALLEL
-  ENDIF
+  END IF
+  
   IF (.NOT. mklGeom%lTop) THEN
     !$OMP PARALLEL PRIVATE(Dtil, Dhat, val)
     !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
@@ -341,15 +180,14 @@ IF (l3dim) THEN
         Dhat = CMFD%AxDhat(top, ipin, nzCMFD, ig)
         val = - (Dtil + Dhat) * PinVolFm(ipin, nzCMFD) / hzfm(nzCMFD)
         CMFD%AxOffDiag(ipin, top, ig) = val
-      ENDDO
-    ENDDO
+      END DO
+    END DO
     !$OMP END DO
     !$OMP END PARALLEL
-  ENDIF
-ENDIF
+  END IF
+END IF
 
-!--- Set Axial Off-diagonals for Level 2 Decoupling
-
+! Set Axial Off-diagonals for Level 2 Decoupling
 IF (l3dim .AND. mklCntl%DcplLv .EQ. 2) THEN
   !$OMP PARALLEL PRIVATE(Dtil, Dhat)
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
@@ -359,22 +197,25 @@ IF (l3dim .AND. mklCntl%DcplLv .EQ. 2) THEN
         IF (izf .NE. 1) THEN
           Dtil = CMFD%AxDtil(bottom, ipin, izf, ig)
           Dhat = CMFD%AxDhat(bottom, ipin, izf, ig)
-          CMFD%dcplAxOffDiag(ipin, izf, bottom, ig) = - (Dtil + Dhat) * PinVolFm(ipin, izf) / hzfm(izf)
-        ENDIF
+          
+          CMFD%dcplAxOffDiag(ipin, izf, bottom, ig) = -(Dtil + Dhat) * PinVolFm(ipin, izf) / hzfm(izf)
+        END IF
         IF (izf .NE. nzCMFD) THEN
           Dtil = CMFD%AxDtil(top, ipin, izf, ig)
           Dhat = CMFD%AxDhat(top, ipin, izf, ig)
+          
           CMFD%dcplAxOffDiag(ipin, izf, top, ig) = - (Dtil + Dhat) * PinVolFm(ipin, izf) / hzfm(izf)
-        ENDIF
-      ENDDO
-    ENDDO
-  ENDDO
+        END IF
+      END DO
+    END DO
+  END DO
   !$OMP END DO
   !$OMP END PARALLEL
-ENDIF
+END IF
+! ----------------------------------------------------
 
-END SUBROUTINE
-
+END SUBROUTINE SetCsrBiCGSystem
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetCsrJacobiSystem(CMFD, PinXS, l3dim, seigv)
 USE PARAM
 USE TYPEDEF,        ONLY : PinXS_Type
@@ -1127,6 +968,5 @@ END SUBROUTINE
 
 END SUBROUTINE
 
-END MODULE
-    
+END MODULE MKL_POWER
 #endif

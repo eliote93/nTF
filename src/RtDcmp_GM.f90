@@ -4,7 +4,7 @@ SUBROUTINE RayTraceDcmp_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, MocJout,
 
 USE OMP_LIB
 USE allocs
-USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
+USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBndyFlux1g, DcmpScatterBndyFlux1g, DcmpLinkBndyFlux1g
 USE PE_MOD,      ONLY : PE

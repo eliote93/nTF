@@ -143,6 +143,7 @@ IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 CALL CMFDPsiUpdt(mklCMFD)
 ! ----------------------------------------------------
 DO WHILE (.NOT. loutConv)
+  ! Iter. : LS
   DO iter = 1, nGroupInfo
     IF (iter .GT. 1) THEN
       GrpBeg = GroupInfo%UpScatRange(1); GrpEnd = GroupInfo%UpScatRange(2)
@@ -171,11 +172,13 @@ DO WHILE (.NOT. loutConv)
     END DO
   END DO
   
+  ! Updt
   CALL CMFDPsiUpdt(mklCMFD)
   CALL CMFDEigUpdt(mklCMFD, eigv)
   
   IF (mklCntl%lDcpl) CALL GetNeighborFlux(mklCMFD)
   
+  ! CHK : Cnv.
   outRes = CMFDResidual(mklCMFD, eigv)
   
   IF (outIter .EQ. 0) outRes0 = outRes
@@ -190,6 +193,7 @@ DO WHILE (.NOT. loutConv)
   WRITE (mesg, '(a9, i9, f22.6, 3x, f10.5, 1p, e15.3)') 'MGOUTER', ItrCntl%CMFDIt, eigv, outErr, outRes
   IF (PE%MASTER) CALL message(io8, FALSE, TRUE, mesg)
   
+  ! ChevyShev
   IF (lChebyshev) THEN
     CALL ChebyshevAcc(mklCMFD, mklCntl%lChebyshev)
     
@@ -198,6 +202,7 @@ DO WHILE (.NOT. loutConv)
   
   IF (mod(outIter, 5) .NE. 0) CYCLE
   
+  ! Ax.
   IF (mklCntl%lAxial .AND. l3dim .AND. .NOT.lFirstCMFD) THEN
     CALL GetNeighborFlux(mklCMFD)
     CALL MKL_AxialSolver(CoreInfo, CmInfo, PinXS, eigv)
@@ -213,6 +218,7 @@ DO WHILE (.NOT. loutConv)
     TimeChk%CmfdInitTime = TimeChk%CmfdInitTime + (CmfdInitEnd - CmfdInitBeg)
   END IF
   
+  ! GC
   IF (lGcCMFD) THEN
     IF (mklCntl%lChebyshev) CALL ChebyshevReset
     

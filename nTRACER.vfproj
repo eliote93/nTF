@@ -308,10 +308,10 @@
 		<File RelativePath=".\src\MocEtc.f90"/>
 		<File RelativePath=".\src\MOCSweep.f90"/></Filter>
 		<Filter Name="Dcmp">
-		<File RelativePath=".\src\RtDcmp_GM.f90"/>
-		<File RelativePath=".\src\RtDcmp_NM.f90"/>
 		<File RelativePath=".\src\RayTraceLin_Dcmp.f90"/>
-		<File RelativePath=".\src\RayTraceP1_Dcmp.f90"/></Filter>
+		<File RelativePath=".\src\RtDcmpP1_NM.f90"/>
+		<File RelativePath=".\src\RtDcmp_GM.f90"/>
+		<File RelativePath=".\src\RtDcmp_NM.f90"/></Filter>
 		<Filter Name="Group Major">
 		<File RelativePath=".\src\RayTrace_GM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_GM.f90"/>
@@ -428,12 +428,14 @@
 		<File RelativePath=".\src\MKL_DAVIDSON.f90"/>
 		<File RelativePath=".\src\MKL_HOMOXS.f90"/>
 		<File RelativePath=".\src\MKL_POWER.f90"/></Filter>
+		<Filter Name="Common">
+		<File RelativePath=".\src\MKL_3D.f90"/>
+		<File RelativePath=".\src\MKL_ChevyShev.f90"/>
+		<File RelativePath=".\src\MKL_INIT.f90"/></Filter>
 		<Filter Name="Depletion">
 		<File RelativePath=".\src\DeplSolvePostProc.f90"/>
 		<File RelativePath=".\src\MatExponential.f90"/>
-		<File RelativePath=".\src\MKL_DEPL.f90"/></Filter>
-		<File RelativePath=".\src\MKL_3D.f90"/>
-		<File RelativePath=".\src\MKL_INIT.f90"/></Filter>
+		<File RelativePath=".\src\MKL_DEPL.f90"/></Filter></Filter>
 		<Filter Name="OpenCL">
 		<File RelativePath=".\src\clfortran.f90">
 			<FileConfiguration Name="Release|x64" ExcludedFromBuild="true"/>
