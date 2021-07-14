@@ -122,7 +122,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex, lScat1)
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -136,7 +136,7 @@ REAL, POINTER, DIMENSION(:)     :: phis
 REAL, POINTER, DIMENSION(:,:,:) :: MocJout
 
 INTEGER :: jAsy, iz
-LOGICAL :: lJout, lHex, lScat1
+LOGICAL :: lJout, lHex
 
 END SUBROUTINE RtDcmpThr_GM
 ! ------------------------------------------------------------------------------------------------------------
@@ -158,7 +158,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex, lScat1)
+SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -172,7 +172,7 @@ REAL, POINTER, DIMENSION(:,:)     :: phisNM
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 
 INTEGER :: jAsy, iz, gb, ge
-LOGICAL :: lJout, lHex, lScat1
+LOGICAL :: lJout, lHex
 
 END SUBROUTINE RtDcmpThr_NM
 ! ------------------------------------------------------------------------------------------------------------
@@ -346,21 +346,22 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpPnThr_NM(RayInfo, Core, phisnm, phimnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
+SUBROUTINE RtDcmpPnThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, phimNM, srcmNM, joutNM, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
 
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
 IMPLICIT NONE
 
-TYPE (RayInfo_Type)  :: RayInfo
-TYPE (CoreInfo_Type) :: Core
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
 
 REAL, POINTER, DIMENSION(:,:)     :: phisnm
 REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, srcmnm
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
-INTEGER :: iz, iAsy, gb, ge, ScatOd
-LOGICAL :: ljout
+INTEGER :: jAsy, iz, gb, ge, ScatOd
+LOGICAL :: lJout, lHex
 
 END SUBROUTINE RtDcmpPnThr_NM
 ! ------------------------------------------------------------------------------------------------------------
@@ -979,7 +980,7 @@ REAL :: FxrAvgPhi(ng)
 
 END FUNCTION FxrAvgPhi
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
+SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 
@@ -994,7 +995,7 @@ REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 INTEGER :: gb, ge
 INTEGER, OPTIONAL :: color
 
-END SUBROUTINE DcmpLinkBndyFlux
+END SUBROUTINE DcmpLinkBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, color)
 
@@ -1012,7 +1013,7 @@ INTEGER, OPTIONAL :: color
 
 END SUBROUTINE DcmpLinkBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBndyFlux(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
+SUBROUTINE DcmpScatterBndyFluxNg(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -1023,7 +1024,7 @@ TYPE (RayInfo_Type) :: RayInfo
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg
 
-END SUBROUTINE DcmpScatterBndyFlux
+END SUBROUTINE DcmpScatterBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterBndyFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
 
@@ -1038,7 +1039,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g
 
 END SUBROUTINE DcmpScatterBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherCurrent(CoreInfo, joutNM)
+SUBROUTINE DcmpGatherCurrentNg(CoreInfo, joutNM)
 
 USE TYPEDEF, ONLY : CoreInfo_Type
 
@@ -1048,7 +1049,7 @@ TYPE (CoreInfo_Type) :: CoreInfo
 
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
 
-END SUBROUTINE DcmpGatherCurrent
+END SUBROUTINE DcmpGatherCurrentNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherCurrent1g(CoreInfo, jout)
 
@@ -1062,7 +1063,7 @@ REAL, POINTER, DIMENSION(:,:,:) :: jout
 
 END SUBROUTINE DcmpGatherCurrent1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherBndyFlux(RayInfo, DcmpPhiAngOutNg)
+SUBROUTINE DcmpGatherBndyFluxNg(RayInfo, DcmpPhiAngOutNg)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -1072,7 +1073,7 @@ TYPE (RayInfo_Type) :: RayInfo
 
 REAL, POINTER, DIMENSION(:,:,:,:,:)  :: DcmpPhiAngOutNg
 
-END SUBROUTINE DcmpGatherBndyFlux
+END SUBROUTINE DcmpGatherBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherBndyFlux1g(RayInfo, DcmpPhiAngOut1g)
 

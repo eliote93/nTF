@@ -188,7 +188,7 @@ ELSE
     DcmpColorAsy(DcmpColorAsy(0, icolor), icolor) = iAsy
   END DO
 END IF
-
+! ----------------------------------------------------
 ! DEBUG
 !nRef = 0
 !

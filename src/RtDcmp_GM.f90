@@ -29,7 +29,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, iAsyRay, krot, icolor, jcolor, ncolor, iit
-LOGICAL :: lHex, lScat1
+LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
 INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
@@ -39,8 +39,7 @@ nxy   = CoreInfo%nxy
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-lHex   = nTracerCntl%lHex
-lScat1 = nTracerCntl%lScat1
+lHex = nTracerCntl%lHex
 
 IF (lHex) THEN
   ncolor = 3; iit = mod(itrcntl%mocit, 3)
@@ -88,7 +87,7 @@ DO icolor = 1, ncolor
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
     
-    CALL RtDcmpThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis, MocJout, jAsy, iz, lJout, lHex, lScat1)
+    CALL RtDcmpThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis, MocJout, jAsy, iz, lJout, lHex)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -121,7 +120,7 @@ NULLIFY (Pin)
 
 END SUBROUTINE RayTraceDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex, lScat1)
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex)
 
 USE allocs
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type, TrackingDat_Type
@@ -138,7 +137,7 @@ REAL, POINTER, DIMENSION(:)     :: phis
 REAL, POINTER, DIMENSION(:,:,:) :: MocJout
 
 INTEGER :: jAsy, iz
-LOGICAL :: lJout, lHex, lScat1
+LOGICAL :: lJout, lHex
 ! ----------------------------------------------------
 INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ixy, ibd
 

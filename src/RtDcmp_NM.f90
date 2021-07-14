@@ -6,7 +6,7 @@ USE OMP_LIB
 USE allocs
 USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Cell_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpColorAsy, DcmpGatherBndyFlux, DcmpScatterBndyFlux, DcmpLinkBndyFlux, RtDcmpThr_NM
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpColorAsy, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg, RtDcmpThr_NM
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
@@ -29,7 +29,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, icolor, jcolor, ncolor, iit
-LOGICAL :: lHex, lScat1
+LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
 INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
@@ -39,8 +39,7 @@ nxy   = CoreInfo%nxy
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-lHex   = nTracerCntl%lHex
-lScat1 = nTracerCntl%lScat1
+lHex = nTracerCntl%lHex
 
 IF (lHex) THEN
   ncolor = 3; iit = mod(itrcntl%mocit, 3)
@@ -72,7 +71,7 @@ DO icolor = 1, ncolor
   END IF
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFlux(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
+  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFluxNg(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
 #endif
   
   DO ithr = 1, nthr
@@ -88,16 +87,16 @@ DO icolor = 1, ncolor
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
     
-    CALL RtDcmpThr_NM(RayInfo, CoreInfo, TrackingDat(ithr), phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex, lScat1)
+    CALL RtDcmpThr_NM(RayInfo, CoreInfo, TrackingDat(ithr), phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
   
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFlux(RayInfo, DcmpPhiAngOutNg)
+  IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFluxNg(RayInfo, DcmpPhiAngOutNg)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, jcolor)
+  IF (PE%RTMASTER) CALL DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, jcolor)
 END DO
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
@@ -123,7 +122,7 @@ NULLIFY (Pin)
 
 END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex, lScat1)
+SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex)
 
 USE allocs
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type, TrackingDat_Type
@@ -140,7 +139,7 @@ REAL, POINTER, DIMENSION(:,:)     :: phisNM
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 
 INTEGER :: jAsy, iz, gb, ge
-LOGICAL :: lJout, lHex, lScat1
+LOGICAL :: lJout, lHex
 ! ----------------------------------------------------
 INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ig, ixy, ibd
 

@@ -850,7 +850,7 @@ DEALLOCATE(w, wbuf, scatsum)
 
 END SUBROUTINE MOCUnderRelaxationFactor
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, icolor)
+SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, icolor)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -899,7 +899,7 @@ DO iAsy = 1, CoreInfo%nxya
 END DO
 ! ----------------------------------------------------
 
-END SUBROUTINE DcmpLinkBndyFlux
+END SUBROUTINE DcmpLinkBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, icolor)
 
@@ -950,7 +950,7 @@ END DO
 
 END SUBROUTINE DcmpLinkBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBndyFlux(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
+SUBROUTINE DcmpScatterBndyFluxNg(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_Type
@@ -994,7 +994,7 @@ DcmpPhiAngInNg(:, :, :, :, PE%myAsyBeg:PE%myAsyEnd) = buf_DcmpPhiAngInNg
 DEALLOCATE (buf_DcmpPhiAngInNg)
 ! ----------------------------------------------------
 
-END SUBROUTINE DcmpScatterBndyFlux
+END SUBROUTINE DcmpScatterBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpScatterBndyFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
 
@@ -1041,7 +1041,7 @@ DEALLOCATE (buf_DcmpPhiAngIn1g)
 
 END SUBROUTINE DcmpScatterBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherCurrent(CoreInfo, joutNM)
+SUBROUTINE DcmpGatherCurrentNg(CoreInfo, joutNM)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : CoreInfo_Type
@@ -1077,7 +1077,7 @@ CALL MPI_GATHERV(buf_joutNM, nDat, MPI_DOUBLE_PRECISION, joutNM, recvcounts, dis
 DEALLOCATE (buf_joutNM)
 ! ----------------------------------------------------
 
-END SUBROUTINE DcmpGatherCurrent
+END SUBROUTINE DcmpGatherCurrentNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherCurrent1g(CoreInfo, jout)
 
@@ -1116,7 +1116,7 @@ DEALLOCATE (buf_jout)
 
 END SUBROUTINE DcmpGatherCurrent1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherBndyFlux(RayInfo, DcmpPhiAngOutNg)
+SUBROUTINE DcmpGatherBndyFluxNg(RayInfo, DcmpPhiAngOutNg)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_Type
@@ -1154,7 +1154,7 @@ CALL MPI_GATHERV(buf_DcmpPhiAngOutNg, nDat, MPI_DOUBLE_PRECISION, DcmpPhiAngOutN
 DEALLOCATE (buf_DcmpPhiAngOutNg)
 ! ----------------------------------------------------
 
-END SUBROUTINE DcmpGatherBndyFlux
+END SUBROUTINE DcmpGatherBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE DcmpGatherBndyFlux1g(RayInfo, DcmpPhiAngOut1g)
 

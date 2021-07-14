@@ -11,7 +11,7 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTraceNM_OMP, RayTraceP1NM_OMP, phisNM, PhiAngInNM, MocJoutNM, xstNM, srcNM, phimNM, srcmNM, &
-                        RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrent, DcmpGatherCurrent1g
+                        RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrentNg, DcmpGatherCurrent1g
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
 USE Timer,       ONLY : nTracer_dclock, TimeChk
@@ -358,7 +358,7 @@ ELSE
       
       ! CnP
 #ifdef MPI_ENV
-      IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrent(Core, MocJoutNM)
+      IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrentNg(Core, MocJoutNM)
 #endif
       IF (.NOT. RTMASTER) CYCLE
       
