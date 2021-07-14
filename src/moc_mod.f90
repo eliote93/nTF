@@ -208,7 +208,7 @@ LOGICAL :: lJout, lHybrid
 
 END SUBROUTINE RayTraceLin_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceGM_OMP(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
+SUBROUTINE RayTrace_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -226,7 +226,7 @@ LOGICAL :: ljout
 
 INTEGER, OPTIONAL :: FastMocLv
 
-END SUBROUTINE RayTraceGM_OMP
+END SUBROUTINE RayTrace_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceGM_AFSS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
@@ -269,7 +269,7 @@ LOGICAL, OPTIONAL :: lAFSS
 
 END SUBROUTINE RayTrace_Tran_OMP_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceNM_OMP(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout)
+SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -285,9 +285,9 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
-END SUBROUTINE RayTraceNM_OMP
+END SUBROUTINE RayTrace_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout)
+SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridInfo_Type
 
@@ -303,9 +303,9 @@ REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
 REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
 REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
-END SUBROUTINE RayTraceP1NM_OMP
+END SUBROUTINE RayTraceP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1GM_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -324,7 +324,7 @@ INTEGER :: ScatOd
 
 INTEGER, OPTIONAL :: FastMocLv
 
-END SUBROUTINE RayTraceP1GM_OMP
+END SUBROUTINE RayTraceP1_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 

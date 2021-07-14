@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceGM_OMP(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
+SUBROUTINE RayTrace_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO
@@ -48,13 +48,13 @@ DO krot = 1, 2
   IF (nTracerCntl%lHex) THEN
     !$OMP DO SCHEDULE(GUIDED)
     DO iRotRay = 1, RayInfo%nRotRay
-      CALL HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, FastMocLv)
+      CALL HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, FastMocLv)
     END DO
     !$OMP END DO NOWAIT
   ELSE
     !$OMP DO SCHEDULE(GUIDED)
     DO iRotRay = 1, RayInfo%nRotRay
-      CALL RecTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, FastMocLv)
+      CALL RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, FastMocLv)
     END DO
     !$OMP END DO NOWAIT
   END IF
@@ -94,9 +94,9 @@ NULLIFY (Cell)
 NULLIFY (Pin)
 ! ----------------------------------------------------
 
-END SUBROUTINE RayTraceGM_OMP
+END SUBROUTINE RayTrace_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv)
+SUBROUTINE RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv)
 
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Asy_Type, AsyInfo_Type, PinInfo_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type, ModRayInfo_type, AsyRayInfo_type,  &
@@ -462,9 +462,9 @@ NULLIFY (wtang)
 NULLIFY (wtsurf)
 ! ----------------------------------------------------
 
-END SUBROUTINE RecTrackRotRayGM_OMP
+END SUBROUTINE RecTrackRotRay_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayGM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv)
+SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv)
 
 USE TYPEDEF,  ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type
 USE Moc_Mod,  ONLY : nMaxCellRay, nMaxCoreRay
@@ -706,5 +706,5 @@ NULLIFY (CelRay_Loc)
 NULLIFY (hRotRay_Loc)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexTrackRotRayGM_OMP
+END SUBROUTINE HexTrackRotRay_GM
 ! ------------------------------------------------------------------------------------------------------------

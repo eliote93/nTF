@@ -164,7 +164,7 @@ DO ipol = 1, nPolarAng
     
     mwt (1:2, ipol, iazi) = comp(1:2, ipol, iazi) * wtang(ipol, iazi)
     mwt2(1:2, ipol, iazi) = -mwt(1:2, ipol, iazi)
-          
+    
     IF (scatod .LT. 2) CYCLE
     
     Comp(3, ipol, iazi) = wtpolar

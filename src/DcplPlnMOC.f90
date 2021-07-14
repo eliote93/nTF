@@ -252,7 +252,7 @@ USE TYPEDEF,     ONLY : CoreInfo_Type,      RayInfo_Type,       FmInfo_Type,    
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 !USE CORE_MOD,    ONLY : GroupInfo
-USE MOC_MOD,     ONLY : RayTraceGM_OMP,           SetRtMacXsGM,      SetRtSrcGM,          &
+USE MOC_MOD,     ONLY : RayTrace_GM,           SetRtMacXsGM,      SetRtSrcGM,          &
                         PsiUpdate,          CellPsiUpdate,     UpdateEigv,        &
                         MocResidual,        PsiErr,            PseudoAbsorptionGM,  &
                         AddConstSrc,                                              &
@@ -400,7 +400,7 @@ DO iter = 1, 1
         ENDIF
         !Add Constant source terms for a Reflector Region
         CALL CP_VA(PhiAngin1g, PhiAngin(:,: ,iz, ig), RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
-        CALL RayTraceGM_OMP(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
+        CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
         CALL CP_VA(phis(1:nFsr, iz, ig), phis1g(1:nFsr), nFsr)
       ENDDO
       !IF(lJout) CALL CP_VA(RadJout(1:2, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:2, 1:nbd, 1:nxy), 2, nbd, nxy)

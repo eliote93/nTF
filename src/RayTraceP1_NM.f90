@@ -1,10 +1,10 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1NM_OMP(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, joutNM, iz, gb, ge, ljout)
+SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, joutNM, iz, gb, ge, ljout)
 
 USE TIMER
 USE OMP_LIB
-USE PARAM,   ONLY : FALSE, ZERO, ONE
+USE PARAM,   ONLY : FALSE, ZERO, ONE, RTHREE, RFIVE, RSEVEN
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : TrackingDat, SrcAngNM1, SrcAngNM2, comp
 USE geom,    ONLY : ng, nbd
@@ -96,13 +96,13 @@ DO krot = 1, 2
   IF (nTracerCntl%lHex) THEN
     !$OMP DO SCHEDULE(GUIDED)
     DO iRotRay = 1, RayInfo%nRotRay
-      CALL HexTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge, scatod)
+      CALL HexTrackRotRayP1_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge, scatod)
     END DO
     !$OMP END DO NOWAIT
   ELSE
     !$OMP DO SCHEDULE(GUIDED)
     DO iRotRay = 1, RayInfo%nRotRay
-      CALL RecTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge, scatod)
+      CALL RecTrackRotRayP1_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge, scatod)
     END DO
     !$OMP END DO NOWAIT
   END IF
@@ -152,15 +152,15 @@ DO ixy = 1, nxy
       
       phisNM(ig, jfsr) = phisNM(ig, jfsr) * wttmp + srcNM(ig, jfsr)
       
-      phimNM(1:2, ig, jfsr) = phimNM(1:2, ig, jfsr) * wttmp + srcmNM(1:2, ig, jfsr) / 3._8
+      phimNM(1:2, ig, jfsr) = phimNM(1:2, ig, jfsr) * wttmp + srcmNM(1:2, ig, jfsr) * RTHREE
       
       IF (ScatOd .LT. 2) CYCLE
       
-      phimNM(3:5, ig, jfsr) = phimNM(3:5, ig, jfsr) * wttmp + srcmNM(3:5, ig, jfsr) / 5._8
+      phimNM(3:5, ig, jfsr) = phimNM(3:5, ig, jfsr) * wttmp + srcmNM(3:5, ig, jfsr) * RFIVE
       
       IF (ScatOd .LT. 3) CYCLE
       
-      phimNM(6:9, ig, jfsr) = phimNM(6:9, ig, jfsr) * wttmp + srcmNM(6:9, ig, jfsr) / 7._8
+      phimNM(6:9, ig, jfsr) = phimNM(6:9, ig, jfsr) * wttmp + srcmNM(6:9, ig, jfsr) * RSEVEN
     END DO
   END DO
 END DO
@@ -171,9 +171,9 @@ NULLIFY (Cell)
 NULLIFY (Pin)
 ! ----------------------------------------------------
 
-END SUBROUTINE RayTraceP1NM_OMP
+END SUBROUTINE RayTraceP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, gb, ge, scatod)
+SUBROUTINE RecTrackRotRayP1_NM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, gb, ge, scatod)
 
 USE PARAM,   ONLY : TRUE, FALSE, ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Asy_Type, PinInfo_Type, Cell_Type, AsyRayInfo_type, CoreRayInfo_Type, RotRayInfo_Type, CellRayInfo_type, TrackingDat_Type
@@ -454,9 +454,9 @@ NULLIFY (SrcAngNM1)
 NULLIFY (SrcAngNM2)
 ! ----------------------------------------------------
 
-END SUBROUTINE RecTrackRotRayP1NM_OMP
+END SUBROUTINE RecTrackRotRayP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayP1NM_OMP(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, gb, ge, ScatOd)
+SUBROUTINE HexTrackRotRayP1_NM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, gb, ge, ScatOd)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, Pin_Type
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
@@ -651,5 +651,5 @@ NULLIFY (LocMwt)
 NULLIFY (LocSrc)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexTrackRotRayP1NM_OMP
+END SUBROUTINE HexTrackRotRayP1_NM
 ! ------------------------------------------------------------------------------------------------------------

@@ -462,25 +462,21 @@ REAL :: phid, tau, ExpApp, wtsurf
 DATA mp /2, 1/
 ! ----------------------------------------------------
 
-! Ray Info.
-nPolarAng = RayInfo%nPolarAngle
-AziAng   => RayInfo%AziAngle
+! Ray
+nPolarAng     = RayInfo%nPolarAngle
+AziAng       => RayInfo%AziAngle
+PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 
-! Geo.
-Pin => CoreInfo%Pin
-
-! Tracking Dat
-phisNM        => TrackingDat%phisNM
-srcNM         => TrackingDat%srcNM
-xstNM         => TrackingDat%xstNM
-PhiAngInNM    => TrackingDat%PhiAngInNM
-joutNM        => TrackingDat%joutNM
-DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
-DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
-EXPA          => TrackingDat%EXPA
-EXPB          => TrackingDat%EXPB
-wtang         => TrackingDat%wtang
-hwt           => TrackingDat%hwt
+! Loc.
+phisNM     => TrackingDat%phisNM
+srcNM      => TrackingDat%srcNM
+xstNM      => TrackingDat%xstNM
+joutNM     => TrackingDat%joutNM
+PhiAngInNM => TrackingDat%PhiAngInNM
+wtang      => TrackingDat%wtang
+EXPA       => TrackingDat%EXPA
+EXPB       => TrackingDat%EXPB
+hwt        => TrackingDat%hwt
 
 ! Dcmp.
 nAsyRay     = DcmpAsyRay%nAsyRay
@@ -491,15 +487,19 @@ AsyRayList => DcmpAsyRay%AsyRayList
 DirList    => DcmpAsyRay%DirList
 AziList    => DcmpAsyRay%AziList
 
+DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
+
+! Geo.
+Pin => CoreInfo%Pin
+
 iAsyTyp = hAsy(iAsy)%AsyTyp
 iGeoTyp = hAsy(iAsy)%GeoTyp
 icBss   = hAsyTypInfo(iAsyTyp)%iBss
 
-! Ray. B.C.
-PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
-
+! Iter.
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
-  PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM  (1:nPolarAng, gb:ge, PhiAnginSvIdx)
+  PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM    (1:nPolarAng, gb:ge, PhiAnginSvIdx)
 ELSE
   PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngInNg(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF
@@ -603,24 +603,24 @@ END DO
 
 DcmpPhiAngOutNg(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut(1:nPolarAng, gb:ge)
 ! ----------------------------------------------------
-! Geo.
-NULLIFY (Pin)
-
 ! Ray
 NULLIFY (AziAng)
 NULLIFY (haRay_Loc)
 NULLIFY (CelRay_Loc)
 
+! Geo.
+NULLIFY (Pin)
+
 ! Loc.
-NULLIFY (EXPA)
-NULLIFY (EXPB)
-NULLIFY (wtang)
-NULLIFY (hwt)
 NULLIFY (phisNM)
 NULLIFY (srcNM)
 NULLIFY (xstNM)
-NULLIFY (PhiAngInNM)
 NULLIFY (joutNM)
+NULLIFY (PhiAngInNM)
+NULLIFY (wtang)
+NULLIFY (EXPA)
+NULLIFY (EXPB)
+NULLIFY (hwt)
 
 ! Dcmp.
 NULLIFY (AsyRayList)

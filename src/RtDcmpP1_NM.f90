@@ -3,7 +3,7 @@
 SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE OMP_LIB
-USE PARAM,       ONLY : ZERO, RTHREE, RFIVE, RSEVEN
+USE PARAM,       ONLY : ZERO, ONE, RTHREE, RFIVE, RSEVEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, Pin_Type, Cell_Type
 USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpColorAsy, RtDcmpPnThr_NM, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg
 USE PE_MOD,      ONLY : PE
@@ -111,9 +111,9 @@ DO ixy = 1, nxy
     jfsr = FsrIdxSt + ifsr - 1
     
     DO ig = gb, ge
-      wttmp = 1._8 / (xstNM(ig, jfsr) * Cell(icel)%vol(iFSR))
+      wttmp = ONE / (xstNM(ig, jfsr) * Cell(icel)%vol(ifsr))
       
-      phisNM(ig, jFSR) = phisNM(ig, jfsr) * wttmp + srcNM(ig, jfsr)
+      phisNM(ig, jfsr) = phisNM(ig, jfsr) * wttmp + srcNM(ig, jfsr)
       
       phimNM(1:2, ig, jfsr) = phimNM(1:2, ig, jfsr) * wttmp + srcmNM(1:2, ig, jfsr) * RTHREE
       
@@ -125,7 +125,7 @@ DO ixy = 1, nxy
       
       phimNM(6:9, ig, jfsr) = phimNM(6:9, ig, jfsr) * wttmp + srcmNM(6:9, ig, jfsr) * RSEVEN
     END DO
-  END DO  
+  END DO
 END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
@@ -141,7 +141,7 @@ SUBROUTINE RtDcmpPnThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, phimNM, srcmNM
 USE ALLOCS
 USE PARAM,   ONLY : TRUE, ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-USE Moc_Mod, ONLY : Comp, mwt, AziMap, DcmpPhiAngInNg, DcmpPhiAngOutNg, RecTrackRotRayPn_Dcmp, HexTrackRotRayPn_Dcmp, wtang
+USE Moc_Mod, ONLY : Comp, DcmpPhiAngInNg, DcmpPhiAngOutNg, RecTrackRotRayPn_Dcmp, HexTrackRotRayPn_Dcmp
 USE PE_MOD,  ONLY : PE
 USE geom,    ONLY : nbd
 USE CNTL,    ONLY : nTracerCntl
@@ -249,13 +249,13 @@ END DO
 IF (nTracerCntl%lHex) THEN
   DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
     DO krot = 1, 2
-      CALL HexTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
+      CALL HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot, ScatOd)
     END DO
   END DO
 ELSE
   DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
     DO krot = 1, 2
-      !CALL RecTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot)
+      !CALL RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot, ScatOd)
     END DO
   END DO
 END IF
@@ -301,11 +301,11 @@ NULLIFY (DcmpAsyRayCount)
 
 END SUBROUTINE RtDcmpPnThr_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, lJout, iz, gb, ge, krot)
+SUBROUTINE HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot, ScatOd)
 
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, AziAngleInfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
-USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay
-USE HexData, ONLY : hAsy, hAsyTypInfo, haRay
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type, AziAngleInfo_Type
+USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
+USE HexData, ONLY : hAsy, haRay, hAsyTypInfo
 
 IMPLICIT NONE
 
@@ -314,56 +314,50 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-LOGICAL :: lJout
-INTEGER :: iz, gb, ge, krot
+LOGICAL, INTENT(IN) :: ljout
+INTEGER, INTENT(IN) :: iz, gb, ge, krot, ScatOd
 ! ----------------------------------------------------
 TYPE (Pin_Type),          POINTER, DIMENSION(:) :: Pin
-TYPE (AziAngleInfo_type), POINTER, DIMENSION(:) :: AziAng
-
+TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
+  
 TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
-REAL, POINTER, DIMENSION(:)         :: LenSeg
-REAL, POINTER, DIMENSION(:,:)       :: xstNM, EXPA, EXPB, wtang, hwt
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
-REAL, POINTER, DIMENSION(:,:,:,:)   :: SrcAngNM, phiaNM, JoutNM
+REAL, POINTER, DIMENSION(:,:)       :: phisNM, srcNM, xstNM, EXPA, EXPB, wtang, hwt
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM, phimNM, LocMwt
+REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM, LocSrc
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
-INTEGER, POINTER, DIMENSION(:)   :: LocalFsrIdx, AsyRayList, DirList, AziList
-INTEGER, POINTER, DIMENSION(:,:) :: AziMap
+INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
 
 INTEGER :: mp(2)
-INTEGER :: iAzi, ipol, iRotRay, imRay, iAsyRay, iRay, iRaySeg, idir, jbeg, jend, jinc, ipst, iped, ipinc, isfst, isfed, isgst, isged, isginc
-INTEGER :: ipin, icel, iasy, iFSR, isurf, ibcel, iceray, ig, ir, ipRay, iAsyTyp, iGeoTyp, icBss, jhPin, jcBss, jazi
-INTEGER :: nAsyRay, nDcmpRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, PhiAnginSvIdx, ExpAppIdx
+INTEGER :: iazi, ipol, irotray, iasyray, iray, irayseg, idir, icel, iasy, iFSR, isurf, ig, jbeg, jend, jinc, imray, ipray
+INTEGER :: ipst, iped, ipinc, isfst, isfed, isgst, isged, isginc, iAsyTyp, iGeoTyp, icBss, jhPin, jcBss, iOd, nOd
+INTEGER :: nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, PhiAnginSvIdx, ExpAppIdx
 
-REAL :: wtazi(10), locwt(10), loccs, locsn, wtsurf
-REAL :: PhiAngOut(RayInfo%nPolarAngle, gb:ge)
-REAL :: phid, tau, ExpApp
+REAL :: wtazi(10), locwt(10), loccs, locsn
+
+REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: PhiAngOut
+REAL :: phid, tau, ExpApp, wtsurf
 
 DATA mp /2, 1/
 ! ----------------------------------------------------
 
 ! Ray
-nPolarAng = RayInfo%nPolarAngle
-AziAng   => RayInfo%AziAngle
+nPolarAng     = RayInfo%nPolarAngle
+AziAng       => RayInfo%AziAngle
+PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 
-! Geo.
-Pin => CoreInfo%Pin
-
-! Tracking Dat
-xstNM           => TrackingDat%xstNM
-PhiAngInNM      => TrackingDat%PhiAngInNM
-DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
-DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
-EXPA            => TrackingDat%EXPA
-EXPB            => TrackingDat%EXPB
-wtang           => TrackingDat%wtang
-hwt             => TrackingDat%hwt
-!AziMap          => TrackingDat%AziMap
-!phiaNM          => TrackingDat%phiaNM
-SrcAngNM        => TrackingDat%SrcAngNM
-JoutNM          => TrackingDat%JoutNM
+! Loc.
+phisNM     => TrackingDat%phisNM
+srcNM      => TrackingDat%srcNM
+xstNM      => TrackingDat%xstNM
+joutNM     => TrackingDat%joutNM
+PhiAngInNM => TrackingDat%PhiAngInNM
+wtang      => TrackingDat%wtang
+EXPA       => TrackingDat%EXPA
+EXPB       => TrackingDat%EXPB
+hwt        => TrackingDat%hwt
 
 ! Dcmp.
 nAsyRay     = DcmpAsyRay%nAsyRay
@@ -374,16 +368,21 @@ AsyRayList => DcmpAsyRay%AsyRayList
 DirList    => DcmpAsyRay%DirList
 AziList    => DcmpAsyRay%AziList
 
+DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
+
+! Geo.
+Pin => CoreInfo%Pin
+
 iAsyTyp = hAsy(iAsy)%AsyTyp
 iGeoTyp = hAsy(iAsy)%GeoTyp
 icBss   = hAsyTypInfo(iAsyTyp)%iBss
 
-PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
-
+! Iter.
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
-  PhiAngOut = PhiAngInNM  (1:nPolarAng, gb:ge, PhiAnginSvIdx)
+  PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM    (1:nPolarAng, gb:ge, PhiAnginSvIdx)
 ELSE
-  PhiAngOut = DcmpPhiAngInNg(1:nPolarAng, gb:ge, krot, iRay, iAsy)
+  PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngInNg(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF
 
 IF (krot .EQ. 1) THEN
@@ -391,19 +390,25 @@ IF (krot .EQ. 1) THEN
 ELSE
   jend = 1; jbeg = nAsyRay; jinc = -1
 END IF
+
+! P1
+phimNM => TrackingDat%phimNM
+
+SELECT CASE (ScatOd)
+CASE (1); nOd = 2
+CASE (2); nOd = 5
+CASE (3); nOd = 9
+END SELECT
 ! ----------------------------------------------------
-DO imRay = jbeg, jend, jinc
-  iAsyRay = AsyRayList(imRay)
-  iazi    = AziList   (imRay)
-  idir    = DirList   (imRay)
-  IF (krot .eq. 2) idir = mp(idir)
+DO imray = jbeg, jend, jinc
+  iAsyRay = AsyRayList(imray)
+  iazi    = AziList   (imray)
+  idir    = DirList   (imray)
+  IF (krot .EQ. 2) idir = mp(idir)
   
-  jazi = AziMap(iAzi, idir)
-    
   DO ipol = 1, nPolarAng
     wtazi(ipol) = wtang(ipol, iazi)
-    
-    IF (lJout) locwt(ipol) = hwt(ipol, iazi)
+    locwt(ipol) = hwt  (ipol, iazi)
   END DO
   
   loccs = AziAng(iazi)%cosv
@@ -414,19 +419,19 @@ DO imRay = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc =  1; isfst = 1; isfed = 2
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; LocSrc => TrackingDat%SrcAngNM1; LocMwt => TrackingDat%mwt
   ELSE
-    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; LocSrc => TrackingDat%SrcAngNM2; LocMwt => TrackingDat%mwt2
   END IF
-  
-  DO ipRay = ipst, iped, ipinc
+  ! --------------------------------------------------
+  DO ipray = ipst, iped, ipinc
     jhPin = haRay_Loc%CelRay(ipRay)%hPinIdx
     jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
     jcBss = Pin(jhPin)%hCelGeo(iz)
     
     CelRay_Loc => haRay(iGeoTyp, jcBss, iAsyRay)%CelRay(ipRay)
     
-    ! Surf. : In-coming
+    ! Surface : In-coming
     IF (lJout) THEN
       iSurf = CelRay_Loc%hSufIdx(isfst)
       
@@ -434,8 +439,8 @@ DO imRay = jbeg, jend, jinc
         wtsurf = locwt(ipol) / abs(loccs * CelRay_Loc%hsn(isfst) - locsn * CelRay_Loc%hcs(isfst))
         
         DO ig = gb, ge
-          joutNM(1, ig, isurf, ipin) = joutNM(1, ig, isurf, ipin) + PhiAngOut(ipol, ig) * wtazi(ipol)
-          joutNM(3, ig, isurf, ipin) = joutNM(3, ig, isurf, ipin) + PhiAngOut(ipol, ig) * wtsurf
+          joutNM(1, ig, isurf, jhpin) = joutNM(1, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtazi(ipol)
+          joutNM(3, ig, isurf, jhpin) = joutNM(3, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtsurf
         END DO
       END DO
     END IF
@@ -444,7 +449,7 @@ DO imRay = jbeg, jend, jinc
     nRaySeg = CelRay_Loc%nSegRay
     
     IF (idir .EQ. 1) THEN
-      isgst = 1; isged = nRaySeg; isginc =  1
+      isgst = 1; isged = nRaySeg; isginc = 1
     ELSE
       isged = 1; isgst = nRaySeg; isginc = -1
     END IF
@@ -459,27 +464,31 @@ DO imRay = jbeg, jend, jinc
         ExpAppIdx = min(0, ExpAppIdx)
         
         DO ipol = 1, nPolarAng
-          ExpApp = ExpA(ExpAppIdx, ipol) * tau + EXPB(ExpAppIdx, ipol)
+          ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
           
-          phid = (PhiAngOut(ipol, ig) - SrcAngNM(ipol, ig, iFSR, jazi)) * ExpApp
+          phid = (PhiAngOut(ipol, ig) - LocSrc(ig, ipol, ifsr, iazi)) * ExpApp
           
           PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
           
-          phiaNM(ipol, ig, iFSR, jazi) = phiaNM(ipol, ig, iFSR, jazi) + phid
+          phisNM(ig, iFSR) = phisNM(ig, iFSR) + wtazi(ipol) * phid
+          
+          DO iod = 1, nod
+            phimNM(iod, ig, ifsr) = phimNM(iod, ig, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
+          END DO
         END DO
       END DO
     END DO
     
-    ! Surf. : Out-going
+    ! Surface : Out-going
     IF (lJout) THEN
-      isurf = CelRay_Loc%hSufIdx(isfed)
+      isurf = CelRay_Loc%hSufIdx(isfed) ! y : Big
       
       DO ipol = 1, nPolarAng
-        wtsurf = locwt(ipol) / abs(loccs * CelRay_Loc%hsn(isfst) - locsn * CelRay_Loc%hcs(isfst))
+        wtsurf = locwt(ipol) / abs(loccs * CelRay_Loc%hsn(isfed) - locsn * CelRay_Loc%hcs(isfed))
         
         DO ig = gb, ge
-          joutNM(2, ig, isurf, ipin) = joutNM(2, ig, isurf, ipin) + PhiAngOut(ipol, ig) * wtazi(ipol)
-          joutNM(3, ig, isurf, ipin) = joutNM(3, ig, isurf, ipin) + PhiAngOut(ipol, ig) * wtsurf
+          joutNM(2, ig, isurf, jhpin) = joutNM(2, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtazi(ipol)
+          joutNM(3, ig, isurf, jhpin) = joutNM(3, ig, isurf, jhpin) + PhiAngOut(ipol, ig) * wtsurf
         END DO
       END DO
     END IF
@@ -488,35 +497,37 @@ END DO
 
 DcmpPhiAngOutNg(1:nPolarAng, gb:ge, krot, iRay, iAsy) = PhiAngOut(1:nPolarAng, gb:ge)
 ! ----------------------------------------------------
-! Geo.
-NULLIFY (Pin)
-
 ! Ray
 NULLIFY (AziAng)
 NULLIFY (haRay_Loc)
 NULLIFY (CelRay_Loc)
 
+! Geo.
+NULLIFY (Pin)
+
 ! Loc.
-NULLIFY (LenSeg)
-NULLIFY (SrcAngNM)
-!NULLIFY (phiaNM)
+NULLIFY (phisNM)
+NULLIFY (srcNM)
 NULLIFY (xstNM)
+NULLIFY (joutNM)
+NULLIFY (PhiAngInNM)
+NULLIFY (wtang)
 NULLIFY (EXPA)
 NULLIFY (EXPB)
-NULLIFY (wtang)
 NULLIFY (hwt)
-NULLIFY (PhiAngInNM)
-NULLIFY (LocalFsrIdx)
-NULLIFY (JoutNM)
 
 ! Dcmp.
-NULLIFY (DcmpPhiAngInNg)
-NULLIFY (DcmpPhiAngOutNg)
 NULLIFY (AsyRayList)
 NULLIFY (DirList)
 NULLIFY (AziList)
-!NULLIFY (AziMap)
+NULLIFY (DcmpPhiAngInNg)
+NULLIFY (DcmpPhiAngOutNg)
+
+! P1
+NULLIFY (phimNM)
+NULLIFY (LocMwt)
+NULLIFY (LocSrc)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexTrackRotRayPn_Dcmp
+END SUBROUTINE HexTrackRotRayDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------

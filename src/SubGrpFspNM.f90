@@ -21,7 +21,7 @@ USE FILES,     ONLY : io8
 USE IOUTIL,    ONLY : message
 USE TIMER,     ONLY : nTracer_dclock, TimeChk
 USE xslib_mod, ONLY : mlgdata, mlgdata0
-USE MOC_MOD,   ONLY : TrackingDat, RayTraceNM_OMP, RayTraceDcmp_NM, DcmpPhiAngOutNg, DcmpPhiAngInNg
+USE MOC_MOD,   ONLY : TrackingDat, RayTrace_NM, RayTraceDcmp_NM, DcmpPhiAngOutNg, DcmpPhiAngInNg
 USE GEOM,      ONLY : ng
 
 #ifdef MPI_ENV
@@ -119,7 +119,7 @@ DO iz = myzb, myze
     IF (ldcmp) THEN
       CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTraceNM_OMP (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -198,7 +198,7 @@ DO iz = myzb, myze
     IF (ldcmp) THEN
       CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTraceNM_OMP (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -273,7 +273,7 @@ DO iz = myzb, myze
     IF (ldcmp) THEN
       CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTraceNM_OMP (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
