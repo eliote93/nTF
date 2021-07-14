@@ -6,7 +6,7 @@ USE OMP_LIB
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type
 USE Moc_Mod,     ONLY : TrackingDat, phisNM, phimNM, srcNM, xstNM, MocjoutNM, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, &
-                        RayTraceDcmp_OMP, RayTraceDcmp_LSCASMO, DcmpGatherBndyFlux, DcmpScatterBndyFlux, DcmpLinkBndyFlux
+                        RayTraceDcmp_LSCASMO, DcmpGatherBndyFlux, DcmpScatterBndyFlux, DcmpLinkBndyFlux
 USE Core_mod,    ONLY : phisSlope, srcSlope
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl

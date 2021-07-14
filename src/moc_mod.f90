@@ -122,6 +122,24 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex, lScat1)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
+
+REAL, POINTER, DIMENSION(:)     :: phis
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout
+
+INTEGER :: jAsy, iz
+LOGICAL :: lJout, lHex, lScat1
+
+END SUBROUTINE RtDcmpThr_GM
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -139,6 +157,24 @@ INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_NM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex, lScat1)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
+
+REAL, POINTER, DIMENSION(:,:)     :: phisNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
+
+INTEGER :: jAsy, iz, gb, ge
+LOGICAL :: lJout, lHex, lScat1
+
+END SUBROUTINE RtDcmpThr_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, gb, ge, lJout)
 
@@ -269,20 +305,6 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
 
 END SUBROUTINE RayTraceP1NM_OMP
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_OMP(RayInfo, CoreInfo, iz, iasy, gb, ge, ljout)
-
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)  :: RayInfo
-TYPE (CoreInfo_Type) :: CoreInfo
-
-INTEGER :: iz, iasy, gb, ge
-LOGICAL :: ljout
-
-END SUBROUTINE RayTraceDcmp_OMP
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1GM_OMP(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -324,14 +346,14 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpPnThr_NM(RayInfo, CoreInfo, phisnm, phimnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
+SUBROUTINE RtDcmpPnThr_NM(RayInfo, Core, phisnm, phimnm, srcmnm, joutnm, iz, iAsy, gb, ge, ScatOd, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
 IMPLICIT NONE
 
-TYPE (RayInfo_Type) :: RayInfo
-TYPE (CoreInfo_Type) :: CoreInfo
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: Core
 
 REAL, POINTER, DIMENSION(:,:)     :: phisnm
 REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, srcmnm

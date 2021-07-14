@@ -5,13 +5,13 @@ SUBROUTINE RayTraceDcmp_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, MocJout,
 USE OMP_LIB
 USE allocs
 USE PARAM,       ONLY : ZERO
-USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpColorAsy, RayTraceDcmp_OMP, DcmpGatherBndyFlux1g, DcmpScatterBndyFlux1g, DcmpLinkBndyFlux1g
+USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Cell_Type
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpColorAsy, DcmpGatherBndyFlux1g, DcmpScatterBndyFlux1g, DcmpLinkBndyFlux1g, RtDcmpThr_GM
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE geom,        ONLY : nbd
 USE itrcntl_mod, ONLY : itrcntl
-USE HexData,     ONLY : hAsy, hLgc
+USE HexData,     ONLY : hLgc
 
 IMPLICIT NONE
 
@@ -25,32 +25,22 @@ REAL, POINTER, DIMENSION(:,:,:) :: MocJout
 INTEGER :: iz
 LOGICAL :: lJout
 ! ----------------------------------------------------
-TYPE (AsyInfo_Type), POINTER, DIMENSION(:) :: AsyInfo
-TYPE (Asy_Type),     POINTER, DIMENSION(:) :: Asy
-TYPE (Cell_Type),    POINTER, DIMENSION(:) :: Cell
-TYPE (Pin_Type),     POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
-
-INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
-
-INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, iAsyRay, krot, icolor, jcolor, ncolor, iit, PinSt, PinEd, FsrSt, FsrEd
-LOGICAL :: lHex
+INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, iAsyRay, krot, icolor, jcolor, ncolor, iit
+LOGICAL :: lHex, lScat1
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
 INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
-nxy      = CoreInfo%nxy
-Asy     => CoreInfo%Asy
-AsyInfo => CoreInfo%AsyInfo
-Cell    => CoreInfo%CellInfo
-Pin     => CoreInfo%Pin
+nxy   = CoreInfo%nxy
+Cell => CoreInfo%CellInfo
+Pin  => CoreInfo%Pin
 
-DcmpAsyRay      => RayInfo%DcmpAsyRay
-DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-
-lHex = nTracerCntl%lHex
+lHex   = nTracerCntl%lHex
+lScat1 = nTracerCntl%lScat1
 
 IF (lHex) THEN
   ncolor = 3; iit = mod(itrcntl%mocit, 3)
@@ -91,56 +81,14 @@ DO icolor = 1, ncolor
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
   END DO
   
-  !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy, PinSt, PinEd, FsrSt, FsrEd, krot, iAsyRay, ifsr, ixy, ibd)
+  !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   !$OMP DO SCHEDULE(GUIDED)
   DO iAsy = 1, DcmpColorAsy(0, jcolor)
     jAsy = DcmpColorAsy(iAsy, jcolor)
     
-    ! SET : Range
-    IF (lHex) THEN
-      PinSt = hAsy(jAsy)%PinIdxSt
-      PinEd = hAsy(jAsy)%PinIdxSt + hAsy(jAsy)%nTotPin - 1
-    ELSE
-      PinSt = Asy(jAsy)%GlobalPinIdx(1)
-      PinEd = Asy(jAsy)%GlobalPinIdx(AsyInfo(Asy(jAsy)%AsyType)%nxy)
-    END IF
-    
-    FsrSt = Pin(PinSt)%FsrIdxSt
-    FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
-    
-    ! ALLOC
-    CALL dmalloc0(TrackingDat(ithr)%phis, FsrSt, FsrEd)
-    IF (ljout) CALL dmalloc0(TrackingDat(ithr)%Jout, 1, 3, 1, nbd, PinSt, PinEd)
-    
-    ! RT
-    DO krot = 1, 2
-      DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
-        IF (lHex) THEN
-          CALL HexTrackRotRayDcmp_GM(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz, krot)
-        ELSE
-          !CALL RecTrackRotRayDcmp_GM(RayInfo, CoreInfo, TrackingDat(ithr), DcmpAsyRay(iAsyRay, jAsy), ljout, iz,  krot)
-        END IF
-      END DO
-    END DO
-    
-    ! GATHER
-    DO ifsr = FsrSt, FsrEd
-      phis(ifsr) = phis(ifsr) + TrackingDat(ithr)%phis(ifsr)
-    END DO
-    
-    IF (ljout) THEN
-      DO ixy = PinSt, PinEd
-        DO ibd = 1, nbd
-          Mocjout(:, ibd, ixy) = Mocjout(:, ibd, ixy) + TrackingDat(ithr)%jout(:, ibd, ixy)
-        END DO
-      END DO
-    END IF
-    
-    ! FREE
-    DEALLOCATE (TrackingDat(ithr)%phis)
-    IF (ljout) DEALLOCATE (TrackingDat(ithr)%Jout)
+    CALL RtDcmpThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis, MocJout, jAsy, iz, lJout, lHex, lScat1)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -166,16 +114,97 @@ DO ixy = 1, nxy
 END DO
 !$OMP END DO
 !$OMP END PARALLEL
-! ----------------------------------------------------
+
 NULLIFY (Cell)
 NULLIFY (Pin)
-NULLIFY (Asy)
-NULLIFY (AsyInfo)
+! ----------------------------------------------------
+
+END SUBROUTINE RayTraceDcmp_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex, lScat1)
+
+USE allocs
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type, TrackingDat_Type
+USE geom,    ONLY : nbd
+USE HexData, ONLY : hAsy
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
+
+REAL, POINTER, DIMENSION(:)     :: phis
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout
+
+INTEGER :: jAsy, iz
+LOGICAL :: lJout, lHex, lScat1
+! ----------------------------------------------------
+INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ixy, ibd
+
+TYPE (Cell_Type),           POINTER, DIMENSION(:)   :: Cell
+TYPE (Pin_Type),            POINTER, DIMENSION(:)   :: Pin
+TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
+
+INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
+! ----------------------------------------------------
+
+Cell => CoreInfo%Cellinfo
+Pin  => CoreInfo%Pin
+
+DcmpAsyRay      => RayInfo%DcmpAsyRay
+DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
+
+IF (lHex) THEN
+  PinSt = hAsy(jAsy)%PinIdxSt
+  PinEd = hAsy(jAsy)%PinIdxSt + hAsy(jAsy)%nTotPin - 1
+ELSE
+  PinSt = CoreInfo%Asy(jAsy)%GlobalPinIdx(1)
+  PinEd = CoreInfo%Asy(jAsy)%GlobalPinIdx(CoreInfo%AsyInfo(CoreInfo%Asy(jAsy)%AsyType)%nxy)
+END IF
+
+FsrSt = Pin(PinSt)%FsrIdxSt
+FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
+
+! ALLOC
+CALL dmalloc0(TrackingLoc%phis, FsrSt, FsrEd)
+IF (ljout) CALL dmalloc0(TrackingLoc%Jout, 1, 3, 1, nbd, PinSt, PinEd)
+
+! RT
+DO krot = 1, 2
+  DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
+    IF (lHex) THEN
+      CALL HexTrackRotRayDcmp_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, krot)
+    ELSE
+      !CALL RecTrackRotRayDcmp_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, krot)
+    END IF
+  END DO
+END DO
+
+! GATHER
+DO ifsr = FsrSt, FsrEd
+  phis(ifsr) = phis(ifsr) + TrackingLoc%phis(ifsr)
+END DO
+
+IF (lJout) THEN
+  DO ixy = PinSt, PinEd
+    DO ibd = 1, nbd
+      Mocjout(:, ibd, ixy) = Mocjout(:, ibd, ixy) + TrackingLoc%jout(:, ibd, ixy)
+    END DO
+  END DO
+END IF
+
+! FREE
+DEALLOCATE (TrackingLoc%phis)
+IF (lJout) DEALLOCATE (TrackingLoc%Jout)
+
+NULLIFY (Cell)
+NULLIFY (Pin)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 ! ----------------------------------------------------
 
-END SUBROUTINE RayTraceDcmp_GM
+END SUBROUTINE RtDcmpThr_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayDcmp_GM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, krot)
 

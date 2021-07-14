@@ -66,12 +66,12 @@ phimNM(:, gb:ge, :) = ZERO
 IF (lJout) MocJoutNM(:, gb:ge, :, :) = ZERO
 ! ----------------------------------------------------
 DO icolor = 1, ncolor
-  IF (.NOT. nTracerCntl%lHex) THEN
+  IF (nTracerCntl%lHex) THEN
+    jcolor = AuxHex(icolor, iit)
+  ELSE
     jcolor = AuxRec(icolor, iit)
     
     IF (hLgc%l060) jcolor = icolor
-  ELSE
-    jcolor = AuxHex(icolor, iit)
   END IF
   
 #ifdef MPI_ENV
@@ -103,29 +103,29 @@ DO icolor = 1, ncolor
   IF (PE%RTMASTER) CALL DcmpLinkBndyFlux(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, jcolor)
 END DO
 ! ----------------------------------------------------
-!$OMP PARALLEL PRIVATE(ixy, FsrIdxSt, icel, iFSR, jFSR, ig, wttmp)
+!$OMP PARALLEL PRIVATE(ixy, FsrIdxSt, icel, iFSR, jfsr, ig, wttmp)
 !$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt
   icel     = Pin(ixy)%Cell(iz)
   
-  DO iFSR = 1, Cell(icel)%nFsr
-    jFSR = FsrIdxSt + iFSR - 1
+  DO ifsr = 1, Cell(icel)%nFsr
+    jfsr = FsrIdxSt + ifsr - 1
     
     DO ig = gb, ge
-      wttmp = 1._8 / (xstNM(ig, jFSR) * Cell(icel)%vol(iFSR))
+      wttmp = 1._8 / (xstNM(ig, jfsr) * Cell(icel)%vol(iFSR))
       
-      phisNM(ig, jFSR) = phisNM(ig, jFSR) * wttmp + srcNM(ig, jFSR)
+      phisNM(ig, jFSR) = phisNM(ig, jfsr) * wttmp + srcNM(ig, jfsr)
       
-      phimNM(1:2, ig, jFSR) = phimNM(1:2, ig, jFSR) * wttmp + srcmNM(1:2, ig, jFSR) * RTHREE
+      phimNM(1:2, ig, jfsr) = phimNM(1:2, ig, jfsr) * wttmp + srcmNM(1:2, ig, jfsr) * RTHREE
       
       IF (ScatOd .LT. 2) CYCLE
       
-      phimNM(3:5, ig, jFSR) = phimNM(3:5, ig, jFSR) * wttmp + srcmNM(3:5, ig, jFSR) * RFIVE
+      phimNM(3:5, ig, jfsr) = phimNM(3:5, ig, jfsr) * wttmp + srcmNM(3:5, ig, jfsr) * RFIVE
       
       IF (ScatOd .LT. 3) CYCLE
       
-      phimNM(6:9, ig, jFSR) = phimNM(6:9, ig, jFSR) * wttmp + srcmNM(6:9, ig, jFSR) * RSEVEN
+      phimNM(6:9, ig, jfsr) = phimNM(6:9, ig, jfsr) * wttmp + srcmNM(6:9, ig, jfsr) * RSEVEN
     END DO
   END DO  
 END DO
