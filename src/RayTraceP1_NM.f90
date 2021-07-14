@@ -473,15 +473,16 @@ INTEGER, INTENT(IN) :: irotray, iz, krot, gb, ge, ScatOd
 ! ----------------------------------------------------
 INTEGER :: iAzi, iPol, icRay, jcRay, iaRay, jaRay, iRaySeg, ihpRay, iAsy, ifsr, iSurf, jbeg, jend, jinc, ig, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, iod
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, PhiAnginSvIdx, PhiAngOutSvIdx, ExpAppIdx, nod
+INTEGER :: iast, iaed, iainc, ipst, iped, ipinc, isfst, isfed, isgst, isged, isginc
 
 REAL :: phid, tau, ExpApp
 
-REAL :: wtpol(10)
-REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: locphiout
+REAL :: wtazi(10)
+REAL, DIMENSION(RayInfo%nPolarAngle, gb:ge) :: PhiAngOut
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNM, xstNM, ExpA, ExpB, wtang
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNM, mwt, mwt2
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM, SrcAngNM1, SrcAngNM2
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNM, phimNM, LocMwt
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM, LocSrc
 
 TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
 
@@ -490,6 +491,7 @@ TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 TYPE (Type_HexRotRay), POINTER :: hRotRay_Loc
 ! ----------------------------------------------------
 
+! Ray
 nPolarAng      = RayInfo%nPolarAngle
 PhiAngInSvIdx  = RayInfo%PhiAngInSvIdx (iRotRay, krot)
 PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
@@ -497,30 +499,35 @@ PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 hRotRay_Loc => hRotRay(iRotRay)
 nCoreRay     = hRotRay_Loc%ncRay
 
+! Geo.
 Pin => CoreInfo%Pin
 
-phisNM    => TrackingDat%phisNM
-phimNM    => TrackingDat%phimNM
-xstNM     => TrackingDat%xstNM
-joutNM    => TrackingDat%joutNM
-ExpA      => TrackingDat%ExpA
-ExpB      => TrackingDat%ExpB
-wtang     => TrackingDat%wtang
-mwt       => TrackingDat%mwt
-mwt2      => TrackingDat%mwt2
-SrcAngNM1 => TrackingDat%SrcAngNM1
-SrcAngNM2 => TrackingDat%SrcAngNM2
-locphiout  = TrackingDat%PhiAngInNM(:, gb:ge, PhiAnginSvIdx)
+! Loc.
+phisNM     => TrackingDat%phisNM
+xstNM      => TrackingDat%xstNM
+joutNM     => TrackingDat%joutNM
+PhiAngInNM => TrackingDat%PhiAngInNM
+wtang      => TrackingDat%wtang
+ExpA       => TrackingDat%ExpA
+ExpB       => TrackingDat%ExpB
 
-nod = 2
-IF (ScatOd .EQ. 2) nod = 5
-IF (ScatOd .EQ. 3) nod = 9
+! Iter.
+PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM(1:nPolarAng, gb:ge, PhiAnginSvIdx)
 
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1
 ELSE
   jend = 1; jbeg = nCoreRay; jinc = -1
 END IF
+
+! P1
+phimNM => TrackingDat%phimNM
+
+SELECT CASE (ScatOd)
+CASE (1); nOd = 2
+CASE (2); nOd = 5
+CASE (3); nOd = 9
+END SELECT
 ! ----------------------------------------------------
 DO icRay = jbeg, jend, jinc
   jcRay   = hRotRay_Loc%cRayIdx(icRay)
@@ -530,152 +537,105 @@ DO icRay = jbeg, jend, jinc
   IF (krot .EQ. 2) jcRay = -jcRay ! Reverse the Sweep Direction
   
   DO ipol = 1, nPolarAng
-    wtpol(ipol) = wtang(ipol, iazi)
+    wtazi(ipol) = wtang(ipol, iazi)
   END DO
   ! --------------------------------------------------
-  IF(jcRay > 0) THEN
-    DO iaRay = 1, nAsyRay
-      jaRay = hcRay(abs(jcRay))%mRayIdx(iaRay)
-      iAsy  = hcRay(abs(jcRay))%AsyIdx (iaRay)
-      
-      IF (iAsy .EQ. 0) CYCLE
-      
-      iAsyTyp = hAsy(iAsy)%AsyTyp
-      iGeoTyp = hAsy(iAsy)%GeoTyp
-      icBss   = hAsyTypInfo(iAsyTyp)%iBss
-      
-      haRay_Loc => haRay(iGeoTyp, icBss, jaRay)
-      
-      DO ihpRay = 1, haRay_Loc%nhpRay
-        jhPin = haRay_Loc%CelRay(ihpRay)%hPinIdx
-        jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
-        jcBss = Pin(jhPin)%hCelGeo(iz)
-        
-        CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
-        
-        IF (lJout) THEN
-          iSurf = CelRay_Loc%hSufIdx(1) ! y : small
-          
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              JoutNM(1, ig, iSurf, jhPin) = JoutNM(1, ig, isurf, jhPin) + wtpol(ipol) * locphiout(ipol, ig)
-            END DO
-          END DO
-        END IF
-        
-        DO iRaySeg = 1, CelRay_Loc%nSegRay
-          ifsr = CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
-          
-          DO ig = gb, ge
-            tau = -CelRay_Loc%SegLgh(iRaySeg) * xstNM(ig, ifsr) ! Optimum Length
-            
-            ExpAppIdx = max(INT(tau), -40000)
-            ExpAppIdx = min(0, ExpAppIdx)
-            
-            DO ipol = 1, nPolarAng
-              ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
-              
-              phid = (locphiout(ipol, ig) - SrcAngNM1(ig, ipol, ifsr, iazi)) * ExpApp ! NOTICE
-              
-              locphiout(ipol, ig) = locphiout(ipol, ig) - phid
-              
-              phisNM(ig, ifsr) = phisNM(ig, ifsr) + wtpol(ipol) * phid
-              
-              DO iod = 1, nod
-                phimNM(iod, ig, ifsr) = phimNM(iod, ig, ifsr) + mwt(iod, ipol, iazi) * phid ! NOTICE
-              END DO
-            END DO
-          END DO
-        END DO
-        
-        IF (lJout) THEN
-          isurf = CelRay_Loc%hSufIdx(2) ! y : Big
-          
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              JoutNM(2, ig, iSurf, jhPin) = JoutNM(2, ig, iSurf, jhPin) + wtpol(ipol) * locphiout(ipol, ig)
-            END DO
-          END DO
-        END IF
-      END DO
-    END DO
-  ! --------------------------------------------------
+  IF (jcRay .GT. 0) THEN
+    iast = 1; iaed = nAsyRay; iainc = 1;  LocSrc => TrackingDat%SrcAngNM1; LocMwt => TrackingDat%mwt
   ELSE
-    DO iaRay = nAsyRay, 1, -1
-      jaRay = hcRay(abs(jcRay))%mRayIdx(iaRay)
-      iAsy  = hcRay(abs(jcRay))%AsyIdx (iaRay)
+    iaed = 1; iast = nAsyRay; iainc = -1; LocSrc => TrackingDat%SrcAngNM2; LocMwt => TrackingDat%mwt2
+  END IF
+  
+  DO iaRay = iast, iaed, iainc
+    jaRay = hcRay(abs(jcRay))%mRayIdx(iaRay)
+    iAsy  = hcRay(abs(jcRay))%AsyIdx (iaRay)
+    
+    IF (iAsy .EQ. 0) CYCLE
+    
+    iAsyTyp = hAsy(iAsy)%AsyTyp
+    iGeoTyp = hAsy(iAsy)%GeoTyp
+    icBss   = hAsyTypInfo(iAsyTyp)%iBss
+    
+    haRay_Loc => haRay(iGeoTyp, icBss, jaRay)
+    
+    IF (jcRay .GT. 0) THEN
+      ipst = 1; iped = haRay_Loc%nhpRay; ipinc = 1;  isfst = 1; isfed = 2
+    ELSE
+      iped = 1; ipst = haRay_Loc%nhpRay; ipinc = -1; isfed = 1; isfst = 2
+    END IF
+    
+    DO ihpRay = ipst, iped, ipinc
+      jhPin = haRay_Loc%CelRay(ihpRay)%hPinIdx
+      jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
+      jcBss = Pin(jhPin)%hCelGeo(iz)
       
-      IF (iAsy .EQ. 0) CYCLE
+      CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
       
-      iAsyTyp = hAsy(iAsy)%AsyTyp
-      iGeoTyp = hAsy(iAsy)%GeoTyp
-      icBss   = hAsyTypInfo(iAsyTyp)%iBss
-      
-      haRay_Loc => haRay(iGeoTyp, icBss, jaRay)
-      
-      DO ihpRay = haRay_Loc%nhpRay, 1, -1
-        jhPin = haRay_Loc%CelRay(ihpRay)%hPinIdx
-        jhPin = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jhPin) - 1
-        jcBss = Pin(jhPin)%hCelGeo(iz)
+      ! Surface : In-coming
+      IF (lJout) THEN
+        iSurf = CelRay_Loc%hSufIdx(isfst)
         
-        CelRay_Loc => haRay(iGeoTyp, jcBss, jaRay)%CelRay(ihpRay)
-        
-        IF (lJout) THEN
-          iSurf = CelRay_Loc%hSufIdx(2) ! y : Big
-          
+        DO ipol = 1, nPolarAng
           DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              JoutNM(1, ig, iSurf, jhPin) = JoutNM(1, ig, isurf, jhPin) + wtpol(ipol) * locphiout(ipol, ig)
-            END DO
+            JoutNM(1, ig, iSurf, jhPin) = JoutNM(1, ig, isurf, jhPin) + PhiAngOut(ipol, ig) * wtazi(ipol)
           END DO
-        END IF
+        END DO
+      END IF
+      
+      ! Iter. : FSR
+      IF (jcRay .GT. 0) THEN
+        isgst = 1; isged = CelRay_Loc%nSegRay; isginc = 1
+      ELSE
+        isged = 1; isgst = CelRay_Loc%nSegRay; isginc = -1
+      END IF
+      
+      DO iRaySeg = isgst, isged, isginc
+        ifsr = CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
         
-        DO iRaySeg = CelRay_Loc%nSegRay, 1, -1
-          ifsr = CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
+        DO ig = gb, ge
+          tau = -CelRay_Loc%SegLgh(iRaySeg) * xstNM(ig, ifsr) ! Optimum Length
           
-          DO ig = gb, ge
-            tau = -CelRay_Loc%SegLgh(iRaySeg) * xstNM(ig, ifsr) ! Optimum Length
+          ExpAppIdx = max(INT(tau), -40000)
+          ExpAppIdx = min(0, ExpAppIdx)
+          
+          DO ipol = 1, nPolarAng
+            ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
             
-            ExpAppIdx = max(INT(tau), -40000)
-            ExpAppIdx = min(0, ExpAppIdx)
+            phid = (PhiAngOut(ipol, ig) - LocSrc(ig, ipol, ifsr, iazi)) * ExpApp ! NOTICE
             
-            DO ipol = 1, nPolarAng
-              ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
-              
-              phid = (locphiout(ipol, ig) - SrcAngNM2(ig, ipol, ifsr, iazi)) * ExpApp
-              
-              locphiout(ipol, ig) = locphiout(ipol, ig) - phid
-              
-              phisNM(ig, ifsr) = phisNM(ig, ifsr) + wtpol(ipol) * phid
-              
-              DO iod = 1, nod
-                phimNM(iod, ig, ifsr) = phimNM(iod, ig, ifsr) + mwt2(iod, ipol, iazi) * phid ! NOTICE : 2
-              END DO
+            PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
+            
+            phisNM(ig, ifsr) = phisNM(ig, ifsr) + wtazi(ipol) * phid
+            
+            DO iod = 1, nod
+              phimNM(iod, ig, ifsr) = phimNM(iod, ig, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
             END DO
           END DO
         END DO
-        
-        IF (lJout) THEN
-          isurf = CelRay_Loc%hSufIdx(1) ! y : small
-          
-          DO ig = gb, ge
-            DO ipol = 1, nPolarAng
-              JoutNM(2, ig, iSurf, jhPin) = JoutNM(2, ig, iSurf, jhPin) + wtpol(ipol) * locphiout(ipol, ig)
-            END DO
-          END DO
-        END IF
       END DO
+      
+      ! Surface : Out-going
+      IF (lJout) THEN
+        isurf = CelRay_Loc%hSufIdx(isfed)
+        
+        DO ipol = 1, nPolarAng
+          DO ig = gb, ge
+            JoutNM(2, ig, iSurf, jhPin) = JoutNM(2, ig, iSurf, jhPin) + PhiAngOut(ipol, ig) * wtazi(ipol)
+          END DO
+        END DO
+      END IF
     END DO
-  END IF
+  END DO
 END DO
 
-TrackingDat%PhiAngInNM(:, gb:ge, PhiAngOutSvIdx) = locphiout
+PhiAngInNM(1:nPolarAng, gb:ge, PhiAngOutSvIdx) = PhiAngOut(1:nPolarAng, gb:ge)
 ! ----------------------------------------------------
 ! Loc.
-NULLIFY (wtang)
 NULLIFY (phisNM)
 NULLIFY (xstNM)
 NULLIFY (joutNM)
+NULLIFY (PhiAngInNM)
+NULLIFY (wtang)
 NULLIFY (ExpA)
 NULLIFY (ExpB)
 NULLIFY (Pin)
@@ -687,10 +647,8 @@ NULLIFY (hRotRay_Loc)
 
 ! P1
 NULLIFY (phimNM)
-NULLIFY (mwt)
-NULLIFY (mwt2)
-NULLIFY (SrcAngNM1)
-NULLIFY (SrcAngNM2)
+NULLIFY (LocMwt)
+NULLIFY (LocSrc)
 ! ----------------------------------------------------
 
 END SUBROUTINE HexTrackRotRayP1NM_OMP

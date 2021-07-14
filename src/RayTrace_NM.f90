@@ -352,25 +352,29 @@ TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 TYPE (Type_HexRotRay), POINTER :: hRotRay_Loc
 ! ----------------------------------------------------
 
+! Ray
 nPolarAng      = RayInfo%nPolarAngle
 PhiAngInSvIdx  = RayInfo%PhiAngInSvIdx (iRotRay, krot)
 PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 
+hRotRay_Loc => hRotRay(iRotRay)
+nCoreRay     = hRotRay_Loc%ncRay
+
+! Geo.
 Pin => CoreInfo%Pin
 
-wtang      => TrackingDat%wtang
+! Loc.
 phisNM     => TrackingDat%phisNM
 srcNM      => TrackingDat%srcNM
 xstNM      => TrackingDat%xstNM
 joutNM     => TrackingDat%joutNM
 PhiAngInNM => TrackingDat%PhiAngInNM
+wtang      => TrackingDat%wtang
 ExpA       => TrackingDat%ExpA
 ExpB       => TrackingDat%ExpB
 
+! Iter.
 PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNM(1:nPolarAng, gb:ge, PhiAnginSvIdx)
-
-hRotRay_Loc => hRotRay(iRotRay)
-nCoreRay     = hRotRay_Loc%ncRay
 
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1
@@ -431,13 +435,13 @@ DO icRay = jbeg, jend, jinc
         END DO
       END IF
       
+      ! Iter. : FSR
       IF (jcRay .GT. 0) THEN
         isgst = 1; isged = CelRay_Loc%nSegRay; isginc = 1
       ELSE
         isged = 1; isgst = CelRay_Loc%nSegRay; isginc = -1
       END IF
       
-      ! Iter. : FSR
       DO iRaySeg = isgst, isged, isginc
         ifsr = CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
         
@@ -475,17 +479,17 @@ DO icRay = jbeg, jend, jinc
   END DO
 END DO
 
-PhiAngInNM(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
+PhiAngInNM(1:nPolarAng, gb:ge, PhiAngOutSvIdx) = PhiAngOut(1:nPolarAng, gb:ge)
 ! ----------------------------------------------------
 ! Loc.
-NULLIFY (wtang)
 NULLIFY (phisNM)
 NULLIFY (srcNM)
 NULLIFY (xstNM)
 NULLIFY (joutNM)
+NULLIFY (PhiAngInNM)
+NULLIFY (wtang)
 NULLIFY (ExpA)
 NULLIFY (ExpB)
-NULLIFY (PhiAngInNM)
 NULLIFY (Pin)
 
 ! Hex.
