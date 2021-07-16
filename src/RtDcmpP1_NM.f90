@@ -82,7 +82,7 @@ DO icolor = 1, ncolor
     TrackingDat(ithr)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
   END DO
   
-  !$OMP PARALLEL PRIVATE(ithr, iAsy)
+  !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   !$OMP DO SCHEDULE(GUIDED)
@@ -127,7 +127,7 @@ DO ixy = 1, nxy
     END DO
   END DO
 END DO
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP END PARALLEL
 
 NULLIFY (Pin)
@@ -142,9 +142,7 @@ USE ALLOCS
 USE PARAM,   ONLY : TRUE, ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE Moc_Mod, ONLY : Comp, DcmpPhiAngInNg, DcmpPhiAngOutNg, RecTrackRotRayPn_Dcmp, HexTrackRotRayPn_Dcmp
-USE PE_MOD,  ONLY : PE
 USE geom,    ONLY : nbd
-USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hAsy
 
 IMPLICIT NONE
@@ -246,19 +244,15 @@ DO iazi = 1, nAziAng
   END DO
 END DO
 ! ----------------------------------------------------
-IF (nTracerCntl%lHex) THEN
+DO krot = 1, 2
   DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
-    DO krot = 1, 2
+    IF (lHex) THEN
       CALL HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot, ScatOd)
-    END DO
-  END DO
-ELSE
-  DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
-    DO krot = 1, 2
+    ELSE
       !CALL RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, gb, ge, krot, ScatOd)
-    END DO
+    END IF
   END DO
-END IF
+END DO
 ! ----------------------------------------------------
 DO ifsr = FsrSt, FsrEd
   DO ig = gb, ge
@@ -343,6 +337,18 @@ REAL :: phid, tau, ExpApp, wtsurf
 DATA mp /2, 1/
 ! ----------------------------------------------------
 
+! Dcmp.
+nAsyRay     = DcmpAsyRay%nAsyRay
+iRotRay     = DcmpAsyRay%iRotRay
+iAsy        = DcmpAsyRay%iAsy
+iRay        = DcmpAsyRay%iRay
+AsyRayList => DcmpAsyRay%AsyRayList
+DirList    => DcmpAsyRay%DirList
+AziList    => DcmpAsyRay%AziList
+
+DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
+
 ! Ray
 nPolarAng     = RayInfo%nPolarAngle
 AziAng       => RayInfo%AziAngle
@@ -358,18 +364,6 @@ wtang      => TrackingDat%wtang
 EXPA       => TrackingDat%EXPA
 EXPB       => TrackingDat%EXPB
 hwt        => TrackingDat%hwt
-
-! Dcmp.
-nAsyRay     = DcmpAsyRay%nAsyRay
-iRotRay     = DcmpAsyRay%iRotRay
-iAsy        = DcmpAsyRay%iAsy
-iRay        = DcmpAsyRay%iRay
-AsyRayList => DcmpAsyRay%AsyRayList
-DirList    => DcmpAsyRay%DirList
-AziList    => DcmpAsyRay%AziList
-
-DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
-DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
 
 ! Geo.
 Pin => CoreInfo%Pin

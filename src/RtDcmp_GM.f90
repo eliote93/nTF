@@ -125,6 +125,7 @@ SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz,
 USE allocs
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type, TrackingDat_Type
 USE geom,    ONLY : nbd
+USE MOC_MOD, ONLY : HexTrackRotRayDcmp_GM
 USE HexData, ONLY : hAsy
 
 IMPLICIT NONE
@@ -247,9 +248,23 @@ REAL :: phid, tau, ExpApp, wtsurf
 DATA mp /2, 1/
 ! ----------------------------------------------------
 
-! Ray Info.
-nPolarAng = RayInfo%nPolarAngle
-AziAng   => RayInfo%AziAngle
+! Dcmp.
+nAsyRay     = DcmpAsyRay%nAsyRay
+iRotRay     = DcmpAsyRay%iRotRay
+iAsy        = DcmpAsyRay%iAsy
+iRay        = DcmpAsyRay%iRay
+AsyRayList => DcmpAsyRay%AsyRayList
+DirList    => DcmpAsyRay%DirList
+AziList    => DcmpAsyRay%AziList
+
+iAsyTyp = hAsy(iAsy)%AsyTyp
+iGeoTyp = hAsy(iAsy)%GeoTyp
+icBss   = hAsyTypInfo(iAsyTyp)%iBss
+
+! Ray
+nPolarAng     = RayInfo%nPolarAngle
+AziAng       => RayInfo%AziAngle
+PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 
 ! Geo.
 Pin => CoreInfo%Pin
@@ -267,22 +282,7 @@ EXPB            => TrackingDat%EXPB
 wtang           => TrackingDat%wtang
 hwt             => TrackingDat%hwt
 
-! Dcmp.
-nAsyRay     = DcmpAsyRay%nAsyRay
-iRotRay     = DcmpAsyRay%iRotRay
-iAsy        = DcmpAsyRay%iAsy
-iRay        = DcmpAsyRay%iRay
-AsyRayList => DcmpAsyRay%AsyRayList
-DirList    => DcmpAsyRay%DirList
-AziList    => DcmpAsyRay%AziList
-
-iAsyTyp = hAsy(iAsy)%AsyTyp
-iGeoTyp = hAsy(iAsy)%GeoTyp
-icBss   = hAsyTypInfo(iAsyTyp)%iBss
-
-! Ray. B.C.
-PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
-
+! Iter.
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
   PhiAngOut1g(1:nPolarAng) = PhiAngIn1g    (1:nPolarAng, PhiAnginSvIdx)
 ELSE

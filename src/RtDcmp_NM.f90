@@ -99,7 +99,7 @@ DO icolor = 1, ncolor
   IF (PE%RTMASTER) CALL DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, jcolor)
 END DO
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
+!$OMP PARALLEL PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
 !$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt
@@ -116,8 +116,8 @@ END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 ! ----------------------------------------------------
 
 END SUBROUTINE RayTraceDcmp_NM
@@ -127,6 +127,7 @@ SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy,
 USE allocs
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type, TrackingDat_Type
 USE geom,    ONLY : nbd
+USE MOC_MOD, ONLY : RecTrackRotRayDcmp_NM, HexTrackRotRayDcmp_NM
 USE HexData, ONLY : hAsy
 
 IMPLICIT NONE
@@ -462,6 +463,18 @@ REAL :: phid, tau, ExpApp, wtsurf
 DATA mp /2, 1/
 ! ----------------------------------------------------
 
+! Dcmp.
+nAsyRay     = DcmpAsyRay%nAsyRay
+iRotRay     = DcmpAsyRay%iRotRay
+iAsy        = DcmpAsyRay%iAsy
+iRay        = DcmpAsyRay%iRay
+AsyRayList => DcmpAsyRay%AsyRayList
+DirList    => DcmpAsyRay%DirList
+AziList    => DcmpAsyRay%AziList
+
+DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
+DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
+
 ! Ray
 nPolarAng     = RayInfo%nPolarAngle
 AziAng       => RayInfo%AziAngle
@@ -477,18 +490,6 @@ wtang      => TrackingDat%wtang
 EXPA       => TrackingDat%EXPA
 EXPB       => TrackingDat%EXPB
 hwt        => TrackingDat%hwt
-
-! Dcmp.
-nAsyRay     = DcmpAsyRay%nAsyRay
-iRotRay     = DcmpAsyRay%iRotRay
-iAsy        = DcmpAsyRay%iAsy
-iRay        = DcmpAsyRay%iRay
-AsyRayList => DcmpAsyRay%AsyRayList
-DirList    => DcmpAsyRay%DirList
-AziList    => DcmpAsyRay%AziList
-
-DcmpPhiAngInNg  => TrackingDat%DcmpPhiAngInNg
-DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
 
 ! Geo.
 Pin => CoreInfo%Pin
