@@ -82,7 +82,6 @@ IF (ljout) TrackingDat(ithr)%jout = ZERO
 TrackingDat(ithr)%PhiAngIn => PhiAngIn
 TrackingDat(ithr)%src      => src
 TrackingDat(ithr)%xst      => xst
-TrackingDat(ithr)%srcm     => srcm
 TrackingDat(ithr)%SrcAng1  => SrcAng1
 TrackingDat(ithr)%SrcAng2  => SrcAng2
 

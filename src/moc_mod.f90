@@ -12,13 +12,14 @@ REAL, POINTER, DIMENSION(:,:,:) :: phi1a1g, phi2a1g, MocJout1g, tsrcAng1, tsrcAn
 ! Node Major
 REAL, POINTER, DIMENSION(:,:)     :: phisNM, srcNM, xstNM
 REAL, POINTER, DIMENSION(:,:,:)   :: phimNM, phiAngInNM, srcmNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: phiaNM, srcAngNM, MocJoutNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
-INTEGER, POINTER, DIMENSION(:,:) :: DcmpColorAsy
+INTEGER, POINTER, DIMENSION(:,:)   :: DcmpColorAsy ! (iAsy, iColor)
+INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay   ! (imRay, iAzi, iAsy)
 
 ! Track Rotational Ray
 REAL, POINTER, DIMENSION(:,:)     :: wtang, hwt

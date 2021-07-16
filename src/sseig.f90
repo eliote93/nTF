@@ -114,7 +114,7 @@ IF (nTracerCntl%lFeedBack) THEN
   
   IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
   
-  CALL CmfdDriverSwitch()
+  CALL CmfdDriverSwitch
   
 #ifdef __INTEL_MKL
 #ifdef __GAMMA_TRANSPORT
@@ -132,7 +132,7 @@ IF (nTracerCntl%lFeedBack) THEN
   END IF
 #endif
 #endif
-
+  
   CALL SteadyStateTH(Core, CmInfo, FmInfo, ThInfo, Eigv, ng, GroupInfo, nTracerCntl, PE)
   CALL THFeedBack(Core, CmInfo, FmInfo, ThInfo, nTracerCntl, PE)
   
@@ -141,7 +141,7 @@ IF (nTracerCntl%lFeedBack) THEN
     CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
     CALL UpdateResPinFuelTemp
   END IF
-
+  
   IF (nTRACERCntl%lDeplVarInit) CALL InitIterVar(Core, FMInfo, CmInfo, GroupInfo, TRUE, ItrCntl, nTracerCntl, PE)
 
   ! Update Xenon Dynamics
@@ -155,7 +155,7 @@ IF (nTracerCntl%lFeedBack) THEN
   END IF
   
   ! Generate Self-Shielded XS
-  IF (nTracerCntl%lrestrmt) CALL SubgrpDriverSwitch()
+  IF (nTracerCntl%lrestrmt) CALL SubgrpDriverSwitch
   
 #ifdef MPI_ENV
   CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
@@ -177,16 +177,16 @@ IF (nTracerCntl%lFeedBack) THEN
   END IF
   
   IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-
-  CALL CmfdDriverSwitch()
+  
+  CALL CmfdDriverSwitch
 ! ----------------------------------------------------
 ELSE
 #ifdef MPI_ENV
   CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
 #endif
-
+  
   IF (nTRACERCntl%lDeplVarInit) CALL InitIterVar(Core, FMInfo, CmInfo, GroupInfo, TRUE, ItrCntl, nTracerCntl, PE)
-
+  
   ! Update Xenon Dynamics
   IF (nTracerCntl%lXeDyn) THEN
     CALL UpdtXeDyn(Core, FmInfo, ThInfo, GroupInfo, nTracerCntl, DeplCntl, PE)
@@ -199,14 +199,14 @@ ELSE
     CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
     CALL UpdateResPinFuelTemp
   END IF
-
+  
   ! Generate Self-Shielded XS
   IF (nTracerCntl%lrestrmt) THEN
-    CALL SubgrpDriverSwitch()
+    CALL SubgrpDriverSwitch
     
     lSubGrp = TRUE
   END IF
-
+  
   ! Effective XS Calculation
   IF (.NOT. nTRACERCntl%lPSM) THEN
 #ifdef __PGI
@@ -223,8 +223,8 @@ ELSE
   END IF
   
   IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-
-  CALL CmfdDriverSwitch()
+  
+  CALL CmfdDriverSwitch
 END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lBoronSearch) THEN
@@ -260,7 +260,7 @@ DO iout = 1, ItrCntl%OuterMax
   ! MoC
   IF (nTracerCntl%lMOCUR .AND. RTMASTER) CALL MOCUnderRelaxationFactor(Core, FmInfo, CmInfo, GroupInfo, nTracerCntl, PE)
   
-  IF (lMOC) CALL MOCDriverSwitch()
+  IF (lMOC) CALL MOCDriverSwitch
   
   ! Xe Dyn
   IF (nTracerCntl%lXeDyn) THEN
@@ -289,7 +289,7 @@ DO iout = 1, ItrCntl%OuterMax
   END IF
   
   ! CMFD
-  CALL CmfdDriverSwitch()
+  CALL CmfdDriverSwitch
   
 #ifdef HISTORY_OUT
   CALL PowerHistoryOutputEdit(FALSE)
@@ -316,7 +316,7 @@ DO iout = 1, ItrCntl%OuterMax
     
     IF (nTracerCntl%lrestrmt) THEN
       IF (ThInfo%TdopChg .LT. 1.D-03 .AND. .NOT. lSubGrp) THEN
-        CALL SubgrpDriverSwitch()
+        CALL SubgrpDriverSwitch
         lSubGrp = TRUE
       END IF
       
@@ -334,7 +334,7 @@ DO iout = 1, ItrCntl%OuterMax
 #endif
       END IF
     END IF
-
+    
     IF (nTracerCntl%lMacro .AND. .NOT. nTracerCntl%lCusping_MPI) CALL SetCoreMacXs(Core, FmInfo)
   END IF
   
@@ -345,7 +345,7 @@ DO iout = 1, ItrCntl%OuterMax
   END IF
   
   IF (nTracerCntl%lFeedBack .AND. ThInfo%TdopChg .LT. 5E-5) lThConv = TRUE
-
+  
   IF (MASTER) THEN
     WRITE(mesg, '(2x, A,L3, 3x, A, L3, 3x, A, L3)') 'Convergence - Flux :', ItrCntl%lconv, 'TH :',lThConv, 'B-Search:', lSearchConv
     CALL message(io8, FALSE, TRUE, mesg)
@@ -414,7 +414,7 @@ IF (nTracerCntl%lAdjoint) THEN
   
   ItrCntl%lConv = FALSE
   
-  IF (nTracerCntl%lCMFDAdj) CALL CMFD_adj_Switch()
+  IF (nTracerCntl%lCMFDAdj) CALL CMFD_adj_Switch
 END IF
 
 IF (nTracerCntl%lproblem.EQ.lsseigv .AND. RTMASTER) THEN
@@ -440,9 +440,9 @@ IF (nTracerCntl%lproblem.EQ.lsseigv .OR. nTracerCntl%lproblem.EQ.lEFTsearch ) TH
   
   IF (PE%lCmfdGrp) THEN
     IF (nTracerCntl%lHex) THEN
-      CALL HexOutputEdit()
+      CALL HexOutputEdit
     ELSE
-      CALL OutputEdit()
+      CALL OutputEdit
     END IF
   END IF
 ELSE IF (nTracerCntl%lproblem .EQ. lTransient) THEN
@@ -474,9 +474,9 @@ IF (nTracerCntl%lproblem .EQ. lBranch) THEN
   
   IF (PE%lCmfdGrp) THEN
     IF (nTracerCntl%lHex) THEN
-      CALL HexOutputEdit()
+      CALL HexOutputEdit
     ELSE
-      CALL OutputEdit()
+      CALL OutputEdit
     END IF
   END IF
 END IF
@@ -486,7 +486,7 @@ IF (nTracerCntl%lGC .AND. (lEFT_GCGEN.OR..NOT.nTracerCntl%lEFTSearch)) THEN
     CALL message(io8, TRUE, TRUE, mesg)
     
     IF (nTracerCntl%lTranON) THEN
-      CALL AllocTransient()
+      CALL AllocTransient
       CALL KinParamGen(Core, FmInfo, TranInfo, ThInfo, GroupInfo, TRUE, nTracerCntl, PE)
       
       IF (nTRACERCntl%lXsLib) THEN

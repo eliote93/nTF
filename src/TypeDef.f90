@@ -458,13 +458,17 @@ TYPE TrackingDat_Type
   REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout
   
   ! GM Pn
-  REAL, POINTER, DIMENSION(:,:)   :: phim, srcm
-  REAL, POINTER, DIMENSION(:,:,:) :: SrcAng, SrcAng1, SrcAng2
+  REAL, POINTER, DIMENSION(:,:)   :: phim
+  REAL, POINTER, DIMENSION(:,:,:) :: SrcAng1, SrcAng2
+  
+  ! NM Trc
+  REAL, POINTER, DIMENSION(:,:)     :: phisnm, srcnm, xstnm
+  REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngOutnm, PhiAngInnm, OptLenListnm
+  REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm, ExpAppnm
   
   ! NM Pn
-  REAL, POINTER, DIMENSION(:,:)     :: phisnm, srcnm, xstnm
-  REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngOutnm, PhiAngInnm, OptLenListnm
-  REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm, phianm, SrcAngnm, SrcAngnm1, SrcAngnm2, ExpAppnm
+  REAL, POINTER, DIMENSION(:,:,:)   :: phimnm
+  REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAngnm1, SrcAngnm2
   
   ! AFSS
   REAL, POINTER, DIMENSION(:,:,:) :: phia, phi1a, phi2a
@@ -476,6 +480,7 @@ TYPE TrackingDat_Type
   REAL, POINTER, DIMENSION(:,:,:,:) :: dCentroid, E1, E3, R1, R3, cmOptLen, cmOptLenInv, q1
   
   ! Dcmp.
+  REAL, POINTER, DIMENSION(:,:,:)     :: SrcAngNMdcmp1, SrcAngNMdcmp2
   REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
   REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 END TYPE

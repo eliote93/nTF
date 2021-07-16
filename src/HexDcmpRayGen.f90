@@ -5,10 +5,10 @@ USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
 USE PE_Mod,  ONLY : PE
-USE MOC_MOD, ONLY : DcmpColorAsy
+USE MOC_MOD, ONLY : DcmpColorAsy, DcmpAziRay
 USE HexData, ONLY : hAsy, hLgc
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
-USE HexData, ONLY : haRay, hcRay, hRotRay, hAsyTypInfo
+USE HexData, ONLY : haRay, hcRay, hRotRay, hAsyTypInfo, hLgc
 
 IMPLICIT NONE
 
@@ -21,7 +21,7 @@ INTEGER, POINTER, DIMENSION(:)       :: DcmpAsyRayCount, AsyRayList, DirList, Az
 INTEGER, POINTER, DIMENSION(:,:,:,:) :: DcmpAsyLinkInfo
 
 INTEGER :: nRotRay, nCoreRay, nAsyRay, nModRay, nDummyRay, nAsy, nMaxCellRay
-INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, iAzi, iz, iasy, ipin, iCnt, iAsyTyp, iGeoTyp, icBss, jcBss, iDir, itmp, icolor
+INTEGER :: iRotRay, iCoreRay, jCoreRay, iAsyRay, jAsyRay, icelray, iAzi, iz, iasy, ipin, iCnt, iAsyTyp, iGeoTyp, icBss, iDir, itmp, icolor
 INTEGER :: AsyRayBeg, AsyRayEnd, AsyRayInc, myzb, myze, prvAsy, prvCnt, nRef
 
 INTEGER :: PinSt, PinEd, FsrSt, FsrEd, maxNumPin, maxNumFsr ! DEBUG
@@ -217,6 +217,22 @@ END IF
 !
 !PRINT *, nModRay, Core%nCoreFsr, Core%nxy, nAsy, nRef, maxNumPin, maxNumFsr
 !STOP
+! ----------------------------------------------------
+IF (hLgc%l360) THEN
+  CALL dmalloc0(DcmpAziRay, 0, nModRay, 1, RayInfo%nAziAngle, 1, nAsy)
+  
+  DO iAsy = 1, nAsy
+    DO iAzi = 1, RayInfo%nAziAngle
+      DO iCnt = 1, DcmpAsyRayCount(iAsy)
+        IF (DcmpAsyRay(iCnt, iAsy)%AziList(1) .NE. iAzi) CYCLE
+        
+        DcmpAziRay(0, iAzi, iAsy) = DcmpAziRay(0, iAzi, iAsy) + 1
+        
+        DcmpAziRay(DcmpAziRay(0, iAzi, iAsy), iAzi, iAsy) = iCnt
+      END DO
+    END DO
+  END DO
+END IF
 
 RayInfo%DcmpAsyRay => DcmpAsyRay
 ! ----------------------------------------------------
