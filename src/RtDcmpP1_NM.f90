@@ -164,7 +164,6 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 REAL, POINTER, DIMENSION(:,:)     :: srcNM
-REAL, POINTER, DIMENSION(:,:,:)   :: SrcAngNMdcmp1, SrcAngNMdcmp2
 REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAngNM1, SrcAngNM2
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
@@ -207,37 +206,37 @@ CALL dmalloc0(TrackingLoc%phimNM, 1, nOd, gb, ge, FsrSt, FsrEd)
 srcNM => TrackingLoc%srcNM
 ! ----------------------------------------------------
 IF (lHex .AND. hLgc%l360) THEN
-  CALL dmalloc0(TrackingLoc%SrcAngNMdcmp1, gb, ge, 1, nPolarAng, FsrSt, FsrEd)
-  CALL dmalloc0(TrackingLoc%SrcAngNMdcmp2, gb, ge, 1, nPolarAng, FsrSt, FsrEd)
+  CALL dmalloc0(TrackingLoc%SrcAngNM1, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
+  CALL dmalloc0(TrackingLoc%SrcAngNM2, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   
   DO iazi = 1, nAziAng
-    SrcAngNMdcmp1 => TrackingLoc%SrcAngNMdcmp1
-    SrcAngNMdcmp2 => TrackingLoc%SrcAngNMdcmp2
+    SrcAngNM1 => TrackingLoc%SrcAngNM1
+    SrcAngNM2 => TrackingLoc%SrcAngNM2
     
     DO ifsr = FsrSt, FsrEd
       DO ipol = 1, nPolarAng
         DO ig = gb, ge
-          SrcAngNMdcmp1(ig, ipol, ifsr) = srcNM(ig, ifsr)
-          SrcAngNMdcmp2(ig, ipol, ifsr) = srcNM(ig, ifsr)
+          SrcAngNM1(ig, ipol, ifsr, 1) = srcNM(ig, ifsr)
+          SrcAngNM2(ig, ipol, ifsr, 1) = srcNM(ig, ifsr)
           
           srctmp = comp(1, ipol, iazi) * srcmNM(1, ig, ifsr) + comp(2, ipol, iazi) * srcmNM(2, ig, ifsr)
           
-          SrcAngNMdcmp1(ig, ipol, ifsr) = SrcAngNMdcmp1(ig, ipol, ifsr) + srctmp
-          SrcAngNMdcmp2(ig, ipol, ifsr) = SrcAngNMdcmp2(ig, ipol, ifsr) - srctmp
+          SrcAngNM1(ig, ipol, ifsr, 1) = SrcAngNM1(ig, ipol, ifsr, 1) + srctmp
+          SrcAngNM2(ig, ipol, ifsr, 1) = SrcAngNM2(ig, ipol, ifsr, 1) - srctmp
           
           IF (ScatOd .LT. 2) CYCLE
           
           srctmp = comp(3, ipol, iazi) * srcmNM(3, ig, ifsr) + comp(4, ipol, iazi) * srcmNM(4, ig, ifsr) + comp(5, ipol, iazi) * srcmNM(5, ig, ifsr)
           
-          SrcAngNMdcmp1(ig, ipol, ifsr) = SrcAngNMdcmp1(ig, ipol, ifsr) + srctmp
-          SrcAngNMdcmp2(ig, ipol, ifsr) = SrcAngNMdcmp2(ig, ipol, ifsr) + srctmp
+          SrcAngNM1(ig, ipol, ifsr, 1) = SrcAngNM1(ig, ipol, ifsr, 1) + srctmp
+          SrcAngNM2(ig, ipol, ifsr, 1) = SrcAngNM2(ig, ipol, ifsr, 1) + srctmp
           
           IF (ScatOd .LT. 3) CYCLE
           
           srctmp = comp(6, ipol, iazi) * srcmNM(6, ig, ifsr) + comp(7, ipol, iazi) * srcmNM(7, ig, ifsr) + comp(8, ipol, iazi) * srcmNM(8, ig, ifsr) + comp(9, ipol, iazi) * srcmNM(9, ig, ifsr)
           
-          SrcAngNMdcmp1(ig, ipol, ifsr) = SrcAngNMdcmp1(ig, ipol, ifsr) + srctmp
-          SrcAngNMdcmp2(ig, ipol, ifsr) = SrcAngNMdcmp2(ig, ipol, ifsr) - srctmp
+          SrcAngNM1(ig, ipol, ifsr, 1) = SrcAngNM1(ig, ipol, ifsr, 1) + srctmp
+          SrcAngNM2(ig, ipol, ifsr, 1) = SrcAngNM2(ig, ipol, ifsr, 1) - srctmp
         END DO
       END DO
     END DO
@@ -326,13 +325,8 @@ DEALLOCATE (TrackingLoc%phisNM)
 DEALLOCATE (TrackingLoc%phimNM)
 IF (ljout) DEALLOCATE (TrackingLoc%JoutNM)
 
-IF (lHex .AND. hLgc%l360) THEN
-  DEALLOCATE (TrackingLoc%SrcAngNMdcmp1)
-  DEALLOCATE (TrackingLoc%SrcAngNMdcmp2)
-ELSE
-  DEALLOCATE (TrackingLoc%SrcAngNM1)
-  DEALLOCATE (TrackingLoc%SrcAngNM2)
-END IF
+DEALLOCATE (TrackingLoc%SrcAngNM1)
+DEALLOCATE (TrackingLoc%SrcAngNM2)
 
 NULLIFY (Cell)
 NULLIFY (Pin)
@@ -340,13 +334,8 @@ NULLIFY (srcNM)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 
-IF (lHex .AND. hLgc%l360) THEN
-  NULLIFY (SrcAngNMdcmp1)
-  NULLIFY (SrcAngNMdcmp2)
-ELSE
-  NULLIFY (SrcAngNM1)
-  NULLIFY (SrcAngNM2)
-END IF
+NULLIFY (SrcAngNM1)
+NULLIFY (SrcAngNM2)
 ! ----------------------------------------------------
 
 END SUBROUTINE RtDcmpPnThr_NM
@@ -374,14 +363,14 @@ TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
 REAL, POINTER, DIMENSION(:,:)       :: phisNM, srcNM, xstNM, EXPA, EXPB, wtang, hwt
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM, phimNM, LocSrc, LocMwt
-REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM, phimNM, LocMwt
+REAL, POINTER, DIMENSION(:,:,:,:)   :: joutNM, LocSrc
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
 
 INTEGER :: mp(2)
-INTEGER :: iazi, ipol, irotray, iasyray, iray, irayseg, idir, icel, iasy, iFSR, isurf, ig, jbeg, jend, jinc, imray, ipray
+INTEGER :: iazi, jazi, ipol, irotray, iasyray, iray, irayseg, idir, icel, iasy, iFSR, isurf, ig, jbeg, jend, jinc, imray, ipray
 INTEGER :: ipst, iped, ipinc, isfst, isfed, isgst, isged, isginc, iAsyTyp, iGeoTyp, icBss, jhPin, jcBss, iOd, nOd
 INTEGER :: nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, PhiAnginSvIdx, ExpAppIdx
 
@@ -453,7 +442,9 @@ END SELECT
 DO imray = jbeg, jend, jinc
   iAsyRay = AsyRayList(imray)
   iazi    = AziList   (imray)
+  jazi    = iazi
   idir    = DirList   (imray)
+  IF (hLgc%l360)   jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng
@@ -474,18 +465,10 @@ DO imray = jbeg, jend, jinc
     iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; LocMwt => TrackingDat%mwt2
   END IF
   
-  IF (hLgc%l360) THEN
-    IF (idir .EQ. 1) THEN
-      LocSrc => TrackingDat%SrcAngNMdcmp1
-    ELSE
-      LocSrc => TrackingDat%SrcAngNMdcmp2
-    END IF
+  IF (idir .EQ. 1) THEN
+    LocSrc => TrackingDat%SrcAngNM1
   ELSE
-    IF (idir .EQ. 1) THEN
-      LocSrc => TrackingDat%SrcAngNM1(:,:,:,iazi)
-    ELSE
-      LocSrc => TrackingDat%SrcAngNM2(:,:,:,iazi)
-    END IF
+    LocSrc => TrackingDat%SrcAngNM2
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc
@@ -530,7 +513,7 @@ DO imray = jbeg, jend, jinc
         DO ipol = 1, nPolarAng
           ExpApp = ExpA(ExpAppIdx, ipol) * tau + ExpB(ExpAppIdx, ipol)
           
-          phid = (PhiAngOut(ipol, ig) - LocSrc(ig, ipol, ifsr)) * ExpApp
+          phid = (PhiAngOut(ipol, ig) - LocSrc(ig, ipol, ifsr, jazi)) * ExpApp
           
           PhiAngOut(ipol, ig) = PhiAngOut(ipol, ig) - phid
           

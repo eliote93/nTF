@@ -269,19 +269,19 @@ srcmnm = zero
 
 IF(lxsLib) nchi = GroupInfo%nchi
 ! ----------------------------------------------------
-!!$OMP PARALLEL DEFAULT(SHARED)      &
-!!$OMP PRIVATE(XsMac, ifsr, ifxr, icel, ifsrlocal, itype, scatSrc, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, XsMacP1Sm, XsMacP2Sm, XsMacP3Sm)
+!$OMP PARALLEL DEFAULT(SHARED)      &
+!$OMP PRIVATE(XsMac, ifsr, ifxr, icel, ifsrlocal, itype, scatSrc, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, XsMacP1Sm, XsMacP2Sm, XsMacP3Sm)
 IF (.NOT. lxsLib) THEN
   ALLOCATE (XsMacP1sm (ng, ng))
-  IF(ScatOd .GE. 2) ALLOCATE (XsMacP2sm (ng, ng))
-  IF(ScatOd .EQ. 3) ALLOCATE (XsMacP3sm (ng, ng))
+  IF (ScatOd .GE. 2) ALLOCATE (XsMacP2sm (ng, ng))
+  IF (ScatOd .EQ. 3) ALLOCATE (XsMacP3sm (ng, ng))
   
   XsMacP1sm = ZERO
   
   IF (ScatOd .GE. 2) XsMacP2sm = ZERO
   IF (ScatOd .EQ. 3) XsMacP3sm = ZERO
 END IF
-!!$OMP DO
+!$OMP DO
 DO ipin = xyb, xye
   CALL GetXsMacDat(XsMac, ng, TRUE)
   
@@ -294,7 +294,7 @@ DO ipin = xyb, xye
     ifxr       = FxrIdxSt + j -1
     nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
     
-    IF(lXsLib) Then
+    IF (lXsLib) Then
       CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr), gb, ge, ng, GroupInfo)
       
       IF (ScatOd .GE. 2) CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr), gb, ge, ng, GroupInfo)
@@ -368,11 +368,11 @@ DO ipin = xyb, xye
   
   CALL ReturnXsMacDat(XsMac)
 ENDDO
-!!$OMP END DO
+!$OMP END DO
 IF (.NOT. lxsLib) DEALLOCATE (XsMacP1sm) ! modified because of crash! in benchmark XS
 IF (.NOT. lxsLib .AND. ScatOd .GE. 2) DEALLOCATE (XsMacP2sm)
 IF (.NOT. lxsLib .AND. ScatOd .EQ. 3) DEALLOCATE (XsMacP3sm)
-!!$OMP END PARALLEL
+!$OMP END PARALLEL
 ! ----------------------------------------------------
 IF (ScatOd .EQ. 1) THEN
   DO ipin = xyb, xye

@@ -480,7 +480,6 @@ TYPE TrackingDat_Type
   REAL, POINTER, DIMENSION(:,:,:,:) :: dCentroid, E1, E3, R1, R3, cmOptLen, cmOptLenInv, q1
   
   ! Dcmp.
-  REAL, POINTER, DIMENSION(:,:,:)     :: SrcAngNMdcmp1, SrcAngNMdcmp2
   REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
   REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 END TYPE
