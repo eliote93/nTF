@@ -212,7 +212,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
                   END IF
                 END IF
               ELSE
-                CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
+                IF (lScat1) THEN
+                  !CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, lJout)
+                ELSE
+                  CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, tsrc,       MocJout1g, iz, lJout)
+                END IF
               END IF
             ELSE
               CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)

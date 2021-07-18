@@ -309,9 +309,10 @@
 		<File RelativePath=".\src\MOCSweep.f90"/></Filter>
 		<Filter Name="Dcmp">
 		<File RelativePath=".\src\RayTraceLin_Dcmp.f90"/>
-		<File RelativePath=".\src\RtDcmpP1_NM.f90"/>
 		<File RelativePath=".\src\RtDcmp_GM.f90"/>
-		<File RelativePath=".\src\RtDcmp_NM.f90"/></Filter>
+		<File RelativePath=".\src\RtDcmp_NM.f90"/>
+		<File RelativePath=".\src\RtDcmpP1_GM.f90"/>
+		<File RelativePath=".\src\RtDcmpP1_NM.f90"/></Filter>
 		<Filter Name="Group Major">
 		<File RelativePath=".\src\RayTrace_GM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_GM.f90"/>

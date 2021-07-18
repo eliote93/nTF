@@ -3,13 +3,11 @@
 SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE OMP_LIB
-USE allocs
 USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Cell_Type
 USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpColorAsy, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg, RtDcmpThr_NM
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
-USE geom,        ONLY : nbd
 USE itrcntl_mod, ONLY : itrcntl
 USE HexData,     ONLY : hLgc
 
@@ -25,10 +23,10 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ifsr, ibd, ixy, nxy, FsrIdxSt, icel, jfsr, ig, icolor, jcolor, ncolor, iit
+INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, icolor, jcolor, ncolor, iit
 LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
@@ -58,6 +56,7 @@ DO ithr = 1, nThr
 END DO
 
 DcmpPhiAngOutNg(:, gb:ge, :, :, :) = ZERO
+
 phisNM(gb:ge, :) = ZERO
 IF (ljout) MocjoutNM(:, gb:ge, :, :) = ZERO
 ! ----------------------------------------------------
@@ -125,7 +124,7 @@ END SUBROUTINE RayTraceDcmp_NM
 SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex)
 
 USE allocs
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type, TrackingDat_Type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE geom,    ONLY : nbd
 USE MOC_MOD, ONLY : RecTrackRotRayDcmp_NM, HexTrackRotRayDcmp_NM
 USE HexData, ONLY : hAsy
@@ -142,13 +141,14 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 INTEGER :: jAsy, iz, gb, ge
 LOGICAL :: lJout, lHex
 ! ----------------------------------------------------
-INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ig, ixy, ibd
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-TYPE (Cell_Type),           POINTER, DIMENSION(:)   :: Cell
-TYPE (Pin_Type),            POINTER, DIMENSION(:)   :: Pin
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
+
+INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ig, ixy, ibd
 ! ----------------------------------------------------
 
 Cell => CoreInfo%Cellinfo
@@ -423,7 +423,7 @@ END SUBROUTINE RecTrackRotRayDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
 
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, DcmpAsyRayInfo_Type, AziAngleInfo_Type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type, Pin_Type, AziAngleInfo_Type
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
 USE HexData, ONLY : hAsy, haRay, hAsyTypInfo
 
@@ -480,6 +480,13 @@ nPolarAng     = RayInfo%nPolarAngle
 AziAng       => RayInfo%AziAngle
 PhiAngInSvIdx = RayInfo%PhiAngInSvIdx(iRotRay, krot)
 
+! Geo.
+Pin => CoreInfo%Pin
+
+iAsyTyp = hAsy(iAsy)%AsyTyp
+iGeoTyp = hAsy(iAsy)%GeoTyp
+icBss   = hAsyTypInfo(iAsyTyp)%iBss
+
 ! Loc.
 phisNM     => TrackingDat%phisNM
 srcNM      => TrackingDat%srcNM
@@ -490,13 +497,6 @@ wtang      => TrackingDat%wtang
 EXPA       => TrackingDat%EXPA
 EXPB       => TrackingDat%EXPB
 hwt        => TrackingDat%hwt
-
-! Geo.
-Pin => CoreInfo%Pin
-
-iAsyTyp = hAsy(iAsy)%AsyTyp
-iGeoTyp = hAsy(iAsy)%GeoTyp
-icBss   = hAsyTypInfo(iAsyTyp)%iBss
 
 ! Iter.
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
@@ -616,8 +616,8 @@ NULLIFY (Pin)
 NULLIFY (phisNM)
 NULLIFY (srcNM)
 NULLIFY (xstNM)
-NULLIFY (joutNM)
 NULLIFY (PhiAngInNM)
+NULLIFY (joutNM)
 NULLIFY (wtang)
 NULLIFY (EXPA)
 NULLIFY (EXPB)

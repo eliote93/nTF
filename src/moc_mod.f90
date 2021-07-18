@@ -157,6 +157,59 @@ INTEGER :: iz, krot
 
 END SUBROUTINE HexTrackRotRayDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RayTraceDcmpP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+
+REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, phim1g, srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
+
+INTEGER :: iz
+LOGICAL :: lJout
+
+END SUBROUTINE RayTraceDcmpP1_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, phim1g, srcm1g, MocJout1g, jAsy, iz, lJout, lHex, ScatOd)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
+
+REAL, POINTER, DIMENSION(:)     :: phis1g
+REAL, POINTER, DIMENSION(:,:)   :: phim1g, srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
+
+INTEGER :: jAsy, iz, ScatOd
+LOGICAL :: lJout, lHex
+
+END SUBROUTINE RtDcmpP1Thr_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, krot, ScatOd)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
+
+LOGICAL :: ljout
+INTEGER :: iz, krot, ScatOd
+
+END SUBROUTINE HexTrackRotRayDcmpP1_GM
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -242,6 +295,57 @@ INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmpP1_NM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, phimNM, srcmNM, joutNM, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
+
+REAL, POINTER, DIMENSION(:,:)     :: phisnm
+REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, srcmnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+
+INTEGER :: jAsy, iz, gb, ge, ScatOd
+LOGICAL :: lJout, lHex
+
+END SUBROUTINE RtDcmpP1Thr_NM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, lJout, iz, gb, ge, krot, ScatOd)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
+
+LOGICAL :: lJout
+INTEGER :: iz, gb, ge, krot, ScatOd
+
+END SUBROUTINE RecTrackRotRayDcmpP1_NM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, lJout, iz, gb, ge, krot, ScatOd)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)        :: RayInfo
+TYPE (CoreInfo_Type)       :: CoreInfo
+TYPE (TrackingDat_Type)    :: TrackingDat
+TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
+
+LOGICAL :: lJout
+INTEGER :: iz, gb, ge, krot, ScatOd
+
+END SUBROUTINE HexTrackRotRayDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLin_Dcmp(RayInfo, CoreInfo, iz, gb, ge, lJout, lHybrid)
 
@@ -394,57 +498,6 @@ LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1GM_AFSS
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpPnThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, phimNM, srcmNM, joutNM, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
-
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)     :: RayInfo
-TYPE (CoreInfo_Type)    :: CoreInfo
-TYPE (TrackingDat_Type) :: TrackingLoc
-
-REAL, POINTER, DIMENSION(:,:)     :: phisnm
-REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, srcmnm
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
-
-INTEGER :: jAsy, iz, gb, ge, ScatOd
-LOGICAL :: lJout, lHex
-
-END SUBROUTINE RtDcmpPnThr_NM
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
-
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)        :: RayInfo
-TYPE (CoreInfo_Type)       :: CoreInfo
-TYPE (TrackingDat_Type)    :: TrackingDat
-TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-LOGICAL :: lJout
-INTEGER :: iz, gb, ge, krot
-
-END SUBROUTINE RecTrackRotRayPn_Dcmp
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayPn_Dcmp(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
-
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)        :: RayInfo
-TYPE (CoreInfo_Type)       :: CoreInfo
-TYPE (TrackingDat_Type)    :: TrackingDat
-TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-LOGICAL :: lJout
-INTEGER :: iz, gb, ge, krot
-
-END SUBROUTINE HexTrackRotRayPn_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, LinSrc, Slope1g, jout, iz, ljout)
 
