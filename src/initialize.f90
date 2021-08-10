@@ -75,8 +75,7 @@ IF (PE%RTmaster) CALL SetCorePower(Core, nTracerCntl)
 IF (PE%RTmaster) CALL InitFluxVariables
 
 ! RT
-IF (PE%RTmaster) CALL initRT  (RayInfo, Core, nTracerCntl, PE)
-IF (PE%RTmaster) CALL initAFSS(RayInfo, Core, nTracerCntl, PE)
+IF (PE%RTmaster) CALL initRT(RayInfo, Core, nTracerCntl, PE)
 
 ! Pre-generated Macro Cross Section
 IF (nTracerCntl%lMacro) CALL AllocCoreMacXs(Core)

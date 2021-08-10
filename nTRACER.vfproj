@@ -300,7 +300,8 @@
 		<File RelativePath=".\src\ScanInput_include.f90"/></Filter>
 		<Filter Name="MOC">
 		<Filter Name="AFSS">
-		<File RelativePath=".\src\RayTrace_AFSS.f90"/></Filter>
+		<File RelativePath=".\src\RtAFSS_GM.f90"/>
+		<File RelativePath=".\src\RtAFSSP1_GM.f90"/></Filter>
 		<Filter Name="Common">
 		<File RelativePath=".\src\ApproxExp.f90"/>
 		<File RelativePath=".\src\InitRT.f90"/>

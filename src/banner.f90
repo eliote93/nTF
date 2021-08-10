@@ -82,7 +82,7 @@ WRITE(OutDev, '(a)');WRITE(OutDev, '(a)')
 !
 !Executing Case Print
 PRINT '(25x,a8,a,25x)', 'nTRACER ', TRIM(version)
-PRINT '(a)', hbar2
+PRINT '(a80)', hbar2
 PRINT 600, trim(caseid)
 WRITE(OutDev, 600) trim(caseid)
 write(mesg,601) "by ",trim(username)," on ",trim(hostname)," at ",hh,mm,ss,mon(idatea(2)),idatea(1),idatea(3),"..."
