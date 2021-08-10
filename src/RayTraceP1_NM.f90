@@ -26,7 +26,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThread, scatod, nod
+INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nthr, scatod, nod
 INTEGER :: iRotRay, ipol, iazi, krot, ithr, FsrIdxSt, icel, ibd, ig, ifsr, jfsr, iod, ixy
 REAL :: wttmp, srctmp
 ! ----------------------------------------------------
@@ -34,7 +34,7 @@ REAL :: wttmp, srctmp
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
-nThread = PE%nThread
+nthr = PE%nThread
 
 ScatOd = nTracerCntl%ScatOd
 
@@ -113,7 +113,7 @@ phisNM(gb:ge, :)    = ZERO
 phimNM(:, gb:ge, :) = ZERO
 IF (ljout) joutNM(:, gb:ge, :, :) = ZERO
 
-DO ithr = 1, nThread
+DO ithr = 1, nthr
   DO ifsr = 1, nFsr
     DO ig = gb, ge
       phisNM(ig, ifsr) = phisNM(ig, ifsr) + TrackingDat(ithr)%phisNM(ig, ifsr)

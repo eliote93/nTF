@@ -37,12 +37,12 @@ CALL omp_set_num_threads(nthr)
 !$OMP PARALLEL PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
 
+TrackingDat(ithr)%phisNM = ZERO
+IF (ljout) TrackingDat(ithr)%joutNM = ZERO
+
 TrackingDat(ithr)%srcNM      => srcNM
 TrackingDat(ithr)%xstNM      => xstNM
 TrackingDat(ithr)%PhiAngInNM => PhiAngInNM
-
-TrackingDat(ithr)%phisNM = ZERO
-IF (ljout) TrackingDat(ithr)%joutNM = ZERO
 
 !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO krot = 1, 2

@@ -5,7 +5,7 @@ SUBROUTINE RayTraceDcmpP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, ONE, RTHREE, RFIVE, RSEVEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Cell_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpColorAsy, DcmpGatherBndyFlux1g, DcmpScatterBndyFlux1g, DcmpLinkBndyFlux1g, RtDcmpP1Thr_GM
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpAsyClr, DcmpGatherBndyFlux1g, DcmpScatterBndyFlux1g, DcmpLinkBndyFlux1g, RtDcmpP1Thr_GM
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : itrcntl
@@ -26,7 +26,7 @@ LOGICAL :: lJout
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, icolor, jcolor, ncolor, iit, ScatOd
+INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, iClr, jClr, nClr, iit, ScatOd
 LOGICAL :: lHex
 REAL :: wttmp
 
@@ -42,11 +42,11 @@ lHex   = nTracerCntl%lHex
 ScatOd = nTracerCntl%ScatOd
 
 IF (lHex) THEN
-  ncolor = 3; iit = mod(itrcntl%mocit, 3)
+  nClr = 3; iit = mod(itrcntl%mocit, 3)
   
-  IF (hLgc%l060) ncolor = 1
+  IF (hLgc%l060) nClr = 1
 ELSE
-  ncolor = 2; iit = mod(itrcntl%mocit, 2)
+  nClr = 2; iit = mod(itrcntl%mocit, 2)
 END IF
 
 nthr = PE%nthread
@@ -63,13 +63,13 @@ phis1g = ZERO
 IF (ljout) Mocjout1g = ZERO
 phim1g = ZERO
 ! ----------------------------------------------------
-DO icolor = 1, ncolor
+DO iClr = 1, nClr
   IF (lHex) THEN
-    jcolor = AuxHex(icolor, iit)
+    jClr = AuxHex(iClr, iit)
     
-    IF (hLgc%l060) jcolor = icolor
+    IF (hLgc%l060) jClr = iClr
   ELSE
-    jcolor = AuxRec(icolor, iit)
+    jClr = AuxRec(iClr, iit)
   END IF
   
 #ifdef MPI_ENV
@@ -86,8 +86,8 @@ DO icolor = 1, ncolor
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   !$OMP DO SCHEDULE(GUIDED)
-  DO iAsy = 1, DcmpColorAsy(0, jcolor)
-    jAsy = DcmpColorAsy(iAsy, jcolor)
+  DO iAsy = 1, DcmpAsyClr(0, jClr)
+    jAsy = DcmpAsyClr(iAsy, jClr)
     
     CALL RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, phim1g, srcm1g, MocJout1g, jAsy, iz, lJout, lHex, ScatOd)
   END DO
@@ -98,7 +98,7 @@ DO icolor = 1, ncolor
   IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFlux1g(RayInfo, DcmpPhiAngOut1g)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn1g, DcmpPhiAngIn1g, DcmpPhiAngOut1g, jcolor)
+  IF (PE%RTMASTER) CALL DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn1g, DcmpPhiAngIn1g, DcmpPhiAngOut1g, jClr)
 END DO
 ! ----------------------------------------------------
 !$OMP PARALLEL PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)

@@ -18,8 +18,8 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
-INTEGER, POINTER, DIMENSION(:,:)   :: DcmpColorAsy ! (iAsy, iColor)
-INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay   ! (imRay, iAzi, iAsy)
+INTEGER, POINTER, DIMENSION(:,:)   :: DcmpAsyClr ! (iAsy, iClr)
+INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
 
 ! Track Rotational Ray
 REAL, POINTER, DIMENSION(:,:)     :: wtang, hwt
@@ -1082,7 +1082,7 @@ REAL :: FxrAvgPhi(ng)
 
 END FUNCTION FxrAvgPhi
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
+SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 
@@ -1095,11 +1095,11 @@ REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER :: gb, ge
-INTEGER, OPTIONAL :: color
+INTEGER, OPTIONAL :: iClr
 
 END SUBROUTINE DcmpLinkBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, color)
+SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 
@@ -1111,7 +1111,7 @@ TYPE (RayInfo_Type)  :: RayInfo
 REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
-INTEGER, OPTIONAL :: color
+INTEGER, OPTIONAL :: iClr
 
 END SUBROUTINE DcmpLinkBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------

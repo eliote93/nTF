@@ -189,7 +189,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               
               PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
               
-              IF (lscat1) phim1g = phim(:, :, iz, ig)
+              IF (lscat1) phim1g => phim(:, :, iz, ig)
               IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
               
               IF (ldcmp) DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)

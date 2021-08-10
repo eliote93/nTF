@@ -183,8 +183,8 @@ SUBROUTINE AllocMocVariables()
 USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
-USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, phim1g, &
-                    phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, phimnm, DcmpPhiAngOutNg, DcmpPhiAngInNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
+USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, &
+                    phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, DcmpPhiAngOutNg, DcmpPhiAngInNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
@@ -232,15 +232,9 @@ IF (nTracerCntl%lscat1) THEN
     END SELECT
   ELSE
     SELECT CASE (nTracerCntl%ScatOd)
-    CASE (1)
-      CALL dmalloc(srcm,   2, nFsr)
-      CALL dmalloc(phim1g, 2, nFsr)
-    CASE (2)
-      CALL dmalloc(srcm,   5, nFsr)
-      CALL dmalloc(phim1g, 5, nFsr)
-    CASE (3)
-      CALL dmalloc(srcm,   9, nFsr)
-      CALL dmalloc(phim1g, 9, nFsr)
+    CASE (1); CALL dmalloc(srcm, 2, nFsr)
+    CASE (2); CALL dmalloc(srcm, 5, nFsr)
+    CASE (3); CALL dmalloc(srcm, 9, nFsr)
     END SELECT
   END IF
 END IF

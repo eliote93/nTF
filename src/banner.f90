@@ -67,27 +67,27 @@ mm=atime(3:4)    !min
 ss=atime(5:6)    !sec
 
 !PRINT Banner
-WRITE(OutDev, '(a126)') 'nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACER'
-WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)')
+WRITE(OutDev, '(a)') 'nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACER'
+WRITE(OutDev, '(a)'); WRITE(OutDev, '(a)'); WRITE(OutDev, '(a)')
 DO i = 1, 10
-  WRITE(OutDev, '(x,a256)') BannerData(i)
+  WRITE(OutDev, '(x,a126)') BannerData(i)
 ENDDO
 
-WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)')
+WRITE(OutDev, '(a)'); WRITE(OutDev, '(a)'); WRITE(OutDev, '(a)')
 WRITE(version, '(a)') 'v2.50 Beta - 19/01/07'
 WRITE(OutDev, '(56x,A)') TRIM(version)
-WRITE(OutDev, '(a256)')
-WRITE(OutDev, '(a126)') 'nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACER'
-WRITE(OutDev, '(a256)');WRITE(OutDev, '(a256)')
+WRITE(OutDev, '(a)')
+WRITE(OutDev, '(a)') 'nTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACERnTRACER'
+WRITE(OutDev, '(a)');WRITE(OutDev, '(a)')
 !
 !Executing Case Print
 PRINT '(25x,a8,a,25x)', 'nTRACER ', TRIM(version)
-PRINT '(a80)', hbar2
+PRINT '(a)', hbar2
 PRINT 600, trim(caseid)
 WRITE(OutDev, 600) trim(caseid)
 write(mesg,601) "by ",trim(username)," on ",trim(hostname)," at ",hh,mm,ss,mon(idatea(2)),idatea(1),idatea(3),"..."
 call message(OutDev,.false.,.TRUE.,mesg)
-WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)'); WRITE(OutDev, '(a256)')
+WRITE(OutDev, '(a)'); WRITE(OutDev, '(a)'); WRITE(OutDev, '(a)')
 
 600 format(13x,"Executing Case ",a)
 601 FORMAT (13x,5a,a2,':',a2,':',a2,', ',a4,1x,i2,', ',i4,a)

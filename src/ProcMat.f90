@@ -71,7 +71,7 @@ ndata = nfields(MixtureInfo(1))
 DO WHILE(TRUE)
   n = n +1
   READ(indev, '(a256)') MixtureInfo(n)
-  IF(PE%Master) WRITE(outdev, '(a256)')  MixtureInfo(n)
+  IF(PE%Master) WRITE(outdev, '(A)')  trim(MixtureInfo(n))
   IF(.NOT. IfNumeric_except(MixtureInfo(n),35)) EXIT  ! IF isotope number starts with '#' (which is for SPH factor), it is regarded as just isotope number.
   m = nfields(MixtureInfo(n))
   ndata = ndata + nfields(MixtureInfo(n))

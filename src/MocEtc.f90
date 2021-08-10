@@ -850,7 +850,7 @@ DEALLOCATE(w, wbuf, scatsum)
 
 END SUBROUTINE MOCUnderRelaxationFactor
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, icolor)
+SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -865,7 +865,7 @@ REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER :: gb, ge
 
-INTEGER, OPTIONAL :: icolor
+INTEGER, OPTIONAL :: iClr
 ! ----------------------------------------------------
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
@@ -880,8 +880,8 @@ DcmpAsyLinkInfo => RayInfo%DcmpAsyLinkInfo
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
 DO iAsy = 1, CoreInfo%nxya
-  IF (PRESENT(icolor)) THEN
-    IF (CoreInfo%Asy(iAsy)%color .NE. icolor) CYCLE
+  IF (PRESENT(iClr)) THEN
+    IF (CoreInfo%Asy(iAsy)%color .NE. iClr) CYCLE
   END IF
   
   DO iRay = 1, DcmpAsyRayCount(iAsy)
@@ -901,7 +901,7 @@ END DO
 
 END SUBROUTINE DcmpLinkBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, icolor)
+SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -914,7 +914,7 @@ TYPE (RayInfo_Type)  :: RayInfo
 REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
-INTEGER, OPTIONAL :: icolor
+INTEGER, OPTIONAL :: iClr
 ! ----------------------------------------------------
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
@@ -929,8 +929,8 @@ DcmpAsyLinkInfo => RayInfo%DcmpAsyLinkInfo
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
 DO iAsy = 1, CoreInfo%nxya
-  IF (PRESENT(icolor)) THEN
-    IF (CoreInfo%Asy(iAsy)%color .NE. icolor) CYCLE
+  IF (PRESENT(iClr)) THEN
+    IF (CoreInfo%Asy(iAsy)%color .NE. iClr) CYCLE
   END IF
   
   DO iRay = 1, DcmpAsyRayCount(iAsy)
