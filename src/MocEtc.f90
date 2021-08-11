@@ -251,7 +251,7 @@ USE PARAM
 USE TYPEDEF,  ONLY : CoreInfo_Type,     FmInfo_Type,     GroupInfo_Type,     &
                      Cell_Type,         PinInfo_Type,     Pin_Type,             &
                      FxrInfo_Type
-USE MOC_MOD,  ONLY : tSrc,              xst1g,            AxSrc1g,              &
+USE MOC_MOD,  ONLY : src1g,              xst1g,            AxSrc1g,              &
                      AxPxs1g,                                                   & 
                      SetRtSrcGM,          SetRtMacXsGM,     PseudoAbsorptionGM,     &
                      AddBucklingGM,       AddConstSrc,                            &
@@ -352,7 +352,7 @@ DO iz = myzb, myze
         ireg = FsrIdxSt + i - 1
         vol = Cell(icel)%vol(i)
         DO ig = 1, ng
-          Collision(ig) = Collision(ig) + vol * phisNg(ig, ireg) * xstNg(ig, ireg)
+          Collision(ig) = Collision(ig) + vol * phis(ireg, iz, ig) * xstNg(ig, ireg)
           Source(ig) = Source(ig) + vol * srcNg(ig, ireg) * xstNg(ig, ireg)
         ENDDO
       ENDDO
@@ -374,14 +374,14 @@ DO iz = myzb, myze
       ENDIF
       CALL CP_CA(xst1g(1:nFsr), 1._8, nFsr)
       IF(nTracerCntl%lDcplCal) THEN
-        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
+        CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
       ELSE
-        !CALL SetRtSrc(Core, Fxr(:, iz), tsrc(:), phis, psi, axSrc1g(:), xst1g(:), &
+        !CALL SetRtSrc(Core, Fxr(:, iz), src1g(:), phis, psi, axSrc1g(:), xst1g(:), &
                       !eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
-        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, nTracerCntl%lscat1, lNegFix, PE)
+        CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, nTracerCntl%lscat1, lNegFix, PE)
       ENDIF
       IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
-        CALL AddConstSrc(Core, Fxr(:, iz), tsrc, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
+        CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
       ENDIF
       DO ipin = 1, nxy
         FsrIdxSt = Pin(ipin)%FsrIdxSt
@@ -389,7 +389,7 @@ DO iz = myzb, myze
         DO j = 1, nlocalFsr
           ireg = FsrIdxSt + j - 1
           vol = Cell(icel)%vol(j)
-          Res(ipin) = Res(ipin)  + vol * tsrc(ireg)
+          Res(ipin) = Res(ipin)  + vol * src1g(ireg)
         ENDDO
       ENDDO
     ENDDO
@@ -409,7 +409,7 @@ DO iz = myzb, myze
     CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
       IF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
 #ifdef LkgSplit  
-        CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),     &
+        CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig),     &
                               AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
 #endif
       ENDIF
@@ -459,7 +459,7 @@ DO ig = 1, ng
     CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
     IF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
 #ifdef LkgSplit  
-      CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),     &
+      CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig),     &
                             AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
 #endif
     ENDIF
@@ -467,12 +467,12 @@ DO ig = 1, ng
    IF(nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
 #endif  
     IF(nTracerCntl%lDcplCal) THEN
-      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
+      CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
     ELSE
-      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
+      CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
     ENDIF
     IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
-      CALL AddConstSrc(Core, Fxr(:, iz), tsrc, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
+      CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
     ENDIF
     DO ipin = 1, nxy
       FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
@@ -488,7 +488,7 @@ DO ig = 1, ng
         ireg = FsrIdxSt + j - 1
         vol = Cell(icel)%vol(j)
         LocalResidual = LocalResidual + vol * phis(ireg, iz, ig) * xst1g(ireg)
-        localsrc = localsrc + tsrc(ireg) * vol * xst1g(ireg)
+        localsrc = localsrc + src1g(ireg) * vol * xst1g(ireg)
       ENDDO
       
       LocalResidual = localsrc - LocalResidual
@@ -706,7 +706,7 @@ REAL :: wbar
 wbar = 1-w
 
 FORALL(i=1:n2,j=1:n1)
-  PhiAngIn(j, i, iz, ig) = w*PhiANgIn1g(j, i) + wbar *  PhiAngIn(j, i, iz, ig) 
+  PhiAngIn(j, i, ig, iz) = w*PhiANgIn1g(j, i) + wbar *  PhiAngIn(j, i, ig, iz)
 END FORALL
 
 END SUBROUTINE FluxInUnderRelaxation
@@ -858,7 +858,7 @@ TYPE (RayInfo_Type)  :: RayInfo
 REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
-INTEGER :: gb, ge
+INTEGER :: gb, ge, ig
 
 INTEGER, OPTIONAL :: iClr
 ! ----------------------------------------------------
@@ -885,7 +885,9 @@ DO iAsy = 1, CoreInfo%nxya
       nextRay = DcmpAsyLinkInfo(2, irot, iRay, iAsy)
       
       IF (nextAsy .EQ. 0) THEN
-        PhiAngInNg(:, gb:ge, nextRay) = DcmpPhiAngOutNg(:, gb:ge, irot, iRay, iAsy)  
+        DO ig = gb, ge
+          PhiAngInNg(:, nextRay, ig) = DcmpPhiAngOutNg(:, ig, irot, iRay, iAsy)  
+        END DO
       ELSE
         DcmpPhiAngInNg(:, gb:ge, irot, nextRay, nextAsy) = DcmpPhiAngOutNg(:, gb:ge, irot, iRay, iAsy)
       END IF
@@ -896,7 +898,7 @@ END DO
 
 END SUBROUTINE DcmpLinkBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn, DcmpPhiAngIn1g, DcmpPhiAngOut1g, iClr)
+SUBROUTINE DcmpLinkBndyFlux1g(CoreInfo, RayInfo, PhiAngIn1g, DcmpPhiAngIn1g, DcmpPhiAngOut1g, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -906,7 +908,7 @@ IMPLICIT NONE
 TYPE (CoreInfo_Type) :: CoreInfo
 TYPE (RayInfo_Type)  :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, OPTIONAL :: iClr
@@ -934,7 +936,7 @@ DO iAsy = 1, CoreInfo%nxya
       nextRay = DcmpAsyLinkInfo(2, irot, iRay, iAsy)
       
       IF (nextAsy .EQ. 0) THEN
-        PhiAngIn(:, nextRay) = DcmpPhiAngOut1g(:, irot, iRay, iAsy)  
+        PhiAngIn1g(:, nextRay) = DcmpPhiAngOut1g(:, irot, iRay, iAsy)  
       ELSE
         DcmpPhiAngIn1g(:, irot, nextRay, nextAsy) = DcmpPhiAngOut1g(:, irot, iRay, iAsy)
       END IF
@@ -991,7 +993,7 @@ DEALLOCATE (buf_DcmpPhiAngInNg)
 
 END SUBROUTINE DcmpScatterBndyFluxNg
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBndyFlux1g(RayInfo, PhiAngIn, DcmpPhiAngIn1g)
+SUBROUTINE DcmpScatterBndyFlux1g(RayInfo, PhiAngIn1g, DcmpPhiAngIn1g)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_Type
@@ -1004,7 +1006,7 @@ INCLUDE 'mpif.h'
 
 TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:) :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:) :: PhiAngIn1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, buf_DcmpPhiAngIn1g
 
 INTEGER :: nPolarAng, nModRay, nPhiAngSv, nAsy, nDat, ierr
@@ -1018,7 +1020,7 @@ nPhiAngSv = RayInfo%nPhiAngSv
 nAsy = PE%nAsy(PE%myRTRank)
 nDat = nPolarAng * nPhiAngSv
 
-CALL MPI_BCAST(PhiAngIn, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+CALL MPI_BCAST(PhiAngIn1g, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
 CALL dmalloc(buf_DcmpPhiAngIn1g, nPolarAng, 2, nModRay, nAsy) ! Can be Huge Time-consuming
 

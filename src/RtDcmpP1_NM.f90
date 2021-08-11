@@ -418,7 +418,9 @@ hwt        => TrackingDat%hwt
 
 ! Iter.
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
-  PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNg    (1:nPolarAng, gb:ge, PhiAnginSvIdx)
+  DO ig = gb, ge
+    PhiAngOut(1:nPolarAng, ig) = PhiAngInNg(1:nPolarAng, PhiAnginSvIdx, ig)
+  END DO
 ELSE
   PhiAngOut(1:nPolarAng, gb:ge) = DcmpPhiAngInNg(1:nPolarAng, gb:ge, krot, iRay, iAsy)
 END IF

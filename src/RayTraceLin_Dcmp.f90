@@ -75,7 +75,7 @@ DO color = startColor, endColor, colorInc
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   
-  TrackingDat(ithr)%PhiAngInNg    => PhiAngInNg
+  TrackingDat(ithr)%PhiAngInNg      => PhiAngInNg
   TrackingDat(ithr)%DcmpPhiAngInNg  => DcmpPhiAngInNg
   TrackingDat(ithr)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
   !$OMP BARRIER
@@ -415,7 +415,9 @@ END DO
 
 DO irot = 1, 2
   IF (DcmpAsyRay%lRotRayBeg(irot)) THEN
-    phiobd(1 : nPolarAng, gb : ge) = PhiAngInNg(1 : nPolarAng, gb : ge, PhiAnginSvIdx(irot))
+    DO ig = gb, ge
+      phiobd(1 : nPolarAng, ig) = PhiAngInNg(1 : nPolarAng, PhiAnginSvIdx(irot), ig)
+    END DO
   ELSE
     phiobd(1 : nPolarAng, gb : ge) = DcmpPhiAngInNg(1 : nPolarAng, gb : ge, irot, iRay, iAsy)
   END IF

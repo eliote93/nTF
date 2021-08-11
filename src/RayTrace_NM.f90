@@ -173,7 +173,9 @@ nCoreRay = RotRay(irotRay)%nRay
 PhiAngInSvIdx  = RayInfo%PhiAngInSvIdx (iRotRay, krot)
 PhiAngOutSvIdx = RayInfo%PhiangOutSvIdx(iRotRay, krot)
 
-PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNg(1:nPolarAng, gb:ge, PhiAnginSvIdx)
+DO ig = gb, ge
+  PhiAngOut(1:nPolarAng, ig) = PhiAngInNg(1:nPolarAng, PhiAnginSvIdx, ig)
+END DO
 
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1
@@ -287,7 +289,9 @@ DO icray = jbeg, jend, jinc
   END DO
 END DO
 
-PhiAngInNg(:, gb:ge, PhiAngOutSvIdx) = PhiAngOut
+DO ig = gb, ge
+  PhiAngInNg(1:nPolarAng, PhiAngOutSvIdx, ig) = PhiAngOut(1:nPolarAng, ig)
+END DO
 ! ----------------------------------------------------
 ! Geo.
 NULLIFY (Asy)
@@ -374,7 +378,9 @@ ExpA       => TrackingDat%ExpA
 ExpB       => TrackingDat%ExpB
 
 ! Iter.
-PhiAngOut(1:nPolarAng, gb:ge) = PhiAngInNg(1:nPolarAng, gb:ge, PhiAnginSvIdx)
+DO ig = gb, ge
+  PhiAngOut(1:nPolarAng, ig) = PhiAngInNg(1:nPolarAng, PhiAnginSvIdx, ig)
+END DO
 
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1
@@ -479,7 +485,9 @@ DO icRay = jbeg, jend, jinc
   END DO
 END DO
 
-PhiAngInNg(1:nPolarAng, gb:ge, PhiAngOutSvIdx) = PhiAngOut(1:nPolarAng, gb:ge)
+DO ig = gb, ge
+  PhiAngInNg(1:nPolarAng, PhiAngOutSvIdx, ig) = PhiAngOut(1:nPolarAng, ig)
+END DO
 ! ----------------------------------------------------
 ! Loc.
 NULLIFY (phisNg)

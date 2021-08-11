@@ -104,7 +104,7 @@ Jinit = phiinit * 0.25_8
 !Scalar flux Initialize
 CALL CP_CA(phis(1:nCoreFsr, myzb:myze, 1:ng), phiinit ,nCoreFsr, myze - myzb + 1, ng)
 !Incomming angular flux initialization
-CALL CP_CA(PhiAngin(:, :, myzb:myze, 1:ng), phiinit, RayInfo%nPolarAngle, nPhiAngSv, myze - myzb + 1, ng)
+CALL CP_CA(PhiAngin(:, :, 1:ng, myzb:myze), phiinit, RayInfo%nPolarAngle, nPhiAngSv, ng, myze - myzb + 1)
 PhiAngin(:, 1, :, :) = 0 !Zeroincoming flux
 CALL CP_CA(psi(1:nCoreFsr, myzb:myze), phiinit, nCoreFsr, myze - myzb + 1)
 CALL CP_CA(psid(1:nCoreFsr, myzb:myze), phiinit, nCoreFsr, myze - myzb + 1)
@@ -334,7 +334,7 @@ Jinit = phiinit * 0.25_8
 !Scalar flux Initialize
 CALL CP_CA(phis(1:nCoreFsr, myzb:myze, 1:ng), phiinit ,nCoreFsr, myze - myzb + 1, ng)
 !Incomming angular flux initialization
-CALL CP_CA(PhiAngin(:, :, myzb:myze, 1:ng), phiinit, RayInfo%nPolarAngle, nPhiAngSv, myze - myzb + 1, ng)
+CALL CP_CA(PhiAngin(:, :, 1:ng, myzb:myze), phiinit, RayInfo%nPolarAngle, nPhiAngSv, ng, myze - myzb + 1)
 PhiAngin(:, 1, :, :) = 0 !Zeroincoming flux
 CALL CP_CA(psi(1:nCoreFsr, myzb:myze), phiinit, nCoreFsr, myze - myzb + 1)
 CALL CP_CA(psid(1:nCoreFsr, myzb:myze), phiinit, nCoreFsr, myze - myzb + 1)

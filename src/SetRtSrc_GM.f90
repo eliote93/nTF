@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtSrcGM(Core, Fxr, src, phis, psi, axsrc, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
+SUBROUTINE SetRtSrcGM(Core, Fxr, src1g, phis, psi, axsrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
 
 USE OMP_LIB
 USE PARAM,          ONLY : ZERO, TRUE, FALSE, ONE, nTHREADMAX
@@ -19,7 +19,7 @@ TYPE(PE_TYPE)       :: PE
 
 TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)     :: src, AxSrc, xstr1g
+REAL, POINTER, DIMENSION(:)     :: src1g, AxSrc1g, xst1g
 REAL, POINTER, DIMENSION(:,:)   :: psi
 REAL, POINTER, DIMENSION(:,:,:) :: phis
 
@@ -102,7 +102,7 @@ DO ipin = 1, nxy
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
-      src(ifsr) = reigv * chi(ig) * psi(ifsr, iz)
+      src1g(ifsr) = reigv * chi(ig) * psi(ifsr, iz)
     END DO
   END DO
   ! --------------------------------------------------
@@ -134,12 +134,12 @@ DO ipin = 1, nxy
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
       DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
-        src(ifsr) = src(ifsr) + xsmacsm(ig2, ig) * phis(ifsr, iz, ig2)
+        src1g(ifsr) = src1g(ifsr) + xsmacsm(ig2, ig) * phis(ifsr, iz, ig2)
       END DO
       
-      IF (lNegSrcFix .AND. src(ifsr) .LT. ZERO) THEN
-        src   (ifsr) = src   (ifsr) - xsmacsm(ig, ig) * phis(ifsr, iz, ig)
-        xstr1g(ifsr) = xstr1g(ifsr) - xsmacsm(ig, ig)
+      IF (lNegSrcFix .AND. src1g(ifsr) .LT. ZERO) THEN
+        src1g(ifsr) = src1g(ifsr) - xsmacsm(ig, ig) * phis(ifsr, iz, ig)
+        xst1g(ifsr) = xst1g(ifsr) - xsmacsm(ig, ig)
       END IF
     END DO
   END DO
@@ -155,7 +155,7 @@ DO ipin = 1, nxy
         DO i = 1, nFsrInFxr
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           
-          IF (AxSrc(ipin).LT.0 .AND. .NOT.Fxr(ifxr)%lvoid) src(ifsr) = src(ifsr) - AxSrc(ipin)
+          IF (AxSrc1g(ipin).LT.0 .AND. .NOT.Fxr(ifxr)%lvoid) src1g(ifsr) = src1g(ifsr) - AxSrc1g(ipin)
         END DO
       END DO
     CASE(1)
@@ -166,7 +166,7 @@ DO ipin = 1, nxy
         DO i = 1, nFsrInFxr
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           
-          src(ifsr) = src(ifsr) - AxSrc(ipin)
+          src1g(ifsr) = src1g(ifsr) - AxSrc1g(ipin)
         END DO
       END DO
     CASE (2) ! radial split by src
@@ -183,7 +183,7 @@ DO ipin = 1, nxy
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
           !-- Source proportional
-          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * src(ifsr) ! pin-wise total source except axial source term
+          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * src1g(ifsr) ! pin-wise total source except axial source term
           pvol = pvol + Cellinfo(icel)%Vol(fsridx)
         END DO
       END DO
@@ -198,7 +198,7 @@ DO ipin = 1, nxy
           ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
-          src(ifsr) = src(ifsr) * (ONE - AxSrc(ipin) / psrc)
+          src1g(ifsr) = src1g(ifsr) * (ONE - AxSrc1g(ipin) / psrc)
         END DO
       END DO
     CASE (3) ! radial split by Dphi
@@ -215,7 +215,7 @@ DO ipin = 1, nxy
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
           !-- D*phi proportional
-          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xstr1g(ifsr) * phis(ifsr, iz, ig)) ! pin-wise total source except axial source term
+          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xst1g(ifsr) * phis(ifsr, iz, ig)) ! pin-wise total source except axial source term
           pvol = pvol + Cellinfo(icel)%Vol(fsridx)
         END DO
       END DO
@@ -230,7 +230,7 @@ DO ipin = 1, nxy
           ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
-          src(ifsr) = src(ifsr) - AxSrc(ipin) * (ONE / 3._8 / xstr1g(ifsr) * phis(ifsr, iz, ig)) / psrc
+          src1g(ifsr) = src1g(ifsr) - AxSrc1g(ipin) * (ONE / 3._8 / xst1g(ifsr) * phis(ifsr, iz, ig)) / psrc
         END DO
       END DO
     CASE (4) ! radial split by D
@@ -247,7 +247,7 @@ DO ipin = 1, nxy
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
           !-- D*phi proportional
-          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xstr1g(ifsr)) ! pin-wise total source except axial source term
+          psrc = psrc + Cellinfo(icel)%Vol(fsridx) * (ONE / 3._8 / xst1g(ifsr)) ! pin-wise total source except axial source term
           pvol = pvol + Cellinfo(icel)%Vol(fsridx)
         END DO
       END DO
@@ -262,7 +262,7 @@ DO ipin = 1, nxy
           ifsr   = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           fsridx = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
           
-          src(ifsr) = src(ifsr) - AxSrc(ipin) * (ONE / 3._8 / xstr1g(ifsr)) / psrc
+          src1g(ifsr) = src1g(ifsr) - AxSrc1g(ipin) * (ONE / 3._8 / xst1g(ifsr)) / psrc
         END DO
       END DO
   END SELECT
@@ -272,7 +272,7 @@ DO ipin = 1, nxy
   DO j = 1, CellInfo(icel)%nFsr
     ifsr = FsrIdxSt + j - 1
     
-    src(ifsr) = src(ifsr) / xstr1g(ifsr)
+    src1g(ifsr) = src1g(ifsr) / xst1g(ifsr)
   END DO
   
   NULLIFY (Xsmacsm)
@@ -292,7 +292,7 @@ NULLIFY (CellInfo)
 
 END SUBROUTINE SetRtSrcGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm, phim, xstr1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, TRUE, FALSE, ONE
@@ -311,7 +311,7 @@ TYPE(PE_Type)        :: PE
 
 TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)       :: xstr1g
+REAL, POINTER, DIMENSION(:)       :: xst1g
 REAL, POINTER, DIMENSION(:,:)     :: srcm
 REAL, POINTER, DIMENSION(:,:,:,:) :: phim
 
@@ -457,7 +457,7 @@ IF (ScatOd .EQ. 1) THEN
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1
       
-      srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xstr1g(ifsr)
+      srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xst1g(ifsr)
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 2) THEN
@@ -468,8 +468,8 @@ ELSE IF (ScatOd .EQ. 2) THEN
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1
       
-      srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xstr1g(ifsr)
-      srcm(3:5, ifsr) = 5._8 * srcm(3:5, ifsr) / xstr1g(ifsr)
+      srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xst1g(ifsr)
+      srcm(3:5, ifsr) = 5._8 * srcm(3:5, ifsr) / xst1g(ifsr)
     END DO
   END DO
 ELSE IF (ScatOd .EQ. 3) THEN
@@ -480,9 +480,9 @@ ELSE IF (ScatOd .EQ. 3) THEN
     DO j = 1, CellInfo(icel)%nFsr
       ifsr = FsrIdxSt + j - 1
       
-      srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xstr1g(ifsr)
-      srcm(3:5, ifsr) = 5._8 * srcm(3:5, ifsr) / xstr1g(ifsr)
-      srcm(6:9, ifsr) = 7._8 * srcm(6:9, ifsr) / xstr1g(ifsr)
+      srcm(1:2, ifsr) = 3._8 * srcm(1:2, ifsr) / xst1g(ifsr)
+      srcm(3:5, ifsr) = 5._8 * srcm(3:5, ifsr) / xst1g(ifsr)
+      srcm(6:9, ifsr) = 7._8 * srcm(6:9, ifsr) / xst1g(ifsr)
     END DO
   END DO
 END IF

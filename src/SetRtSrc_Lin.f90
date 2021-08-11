@@ -90,7 +90,7 @@ NULLIFY(myFxr)
 
 END SUBROUTINE LinPsiUpdate
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtLinSrc(Core, Fxr, RayInfo, src, LinSrc, LinPsi, LinSrcSlope, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1)
+SUBROUTINE SetRtLinSrc(Core, Fxr, RayInfo, src1g, LinSrc, LinPsi, LinSrcSlope, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1)
 
 USE PARAM
 USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,         &
@@ -105,7 +105,7 @@ TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(GroupInfo_Type):: GroupInfo
-REAL, POINTER :: Src(:)
+REAL, POINTER :: Src1g(:)
 REAL, POINTER :: Linsrc(:, :)
 REAL, POINTER :: LinPsi(:, :, :)
 REAL, POINTER :: LinSrcSlope(:, :, :, :)
@@ -212,9 +212,9 @@ DO ipin = 1, nxy
     DO l = 1, nAziAng
       src0 = LinSrc(ifsr, l)
       segmax = CellInfo(icel)%MaxSeg(l, j)
-      IF(abs(src0) .LT. 2._8 * src(ifsr) / segmax) CYCLE
+      IF(abs(src0) .LT. 2._8 * src1g(ifsr) / segmax) CYCLE
       sgn = src0/abs(src0)
-      src0 = sgn * 2._8 * src(ifsr) / segmax
+      src0 = sgn * 2._8 * src1g(ifsr) / segmax
     ENDDO
     !LinSrc(ifsr, :) = LinSrc(ifsr, :) / (2._8 * xstr1g(ifsr) * xstr1g(ifsr))
   ENDDO

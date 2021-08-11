@@ -257,7 +257,7 @@ USE MOC_MOD,     ONLY : RayTrace_GM,           SetRtMacXsGM,      SetRtSrcGM,   
                         MocResidual,        PsiErr,            PseudoAbsorptionGM,  &
                         AddConstSrc,                                              &
                         phis1g,             MocJout1g,         xst1g,             &
-                        tSrc,               AxSrc1g,           AxPxs1g,           &
+                        Src1g,               AxSrc1g,           AxPxs1g,           &
                         PhiAngIn1g,         srcm
 USE DcplXsGen_Mod,  ONLY : DcplSetMocAxEff
 USE BasicOperation, ONLY : CP_VA
@@ -388,19 +388,19 @@ DO iter = 1, 1
 
        !IF(InIter .EQ. 1 .OR. lNegFix) THEN
           CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg, PE)
-          CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig), AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, TRUE)
+          CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig), AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, TRUE)
        ! ENDIF
         !SET MOC Source
 
-        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
+        CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g,                           &
                         eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, lscat1, lNegFix, PE)
         IF(.NOT. lEigProb) THEN
           !nTracerCntl%ConstSrc = 1.0
-          CALL AddConstSrc(Core, Fxr(:, iz), tsrc, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
+          CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
         ENDIF
         !Add Constant source terms for a Reflector Region
         CALL CP_VA(PhiAngin1g, PhiAngin(:,: ,iz, ig), RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
-        CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout)
+        CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, src1g, MocJout1g, iz, lJout)
         CALL CP_VA(phis(1:nFsr, iz, ig), phis1g(1:nFsr), nFsr)
       ENDDO
       !IF(lJout) CALL CP_VA(RadJout(1:2, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:2, 1:nbd, 1:nxy), 2, nbd, nxy)

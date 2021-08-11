@@ -20,7 +20,7 @@ USE MOC_MOD,           ONLY : RayTrace_GM,                SetRtMacXsGM_Cusping, 
                               MocResidual,             PsiErr,               PseudoAbsorptionGM,      &
                               PowerUpdate,                                                          &
                               phis1g,                  MocJout1g,            xst1g,                 &
-                              tSrc,                    AxSrc1g,              PhiAngin1g,            &
+                              Src1g,                    AxSrc1g,              PhiAngin1g,            &
                               srcm
 USE Timer,             ONLY : nTracer_dclock, TimeChk
 USE FILES,             ONLY : io8
@@ -159,15 +159,15 @@ DO jsweep =1, nGroupInfo
         IF(InIter .EQ. nInIter) ljout = TRUE
         IF(RTMASTER) THEN
           CALL SetRtMacXsGM_Cusping(Core, FmInfo, Fxr(:, iz), xst1g, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
-          CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig),                             &
+          CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig),                             &
                                 AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
           !CALL SetExpTrsfXs(Core, Fxr, xst1g, iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
-          CALL SetRtSrcGM_Cusping(Core, FmInfo, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                           &
+          CALL SetRtSrcGM_Cusping(Core, FmInfo, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g,                           &
                         1._8, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
           CALL SetTranSrc(Core, Fxr, TrSrc, Phis, TranPhi, Psi, PrecSrc, ResSrc, xst1g,              &
                          iz, ig, GroupInfo, TranInfo, TranCntl, nTracerCntl, PE)
-          CALL CP_VA(PhiAngin1g, FmInfo%PhiAngin(:,: ,iz, ig), RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
-          CALL AD_VA(TrSrc(1:nfsr), TrSrc(1:nfsr), tsrc(1:nfsr), nfsr)
+          CALL CP_VA(PhiAngin1g, FmInfo%PhiAngin(:,: ,ig, iz), RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
+          CALL AD_VA(TrSrc(1:nfsr), TrSrc(1:nfsr), src1g(1:nfsr), nfsr)
         ENDIF
         
         CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, trsrc, MocJout1g, iz, lJout)
@@ -175,7 +175,7 @@ DO jsweep =1, nGroupInfo
           IF (ig.ge.igresb.and.ig.le.igrese) phis1g=phis1g*ssphf(:,iz,ig)
         ENDIF
         IF(RTMASTER) CALL CP_VA(phis(1:nFsr, iz, ig), phis1g(1:nFsr), nFsr)
-        IF(RTMASTER) CALL CP_VA(FmInfo%PhiAngin(:,:,iz, ig), PhiAngin1g, RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
+        IF(RTMASTER) CALL CP_VA(FmInfo%PhiAngin(:,:,ig, iz), PhiAngin1g, RayInfo%nPolarAngle, RayInfo%nPhiAngSv)
         IF(lJout .AND. RTMASTER) CALL CP_VA(RadJout(1:3, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:3, 1:nbd, 1:nxy), 3, nbd, nxy)   ! > 16/02/18
         !IF(lJout .AND. RTMASTER) CALL CP_VA(RadJout(1:2, 1:nbd, 1:nxy, iz, ig), MocJout1g(1:2, 1:nbd, 1:nxy), 2, nbd, nxy)
         IF(nTracerCntl%lCusping_MPI) THEN

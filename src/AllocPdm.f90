@@ -99,7 +99,7 @@ CALL dmalloc0(psid, 1, nFsr, myzb, myze)
 CALL dmalloc0(psic,  1, nxy, myzb, myze)
 CALL dmalloc0(psicd, 1, nxy, myzb, myze)
 
-CALL dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, myzb, myze, 1, ng)
+CALL dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, 1, ng, myzb, myze)
 
 IF (nTracerCntl%lDomainDcmp) THEN
   IF (nTracerCntl%lNodeMajor) THEN
@@ -183,8 +183,8 @@ SUBROUTINE AllocMocVariables()
 USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
-USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, &
-                    phisNg, PhiAngInNg, MocJoutNg, xstNg, srcNg, srcmnm, DcmpPhiAngOutNg, DcmpPhiAngInNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
+USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, src1g, srcm,   AxSrc1g, LinSrc1g, LinPsi, AxPxs1g, &
+                    phisNg, MocJoutNg, xstNg, srcNg, srcmnm, DcmpPhiAngOutNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
@@ -207,19 +207,17 @@ CALL dmalloc(AxSrc1g, nxy)
 CALL dmalloc(AxPxs1g, nxy)
   
 IF (nTracerCntl%lNodeMajor) THEN
-  CALL dmalloc(phisNg,     ng, nFsr)
-  CALL dmalloc(PhiAngInNg, nPolar, ng, nPhiAngSv)
-  CALL dmalloc(MocJoutNg,  3, ng, nbd, nxy)
+  CALL dmalloc(phisNg,    ng, nFsr)
+  CALL dmalloc(MocJoutNg, 3, ng, nbd, nxy)
   
   CALL dmalloc(xstNg, ng, nFsr)
   CALL dmalloc(srcNg, ng, nFsr)
 ELSE
-  CALL dmalloc(phis1g,     nFsr)
-  CALL dmalloc(PhiAngin1g, nPolar, nPhiAngSv)
-  CALL dmalloc(MocJout1g,  3, nBd, nxy)
+  CALL dmalloc(phis1g,    nFsr)
+  CALL dmalloc(MocJout1g, 3, nBd, nxy)
   
   CALL dmalloc(xst1g, nFsr)
-  CALL dmalloc(tsrc,  nFsr)
+  CALL dmalloc(src1g, nFsr)
 END IF
 
 ! Src. Moment

@@ -271,7 +271,7 @@ IF (hLgc%lRadRef) THEN
           
           fmult = phisum / PinXS(isxy, iz)%phi(ig)
           
-          PhiAngIn(:, isv, iz, ig) = PhiAngIn(:, isv, iz, ig) * fmult
+          PhiAngIn(:, isv, ig, iz) = PhiAngIn(:, isv, ig, iz) * fmult
         END DO
       END DO
     END DO

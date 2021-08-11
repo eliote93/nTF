@@ -5,7 +5,7 @@ USE allocs
 USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngNg1, SrcAngNg2, EXPA, EXPB, hwt, DcmpAsyClr
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, EXPA, EXPB, hwt, DcmpAsyClr
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
 USE ioutil,  ONLY : message, terminate
@@ -208,12 +208,12 @@ END DO
 ! P1 : GM vs. NM
 IF (.NOT. ldcmp) THEN
   IF (.NOT. nTracerCntl%lNodeMajor) THEN
-    CALL dmalloc(SrcAng1, nPolarAng, nFsr, nAziAng)
-    CALL dmalloc(SrcAng2, nPolarAng, nFsr, nAziAng)
+    CALL dmalloc(SrcAng1g1, nPolarAng, nFsr, nAziAng)
+    CALL dmalloc(SrcAng1g2, nPolarAng, nFsr, nAziAng)
       
     DO ithr = 1, nThr
-      TrackingDat(ithr)%SrcAng1g1 => SrcAng1
-      TrackingDat(ithr)%SrcAng1g2 => SrcAng2
+      TrackingDat(ithr)%SrcAng1g1 => SrcAng1g1
+      TrackingDat(ithr)%SrcAng1g2 => SrcAng1g2
       
       CALL dmalloc(TrackingDat(ithr)%phim1g, nod, nFsr)
     END DO

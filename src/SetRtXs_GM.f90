@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtMacXsGM(core, Fxr, xstr, iz, ig, ng, lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg, PE)
+SUBROUTINE SetRtMacXsGM(core, Fxr, xst1g, iz, ig, ng, lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg, PE)
 
 USE OMP_LIB
 USE PARAM,        ONLY : TRUE, FALSE, ONE, nThreadMax
@@ -17,7 +17,7 @@ IMPLICIT NONE
 TYPE(coreinfo_type) :: Core
 TYPE(Fxrinfo_type), DIMENSION(:) :: Fxr
 TYPE(PE_TYPE) :: PE
-REAL, POINTER, DIMENSION(:) :: xstr
+REAL, POINTER, DIMENSION(:) :: xst1g
 
 INTEGER :: iz, ig, ng
 LOGICAL :: lxslib, lTrCorrection, lRST, lsSPH, lsSPHreg
@@ -130,7 +130,7 @@ DO ipin = 1, nxy
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
-      xstr(ifsr) = xsmactr(ig)
+      xst1g(ifsr) = xsmactr(ig)
       
       IF (lsSPH .AND. ig.GE.igresb .AND. ig.LE.igrese .AND. CellInfo(icel)%lsSPH) ssphf(ifsr, iz, ig) = SPHfac(j)
     END DO
@@ -145,7 +145,7 @@ NULLIFY (CellInfo)
 
 END SUBROUTINE SetRtMacXsGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE PseudoAbsorptionGM(Core, Fxr, src, phis1g, AxPXS, xstr1g, iz, ig, ng, GroupInfo, l3dim)
+SUBROUTINE PseudoAbsorptionGM(Core, Fxr, phis1g, AxPXS, xst1g, iz, ig, ng, GroupInfo, l3dim)
 
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
@@ -159,7 +159,7 @@ TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
 REAL, DIMENSION(:) :: phis1g, AxPXS
 
-REAL, POINTER, DIMENSION(:) :: src, xstr1g
+REAL, POINTER, DIMENSION(:) :: xst1g
 
 REAL :: eigv
 INTEGER :: myzb, myze, ig, ng, iz
@@ -197,9 +197,9 @@ DO ipin = 1, nxy
     
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      pSrc = pSrc + xstr1g(ifsr)
+      pSrc = pSrc + xst1g(ifsr)
       
-      IF (.NOT. Fxr(ifxr)%lVoid) xstr1g(ifsr) = xstr1g(ifsr) + AxPXS(ipin)
+      IF (.NOT. Fxr(ifxr)%lVoid) xst1g(ifsr) = xst1g(ifsr) + AxPXS(ipin)
     END DO
   END DO
 END DO
@@ -210,7 +210,7 @@ NULLIFY(CellInfo)
 
 END SUBROUTINE PseudoAbsorptionGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE AddBucklingGM(Core, Fxr, xstr1g, bsq, iz, ig, ng, lxslib, lRST)
+SUBROUTINE AddBucklingGM(Core, Fxr, xst1g, bsq, iz, ig, ng, lxslib, lRST)
 
 USE PARAM,        ONLY : TRUE, FALSE, ONE, EPSM3
 USE TYPEDEF,      ONLY : coreinfo_type, Cell_Type, pin_Type, Fxrinfo_type, XsMac_Type
@@ -224,7 +224,7 @@ IMPLICIT NONE
 TYPE (CoreInfo_Type) :: Core
 TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
 
-REAL, POINTER, DIMENSION(:) :: xstr1g
+REAL, POINTER, DIMENSION(:) :: xst1g
 
 INTEGER :: iz, ig, ng
 REAL :: Bsq
@@ -303,12 +303,12 @@ DO ipin = 1, nxy
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
-      IF ((xstr1g(ifsr)) .LT. epsm3) CYCLE
+      IF ((xst1g(ifsr)) .LT. epsm3) CYCLE
       
       XsD = ONE / (3._8 * xsmactr(ig))
       XsD = XsD * Bsq
       
-      xstr1g(ifsr) = xstr1g(ifsr) + XsD
+      xst1g(ifsr) = xst1g(ifsr) + XsD
     END DO
   END DO
 END DO

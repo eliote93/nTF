@@ -8,7 +8,7 @@ USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
 USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTrace_GM, RayTraceP1_GM, RayTraceP1GM_AFSS, &
                         PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
-                        phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
+                        phis1g, phim1g, MocJout1g, xst1g, src1g, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, PhiAngInNg, MocJoutNg, xstNg, srcNg, phimNg, srcmNM, &
                         RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrentNg, DcmpGatherCurrent1g
@@ -41,7 +41,7 @@ TYPE (ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv, ipol, krot, imRay, iAsy
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
@@ -179,15 +179,15 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               ! SET : XS
               CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
-              CALL PseudoAbsorptionGM(Core, Fxr(:, iz), tsrc, phis(:, iz, ig), AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
+              CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig), AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
 #endif
 #ifdef Buckling
               IF (nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, lRST)
 #endif
               ! SET : Src.
-              CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+              CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
+              PhiAngin1g => FmInfo%PhiAngin(:, :, ig, iz)
               
               IF (lscat1) phim1g => phim(:, :, ig, iz)
               IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
@@ -199,21 +199,21 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. ldcmp) THEN
                 IF (.NOT. lscat1) THEN
-                  CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, tsrc,       MocJout1g, iz, lJout, fmoclv)
+                  CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,       MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
+                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
                 END IF
               ELSE
                 IF (lScat1) THEN
-                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, srcm, MocJout1g, iz, lJout)
+                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm, MocJout1g, iz, lJout)
                 ELSE
-                  CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, tsrc,       MocJout1g, iz, lJout)
+                  CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,       MocJout1g, iz, lJout)
                 END IF
               END IF
             ELSE
               CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
-              CALL SetRtLinSrc(Core, Fxr(:, iz), RayInfo, tsrc, LinSrc1g, LinPsi, LinSrcSlope, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, TRUE)
-              CALL RayTraceLS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, LinSrc1g, LinSrcSlope(:, :, iz, ig), MocJout1g, iz, lJout)
+              CALL SetRtLinSrc(Core, Fxr(:, iz), RayInfo, src1g, LinSrc1g, LinPsi, LinSrcSlope, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, TRUE)
+              CALL RayTraceLS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, src1g, LinSrc1g, LinSrcSlope(:, :, iz, ig), MocJout1g, iz, lJout)
             END IF
             
             ! Spectral SPH
@@ -229,8 +229,6 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               phis(:, iz, ig) = phis1g
               
               IF (lScat1) phim(:, :, ig, iz) = phim1g
-              
-              FMInfo%PhiAngIn(:, :, iz, ig) = PhiAngIn1g
             ELSE
               CALL FluxUnderRelaxation   (Core, Phis1g, Phis, FmInfo%w(ig), iz, ig, PE)
               CALL FluxInUnderRelaxation (Core, PhiANgIn1g, FmInfo%PhiAngIn, FmInfo%w(ig), nPolarAngle, nPhiAngSv, iz, ig, PE)
@@ -279,9 +277,9 @@ ELSE
       IF (RTMASTER) THEN
         DO ig = 1, ng
           phisNg(ig, :) = phis(:, iz, ig)
-          
-          PhiAngInNg(:, ig, :) = FmInfo%PhiAngIn(:, :, iz, ig)
         END DO
+        
+        PhiAngInNg => FmInfo%PhiAngIn(:, :, :, iz)
         
         IF (lscat1) phimNg => phim(:, :, :, iz)
         
@@ -359,9 +357,9 @@ ELSE
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng
-        phis              (:, iz, ig) = phisNg       (ig, :)
-        FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInNg(:, ig, :)
-        RadJout     (:, :, :, iz, ig) = MocJoutNg (:, ig, :, :)
+        phis(:, iz, ig) = phisNg(ig, :)
+        
+        RadJout(:, :, :, iz, ig) = MocJoutNg(:, ig, :, :)
       END DO
       
       ! Time

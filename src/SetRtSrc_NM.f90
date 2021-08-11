@@ -18,7 +18,7 @@ TYPE (PE_TYPE)        :: PE
 
 TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)   :: srcNg, phisNg, psi, xstNg
+REAL, POINTER, DIMENSION(:,:)   :: srcNg, psi, xstNg, phisNg
 REAL, POINTER, DIMENSION(:,:,:) :: AxSrc
 
 REAL :: eigv

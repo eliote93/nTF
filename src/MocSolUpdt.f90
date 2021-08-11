@@ -433,7 +433,7 @@ DO idir = 1, 2
         DO ig = 1, ng
           fmult = PhiC(ixy, iz, ig) / PinXS(ixy, iz)%phi(ig)
           
-          PhiAngIn(ipol, isv, iz, ig) = PhiAngIn(ipol, isv, iz, ig) * fmult
+          PhiAngIn(ipol, isv, ig, iz) = PhiAngIn(ipol, isv, ig, iz) * fmult
         END DO
       END DO
     END DO
