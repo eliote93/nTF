@@ -5,8 +5,7 @@ USE allocs
 USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, hwt, &
-                    AziMap, DcmpAsyClr, nOmpAng
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1, SrcAng2, SrcAngnm1, SrcAngnm2, EXPA, EXPB, hwt, DcmpAsyClr
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
 USE ioutil,  ONLY : message, terminate
@@ -125,19 +124,13 @@ END IF
 
 ! AFSS
 IF (nTracerCntl%lAFSS) THEN
-  IF (MOD(nAziAng / 2, nthr) .NE. 0) CALL terminate('WRONG_MOC_TRD')
-  
-  nOmpAng = nAziAng / nthr
-  
   DO ithr = 1, nthr
-    !CALL dmalloc(TrackingDat(ithr)%phi1a, nPolarAng, nFsr, nOmpAng)
-    !CALL dmalloc(TrackingDat(ithr)%phi2a, nPolarAng, nFsr, nOmpAng)
-    
-    CALL dmalloc(TrackingDat(ithr)%phi1a, nPolarAng, nFsr, nAziAng)
-    CALL dmalloc(TrackingDat(ithr)%phi2a, nPolarAng, nFsr, nAziAng)
+    IF (.NOT. nTracerCntl%lNodeMajor) THEN
+      CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPolarAng, nAziAng, nFsr)
+    ELSE
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPolarAng, nAziAng, nFsr)
+    END IF
   END DO
-  
-  !CALL initAFSS(RayInfo, CoreInfo, nTracerCntl, PE)
 END IF
 
 ! Dcmp. & Lin Src CASMO
@@ -237,21 +230,6 @@ IF (.NOT. ldcmp) THEN
     END DO
   END IF
 END IF
-
-! P1 : Dcmp.
-IF (ldcmp) THEN
-  DO iAzi = 1, nAziAng / 2
-    AziMap(iAzi, 1) = 1
-    AziMap(iAzi, 2) = 2
-    
-    AziMap(nAziAng - iAzi + 1, 1) = 3
-    AziMap(nAziAng - iAzi + 1, 2) = 4
-  END DO
-  
-  DO ithr = 1, nThr
-    TrackingDat(ithr)%AziMap => AziMap
-  END DO
-END IF
 ! ----------------------------------------------------
 1000 CONTINUE
 
@@ -260,239 +238,3 @@ NULLIFY (PolarAng)
 ! ----------------------------------------------------
 
 END SUBROUTINE initRT
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE InitAFSS(RayInfo, CoreInfo, PE, nTracerCntl)
-
-USE allocs
-USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_Type, PE_TYPE, RotRayInfo_Type
-USE CNTL,    ONLY : nTracerCntl_Type
-USE IOUTIL,  ONLY : terminate
-USE moc_mod, ONLY : OmpRayBeg, OmpRayEnd, OmpRayBegBd, OmpRayEndBd, OmpMap, nOmpAng, trackingdat
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)     :: RayInfo
-TYPE (CoreInfo_Type)    :: CoreInfo
-TYPE (nTracerCntl_Type) :: nTracerCntl
-TYPE (PE_TYPE)          :: PE
-! ----------------------------------------------------
-INTEGER :: nAziAng, nPolarAng, nRotray, nFSR, nthr, OmpTmp, ithr, nAzi, iRotRay, iazi, iRay, jazi
-
-TYPE(RotRayInfo_Type), POINTER :: LocRotRay, RotRay(:)
-
-INTEGER, POINTER, DIMENSION(:) :: nAziRotRay, nAziRotRay0
-! ----------------------------------------------------
-
-nAziAng   = RayInfo%nAziAngle
-nPolarAng = RayInfo%nPolarAngle
-nRotRay   = RayInfo%nRotRay
-RotRay   => RayInfo%RotRay
-
-nFSR = CoreInfo%nCoreFsr
-
-nthr = PE%nThread
-! ----------------------------------------------------
-IF (nTracerCntl%lScatBd) THEN
-  ! Rot. Ray for Azm. Ang.
-  CALL dmalloc(nAziRotRay, nAziAng/2) ! # of Rot. Rays at [0 ~ pi]
-  
-  DO iRotRay = 1, nRotRay
-    iazi = RotRay(iRotRay)%Ang1
-    
-    nAziRotRay(iazi) = nAziRotRay(iazi) + 1
-  END DO
-  
-  ! Rot. Ray for Thr.
-  CALL dmalloc(nAziRotRay0,   nthr)
-  CALL dmalloc0(OmpRayBeg, 0, nthr)
-  CALL dmalloc0(OmpRayEnd, 0, nthr)
-  
-  OmpRayBeg(0) = 1
-  OmpRayEnd(0) = 0
-  
-  nAzi   = nAziAng / 2 / nthr
-  OmpTmp = 0
-  jazi   = 0
-  
-  DO ithr = 1, nthr
-    OmpRayBeg(ithr) = OmpRayBeg(ithr-1) + OmpTmp
-    
-    DO iazi = 1, nAzi
-      jazi = jazi + 1
-      
-      nAziRotRay0(ithr) = nAziRotRay0(ithr) + nAziRotRay(jazi)
-    END DO
-    
-    OmpTmp = nAziRotRay0(ithr)
-    OmpRayEnd(ithr) = OmpRayEnd(ithr-1) + OmpTmp
-  END DO
-  
-  ! Parallel Ang.
-  DO iRotRay = 1, nRotRay
-    LocRotRay => RotRay(iRotRay)
-    
-    LocRotRay%OmpAng1 = MOD(LocRotRay%Ang1, nAzi)
-    
-    IF (LocRotRay%OmpAng1 .EQ. 0) LocRotRay%OmpAng1 = nAzi
-    
-    LocRotRay%OmpAng2 = LocRotRay%OmpAng1 + nAzi
-  END DO
-  
-  DO iRotRay = 1, nRotRay
-    LocRotRay => RotRay(iRotRay)
-    
-    DO iRay = 1, LocRotRay%nRay, 2
-      LocRotRay%OmpRayIdx(iRay)   = LocRotRay%OmpAng1
-      LocRotRay%OmpRayIdx(iRay+1) = LocRotRay%OmpAng2
-    END DO
-  END DO
-  
-  CALL dmalloc(OmpMap, nthr, nAzi*2)
-  
-  DO ithr = 1, nthr
-    DO iazi = 1, nAzi
-      OmpTmp = OmpTmp + 1
-      
-      OmpMap(ithr, iazi)      = OmpTmp
-      OmpMap(ithr, iazi+nAzi) = nAziAng - OmpTmp + 1
-    END DO
-  END DO
-! ----------------------------------------------------
-ELSE
-  ! Rot. Ray for Azm. Ang.
-  CALL dmalloc(nAziRotRay, nAziAng) ! # of Rot. Rays at [0 ~ 2*pi]
-  
-  DO iRotRay = 1, nRotRay
-    iazi = RotRay(iRotRay)%Ang1
-    
-    nAziRotRay(iazi) = nAziRotRay(iazi) + 1
-  END DO
-  
-  ! Rot. Ray for Thr. with Forward Dir.
-  CALL dmalloc(nAziRotRay0,   2*nthr)
-    
-  CALL dmalloc0(OmpRayBegBd, 1, 2, 0, nthr)
-  CALL dmalloc0(OmpRayEndBd, 1, 2, 0, nthr)
-  
-  OmpRayBegBd(1, 0) = 1 ! Range of Rot. Ray for each Thr.
-  OmpRayEndBd(1, 0) = 0
-  
-  nAzi   = nAziAng / nthr / 2 ! # of Azm Ang. for 1 Thr.
-  OmpTmp = 0
-  jazi   = 0
-  
-  DO ithr = 1, nthr
-    OmpRayBegBd(1, ithr) = OmpRayBegBd(1, ithr-1) + OmpTmp
-    
-    DO iazi = 1, nAzi
-      jazi = jazi + 1
-      
-      nAziRotRay0(ithr) = nAziRotRay0(ithr) + nAziRotRay(jazi) ! # of Rot. Rays for each Thr.
-    END DO
-    
-    OmpTmp = nAziRotRay0(ithr)
-    
-    OmpRayEndBd(1, ithr) = OmpRayEndBd(1, ithr-1) + OmpTmp
-  END DO
-  
-  ! Rot. Ray for Thr. with Backward Dir.
-  nAziRotRay0 = 0
-  jazi        = nAziAng + 1
-  OmpTmp      = 0
-  
-  OmpRayBegBd(2, 0) = nRotRay + 1
-  OmpRayEndBd(2, 0) = nRotRay
-  
-  DO ithr = 1, nthr
-    OmpRayEndBd(2, ithr) = OmpRayEndBd(2, ithr-1) - OmpTmp
-    
-    DO iazi = 1, nAzi
-      jazi = jazi - 1
-      
-      nAziRotRay0(ithr) = nAziRotRay0(ithr) + nAziRotRay(jazi)
-    END DO
-    
-    OmpTmp = nAziRotRay0(ithr)
-    
-    OmpRayBegBd(2, ithr) = OmpRayBegBd(2, ithr-1) - OmpTmp
-  END DO
-  
-  ! Parallel Ang. for Core Rays in Rot. Ray
-  DO iRotRay = 1, nRotRay
-    LocRotRay => RotRay(iRotRay)
-    
-    IF (LocRotRay%nRay .GT. 1) THEN ! Including Reflection
-      IF (LocRotRay%Ang1 .LE. nAziAng/2) THEN
-        LocRotRay%OmpAng1 = MOD(LocRotRay%Ang1, nAzi)
-        
-        IF (LocRotRay%OmpAng1 .EQ. 0) LocRotRay%OmpAng1 = nAzi
-        
-        LocRotRay%OmpAng2 = LocRotRay%OmpAng1 + nAzi
-      ELSE IF (LocRotRay%Ang1 .GT. nAziAng/2) THEN
-        LocRotRay%OmpAng1 = MOD(nAziAng+1 - LocRotRay%Ang1, nAzi) + nAzi
-        
-        IF (LocRotRay%OmpAng1 .EQ. nAzi) LocRotRay%OmpAng1 = LocRotRay%OmpAng1 + nAzi
-        
-        LocRotRay%OmpAng2 = LocRotRay%OmpAng1 - nAzi
-      END IF
-    ELSE IF (LocRotRay%nRay .EQ. 1) THEN ! No Reflection
-      IF (LocRotRay%Ang1 .LE. nAziAng/2) THEN
-        LocRotRay%OmpAng1 = MOD(LocRotRay%Ang1, nAzi)
-        
-        IF (LocRotRay%OmpAng1 .EQ. 0) LocRotRay%OmpAng1 = nAzi
-        
-        LocRotRay%OmpAng2 = 0
-      ELSE IF (LocRotRay%Ang1 .GT. nAziAng/2) THEN
-        
-        LocRotRay%OmpAng1 = MOD(nAziAng+1-LocRotRay%Ang1, nAzi) + nAzi
-        
-        IF (LocRotRay%OmpAng1 .EQ. nAzi) LocRotRay%OmpAng1 = LocRotRay%OmpAng1 + nAzi
-        
-        LocRotRay%OmpAng2 = 0
-      END IF
-    END IF
-  END DO
-  
-  DO iRotRay = 1, nRotRay
-    LocRotRay => RotRay(iRotRay)
-    
-    IF (LocRotRay%nRay .GT. 1) THEN ! Including Reflection
-      IF (MOD(LocRotRay%nRay, 2) .EQ. 0) THEN
-        DO iRay = 1, LocRotRay%nRay, 2 ! NOTICE : increase with 2
-          LocRotRay%OmpRayIdx(iRay)   = LocRotRay%OmpAng1
-          LocRotRay%OmpRayIdx(iRay+1) = LocRotRay%OmpAng2 ! Azm. Ang. after Reflection ??
-        END DO
-      ELSE
-        DO iRay = 1, LocRotRay%nRay-1, 2
-          LocRotRay%OmpRayIdx(iRay)   = LocRotRay%OmpAng1
-          LocRotRay%OmpRayIdx(iRay+1) = LocRotRay%OmpAng2
-        END DO
-        
-        LocRotRay%OmpRayIdx(LocRotRay%nRay) = LocRotRay%OmpAng1
-      END IF
-    ELSE ! No Reflection
-      LocRotRay%OmpRayIdx(1) = LocRotRay%OmpAng1
-    END IF
-  END DO
-  
-  CALL dmalloc(OmpMap, nthr, nAzi*2)
-  
-  DO ithr = 1, nthr
-    DO iazi = 1, nAzi
-      OmpTmp = OmpTmp + 1
-      
-      OmpMap(ithr, iazi)      = OmpTmp ! Numeric # of Azm. Ang
-      OmpMap(ithr, iazi+nAzi) = nAziAng - OmpTmp + 1 ! Reflcetion to x-axis
-    END DO
-  END DO
-END IF
-! ----------------------------------------------------
-NULLIFY (LocRotRay)
-NULLIFY (RotRay)
-
-DEALLOCATE (nAziRotRay)
-DEALLOCATE (nAziRotRay0)
-! ----------------------------------------------------
-
-END SUBROUTINE InitAFSS
-! ------------------------------------------------------------------------------------------------------------

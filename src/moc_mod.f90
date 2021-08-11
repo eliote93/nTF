@@ -7,7 +7,7 @@ IMPLICIT NONE
 
 REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, tsrc, axSrc1g, axPxs1g
 REAL, POINTER, DIMENSION(:,:)   :: phiAngIn1g, phim1g, LinSrc1g, srcm
-REAL, POINTER, DIMENSION(:,:,:) :: phi1a1g, phi2a1g, MocJout1g, tsrcAng1, tsrcAng2, LinPsi
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g, tsrcAng1, tsrcAng2, LinPsi
 
 ! Node Major
 REAL, POINTER, DIMENSION(:,:)     :: phisNM, srcNM, xstNM
@@ -31,12 +31,6 @@ INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay
 INTEGER, TARGET :: AziMap(360, 2)
 
 TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
-
-! AFSS
-INTEGER :: nOmpAng
-
-INTEGER, POINTER, DIMENSION(:)   :: OmpRayBeg, OmpRayEnd
-INTEGER, POINTER, DIMENSION(:,:) :: OmpRayBegBd, OmpRayEndBd, OmpMap
 
 ! Approximation of Exponetial Function
 REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb

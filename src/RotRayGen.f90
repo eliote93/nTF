@@ -205,11 +205,9 @@ DO i = 1, nCoreRay
   ENDDO
     !COPY To the temporal Ray Structure
   ALLOCATE(RotRay0(nRotRay)%RayIdx(iRay))
-  ALLOCATE(RotRay0(nRotRay)%OmpRayIdx(iRay))
   ALLOCATE(RotRay0(nRotRay)%Dir(iRay))
   RotRay0(nRotRay)%nray = iray
   CALL CP_VA(RotRay0(nRotRay)%RayIdx, RayIdx(1:iray), iray)
-  !CALL CP_VA(RotRay0(nRotRay)%OmpRayIdx, 0, iray)
   CALL CP_VA(RotRay0(nRotRay)%Dir, DirIdx(1:iray), iray)
 
   PhiAngBegIdx(nRotRay, 2) =  iBegIdx   !Backward Sweep Incoming Angular flux saved adress
@@ -236,7 +234,6 @@ RayInfo%nRotRay = nRotRay
 DO i = 1, nRotRay
   RotRay(i)%nRay = RotRay0(i)%nRay
   CALL DMALLOC(RotRay(i)%RayIdx, RotRay(i)%nRay)
-  CALL DMALLOC(RotRay(i)%OmpRayIdx, RotRay(i)%nRay)
   CALL DMALLOC(RotRay(i)%Dir, RotRay(i)%nRay)
 
   CALL CP_VA(RotRay(i)%RayIdx, RotRay0(i)%RayIdx, RotRay(i)%nRay)

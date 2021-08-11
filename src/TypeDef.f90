@@ -347,7 +347,6 @@ TYPE RotRayInfo_Type
   INTEGER :: Ang1, Ang2
   INTEGER :: OmpAng1, OmpAng2
   INTEGER, POINTER :: RayIdx(:)              !Core Ray Index
-  INTEGER, POINTER :: OmpRayIdx(:)
   INTEGER, POINTER :: Dir(:)                 !Searching
 END TYPE
 
@@ -471,7 +470,8 @@ TYPE TrackingDat_Type
   REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAngnm1, SrcAngnm2
   
   ! AFSS
-  REAL, POINTER, DIMENSION(:,:,:) :: phia, phi1a, phi2a
+  REAL, POINTER, DIMENSION(:,:,:,:)   :: phia1g
+  REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
   
   ! CASMO LS
   REAL, POINTER, DIMENSION(:)       :: FsrMxx, FsrMyy, FsrMxy

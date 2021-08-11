@@ -3,7 +3,7 @@
 SUBROUTINE RayTrace_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
 
 USE OMP_LIB
-USE PARAM,   ONLY : ZERO
+USE PARAM,   ONLY : ZERO, FORWARD, BACKWARD
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : TrackingDat, wtang
 USE PE_MOD,  ONLY : PE
@@ -41,8 +41,7 @@ ithr = omp_get_thread_num() + 1
 
 TrackingDat(ithr)%phis = ZERO
 IF (ljout) TrackingDat(ithr)%jout = ZERO
-IF (lAFSS) TrackingDat(ithr)%phi1a = ZERO
-IF (lAFSS) TrackingDat(ithr)%phi2a = ZERO
+IF (lAFSS) TrackingDat(ithr)%phia1g = ZERO
 
 TrackingDat(ithr)%src      => src
 TrackingDat(ithr)%xst      => xst
@@ -76,7 +75,7 @@ ELSE
     DO iazi = 1, RayInfo%nAziAngle
       DO ipol = 1, RayInfo%nPolarAngle
         DO ifsr = 1, nFsr
-          phis(ifsr) = phis(ifsr) + wtang(ipol, iazi) * (TrackingDat(ithr)%phi1a(ipol, ifsr, iazi) + TrackingDat(ithr)%phi2a(ipol, ifsr, iazi))
+          phis(ifsr) = phis(ifsr) + wtang(ipol, iazi) * (TrackingDat(ithr)%phia1g(FORWARD, ipol, iazi, ifsr) + TrackingDat(ithr)%phia1g(BACKWARD, ipol, iazi, ifsr))
         END DO
       END DO
     END DO
@@ -117,7 +116,7 @@ END SUBROUTINE RayTrace_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS)
 
-USE PARAM,   ONLY : TRUE, FALSE, ZERO
+USE PARAM,   ONLY : TRUE, FALSE, ZERO, FORWARD, BACKWARD
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Asy_Type, AsyInfo_Type, PinInfo_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type, ModRayInfo_type, AsyRayInfo_type,  &
                     CoreRayInfo_Type, RotRayInfo_Type, CellRayInfo_type, FastCoreRayDat_Type, TrackingDat_Type, FastRaySegDat_Type
 USE Moc_Mod, ONLY : nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay
@@ -149,9 +148,10 @@ TYPE (FastRaySegDat_Type),  POINTER :: FastRaySeg
 INTEGER, POINTER, DIMENSION(:)   :: LocalFsrIdx
 INTEGER, POINTER, DIMENSION(:,:) :: FsrIdx, ExpAppIdx
 
-REAL, POINTER, DIMENSION(:)     :: LenSeg, phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: OptLenList, PhiAngOutPolar, PhiAngIn, ExpA, ExpB, wtang
-REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout, wtsurf, phi1a1g, phi2a1g
+REAL, POINTER, DIMENSION(:)       :: LenSeg, phis, src, xst
+REAL, POINTER, DIMENSION(:,:)     :: OptLenList, PhiAngOutPolar, PhiAngIn, ExpA, ExpB, wtang
+REAL, POINTER, DIMENSION(:,:,:)   :: ExpAppPolar, jout, wtsurf
+REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 INTEGER :: mp(2)
 INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv
@@ -203,10 +203,7 @@ ExpB           => TrackingDat%ExpB
 wtang          => TrackingDat%wtang
 wtsurf         => TrackingDat%wtsurf
 
-IF (lAFSS) THEN
-  phi1a1g => TrackingDat%phi1a
-  phi2a1g => TrackingDat%phi2a
-END IF
+IF (lAFSS) phia1g => TrackingDat%phia1g
 ! ----------------------------------------------------
 i = iRotRay
 nCoreRay = RotRay(irotRay)%nRay
@@ -384,7 +381,7 @@ DO j = jbeg, jend, jinc
         PhiAngOutPolar(ipol, ir+1) = PhiAngOutPolar(ipol, ir) - phid
         
         IF (lAFSS) THEN
-          phi1a1g(ipol, ireg, iazi) = phi1a1g(ipol, ireg, iazi) + phid
+          phia1g(FORWARD, ipol, iazi, ireg) = phia1g(FORWARD, ipol, iazi, ireg) + phid
         ELSE
           phis(ireg) = phis(ireg) + wt*phid
         END IF
@@ -429,7 +426,7 @@ DO j = jbeg, jend, jinc
         PhiAngOutPolar(ipol, ir+1) = PhiAngOutPolar(ipol, ir + 2) - phid
         
         IF (lAFSS) THEN
-          phi2a1g(ipol, ireg, iazi) = phi2a1g(ipol, ireg, iazi) + phid
+          phia1g(BACKWARD, ipol, iazi, ireg) = phia1g(BACKWARD, ipol, iazi, ireg) + phid
         ELSE
           phis(ireg) = phis(ireg) + wt * phid
         END IF
@@ -493,16 +490,14 @@ NULLIFY (ExpB)
 NULLIFY (wtang)
 NULLIFY (wtsurf)
 
-IF (lAFSS) THEN
-  NULLIFY (phi1a1g)
-  NULLIFY (phi2a1g)
-END IF
+IF (lAFSS) NULLIFY (phia1g)
 ! ----------------------------------------------------
 
 END SUBROUTINE RecTrackRotRay_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS)
 
+USE PARAM,    ONLY : FORWARD, BACKWARD
 USE TYPEDEF,  ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type
 USE Moc_Mod,  ONLY : nMaxCellRay, nMaxCoreRay
 USE HexType,  ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
@@ -534,9 +529,10 @@ REAL :: tau, phid, wt
 
 REAL, DIMENSION(RayInfo%nPolarAngle) :: locphiout
 
-REAL, POINTER, DIMENSION(:)     :: phis, src, xst
-REAL, POINTER, DIMENSION(:,:)   :: ExpA, ExpB, wtang, OptLenList, PhiAngOutPolar
-REAL, POINTER, DIMENSION(:,:,:) :: jout, ExpAppPolar, phi1a1g, phi2a1g
+REAL, POINTER, DIMENSION(:)       :: phis, src, xst
+REAL, POINTER, DIMENSION(:,:)     :: ExpA, ExpB, wtang, OptLenList, PhiAngOutPolar
+REAL, POINTER, DIMENSION(:,:,:)   :: jout, ExpAppPolar
+REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 TYPE (Pin_Type), POINTER, DIMENSION(:) :: Pin
 
@@ -565,10 +561,7 @@ ExpAppIdx      => TrackingDat%ExpAppIdx
 OptLenList     => TrackingDat%OptLenList
 locphiout      =  TrackingDat%PhiAngIn(:, PhiAnginSvIdx)
 
-IF (lAFSS) THEN
-  phi1a1g => TrackingDat%phi1a
-  phi2a1g => TrackingDat%phi2a
-END IF
+IF (lAFSS) phia1g => TrackingDat%phia1g
 
 hRotRay_Loc => hRotRay(iRotRay)
 nCoreRay     = hRotRay_Loc%ncRay
@@ -659,7 +652,7 @@ DO icRay = jbeg, jend, jinc
         PhiAngOutPolar(ipol, iRaySeg+1) = PhiAngOutPolar(iPol, iRaySeg) - phid
         
         IF (lAFSS) THEN
-          phi1a1g(iPol, iReg, iAzi) = phi1a1g(iPol, iReg, iAzi) + phid
+          phia1g(FORWARD, iPol, iAzi, iReg) = phia1g(FORWARD, iPol, iAzi, iReg) + phid
         ELSE
           phis(iReg) = phis(iReg) + wt * phid
         END IF
@@ -703,7 +696,7 @@ DO icRay = jbeg, jend, jinc
         PhiAngOutPolar(iPol, iRaySeg+1) = PhiAngOutPolar(iPol, iRaySeg + 2) - phid
         
         IF (lAFSS) THEN
-          phi2a1g(iPol, iReg, iAzi) = phi2a1g(iPol, iReg, iAzi) + phid
+          phia1g(BACKWARD, iPol, iAzi, iReg) = phia1g(BACKWARD, iPol, iAzi, iReg) + phid
         ELSE
           phis(iReg) = phis(iReg) + wt * phid
         END IF
@@ -750,10 +743,7 @@ NULLIFY (jout)
 NULLIFY (ExpAppPolar)
 NULLIFY (PhiAngOutPolar)
 
-IF (lAFSS) THEN
-  NULLIFY (phi1a1g)
-  NULLIFY (phi2a1g)
-END IF
+IF (lAFSS) NULLIFY (phia1g)
 
 ! Hex.
 NULLIFY (haRay_Loc)
