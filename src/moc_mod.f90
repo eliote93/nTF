@@ -10,9 +10,9 @@ REAL, POINTER, DIMENSION(:,:)   :: phiAngIn1g, phim1g, LinSrc1g, srcm
 REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g, tsrcAng1, tsrcAng2, LinPsi
 
 ! Node Major
-REAL, POINTER, DIMENSION(:,:)     :: phisNM, srcNM, xstNM
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNM, phiAngInNM, srcmNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
@@ -24,7 +24,7 @@ INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
 ! Track Rotational Ray
 REAL, POINTER, DIMENSION(:,:)     :: wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:)   :: wtsurf, SrcAng1, SrcAng2, comp, mwt, mwt2, phia1g
-REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAng, SrcAngNM1, SrcAngNM2
+REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAng, SrcAngNg1, SrcAngNg2
 
 INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay
 
@@ -204,7 +204,7 @@ INTEGER :: iz, krot, ScatOd
 
 END SUBROUTINE HexTrackRotRayDcmpP1_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNM, PhiAngInNM, xstNM, srcNM, MocJoutNM, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, MocJoutNg, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -213,16 +213,16 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: phisNM, xstNM, srcNM
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: MocjoutNM
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, MocJoutNM, jAsy, iz, gb, ge, lJout, lHex)
+SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, MocJoutNg, jAsy, iz, gb, ge, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -232,8 +232,8 @@ TYPE (RayInfo_Type)     :: RayInfo
 TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
-REAL, POINTER, DIMENSION(:,:)     :: phisNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNM
+REAL, POINTER, DIMENSION(:,:)     :: phisNg
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: jAsy, iz, gb, ge
 LOGICAL :: lJout, lHex
@@ -272,7 +272,7 @@ INTEGER :: iz, gb, ge, krot
 
 END SUBROUTINE HexTrackRotRayDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -281,16 +281,16 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: phisNM, xstNM, srcNM
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNM, PhiAngInNM, srcmNM
-REAL, POINTER, DIMENSION(:,:,:,:) :: MocjoutNM
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: iz, gb, ge
 LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNM, phimNM, srcmNM, joutNM, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
+SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNM, JoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -300,9 +300,9 @@ TYPE (RayInfo_Type)     :: RayInfo
 TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm
-REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, srcmnm
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+REAL, POINTER, DIMENSION(:,:)     :: phisNg
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, srcmnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 INTEGER :: jAsy, iz, gb, ge, ScatOd
 LOGICAL :: lJout, lHex
@@ -416,7 +416,7 @@ LOGICAL, OPTIONAL :: lAFSS
 
 END SUBROUTINE RayTrace_Tran_OMP_AFSS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisnm, PhiAngInnm, xstnm, srcnm, joutnm, iz, gb, ge, ljout)
+SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -425,16 +425,16 @@ IMPLICIT NONE
 TYPE (RayInfo_Type) :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInnm
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
+REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
 END SUBROUTINE RayTrace_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisnm, phimnm, PhiAngInnm, xstnm, srcnm, srcmnm, joutnm, iz, gb, ge, ljout)
+SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmnm, JoutNg, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridInfo_Type
 
@@ -446,9 +446,9 @@ TYPE (CoreInfo_Type) :: CoreInfo
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
-REAL, POINTER, DIMENSION(:,:)     :: phisnm, xstnm, srcnm
-REAL, POINTER, DIMENSION(:,:,:)   :: phimnm, PhiAngInnm, srcmnm
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmnm
+REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 END SUBROUTINE RayTraceP1_NM
 ! ------------------------------------------------------------------------------------------------------------
@@ -511,7 +511,7 @@ LOGICAL :: ljout
 
 END SUBROUTINE RayTraceLS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout)
+SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisNg, phisSlope, PhiAngInNg, srcNg, srcSlope, xstNg, JoutNg, iz, gb, ge, ljout)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -521,14 +521,14 @@ IMPLICIT NONE
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :), phisSlope(:, :, :, :), PhiAngInnm(:, :, :)
-REAL, POINTER :: srcnm(:, :), srcSlope(:, :, :, :), xstnm(:, :), joutnm(:, :, :, :)
+REAL, POINTER :: phisNg(:, :), phisSlope(:, :, :, :), PhiAngInNg(:, :, :)
+REAL, POINTER :: srcNg(:, :), srcSlope(:, :, :, :), xstNg(:, :), JoutNg(:, :, :, :)
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
 END SUBROUTINE RayTraceLS_CASMO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisnm, phisSlope, joutnm, iz, iasy, gb, ge, ljout)
+SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNg, phisSlope, JoutNg, iz, iasy, gb, ge, ljout)
 
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
@@ -538,8 +538,8 @@ IMPLICIT NONE
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER :: phisnm(:, :)
-REAL, POINTER :: srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
+REAL, POINTER :: phisNg(:, :)
+REAL, POINTER :: xstNg(:, :), JoutNg(:, :, :, :)
 REAL, POINTER :: phisSlope(:, :, :, :)
 INTEGER :: iz, iasy, gb, ge
 LOGICAL :: ljout
@@ -604,7 +604,7 @@ logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 
 END SUBROUTINE SetRtMacXsGM_Cusping
 ! ------------------------------------------------------------------------------------------------------------ 
-SUBROUTINE SetRtMacXsNM(core, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+SUBROUTINE SetRtMacXsNM(core, Fxr, xstNg, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE
 
@@ -615,14 +615,14 @@ TYPE(PE_TYPE) :: PE
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:) :: xstnm
+REAL, POINTER, DIMENSION(:,:) :: xstNg
 
 INTEGER :: iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 
 END SUBROUTINE SetRtMacXsNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtMacXsNM_Cusping(core, FmInfo, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+SUBROUTINE SetRtMacXsNM_Cusping(core, FmInfo, Fxr, xstNg, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE, FmInfo_Type
@@ -634,7 +634,7 @@ TYPE(FmInfo_Type) :: FmInfo
 TYPE(Fxrinfo_type) :: Fxr(:)
 TYPE(PE_TYPE) :: PE
 
-REAL, POINTER :: xstnm(:, :)
+REAL, POINTER :: xstNg(:, :)
 INTEGER :: iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 
@@ -683,7 +683,7 @@ TYPE(PE_TYPE) :: PE
 
 END SUBROUTINE SetRtSrcGM_Cusping
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtSrcNM(Core, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
+SUBROUTINE SetRtSrcNM(Core, Fxr, srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type,  PE_TYPE
 
@@ -695,7 +695,7 @@ TYPE (PE_TYPE)        :: PE
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)   :: srcnm, phisnm, psi, xstnm
+REAL, POINTER, DIMENSION(:,:)   :: srcNg, phisNg, psi, xstNg
 REAL, POINTER, DIMENSION(:,:,:) :: AxSrc
 
 REAL :: eigv
@@ -706,7 +706,7 @@ INTEGER, OPTIONAL :: Offset
 
 END SUBROUTINE SetRtSrcNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtSrcNM_Cusping(Core, FmInfo, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
+SUBROUTINE SetRtSrcNM_Cusping(Core, FmInfo, Fxr, srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
 USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE, FmInfo_Type
@@ -719,7 +719,7 @@ TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(GroupInfo_Type):: GroupInfo
 TYPE(PE_TYPE) :: PE
 
-REAL, POINTER :: srcnm(:, :), phisnm(:, :), psi(:, :), AxSrc(:, :, :), xstnm(:, :)
+REAL, POINTER :: srcNg(:, :), phisNg(:, :), psi(:, :), AxSrc(:, :, :), xstNg(:, :)
 REAL :: eigv
 INTEGER :: gb, ge, ng, iz, ifsr, ifxr
 LOGICAL :: lxslib, lscat1, l3dim
@@ -747,7 +747,7 @@ LOGICAL :: lxslib, lscat1, l3dim
 
 END SUBROUTINE SetRtLinSrc
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope, axsrc, xstnm, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix)
+SUBROUTINE SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNg, phisSlope, srcNg, srcSlope, psi, psiSlope, axsrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix)
 
 USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type
@@ -759,10 +759,10 @@ TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(GroupInfo_Type):: GroupInfo
 
-REAL, POINTER :: phisnm(:, :), phisSlope(:, :, :, :)
-REAL, POINTER :: srcnm(:, :), srcSlope(:, :, :, :), axsrc(:, :, :)
+REAL, POINTER :: phisNg(:, :), phisSlope(:, :, :, :)
+REAL, POINTER :: srcNg(:, :), srcSlope(:, :, :, :), axsrc(:, :, :)
 REAL, POINTER :: psi(:, :), psiSlope(:, :, :)
-REAL, POINTER :: xstnm(:, :)
+REAL, POINTER :: xstNg(:, :)
 REAL :: eigv
 INTEGER :: myzb, myze, gb, ge, ng, iz
 LOGICAL :: lxslib, lscat1, l3dim, lNegFix
@@ -790,7 +790,7 @@ LOGICAL :: lxslib, lscat1, l3dim
 
 END SUBROUTINE SetRtP1SrcGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimnm, xstnm, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
+SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimNg, xstNg, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_Type
 
@@ -802,8 +802,8 @@ TYPE (PE_Type)        :: PE
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)   :: xstnm
-REAL, POINTER, DIMENSION(:,:,:) :: srcmnm, phimnm
+REAL, POINTER, DIMENSION(:,:)   :: xstNg
+REAL, POINTER, DIMENSION(:,:,:) :: srcmnm, phimNg
 
 REAL :: eigv
 INTEGER :: gb, ge, ng, iz, ifsr, ifxr, ScatOd
@@ -831,7 +831,7 @@ LOGICAL :: l3dim
 
 END SUBROUTINE PseudoAbsorptionGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
+SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 
 USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
 USE BenchXs,        ONLY : GetChiBen, xssben
@@ -845,7 +845,7 @@ TYPE(GroupInfo_Type) :: GroupInfo
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)   :: xstnm
+REAL, POINTER, DIMENSION(:,:)   :: xstNg
 REAL, POINTER, DIMENSION(:,:,:) :: AxPXS
 
 REAL :: eigv
@@ -1025,7 +1025,7 @@ LOGICAL :: lxslib, lRST
 
 END SUBROUTINE AddBucklingGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE AddBucklingNM(Core, Fxr, xstnm, bsq, iz, ng, lxslib, lRST)
+SUBROUTINE AddBucklingNM(Core, Fxr, xstNg, bsq, iz, ng, lxslib, lRST)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type
 
@@ -1035,7 +1035,7 @@ TYPE (CoreInfo_Type) :: Core
 
 TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:) :: xstnm
+REAL, POINTER, DIMENSION(:,:) :: xstNg
 
 INTEGER :: iz, ng
 REAL :: Bsq
@@ -1076,7 +1076,7 @@ REAL :: FxrAvgPhi(ng)
 
 END FUNCTION FxrAvgPhi
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, iClr)
+SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNg, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 
@@ -1085,7 +1085,7 @@ IMPLICIT NONE
 TYPE (CoreInfo_Type) :: CoreInfo
 TYPE (RayInfo_Type)  :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER :: gb, ge
@@ -1109,7 +1109,7 @@ INTEGER, OPTIONAL :: iClr
 
 END SUBROUTINE DcmpLinkBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBndyFluxNg(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
+SUBROUTINE DcmpScatterBndyFluxNg(RayInfo, PhiAngInNg, DcmpPhiAngInNg)
 
 USE TYPEDEF, ONLY : RayInfo_Type
 
@@ -1117,7 +1117,7 @@ IMPLICIT NONE
 
 TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg
 
 END SUBROUTINE DcmpScatterBndyFluxNg
@@ -1135,7 +1135,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g
 
 END SUBROUTINE DcmpScatterBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherCurrentNg(CoreInfo, joutNM)
+SUBROUTINE DcmpGatherCurrentNg(CoreInfo, JoutNg)
 
 USE TYPEDEF, ONLY : CoreInfo_Type
 
@@ -1143,7 +1143,7 @@ IMPLICIT NONE
 
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 END SUBROUTINE DcmpGatherCurrentNg
 ! ------------------------------------------------------------------------------------------------------------

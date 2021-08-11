@@ -116,19 +116,19 @@ IF (nTracerCntl%lScat1) THEN
   SELECT CASE (nTracerCntl%SCatOd)
   CASE (1)
     IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL dmalloc0(phim, 1, 2, 1, nfsr, myzb, myze, 1, ng)
+      CALL dmalloc0(phim, 1, 2, 1, nfsr, 1, ng, myzb, myze)
     ELSE
       CALL dmalloc0(phim, 1, 2, 1, ng, 1, nfsr, myzb, myze)
     END IF
   CASE (2)
     IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL dmalloc0(phim, 1, 5, 1, nfsr, myzb, myze, 1, ng)
+      CALL dmalloc0(phim, 1, 5, 1, nfsr, 1, ng, myzb, myze)
     ELSE
       CALL dmalloc0(phim, 1, 5, 1, ng, 1, nfsr, myzb, myze)
     END IF
   CASE (3)
     IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL dmalloc0(phim, 1, 9, 1, nfsr, myzb, myze, 1, ng)
+      CALL dmalloc0(phim, 1, 9, 1, nfsr, 1, ng, myzb, myze)
     ELSE
       CALL dmalloc0(phim, 1, 9, 1, ng, 1, nfsr, myzb, myze)
     END IF
@@ -184,7 +184,7 @@ USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
 USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, tSrc, AxSrc1g, LinSrc1g, LinPsi, srcm, AxPxs1g, PhiAngIn1g, &
-                    phisnm, PhiAngInnm, MocJoutnm, xstnm, srcnm, srcmnm, DcmpPhiAngOutNg, DcmpPhiAngInNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
+                    phisNg, PhiAngInNg, MocJoutNg, xstNg, srcNg, srcmnm, DcmpPhiAngOutNg, DcmpPhiAngInNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
@@ -207,12 +207,12 @@ CALL dmalloc(AxSrc1g, nxy)
 CALL dmalloc(AxPxs1g, nxy)
   
 IF (nTracerCntl%lNodeMajor) THEN
-  CALL dmalloc(phisnm,     ng, nFsr)
-  CALL dmalloc(PhiAngInnm, nPolar, ng, nPhiAngSv)
-  CALL dmalloc(MocJoutnm,  3, ng, nbd, nxy)
+  CALL dmalloc(phisNg,     ng, nFsr)
+  CALL dmalloc(PhiAngInNg, nPolar, ng, nPhiAngSv)
+  CALL dmalloc(MocJoutNg,  3, ng, nbd, nxy)
   
-  CALL dmalloc(xstnm, ng, nFsr)
-  CALL dmalloc(srcnm, ng, nFsr)
+  CALL dmalloc(xstNg, ng, nFsr)
+  CALL dmalloc(srcNg, ng, nFsr)
 ELSE
   CALL dmalloc(phis1g,     nFsr)
   CALL dmalloc(PhiAngin1g, nPolar, nPhiAngSv)

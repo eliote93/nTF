@@ -448,26 +448,26 @@ TYPE TrackingDat_Type
   INTEGER, POINTER, DIMENSION(:,:,:) :: ExpAppIdxnm
   
   ! Basic
-  REAL, POINTER, DIMENSION(:,:)   :: wtang, hwt
-  REAL, POINTER, DIMENSION(:,:,:) :: wtsurf, comp, mwt, mwt2
+  REAL, POINTER, DIMENSION(:,:)   :: wtang, hwt, OptLenList, EXPA, EXPB, ExpApp
+  REAL, POINTER, DIMENSION(:,:,:) :: wtsurf, comp, mwt, mwt2, ExpAppPolar
   
   ! GM TRC
-  REAL, POINTER, DIMENSION(:)     :: phis, src, xst, PhiAngOut
-  REAL, POINTER, DIMENSION(:,:)   :: OptLenList, EXPA, EXPB, ExpApp, PhiAngOutPolar, PhiAngIn
-  REAL, POINTER, DIMENSION(:,:,:) :: ExpAppPolar, jout
+  REAL, POINTER, DIMENSION(:)     :: phis1g, src1g, xst1g
+  REAL, POINTER, DIMENSION(:,:)   :: PhiAngOut1g, PhiAngIn1g
+  REAL, POINTER, DIMENSION(:,:,:) :: jout1g
   
   ! GM Pn
-  REAL, POINTER, DIMENSION(:,:)   :: phim
-  REAL, POINTER, DIMENSION(:,:,:) :: SrcAng1, SrcAng2
+  REAL, POINTER, DIMENSION(:,:)   :: phim1g
+  REAL, POINTER, DIMENSION(:,:,:) :: SrcAng1g1, SrcAng1g2
   
   ! NM Trc
-  REAL, POINTER, DIMENSION(:,:)     :: phisnm, srcnm, xstnm
-  REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngOutnm, PhiAngInnm, OptLenListnm
-  REAL, POINTER, DIMENSION(:,:,:,:) :: joutnm, ExpAppnm
+  REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
+  REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngOutNg, PhiAngInNg, OptLenListNg
+  REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
   
   ! NM Pn
-  REAL, POINTER, DIMENSION(:,:,:)   :: phimnm
-  REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAngnm1, SrcAngnm2
+  REAL, POINTER, DIMENSION(:,:,:)   :: phimNg
+  REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAngNg1, SrcAngNg2
   
   ! AFSS
   REAL, POINTER, DIMENSION(:,:,:,:)   :: phia1g

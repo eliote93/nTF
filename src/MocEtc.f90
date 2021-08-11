@@ -256,7 +256,7 @@ USE MOC_MOD,  ONLY : tSrc,              xst1g,            AxSrc1g,              
                      SetRtSrcGM,          SetRtMacXsGM,     PseudoAbsorptionGM,     &
                      AddBucklingGM,       AddConstSrc,                            &
                      !--- CNJ Edit : Node Majors
-                     phisnm,            srcnm,            xstnm,                &
+                     phisNg,            srcNg,            xstNg,                &
                      SetRtSrcNM,        SetRtMacXsNM,     PseudoAbsorptionNM,   &
                      AddBucklingNM
 USE geom,     ONLY : nbd
@@ -327,18 +327,17 @@ DO iz = myzb, myze
   !--- CNJ Edit : Node Majors
   IF (nTracerCntl%lNodeMajor) THEN
     DO ig = 1, ng
-      phisnm(ig, :) = phis(:, iz, ig)
+      phisNg(ig, :) = phis(:, iz, ig)
     ENDDO
-    CALL SetRtMacXsNM(Core, Fxr(:, iz), xstnm, iz, ng, lxslib, nTracerCntl%lTrCorrection,   &
+    CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, nTracerCntl%lTrCorrection,   &
                       nTracerCntl%lRST, FALSE, FALSE, PE)
 #ifdef LkgSplit
-    CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
+    CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 #endif
 #ifdef Buckling
-    IF (nTracerCntl%lBsq) CALL AddBucklingNM(Core, Fxr, xstnm, nTracerCntl%Bsq, iz, ng, lxslib, nTracerCntl%lRST)
+    IF (nTracerCntl%lBsq) CALL AddBucklingNM(Core, Fxr, xstNg, nTracerCntl%Bsq, iz, ng, lxslib, nTracerCntl%lRST)
 #endif
-    CALL SetRtSrcNM(Core, Fxr(:, iz), srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz,           &
-                    1, ng, ng, GroupInfo, l3dim, lxslib, nTracerCntl%lscat1, lNegFix, PE)
+    CALL SetRtSrcNM(Core, Fxr(:, iz), srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, 1, ng, ng, GroupInfo, l3dim, lxslib, nTracerCntl%lscat1, lNegFix, PE)
     DO ipin = 1, nxy
       FsrIdxSt = Pin(ipin)%FsrIdxSt
       icel = Pin(ipin)%Cell(iz)
@@ -353,8 +352,8 @@ DO iz = myzb, myze
         ireg = FsrIdxSt + i - 1
         vol = Cell(icel)%vol(i)
         DO ig = 1, ng
-          Collision(ig) = Collision(ig) + vol * phisnm(ig, ireg) * xstnm(ig, ireg)
-          Source(ig) = Source(ig) + vol * srcnm(ig, ireg) * xstnm(ig, ireg)
+          Collision(ig) = Collision(ig) + vol * phisNg(ig, ireg) * xstNg(ig, ireg)
+          Source(ig) = Source(ig) + vol * srcNg(ig, ireg) * xstNg(ig, ireg)
         ENDDO
       ENDDO
       DO ig = 1, ng
@@ -375,13 +374,11 @@ DO iz = myzb, myze
       ENDIF
       CALL CP_CA(xst1g(1:nFsr), 1._8, nFsr)
       IF(nTracerCntl%lDcplCal) THEN
-        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                     &
-                      eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
+        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
       ELSE
         !CALL SetRtSrc(Core, Fxr(:, iz), tsrc(:), phis, psi, axSrc1g(:), xst1g(:), &
                       !eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
-        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, &
-                      eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, nTracerCntl%lscat1, lNegFix, PE)
+        CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, nTracerCntl%lscat1, lNegFix, PE)
       ENDIF
       IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
         CALL AddConstSrc(Core, Fxr(:, iz), tsrc, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
@@ -470,11 +467,9 @@ DO ig = 1, ng
    IF(nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
 #endif  
     IF(nTracerCntl%lDcplCal) THEN
-      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                &
-                    eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
+      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
     ELSE
-      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g,                &
-                    eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
+      CALL SetRtSrcGM(Core, Fxr(:, iz), tsrc, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
     ENDIF
     IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
       CALL AddConstSrc(Core, Fxr(:, iz), tsrc, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
@@ -850,7 +845,7 @@ DEALLOCATE(w, wbuf, scatsum)
 
 END SUBROUTINE MOCUnderRelaxationFactor
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, iClr)
+SUBROUTINE DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNg, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, iClr)
 
 USE TYPEDEF, ONLY : CoreInfo_Type, RayInfo_Type, DcmpAsyRayInfo_Type
 USE PE_Mod,  ONLY : PE
@@ -860,7 +855,7 @@ IMPLICIT NONE
 TYPE (CoreInfo_Type) :: CoreInfo
 TYPE (RayInfo_Type)  :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNM
+REAL, POINTER, DIMENSION(:,:,:)     :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 
 INTEGER :: gb, ge
@@ -890,7 +885,7 @@ DO iAsy = 1, CoreInfo%nxya
       nextRay = DcmpAsyLinkInfo(2, irot, iRay, iAsy)
       
       IF (nextAsy .EQ. 0) THEN
-        PhiAngInNM(:, gb:ge, nextRay) = DcmpPhiAngOutNg(:, gb:ge, irot, iRay, iAsy)  
+        PhiAngInNg(:, gb:ge, nextRay) = DcmpPhiAngOutNg(:, gb:ge, irot, iRay, iAsy)  
       ELSE
         DcmpPhiAngInNg(:, gb:ge, irot, nextRay, nextAsy) = DcmpPhiAngOutNg(:, gb:ge, irot, iRay, iAsy)
       END IF
@@ -950,7 +945,7 @@ END DO
 
 END SUBROUTINE DcmpLinkBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpScatterBndyFluxNg(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
+SUBROUTINE DcmpScatterBndyFluxNg(RayInfo, PhiAngInNg, DcmpPhiAngInNg)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_Type
@@ -964,7 +959,7 @@ INCLUDE 'mpif.h'
 
 TYPE (RayInfo_Type) :: RayInfo
 
-REAL, POINTER, DIMENSION(:,:,:) :: PhiAngInNM
+REAL, POINTER, DIMENSION(:,:,:) :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, buf_DcmpPhiAngInNg
 
 INTEGER :: nPolarAng, nModRay, nPhiAngSv, nAsy, nDat, ierr
@@ -978,7 +973,7 @@ nPhiAngSv = RayInfo%nPhiAngSv
 nAsy = PE%nAsy(PE%myRTRank)
 nDat = nPolarAng * ng * nPhiAngSv
 
-CALL MPI_BCAST(PhiAngInNM, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+CALL MPI_BCAST(PhiAngInNg, nDat, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
 CALL dmalloc(buf_DcmpPhiAngInNg, nPolarAng, ng, 2, nModRay, nAsy) ! Can be Huge Time-consuming
 
@@ -1041,7 +1036,7 @@ DEALLOCATE (buf_DcmpPhiAngIn1g)
 
 END SUBROUTINE DcmpScatterBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE DcmpGatherCurrentNg(CoreInfo, joutNM)
+SUBROUTINE DcmpGatherCurrentNg(CoreInfo, JoutNg)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : CoreInfo_Type
@@ -1055,7 +1050,7 @@ INCLUDE 'mpif.h'
 
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM, buf_joutNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg, buf_JoutNg
 
 INTEGER :: nPin, nDat, ierr
 INTEGER :: recvcounts(0:PE%nRTProc-1), displs(0:PE%nRTProc-1)
@@ -1063,18 +1058,18 @@ INTEGER :: recvcounts(0:PE%nRTProc-1), displs(0:PE%nRTProc-1)
 
 nPin = PE%nPin(PE%myRTRank)
 
-CALL Dmalloc(buf_joutNM, 3, ng, 4, nPin)
+CALL Dmalloc(buf_JoutNg, 3, ng, 4, nPin)
 
 recvcounts = 3 * ng * 4 * PE%nPin
 displs     = 3 * ng * 4 * PE%Pin_displs
 
 nDat = recvcounts(PE%myRTRank)
 
-buf_joutNM = joutNM(:, :, :, PE%myPinBeg:PE%myPinEnd)
+buf_JoutNg = JoutNg(:, :, :, PE%myPinBeg:PE%myPinEnd)
 
-CALL MPI_GATHERV(buf_joutNM, nDat, MPI_DOUBLE_PRECISION, joutNM, recvcounts, displs, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
+CALL MPI_GATHERV(buf_JoutNg, nDat, MPI_DOUBLE_PRECISION, JoutNg, recvcounts, displs, MPI_DOUBLE_PRECISION, 0, PE%MPI_RT_COMM, ierr)
 
-DEALLOCATE (buf_joutNM)
+DEALLOCATE (buf_JoutNg)
 ! ----------------------------------------------------
 
 END SUBROUTINE DcmpGatherCurrentNg

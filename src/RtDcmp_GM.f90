@@ -51,8 +51,8 @@ nthr = PE%nthread
 CALL OMP_SET_NUM_THREADS(nThr)
 ! ----------------------------------------------------
 DO ithr = 1, nThr
-  TrackingDat(ithr)%src => src1g
-  TrackingDat(ithr)%xst => xst1g
+  TrackingDat(ithr)%src1g => src1g
+  TrackingDat(ithr)%xst1g => xst1g
 END DO
 
 DcmpPhiAngOut1g = ZERO
@@ -74,7 +74,7 @@ DO iClr = 1, nClr
 #endif
   
   DO ithr = 1, nthr
-    TrackingDat(ithr)%PhiAngIn        => PhiAngIn1g
+    TrackingDat(ithr)%PhiAngIn1g      => PhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngIn1g  => DcmpPhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
   END DO
@@ -167,8 +167,8 @@ FsrSt = Pin(PinSt)%FsrIdxSt
 FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
 
 ! ALLOC
-CALL dmalloc0(TrackingLoc%phis, FsrSt, FsrEd)
-IF (ljout) CALL dmalloc0(TrackingLoc%Jout, 1, 3, 1, nbd, PinSt, PinEd)
+CALL dmalloc0(TrackingLoc%phis1g, FsrSt, FsrEd)
+IF (ljout) CALL dmalloc0(TrackingLoc%Jout1g, 1, 3, 1, nbd, PinSt, PinEd)
 
 ! RT
 DO krot = 1, 2
@@ -183,20 +183,20 @@ END DO
 
 ! GATHER
 DO ifsr = FsrSt, FsrEd
-  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis(ifsr)
+  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis1g(ifsr)
 END DO
 
 IF (lJout) THEN
   DO ixy = PinSt, PinEd
     DO ibd = 1, nbd
-      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout(:, ibd, ixy)
+      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout1g(:, ibd, ixy)
     END DO
   END DO
 END IF
 
 ! FREE
-DEALLOCATE (TrackingLoc%phis)
-IF (lJout) DEALLOCATE (TrackingLoc%Jout)
+DEALLOCATE (TrackingLoc%phis1g)
+IF (lJout) DEALLOCATE (TrackingLoc%Jout1g)
 
 NULLIFY (Cell)
 NULLIFY (Pin)
@@ -273,11 +273,11 @@ iGeoTyp = hAsy(iAsy)%GeoTyp
 icBss   = hAsyTypInfo(iAsyTyp)%iBss
 
 ! Loc.
-phis1g     => TrackingDat%phis
-src1g      => TrackingDat%src
-xst1g      => TrackingDat%xst
-PhiAngIn1g => TrackingDat%PhiAngIn
-jout1g     => TrackingDat%jout
+phis1g     => TrackingDat%phis1g
+src1g      => TrackingDat%src1g
+xst1g      => TrackingDat%xst1g
+PhiAngIn1g => TrackingDat%PhiAngIn1g
+jout1g     => TrackingDat%jout1g
 wtang      => TrackingDat%wtang
 EXPA       => TrackingDat%EXPA
 EXPB       => TrackingDat%EXPB

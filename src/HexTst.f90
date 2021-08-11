@@ -7,18 +7,6 @@ USE ioutil,  ONLY : terminate
 
 IMPLICIT NONE
 
-!INTERFACE
-!
-!SUBROUTINE HexChkPinFlxNM(phisnm)
-!
-!IMPLICIT NONE
-!
-!REAL, POINTER, DIMENSION(:,:) :: phisnm
-!
-!END SUBROUTINE HexChkPinFlxNM
-!
-!END INTERFACE
-
 CONTAINS
 
 ! ------------------------------------------------------------------------------------------------------------
@@ -941,7 +929,7 @@ END SUBROUTINE HexPrtXsKF
 ! ------------------------------------------------------------------------------------------------------------
 !                                     15. CHK : PHI C
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexChkPinFlxNM(gb, ge, phisnm)
+SUBROUTINE HexChkPinFlxNg(gb, ge, phisNg)
 
 USE allocs
 USE Core_mod, ONLY : nCoreFSR
@@ -950,20 +938,20 @@ USE ioutil,   ONLY : terminate
 
 IMPLICIT NONE
 
-REAL, POINTER, DIMENSION(:,:) :: phicnm
-REAL, POINTER, DIMENSION(:,:) :: phisnm
+REAL, POINTER, DIMENSION(:,:) :: phicNg
+REAL, POINTER, DIMENSION(:,:) :: phisNg
 
 INTEGER :: gb, ge, ixy, ist, ied, ig
 ! ----------------------------------------------------
 
-CALL dmalloc0(phicnm, gb, ge, 1, nHexPin)
+CALL dmalloc0(phicNg, gb, ge, 1, nHexPin)
 
 DO ixy = 1, nHexPin-1
   ist = hPinInfo(ixy)%fsridxst
   ied = hPinInfo(ixy+1)%fsridxst-1
   
   DO ig = gb, ge
-    phicnm(ig, ixy) = sum(phisnm(ig, ist:ied))
+    phicNg(ig, ixy) = sum(phisNg(ig, ist:ied))
   END DO
 END DO
 
@@ -971,19 +959,19 @@ ist = hPinInfo(nHexPin)%fsridxst
 ied = nCoreFSR
 
 DO ig = gb, ge
-  phicnm(ig, nHexPin) = sum(phisnm(ig, ist:ied))
+  phicNg(ig, nHexPin) = sum(phisNg(ig, ist:ied))
 END DO
 
 DO ixy = 1, nHexPin
   DO ig = gb, ge
-    IF (phicnm(ig, ixy) .NE. phicnm(ig, ixy)) CALL terminate("NAN POWER")
+    IF (phicNg(ig, ixy) .NE. phicNg(ig, ixy)) CALL terminate("NAN POWER")
   END DO
 END DO
 
-DEALLOCATE (phicnm)
+DEALLOCATE (phicNg)
 ! ----------------------------------------------------
 
-END SUBROUTINE HexChkPinFlxNM
+END SUBROUTINE HexChkPinFlxNg
 ! ------------------------------------------------------------------------------------------------------------
 
 END MODULE HexTst

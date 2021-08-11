@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtMacXsNM(core, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+SUBROUTINE SetRtMacXsNM(core, Fxr, xstNg, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE OMP_LIB
 USE PARAM,        ONLY : TRUE, FALSE, ONE
@@ -35,7 +35,7 @@ REAL, DIMENSION(ng, 40) :: SPHfac
 
 LOGICAL :: lresogrp(ng), lres, lress
 
-REAL, POINTER, DIMENSION(:,:) :: xstnm
+REAL, POINTER, DIMENSION(:,:) :: xstNg
 
 TYPE(XsMac_Type), POINTER, DIMENSION(:) :: XsMac
 ! ----------------------------------------------------
@@ -137,7 +137,7 @@ DO ipin = xyb, xye
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
-      xstnm(:, ifsr) = xsmactr
+      xstNg(:, ifsr) = xsmactr
       
       IF (lsSPH .AND. CellInfo(icel)%lsSPH) ssphfnm(igresb:igrese, ifsr, iz) = SPHfac(igresb:igrese, j)
     END DO
@@ -169,7 +169,7 @@ NULLIFY (CellInfo)
 
 END SUBROUTINE SetRtMacXsNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstnm, iz, ng, GroupInfo, l3dim)
+SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
 USE PE_MOD,  ONLY : PE
@@ -181,7 +181,7 @@ TYPE (GroupInfo_Type):: GroupInfo
 
 TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)   :: xstnm
+REAL, POINTER, DIMENSION(:,:)   :: xstNg
 REAL, POINTER, DIMENSION(:,:,:) :: AxPXS
 
 REAL :: eigv
@@ -222,7 +222,7 @@ DO ipin = xyb, xye
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
       DO ig = 1, ng
-        IF (.NOT. Fxr(ifxr)%lVoid) xstnm(ig, ifsr) = xstnm(ig, ifsr) + AxPXS(ipin, iz, ig)
+        IF (.NOT. Fxr(ifxr)%lVoid) xstNg(ig, ifsr) = xstNg(ig, ifsr) + AxPXS(ipin, iz, ig)
       END DO
     END DO
   END DO
@@ -234,7 +234,7 @@ NULLIFY(CellInfo)
 
 END SUBROUTINE PseudoAbsorptionNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE AddBucklingNM(Core, Fxr, xstnm, bsq, iz, ng, lxslib, lRST)
+SUBROUTINE AddBucklingNM(Core, Fxr, xstNg, bsq, iz, ng, lxslib, lRST)
 
 USE PARAM,        ONLY : TRUE, FALSE, EPSM3, ONE
 USE TYPEDEF,      ONLY : coreinfo_type, Cell_Type, pin_Type, Fxrinfo_type, XsMac_Type
@@ -249,7 +249,7 @@ IMPLICIT NONE
 TYPE (CoreInfo_Type) :: Core
 TYPE (Fxrinfo_type), POINTER, DIMENSION(:,:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:) :: xstnm
+REAL, POINTER, DIMENSION(:,:) :: xstNg
 INTEGER :: iz, ng
 REAL :: Bsq
 LOGICAL :: lxslib, lRST
@@ -331,12 +331,12 @@ DO ipin = xyb, xye
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
       DO ig = 1, ng
-        IF ((xstnm(ig, ifsr)) .LT. epsm3) CYCLE
+        IF ((xstNg(ig, ifsr)) .LT. epsm3) CYCLE
         
         XsD = ONE / (3._8 * xsmactr(ig))
         XsD = XsD * Bsq
         
-        xstnm(ig, ifsr) = xstnm(ig, ifsr) + XsD
+        xstNg(ig, ifsr) = xstNg(ig, ifsr) + XsD
       END DO
     END DO
   END DO
@@ -349,7 +349,7 @@ NULLIFY(myFxr)
 
 END SUBROUTINE AddBucklingNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtMacXsNM_Cusping(core, FmInfo, Fxr, xstnm, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
+SUBROUTINE SetRtMacXsNM_Cusping(core, FmInfo, Fxr, xstNg, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE PARAM
 USE TYPEDEF,  ONLY : coreinfo_type,    Fxrinfo_type,      Cell_Type, pin_Type,   &
@@ -369,7 +369,7 @@ TYPE(coreinfo_type) :: Core
 TYPE(FmInfo_Type) :: FmInfo
 TYPE(Fxrinfo_type) :: Fxr(:)
 TYPE(PE_TYPE) :: PE
-REAL, POINTER :: xstnm(:, :)
+REAL, POINTER :: xstNg(:, :)
 INTEGER :: iz, ng
 logical :: lxslib, lTrCorrection, lRST, lssph, lssphreg
 
@@ -591,7 +591,7 @@ DO ipin = xyb, xye
     END IF
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
-      xstnm(:, ifsr) = xsmactr
+      xstNg(:, ifsr) = xsmactr
       IF (lsSPH) THEN
         IF (CellInfo(icel)%lsSPH) ssphfnm(igresb:igrese,ifsr,iz) = SPHfac(igresb:igrese,j)
       END IF

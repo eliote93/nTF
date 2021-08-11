@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtSrcNM(Core, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz,gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
+SUBROUTINE SetRtsrcNM(Core, Fxr, srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz,gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
 USE OMP_LIB
 USE PARAM,        ONLY : ZERO, ONE, TRUE, FALSE, nThreadMax
@@ -18,7 +18,7 @@ TYPE (PE_TYPE)        :: PE
 
 TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)   :: srcnm, phisnm, psi, xstnm
+REAL, POINTER, DIMENSION(:,:)   :: srcNg, phisNg, psi, xstNg
 REAL, POINTER, DIMENSION(:,:,:) :: AxSrc
 
 REAL :: eigv
@@ -61,7 +61,7 @@ reigv = one / eigv
 lNegSrcFix = FALSE
 IF (lNegFix) lNegSrcFix = TRUE
 
-srcnm = zero
+srcNg = zero
 
 IF (lxsLib) THEN
   nchi = GroupInfo%nchi
@@ -106,7 +106,7 @@ DO ipin = xyb, xye
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       
       DO ig = gb, ge
-        srcnm(ig - off, ifsr) = reigv * chi(ig) * psi(ifsr, iz)
+        srcNg(ig - off, ifsr) = reigv * chi(ig) * psi(ifsr, iz)
       END DO
     END DO
   END DO
@@ -143,12 +143,12 @@ DO ipin = xyb, xye
       
       DO ig = gb, ge
         DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
-          srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) + xsmacsm(ig2, ig) * phisnm(ig2, ifsr)
+          srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) + xsmacsm(ig2, ig) * phisNg(ig2, ifsr)
         END DO
         
-        IF (lNegSrcFix .AND. srcnm(ig - off, ifsr).LT.ZERO) THEN
-          srcnm(ig- off, ifsr) = srcnm(ig - off, ifsr) - xsmacsm(ig, ig) * phisnm(ig, ifsr)
-          xstnm(ig,      ifsr) = xstnm(ig,       ifsr) - xsmacsm(ig, ig)
+        IF (lNegSrcFix .AND. srcNg(ig - off, ifsr).LT.ZERO) THEN
+          srcNg(ig- off, ifsr) = srcNg(ig - off, ifsr) - xsmacsm(ig, ig) * phisNg(ig, ifsr)
+          xstNg(ig,      ifsr) = xstNg(ig,       ifsr) - xsmacsm(ig, ig)
         END IF
       END DO
     END DO
@@ -164,7 +164,7 @@ DO ipin = xyb, xye
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           
           DO ig = gb, ge
-            IF (AxSrc(ipin, iz, ig).LT.ZERO .AND. .NOT.Fxr(ifxr)%lvoid) srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) - AxSrc(ipin, iz, ig)
+            IF (AxSrc(ipin, iz, ig).LT.ZERO .AND. .NOT.Fxr(ifxr)%lvoid) srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) - AxSrc(ipin, iz, ig)
           END DO
         END DO
       END DO
@@ -177,7 +177,7 @@ DO ipin = xyb, xye
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           
           DO ig = gb, ge
-            srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) - AxSrc(ipin, iz, ig)
+            srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) - AxSrc(ipin, iz, ig)
           END DO
         END DO
       END DO
@@ -187,7 +187,7 @@ DO ipin = xyb, xye
   DO j = 1, CellInfo(icel)%nFsr
     ifsr = FsrIdxSt + j - 1
     
-    srcnm(gb - off:ge - off, ifsr) = srcnm(gb - off:ge - off, ifsr) / xstnm(gb:ge, ifsr)
+    srcNg(gb - off:ge - off, ifsr) = srcNg(gb - off:ge - off, ifsr) / xstNg(gb:ge, ifsr)
   END DO
   
   NULLIFY (Xsmacsm)
@@ -205,9 +205,9 @@ NULLIFY (Pin)
 NULLIFY (CellInfo)
 ! --------------------------------------------------
 
-END SUBROUTINE SetRtSrcNM
+END SUBROUTINE SetRtsrcNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimnm, xstnm, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
+SUBROUTINE SetRtP1srcNM(Core, Fxr, srcmnm, phimNg, xstNg, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
 
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, ONE, TRUE, FALSE
@@ -229,8 +229,8 @@ TYPE (FxrInfo_Type), DIMENSION(:) :: Fxr
 
 REAL :: eigv
 
-REAL, POINTER, DIMENSION(:,:)   :: xstnm
-REAL, POINTER, DIMENSION(:,:,:) :: srcmnm, phimnm
+REAL, POINTER, DIMENSION(:,:)   :: xstNg
+REAL, POINTER, DIMENSION(:,:,:) :: srcmnm, phimNg
 
 INTEGER :: gb, ge, ng, iz, ifsr, ifxr, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim
@@ -338,7 +338,7 @@ DO ipin = xyb, xye
           scatSrc = ZERO
           
           DO ig2 = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(ig2, ig) * phimnm(1:2, ig2, ifsr)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(ig2, ig) * phimNg(1:2, ig2, ifsr)
           END DO
           
           srcmnm(1:2, ig - off, ifsr) = scatSrc(1:2)
@@ -346,8 +346,8 @@ DO ipin = xyb, xye
           scatSrc = ZERO
           
           DO ig2 = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(ig2, ig) * phimnm(1:2, ig2, ifsr)
-            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(ig2, ig) * phimnm(3:5, ig2, ifsr)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(ig2, ig) * phimNg(1:2, ig2, ifsr)
+            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(ig2, ig) * phimNg(3:5, ig2, ifsr)
           ENDDO
           
           srcmnm(1:5, ig - off, ifsr) = scatSrc(1:5)
@@ -355,9 +355,9 @@ DO ipin = xyb, xye
           scatSrc = ZERO
           
           DO ig2 = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(ig2, ig) * phimnm(1:2, ig2, ifsr)
-            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(ig2, ig) * phimnm(3:5, ig2, ifsr)
-            scatSrc(6:9) = scatSrc(6:9) + XsMacP3Sm(ig2, ig) * phimnm(6:9, ig2, ifsr)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(ig2, ig) * phimNg(1:2, ig2, ifsr)
+            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(ig2, ig) * phimNg(3:5, ig2, ifsr)
+            scatSrc(6:9) = scatSrc(6:9) + XsMacP3Sm(ig2, ig) * phimNg(6:9, ig2, ifsr)
           ENDDO
           
           srcmnm(1:9, ig - off, ifsr) = scatSrc(1:9)
@@ -383,7 +383,7 @@ IF (ScatOd .EQ. 1) THEN
       ifsr = FsrIdxSt + j - 1
       
       DO ig = gb, ge
-        xstinv = ONE / xstnm(ig, ifsr)
+        xstinv = ONE / xstNg(ig, ifsr)
         
         srcmnm(1:2, ig - off, ifsr) = 3._8 * srcmnm(1:2, ig - off, ifsr) * xstinv
       END DO
@@ -398,7 +398,7 @@ ELSE IF (ScatOd .EQ. 2) THEN
       ifsr = FsrIdxSt + j - 1
       
       DO ig = gb, ge
-        xstinv = ONE / xstnm(ig, ifsr)
+        xstinv = ONE / xstNg(ig, ifsr)
         
         srcmnm(1:2, ig - off, ifsr) = 3._8 * srcmnm(1:2, ig - off, ifsr) * xstinv
         srcmnm(3:5, ig - off, ifsr) = 5._8 * srcmnm(3:5, ig - off, ifsr) * xstinv
@@ -414,7 +414,7 @@ ELSE IF (ScatOd .EQ. 3) THEN
       ifsr = FsrIdxSt + j - 1
       
       DO ig = gb, ge
-        xstinv = ONE / xstnm(ig, ifsr)
+        xstinv = ONE / xstNg(ig, ifsr)
         
         srcmnm(1:2, ig - off, ifsr) = 3._8 * srcmnm(1:2, ig - off, ifsr) * xstinv
         srcmnm(3:5, ig - off, ifsr) = 5._8 * srcmnm(3:5, ig - off, ifsr) * xstinv
@@ -429,9 +429,9 @@ NULLIFY (Pin)
 NULLIFY (CellInfo)
 ! ----------------------------------------------------
 
-END SUBROUTINE SetRtP1SrcNM
+END SUBROUTINE SetRtP1srcNM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtSrcNM_Cusping(Core, FmInfo, Fxr, srcnm, phisnm, psi, AxSrc, xstnm, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
+SUBROUTINE SetRtsrcNM_Cusping(Core, FmInfo, Fxr, srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
 USE PARAM
 USE TYPEDEF,        ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,      &
@@ -450,7 +450,7 @@ TYPE(FmInfo_Type) :: FmInfo
 TYPE(FxrInfo_Type) :: Fxr(:)
 TYPE(GroupInfo_Type):: GroupInfo
 TYPE(PE_TYPE) :: PE
-REAL, POINTER :: srcnm(:, :), phisnm(:, :), psi(:, :), AxSrc(:, :, :), xstnm(:, :)
+REAL, POINTER :: srcNg(:, :), phisNg(:, :), psi(:, :), AxSrc(:, :, :), xstNg(:, :)
 REAL :: eigv
 INTEGER :: gb, ge, ng, iz, ifsr, ifxr
 LOGICAL :: lxslib, lscat1, l3dim
@@ -487,7 +487,7 @@ reigv = one/eigv
 lNegSrcFix = FALSE
 IF(lNegFix) lNegSrcFix = TRUE
 
-srcnm = zero
+srcNg = zero
 IF(lxsLib) nchi = GroupInfo%nchi
 
 IF(.NOT. lxsLib) THEN
@@ -528,7 +528,7 @@ DO ipin = xyb, xye
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       DO ig = gb, ge
-        srcnm(ig - off, ifsr) = reigv * chi(ig) * psi(ifsr, iz)
+        srcNg(ig - off, ifsr) = reigv * chi(ig) * psi(ifsr, iz)
       ENDDO
     ENDDO
   ENDDO
@@ -601,11 +601,11 @@ DO ipin = xyb, xye
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       DO ig = gb, ge
         DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
-          srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) + xsmacsm(ig2, ig) * phisnm(ig2, ifsr)
+          srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) + xsmacsm(ig2, ig) * phisNg(ig2, ifsr)
         ENDDO
-        IF(lNegSrcFix .AND. srcnm(ig - off, ifsr) .LT. 0._8) THEN
-          srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) - xsmacsm(ig, ig) * phisnm(ig, ifsr)
-          xstnm(ig, ifsr) = xstnm(ig, ifsr) - xsmacsm(ig, ig)
+        IF(lNegSrcFix .AND. srcNg(ig - off, ifsr) .LT. 0._8) THEN
+          srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) - xsmacsm(ig, ig) * phisNg(ig, ifsr)
+          xstNg(ig, ifsr) = xstNg(ig, ifsr) - xsmacsm(ig, ig)
         ENDIF
       ENDDO
     ENDDO
@@ -619,7 +619,7 @@ DO ipin = xyb, xye
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           DO ig = gb, ge
             IF(AxSrc(ipin, iz, ig) .LT. 0 .AND. .NOT. Fxr(ifxr)%lvoid) THEN
-              srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) - AxSrc(ipin, iz, ig)
+              srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) - AxSrc(ipin, iz, ig)
             ENDIF
           ENDDO
         ENDDO
@@ -631,7 +631,7 @@ DO ipin = xyb, xye
         DO i = 1, nFsrInFxr
           ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
           DO ig = gb, ge
-            srcnm(ig - off, ifsr) = srcnm(ig - off, ifsr) - AxSrc(ipin, iz, ig)
+            srcNg(ig - off, ifsr) = srcNg(ig - off, ifsr) - AxSrc(ipin, iz, ig)
           ENDDO
         ENDDO
       ENDDO
@@ -639,7 +639,7 @@ DO ipin = xyb, xye
   ENDIF
   DO j = 1, CellInfo(icel)%nFsr
     ifsr = FsrIdxSt + j - 1
-    srcnm(gb - off : ge - off, ifsr) = srcnm(gb - off : ge - off, ifsr) / xstnm(gb : ge, ifsr)
+    srcNg(gb - off : ge - off, ifsr) = srcNg(gb - off : ge - off, ifsr) / xstNg(gb : ge, ifsr)
   ENDDO
   NULLIFY(Xsmacsm)
 ENDDO
@@ -655,5 +655,5 @@ ENDIF
 NULLIFY(Pin)
 NULLIFY(CellInfo)
 
-END SUBROUTINE SetRtSrcNM_Cusping
+END SUBROUTINE SetRtsrcNM_Cusping
 ! ------------------------------------------------------------------------------------------------------------

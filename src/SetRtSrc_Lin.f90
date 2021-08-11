@@ -318,7 +318,7 @@ NULLIFY(Pin, CellInfo)
 
 END SUBROUTINE LinPsiUpdate_CASMO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisnm, phisSlope, srcnm, srcSlope, psi, psiSlope, axsrc, xstnm, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix)
+SUBROUTINE SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNg, phisSlope, srcNg, srcSlope, psi, psiSlope, axsrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix)
 
 USE PARAM
 USE TYPEDEF,      ONLY : coreinfo_type,          Fxrinfo_type,          Cell_Type,              &
@@ -335,10 +335,10 @@ TYPE(CoreInfo_Type) :: Core
 TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(GroupInfo_Type):: GroupInfo
-REAL, POINTER :: phisnm(:, :), phisSlope(:, :, :, :)
-REAL, POINTER :: srcnm(:, :), srcSlope(:, :, :, :), axsrc(:, :, :)
+REAL, POINTER :: phisNg(:, :), phisSlope(:, :, :, :)
+REAL, POINTER :: srcNg(:, :), srcSlope(:, :, :, :), axsrc(:, :, :)
 REAL, POINTER :: psi(:, :), psiSlope(:, :, :)
-REAL, POINTER :: xstnm(:, :)
+REAL, POINTER :: xstNg(:, :)
 REAL :: eigv
 INTEGER :: myzb, myze, gb, ge, ng, iz, ifsr, ifxr
 LOGICAL :: lxslib, lscat1, l3dim, lNegFix
@@ -411,7 +411,7 @@ DO ipin = 1, nxy
     DO i = 1, nFsrInFxr
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       DO ig = gb, ge
-        srcnm(ig, ifsr) = reigv * chi(ig) * psi(ifsr, iz)
+        srcNg(ig, ifsr) = reigv * chi(ig) * psi(ifsr, iz)
         srcSlope(1 : 2, ig, ifsr, iz) = reigv * chi(ig) * psiSlope(:, ifsr, iz)
         srcSlope(3 : 4, ig, ifsr, iz) = reigv * chi(ig) * psiSlope(:, ifsr, iz)
       ENDDO
@@ -440,13 +440,13 @@ DO ipin = 1, nxy
       ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
       DO ig = gb, ge
         DO ig2 = GroupInfo%InScatRange(1, ig), GroupInfo%InScatRange(2, ig)
-          srcnm(ig, ifsr) = srcnm(ig, ifsr) + xsmacsm(ig2, ig) * phisnm(ig2, ifsr)
+          srcNg(ig, ifsr) = srcNg(ig, ifsr) + xsmacsm(ig2, ig) * phisNg(ig2, ifsr)
           srcSlope(1 : 2, ig, ifsr, iz) = srcSlope(1 : 2, ig, ifsr, iz) + xsmacsm(ig2, ig) * phisSlope(:, ig2, ifsr, iz)
           srcSlope(3 : 4, ig, ifsr, iz) = srcSlope(3 : 4, ig, ifsr, iz) + xsmacsm(ig2, ig) * phisSlope(:, ig2, ifsr, iz)
         ENDDO
-        IF (lNegSrcFix .AND. srcnm(ig, ifsr) .LT. 0._8) THEN
-          srcnm(ig, ifsr) = srcnm(ig, ifsr) - xsmacsm(ig, ig) * phisnm(ig, ifsr)
-          xstnm(ig, ifsr) = xstnm(ig, ifsr) - xsmacsm(ig, ig)
+        IF (lNegSrcFix .AND. srcNg(ig, ifsr) .LT. 0._8) THEN
+          srcNg(ig, ifsr) = srcNg(ig, ifsr) - xsmacsm(ig, ig) * phisNg(ig, ifsr)
+          xstNg(ig, ifsr) = xstNg(ig, ifsr) - xsmacsm(ig, ig)
         ENDIF
       ENDDO
     ENDDO
@@ -459,10 +459,10 @@ DO ipin = 1, nxy
         ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1
         DO ig = gb, ge
 #ifndef LkgSplit
-          srcnm(ig, ifsr) = srcnm(ig, ifsr) - AxSrc1Pin(ig)
+          srcNg(ig, ifsr) = srcNg(ig, ifsr) - AxSrc1Pin(ig)
 #else
           IF(AxSrc1Pin(ig) .LT. 0 .AND. .NOT. Fxr(ifxr, iz)%lvoid) THEN
-            srcnm(ig, ifsr) = srcnm(ig, ifsr) - AxSrc1Pin(ig)
+            srcNg(ig, ifsr) = srcNg(ig, ifsr) - AxSrc1Pin(ig)
           ENDIF
 #endif       
         ENDDO
@@ -472,9 +472,9 @@ DO ipin = 1, nxy
   DO j = 1, CellInfo(icel)%nFsr
     ifsr = FsrIdxSt + j - 1
     DO ig = gb, ge
-      srcnm(ig, ifsr) = srcnm(ig, ifsr) / xstnm(ig, ifsr)
-      srcSlope(1 : 2, ig, ifsr, iz) = srcSlope(1 : 2, ig, ifsr, iz) / xstnm(ig, ifsr)
-      srcSlope(3 : 4, ig, ifsr, iz) = srcSlope(3 : 4, ig, ifsr, iz) / (xstnm(ig, ifsr) ** 2)
+      srcNg(ig, ifsr) = srcNg(ig, ifsr) / xstNg(ig, ifsr)
+      srcSlope(1 : 2, ig, ifsr, iz) = srcSlope(1 : 2, ig, ifsr, iz) / xstNg(ig, ifsr)
+      srcSlope(3 : 4, ig, ifsr, iz) = srcSlope(3 : 4, ig, ifsr, iz) / (xstNg(ig, ifsr) ** 2)
     ENDDO
   ENDDO  
   NULLIFY(Xsmacsm)

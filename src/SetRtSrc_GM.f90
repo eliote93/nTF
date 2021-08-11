@@ -421,19 +421,19 @@ DO ipin = 1, nxy
       
       IF (ScatOd .EQ. 1) THEN
         DO ig2 = 1, ng
-          srcm(1, ifsr) = srcm(1, ifsr) + XsMacP1Sm(ig2, ig) * phim(1, ifsr, iz, ig2)
-          srcm(2, ifsr) = srcm(2, ifsr) + XsMacP1Sm(ig2, ig) * phim(2, ifsr, iz, ig2)
+          srcm(1, ifsr) = srcm(1, ifsr) + XsMacP1Sm(ig2, ig) * phim(1, ifsr, ig2, iz)
+          srcm(2, ifsr) = srcm(2, ifsr) + XsMacP1Sm(ig2, ig) * phim(2, ifsr, ig2, iz)
         END DO
       ELSE IF(ScatOd .EQ. 2) THEN
         DO ig2 = 1, ng
-          srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, iz, ig2)
-          srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, iz, ig2)
+          srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, ig2, iz)
+          srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, ig2, iz)
         END DO
       ELSE IF(ScatOd .EQ. 3) THEN
         DO ig2 = 1, ng
-          srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, iz, ig2)
-          srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, iz, ig2)
-          srcm(6:9, ifsr) = srcm(6:9, ifsr) + XsMacP3Sm(ig2, ig) * phim(6:9, ifsr, iz, ig2)
+          srcm(1:2, ifsr) = srcm(1:2, ifsr) + XsMacP1Sm(ig2, ig) * phim(1:2, ifsr, ig2, iz)
+          srcm(3:5, ifsr) = srcm(3:5, ifsr) + XsMacP2Sm(ig2, ig) * phim(3:5, ifsr, ig2, iz)
+          srcm(6:9, ifsr) = srcm(6:9, ifsr) + XsMacP3Sm(ig2, ig) * phim(6:9, ifsr, ig2, iz)
         END DO
       END IF
     END DO

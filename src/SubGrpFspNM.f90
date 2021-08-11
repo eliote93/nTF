@@ -43,7 +43,7 @@ LOGICAL :: lCLD, lAIC, ldcmp
 
 REAL, POINTER, DIMENSION(:,:)     :: phis, phisd, Siglp, xst, src
 REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngIn
-REAL, POINTER, DIMENSION(:,:,:,:) :: joutNM
+REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 ! ----------------------------------------------------
 
 Tbeg = nTracer_dclock(FALSE, FALSE)
@@ -102,8 +102,8 @@ DO iz = myzb, myze
     DcmpPhiAngInNg = ONE
   ELSE
     DO ithr = 1, PE%nThread
-      DEALLOCATE (TrackingDat(ithr)%phisNM)
-      CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
+      DEALLOCATE (TrackingDat(ithr)%phisNg)
+      CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
     END DO
   END IF
   
@@ -117,9 +117,9 @@ DO iz = myzb, myze
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -182,8 +182,8 @@ DO iz = myzb, myze
     DcmpPhiAngInNg = ONE
   ELSE
     DO ithr = 1, PE%nThread
-      DEALLOCATE (TrackingDat(ithr)%phisNM)
-      CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
+      DEALLOCATE (TrackingDat(ithr)%phisNg)
+      CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
     END DO
   END IF
   
@@ -196,9 +196,9 @@ DO iz = myzb, myze
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -257,8 +257,8 @@ DO iz = myzb, myze
     DcmpPhiAngInNg = ONE
   ELSE
     DO ithr = 1, PE%nThread
-      DEALLOCATE (TrackingDat(ithr)%phisNM)
-      CALL dmalloc(TrackingDat(ithr)%phisNM, mg, nFsr)
+      DEALLOCATE (TrackingDat(ithr)%phisNg)
+      CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
     END DO
   END IF
   
@@ -271,9 +271,9 @@ DO iz = myzb, myze
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNM, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
@@ -307,8 +307,8 @@ IF (ldcmp) THEN
   CALL dmalloc(DcmpPhiAngOutNg, nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
 ELSE
   DO ithr = 1, PE%nThread
-    DEALLOCATE (TrackingDat(ithr)%phisNM)
-    CALL dmalloc(TrackingDat(ithr)%phisNM, ng, nFsr)
+    DEALLOCATE (TrackingDat(ithr)%phisNg)
+    CALL dmalloc(TrackingDat(ithr)%phisNg, ng, nFsr)
   END DO
 END IF
 

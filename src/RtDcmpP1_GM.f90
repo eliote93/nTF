@@ -53,8 +53,8 @@ nthr = PE%nthread
 CALL OMP_SET_NUM_THREADS(nThr)
 ! ----------------------------------------------------
 DO ithr = 1, nThr
-  TrackingDat(ithr)%src => src1g
-  TrackingDat(ithr)%xst => xst1g
+  TrackingDat(ithr)%src1g => src1g
+  TrackingDat(ithr)%xst1g => xst1g
 END DO
 
 DcmpPhiAngOut1g = ZERO
@@ -77,7 +77,7 @@ DO iClr = 1, nClr
 #endif
   
   DO ithr = 1, nthr
-    TrackingDat(ithr)%PhiAngIn        => PhiAngIn1g
+    TrackingDat(ithr)%PhiAngIn1g      => PhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngIn1g  => DcmpPhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
   END DO
@@ -195,20 +195,20 @@ SELECT CASE (ScatOd)
   CASE (3); nod = 9
 END SELECT
 ! ----------------------------------------------------
-CALL dmalloc0(TrackingLoc%phis, FsrSt, FsrEd)
-IF (ljout) CALL dmalloc0(TrackingLoc%Jout, 1, 3, 1, nbd, PinSt, PinEd)
+CALL dmalloc0(TrackingLoc%phis1g, FsrSt, FsrEd)
+IF (ljout) CALL dmalloc0(TrackingLoc%Jout1g, 1, 3, 1, nbd, PinSt, PinEd)
 
-CALL dmalloc0(TrackingLoc%phim, 1, nOd, FsrSt, FsrEd)
+CALL dmalloc0(TrackingLoc%phim1g, 1, nOd, FsrSt, FsrEd)
 
-src1g => TrackingLoc%src
+src1g => TrackingLoc%src1g
 ! ----------------------------------------------------
 IF (lHex .AND. hLgc%l360) THEN
-  CALL dmalloc0(TrackingLoc%SrcAng1, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
-  CALL dmalloc0(TrackingLoc%SrcAng2, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
+  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
+  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   
   DO iazi = 1, nAziAng
-    SrcAng1g1 => TrackingLoc%SrcAng1
-    SrcAng1g2 => TrackingLoc%SrcAng2
+    SrcAng1g1 => TrackingLoc%SrcAng1g1
+    SrcAng1g2 => TrackingLoc%SrcAng1g2
     
     DO ifsr = FsrSt, FsrEd
       DO ipol = 1, nPolarAng
@@ -249,11 +249,11 @@ IF (lHex .AND. hLgc%l360) THEN
     END DO
   END DO
 ELSE
-  CALL dmalloc0(TrackingLoc%SrcAng1, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
-  CALL dmalloc0(TrackingLoc%SrcAng2, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
+  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
+  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
   
-  SrcAng1g1 => TrackingLoc%SrcAng1
-  SrcAng1g2 => TrackingLoc%SrcAng2
+  SrcAng1g1 => TrackingLoc%SrcAng1g1
+  SrcAng1g2 => TrackingLoc%SrcAng1g2
   
   DO iazi = 1, nAziAng
     DO ifsr = FsrSt, FsrEd
@@ -295,27 +295,27 @@ ELSE
 END IF
 ! ----------------------------------------------------
 DO ifsr = FsrSt, FsrEd
-  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis(ifsr)
+  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis1g(ifsr)
   
   DO iod = 1, nod
-    phim1g(iod, ifsr) = phim1g(iod, ifsr) + TrackingLoc%phim(iod, ifsr)
+    phim1g(iod, ifsr) = phim1g(iod, ifsr) + TrackingLoc%phim1g(iod, ifsr)
   END DO
 END DO
 
 IF (lJout) THEN
   DO ixy = PinSt, PinEd
     DO ibd = 1, nbd
-      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout(:, ibd, ixy)
+      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout1g(:, ibd, ixy)
     END DO
   END DO
 END IF
 ! ----------------------------------------------------
-DEALLOCATE (TrackingLoc%phis)
-IF (lJout) DEALLOCATE (TrackingLoc%Jout)
+DEALLOCATE (TrackingLoc%phis1g)
+IF (lJout) DEALLOCATE (TrackingLoc%Jout1g)
 
-DEALLOCATE (TrackingLoc%phim)
-DEALLOCATE (TrackingLoc%SrcAng1)
-DEALLOCATE (TrackingLoc%SrcAng2)
+DEALLOCATE (TrackingLoc%phim1g)
+DEALLOCATE (TrackingLoc%SrcAng1g1)
+DEALLOCATE (TrackingLoc%SrcAng1g2)
 
 NULLIFY (Cell)
 NULLIFY (Pin)
@@ -396,11 +396,11 @@ iGeoTyp = hAsy(iAsy)%GeoTyp
 icBss   = hAsyTypInfo(iAsyTyp)%iBss
 
 ! Loc.
-phis1g     => TrackingDat%phis
-src1g      => TrackingDat%src
-xst1g      => TrackingDat%xst
-PhiAngIn1g => TrackingDat%PhiAngIn
-jout1g     => TrackingDat%jout
+phis1g     => TrackingDat%phis1g
+src1g      => TrackingDat%src1g
+xst1g      => TrackingDat%xst1g
+PhiAngIn1g => TrackingDat%PhiAngIn1g
+jout1g     => TrackingDat%jout1g
 wtang      => TrackingDat%wtang
 EXPA       => TrackingDat%EXPA
 EXPB       => TrackingDat%EXPB
@@ -420,7 +420,7 @@ ELSE
 END IF
 
 ! P1
-phim1g => TrackingDat%phim
+phim1g => TrackingDat%phim1g
 
 SELECT CASE (ScatOd)
 CASE (1); nOd = 2
@@ -455,9 +455,9 @@ DO imray = jbeg, jend, jinc
   END IF
   
   IF (idir .EQ. 1) THEN
-    LocSrc => TrackingDat%SrcAng1
+    LocSrc => TrackingDat%SrcAng1g1
   ELSE
-    LocSrc => TrackingDat%SrcAng2
+    LocSrc => TrackingDat%SrcAng1g2
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc

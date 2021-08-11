@@ -10,7 +10,7 @@ USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, Add
                         PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         phis1g, phim1g, MocJout1g, xst1g, tSrc, AxSrc1g, PhiAngin1g, srcm, &
                         LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
-                        SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNM, PhiAngInNM, MocJoutNM, xstNM, srcNM, phimNM, srcmNM, &
+                        SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, PhiAngInNg, MocJoutNg, xstNg, srcNg, phimNg, srcmNM, &
                         RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrentNg, DcmpGatherCurrent1g
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
@@ -189,7 +189,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               
               PhiAngin1g = FmInfo%PhiAngin(:, :, iz, ig)
               
-              IF (lscat1) phim1g => phim(:, :, iz, ig)
+              IF (lscat1) phim1g => phim(:, :, ig, iz)
               IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
               
               IF (ldcmp) DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)
@@ -199,17 +199,9 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. ldcmp) THEN
                 IF (.NOT. lscat1) THEN
-                  !IF (lAFSS) THEN
-                  !  CALL RayTraceGM_AFSS(RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
-                  !ELSE
-                    CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xst1g, tsrc, MocJout1g, iz, lJout, fmoclv)
-                  !END IF
+                  CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, tsrc,       MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  !IF (lAFSS) THEN
-                  !  CALL RayTraceP1GM_AFSS(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
-                  !ELSE
-                    CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
-                  !END IF
+                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, tsrc, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
                 END IF
               ELSE
                 IF (lScat1) THEN
@@ -236,7 +228,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lmocUR) THEN
               phis(:, iz, ig) = phis1g
               
-              IF (lScat1) phim(:, :, iz, ig) = phim1g
+              IF (lScat1) phim(:, :, ig, iz) = phim1g
               
               FMInfo%PhiAngIn(:, :, iz, ig) = PhiAngIn1g
             ELSE
@@ -286,21 +278,21 @@ ELSE
       ! SET : XS
       IF (RTMASTER) THEN
         DO ig = 1, ng
-          phisNM(ig, :) = phis(:, iz, ig)
+          phisNg(ig, :) = phis(:, iz, ig)
           
-          PhiAngInNM(:, ig, :) = FmInfo%PhiAngIn(:, :, iz, ig)
+          PhiAngInNg(:, ig, :) = FmInfo%PhiAngIn(:, :, iz, ig)
         END DO
         
-        IF (lscat1) phimNM => phim(:, :, :, iz)
+        IF (lscat1) phimNg => phim(:, :, :, iz)
         
         IF (ldcmp) DcmpPhiAngInNg => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
         
-        CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNM, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
+        CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
-        CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNM, iz, ng, GroupInfo, l3dim)
+        CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 #endif
 #ifdef Buckling
-        IF (lbsq) CALL AddBucklingNM(Core, Fxr, xstNM, nTracerCntl%bsq, iz, ng, lxslib, lRST)
+        IF (lbsq) CALL AddBucklingNM(Core, Fxr, xstNg, nTracerCntl%bsq, iz, ng, lxslib, lRST)
 #endif
       END IF
       
@@ -316,11 +308,11 @@ ELSE
           ! SET : Src.
           IF (RTMASTER) THEN
             IF (.NOT. lLSCASMO) THEN
-              CALL SetRtsrcNM(Core, Fxr(:, iz), srcNM, phisNM, psi, AxSrc, xstNM, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
+              CALL SetRtsrcNM(Core, Fxr(:, iz), srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNM, phimNM, xstNM, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
+              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNM, phimNg, xstNg, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
             ELSE
-              CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNM, phisSlope, srcNM, srcSlope, psi, psiSlope, AxSrc, xstNM, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
+              CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNg, phisSlope, srcNg, srcSlope, psi, psiSlope, AxSrc, xstNg, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
             END IF
           END IF
           
@@ -328,19 +320,19 @@ ELSE
           IF (.NOT. ldcmp) THEN
             IF (.NOT. lLSCASMO) THEN
               IF (lscat1) THEN
-                CALL RayTraceP1_NM(RayInfo, Core, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, GrpBeg, GrpEnd, ljout)
+                CALL RayTraceP1_NM  (RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
               ELSE
-                CALL RayTrace_NM  (RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, ljout)
+                CALL RayTrace_NM    (RayInfo, Core, phisNg,         PhiAngInNg, xstNg, srcNg,         MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
               END IF
             ELSE
-              CALL RayTraceLS_CASMO(RayInfo, Core, phisNM, phisSlope, PhiAngInNM, srcNM, srcSlope, xstNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
+              CALL RayTraceLS_CASMO (RayInfo, Core, phisNg, phisSlope, PhiAngInNg, srcNg, srcSlope, xstNg, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
             END IF
           ELSE
             IF (lScat1) THEN
-              CALL RayTraceDcmpP1_NM(RayInfo, Core, phisNM, phimNM, PhiAngInNM, xstNM, srcNM, srcmNM, MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
+              CALL RayTraceDcmpP1_NM(RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
             ELSE
               IF (.NOT.lLSCASMO) THEN
-                CALL RayTraceDcmp_NM(RayInfo, Core, phisNM,         PhiAngInNM, xstNM, srcNM,         MocJoutNM, iz, GrpBeg, GrpEnd, lJout)
+                CALL RayTraceDcmp_NM(RayInfo, Core, phisNg,         PhiAngInNg, xstNg, srcNg,         MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
               ELSE
                 CALL RayTraceLin_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lHybrid)
               END IF
@@ -353,7 +345,7 @@ ELSE
           ist = max(igresb, GrpBeg)
           ied = min(igrese, GrpEnd)
           
-          phisNM(ist:ied, :) = phisNM(ist:ied, :) * ssphfNM(ist:ied, :, iz)
+          phisNg(ist:ied, :) = phisNg(ist:ied, :) * ssphfNM(ist:ied, :, iz)
         END DO
         
         tnmed        = nTracer_dclock(FALSE, FALSE)
@@ -362,14 +354,14 @@ ELSE
       
       ! CnP
 #ifdef MPI_ENV
-      IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrentNg(Core, MocJoutNM)
+      IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrentNg(Core, MocJoutNg)
 #endif
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng
-        phis              (:, iz, ig) = phisNM       (ig, :)
-        FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInNM(:, ig, :)
-        RadJout     (:, :, :, iz, ig) = MocJoutNM (:, ig, :, :)
+        phis              (:, iz, ig) = phisNg       (ig, :)
+        FmInfo%PhiAngIn(:, :, iz, ig) = PhiAngInNg(:, ig, :)
+        RadJout     (:, :, :, iz, ig) = MocJoutNg (:, ig, :, :)
       END DO
       
       ! Time

@@ -5,7 +5,7 @@ SUBROUTINE RayTraceLin_Dcmp(RayInfo, CoreInfo, iz, gb, ge, lJout, lHybrid)
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, RED, BLACK, GREEN
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Asy_Type, AsyInfo_Type
-USE Moc_Mod,     ONLY : TrackingDat, phisNM, phimNM, srcNM, xstNM, MocjoutNM, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, &
+USE Moc_Mod,     ONLY : TrackingDat, phisNg, srcNg, xstNg, MocJoutNg, PhiAngInNg, DcmpPhiAngInNg, DcmpPhiAngOutNg, &
                         RayTraceDcmp_LSCASMO, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg
 USE Core_mod,    ONLY : phisSlope, srcSlope
 USE PE_MOD,      ONLY : PE
@@ -55,11 +55,11 @@ nthr = PE%nthread
 CALL OMP_SET_NUM_THREADS(nThr)
 ! ----------------------------------------------------
 DO ithr = 1, nThr
-  TrackingDat(ithr)%srcNM => srcNM
-  TrackingDat(ithr)%xstNM => xstNM
+  TrackingDat(ithr)%srcNg => srcNg
+  TrackingDat(ithr)%xstNg => xstNg
   
-  TrackingDat(ithr)%phisNM(gb:ge, :) = ZERO
-  IF (ljout) TrackingDat(ithr)%JoutNM(:, gb:ge, :, :) = ZERO
+  TrackingDat(ithr)%phisNg(gb:ge, :) = ZERO
+  IF (ljout) TrackingDat(ithr)%JoutNg(:, gb:ge, :, :) = ZERO
   
   TrackingDat(ithr)%srcSlope => srcSlope(:, :, :, iz) ! Lin. CASMO
 END DO
@@ -68,14 +68,14 @@ DcmpPhiAngOutNg(:, gb:ge, :, :, :) = ZERO
 ! ----------------------------------------------------
 DO color = startColor, endColor, colorInc
 #ifdef MPI_ENV
-  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFluxNg(RayInfo, PhiAngInNM, DcmpPhiAngInNg)
+  IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFluxNg(RayInfo, PhiAngInNg, DcmpPhiAngInNg)
 #endif
 
   !$OMP PARALLEL PRIVATE(ithr, iAsy, AsyType)
   ithr = 1
   !$ ithr = omp_get_thread_num()+1
   
-  TrackingDat(ithr)%PhiAngInNM    => PhiAngInNM
+  TrackingDat(ithr)%PhiAngInNg    => PhiAngInNg
   TrackingDat(ithr)%DcmpPhiAngInNg  => DcmpPhiAngInNg
   TrackingDat(ithr)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
   !$OMP BARRIER
@@ -88,7 +88,7 @@ DO color = startColor, endColor, colorInc
     IF (lHybrid .AND. AsyInfo(AsyType)%lFuel) THEN
       !CALL RayTraceDcmp_OMP(RayInfo, CoreInfo, iz, iAsy, gb, ge, ljout)
     ELSE
-      CALL RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNM, phisSlope, MocjoutNM, iz, iAsy, gb, ge, ljout)
+      CALL RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNg, phisSlope, MocJoutNg, iz, iAsy, gb, ge, ljout)
     END IF
   END DO
   !$OMP END DO NOWAIT
@@ -98,7 +98,7 @@ DO color = startColor, endColor, colorInc
   IF (PE%nRTProc .GT. 1) CALL DcmpGatherBndyFluxNg(RayInfo, DcmpPhiAngOutNg)
 #endif
   
-  IF (PE%RTMASTER) CALL DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNM, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
+  IF (PE%RTMASTER) CALL DcmpLinkBndyFluxNg(CoreInfo, RayInfo, PhiAngInNg, DcmpPhiAngInNg, DcmpPhiAngOutNg, gb, ge, color)
 END DO
 
 NULLIFY (Asy)
@@ -107,7 +107,7 @@ NULLIFY (AsyInfo)
 
 END SUBROUTINE RayTraceLin_Dcmp
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNM, phisSlope, joutNM, iz, iasy, gb, ge, ljout)
+SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNg, phisSlope, JoutNg, iz, iasy, gb, ge, ljout)
 
 USE PARAM
 USE ALLOCS
@@ -124,8 +124,8 @@ IMPLICIT NONE
 
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: phisNM(:, :)
-REAL, POINTER :: joutNM(:, :, :, :)
+REAL, POINTER :: phisNg(:, :)
+REAL, POINTER :: JoutNg(:, :, :, :)
 REAL, POINTER :: phisSlope(:, :, :, :)
 INTEGER :: iz, iasy, gb, ge
 LOGICAL :: ljout
@@ -150,7 +150,7 @@ INTEGER :: i, j, l, g
 REAL :: detinv
 
 REAL, POINTER :: phimx(:, :, :), phimy(:, :, :)
-REAL, POINTER :: srcNM(:, :), xstNM(:, :)
+REAL, POINTER :: srcNg(:, :), xstNg(:, :)
 
 AsyInfo => CoreInfo%AsyInfo; Asy => CoreInfo%Asy
 Cell => CoreInfo%CellInfo; Pin => CoreInfo%Pin
@@ -172,23 +172,23 @@ DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 ALLOCATE(phimx(2, gb : ge, FsrIdxSt : FsrIdxEnd), phimy(2, gb : ge, FsrIdxSt : FsrIdxEnd))
 phimx(:, :, :) = zero; phimy(:, :, :) = zero
 
-phisNM(gb : ge, FsrIdxSt : FsrIdxEnd) = zero
-IF(ljout) joutNM(:, gb : ge, :, PinIdxSt : PinIdxEd) = zero
+phisNg(gb : ge, FsrIdxSt : FsrIdxEnd) = zero
+IF(ljout) JoutNg(:, gb : ge, :, PinIdxSt : PinIdxEd) = zero
 
 tid = omp_get_thread_num() + 1
 
-xstNM => TrackingDat(tid)%xstNM
-srcNM => TrackingDat(tid)%srcNM
+xstNg => TrackingDat(tid)%xstNg
+srcNg => TrackingDat(tid)%srcNg
 
 DO iAsyRay = 1, DcmpAsyRayCount(iAsy)
-  CALL TrackRotRayLSDcmp_CASMO(RayInfo, CoreInfo, TrackingDat(tid), phisNM, phimx, phimy, joutNM,   &
+  CALL TrackRotRayLSDcmp_CASMO(RayInfo, CoreInfo, TrackingDat(tid), phisNg, phimx, phimy, JoutNg,   &
                                DcmpAsyRay(iAsyRay, iAsy), ljout, iz, gb, ge)
 END DO
     
 DO i = FsrIdxSt, FsrIdxEnd
   DO g = gb, ge
-    phimx(1, g, i) = phimx(1, g, i) / xstNM(g, i)
-    phimy(1, g, i) = phimy(1, g, i) / xstNM(g, i)
+    phimx(1, g, i) = phimx(1, g, i) / xstNg(g, i)
+    phimy(1, g, i) = phimy(1, g, i) / xstNg(g, i)
   END DO
 END DO
 
@@ -197,9 +197,9 @@ DO l = PinIdxSt, PinIdxEd
   DO j = 1, Cell(icel)%nFsr
     ireg = Pin(l)%FsrIdxSt + j - 1
     DO g = gb, ge
-      phisNM(g, ireg) = phisNM(g, ireg) / (xstNM(g, ireg) * Cell(icel)%vol(j)) + srcNM(g, ireg)
-      phimx(:, g, ireg) = phimx(:, g, ireg) / (xstNM(g, ireg) * Cell(icel)%vol(j))
-      phimy(:, g, ireg) = phimy(:, g, ireg) / (xstNM(g, ireg) * Cell(icel)%vol(j))
+      phisNg(g, ireg) = phisNg(g, ireg) / (xstNg(g, ireg) * Cell(icel)%vol(j)) + srcNg(g, ireg)
+      phimx(:, g, ireg) = phimx(:, g, ireg) / (xstNg(g, ireg) * Cell(icel)%vol(j))
+      phimy(:, g, ireg) = phimy(:, g, ireg) / (xstNg(g, ireg) * Cell(icel)%vol(j))
     END DO
   END DO  
 END DO
@@ -216,7 +216,7 @@ DEALLOCATE(phimx, phimy)
 
 NULLIFY(Cell); NULLIFY(Pin)
 NULLIFY(FsrMxx); NULLIFY(FsrMyy); NULLIFY(FsrMxy)
-NULLIFY(xstNM); NULLIFY(srcNM);
+NULLIFY(xstNg); NULLIFY(srcNg);
 
 END SUBROUTINE RayTraceDcmp_LSCASMO
 ! ------------------------------------------------------------------------------------------------------------
@@ -253,8 +253,8 @@ REAL, POINTER :: LenSeg(:)
 INTEGER, POINTER :: LocalFsrIdx(:)
 INTEGER, POINTER :: FsrIdx(:, :),  ExpAppIdx(:, :, :)
 REAL, POINTER :: OptLenList(:, :, :)
-REAL, POINTER :: srcC(:, :), srcSlope(:, :, :), xstNM(:, :)
-REAL, POINTER :: PhiAngOut(:, :, :), PhiAngInNM(:, :, :)
+REAL, POINTER :: srcC(:, :), srcSlope(:, :, :), xstNg(:, :)
+REAL, POINTER :: PhiAngOut(:, :, :), PhiAngInNg(:, :, :)
 REAL, POINTER :: DcmpPhiAngOutNg(:, :, :, :, :), DcmpPhiAngInNg(:, :, :, :, :)
 REAL, POINTER :: EXPA(:, :), EXPB(:, :)
 REAL, POINTER :: E1(:, :, :, :), E3(:, :, :, :), R1(:, :, :, :), R3(:, :, :, :)
@@ -304,12 +304,12 @@ FsrCentroid => CoreInfo%CoreFsrCentroid(:, :, iz)
 !Tracking Dat Pointing
 FsrIdx => TrackingDat%FsrIdx
 ExpAppIdx => TrackingDat%ExpAppIdxnm
-OptLenList => TrackingDat%OptLenListnm
+OptLenList => TrackingDat%OptLenListNg
 cmOptLen => TrackingDat%cmOptLen; cmOptLenInv => TrackingDat%cmOptLenInv
-srcC => TrackingDat%srcNM; srcSlope => TrackingDat%srcSlope
-xstNM => TrackingDat%xstNM
-PhiAngOut => TrackingDat%PhiAngOutnm
-PhiAngInNM => TrackingDat%PhiAngInNM
+srcC => TrackingDat%srcNg; srcSlope => TrackingDat%srcSlope
+xstNg => TrackingDat%xstNg
+PhiAngOut => TrackingDat%PhiAngOutNg
+PhiAngInNg => TrackingDat%PhiAngInNg
 DcmpPhiAngInNg => TrackingDat%DcmpPhiAngInNg
 DcmpPhiAngOutNg => TrackingDat%DcmpPhiAngOutNg
 EXPA => TrackingDat%EXPA
@@ -379,7 +379,7 @@ DO j = 1, nAsyRay
       y0(1, irsegidx, j) = segCenter(2) - LenSeg(iRaySeg) * 0.0005_8 * AziAng(iazi)%sinv
       y0(2, irsegidx, j) = segCenter(2) + LenSeg(iRaySeg) * 0.0005_8 * AziAng(iazi)%sinv
       DO ig = gb, ge
-        tau = - LenSeg(iRaySeg) * xstNM(ig, ireg)
+        tau = - LenSeg(iRaySeg) * xstNg(ig, ireg)
         OptLenList(ig, irsegidx, j) = tau
         q0(ig, irsegidx, j) = srcC(ig, ireg) + sum(srcSlope(1 : 2, ig, ireg) * segCenter(:))
         DO ipol = 1, nPolarAng
@@ -415,7 +415,7 @@ END DO
 
 DO irot = 1, 2
   IF (DcmpAsyRay%lRotRayBeg(irot)) THEN
-    phiobd(1 : nPolarAng, gb : ge) = PhiAngInNM(1 : nPolarAng, gb : ge, PhiAnginSvIdx(irot))
+    phiobd(1 : nPolarAng, gb : ge) = PhiAngInNg(1 : nPolarAng, gb : ge, PhiAnginSvIdx(irot))
   ELSE
     phiobd(1 : nPolarAng, gb : ge) = DcmpPhiAngInNg(1 : nPolarAng, gb : ge, irot, iRay, iAsy)
   END IF
@@ -531,8 +531,8 @@ NULLIFY(FsrIdx); NULLIFY(ExpAppIdx)
 NULLIFY(OptLenList); NULLIFY(cmOptLen); NULLIFY(cmOptLenInv)
 NULLIFY(LenSeg); NULLIFY(LocalFsrIdx)
 NULLIFY(srcC); NULLIFY(srcSlope)
-NULLIFY(xstNM)
-NULLIFY(PhiAngOut); NULLIFY(PhiAngInNM)
+NULLIFY(xstNg)
+NULLIFY(PhiAngOut); NULLIFY(PhiAngInNg)
 NULLIFY(EXPA); NULLIFY(EXPB)
 NULLIFY(E1); NULLIFY(E3); NULLIFY(R1); NULLIFY(R3)
 NULLIFY(q0); NULLIFY(q1); NULLIFY(x0); NULLIFY(y0)

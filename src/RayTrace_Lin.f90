@@ -360,7 +360,7 @@ DEALLOCATE(PhiAngOut)
 
 END SUBROUTINE RayTraceLS
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisnm, phisSlope, PhiAngInnm, srcnm, srcSlope, xstnm, joutnm, iz, gb, ge, ljout)
+SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisNg, phisSlope, PhiAngInNg, srcNg, srcSlope, xstNg, JoutNg, iz, gb, ge, ljout)
 
 USE PARAM
 USE TYPEDEF,    ONLY :  RayInfo_Type,       Coreinfo_type,      Pin_Type,           Asy_Type,               &
@@ -378,8 +378,8 @@ IMPLICIT NONE
 
 TYPE(RayInfo_Type) :: RayInfo
 TYPE(CoreInfo_Type) :: CoreInfo
-REAL, POINTER :: phisnm(:, :), PhiAngInnm(:, :, :)
-REAL, POINTER :: srcnm(:, :), xstnm(:, :), joutnm(:, :, :, :)
+REAL, POINTER :: phisNg(:, :), PhiAngInNg(:, :, :)
+REAL, POINTER :: srcNg(:, :), xstNg(:, :), JoutNg(:, :, :, :)
 REAL, POINTER :: phisSlope(:, :, :, :), srcSlope(:, :, :, :)
 INTEGER :: iz, gb, ge
 LOGICAL :: ljout
@@ -431,14 +431,14 @@ IF(lfirst) THEN
     IF(TrackingDat(tid)%lAllocLinSrc) CYCLE
     CALL Dmalloc(TrackingDat(tid)%FsrIdx, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%ExpAppIdxnm, ng, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%OptLenListnm, ng, nMaxRaySeg, nMaxCoreRay)
+    CALL Dmalloc(TrackingDat(tid)%OptLenListNg, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%cmOptLen, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%cmOptLenInv, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%PhiAngOutnm, nPolarAng, ng, nMaxRaySeg + 2)
-    CALL Dmalloc(TrackingDat(tid)%Joutnm, 3, ng, 4, nxy)
+    CALL Dmalloc(TrackingDat(tid)%PhiAngOutNg, nPolarAng, ng, nMaxRaySeg + 2)
+    CALL Dmalloc(TrackingDat(tid)%JoutNg, 3, ng, 4, nxy)
     CALL Dmalloc(TrackingDat(tid)%q0, ng, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%q1, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
-    CALL Dmalloc(TrackingDat(tid)%phisnm, ng, nFsr)
+    CALL Dmalloc(TrackingDat(tid)%phisNg, ng, nFsr)
     CALL Dmalloc(TrackingDat(tid)%phimx, 2, ng, nFsr)
     CALL Dmalloc(TrackingDat(tid)%phimy, 2, ng, nFsr)
     CALL Dmalloc(TrackingDat(tid)%E1, nPolarAng, ng, nMaxRaySeg, nMaxCoreRay)
@@ -448,9 +448,9 @@ IF(lfirst) THEN
     CALL Dmalloc(TrackingDat(tid)%x0, 2, nMaxRaySeg, nMaxCoreRay)
     CALL Dmalloc(TrackingDat(tid)%y0, 2, nMaxRaySeg, nMaxCoreRay)
     TrackingDat(tid)%ExpA => ExpA; TrackingDat(tid)%ExpB => ExpB
-    TrackingDat(tid)%PhiAngInnm => PhiAngInnm
-    TrackingDat(tid)%srcnm => srcnm; TrackingDat(tid)%srcSlope => srcSlope(:, :, :, iz)
-    TrackingDat(tid)%xstnm => xstnm
+    TrackingDat(tid)%PhiAngInNg => PhiAngInNg
+    TrackingDat(tid)%srcNg => srcNg; TrackingDat(tid)%srcSlope => srcSlope(:, :, :, iz)
+    TrackingDat(tid)%xstNg => xstNg
     TrackingDat(tid)%DcmpPhiAngInNg => DcmpPhiAngInNg
     TrackingDat(tid)%DcmpPhiAngOutNg => DcmpPhiAngOutNg
     TrackingDat(tid)%lAllocLinSrc = .TRUE.
@@ -460,17 +460,17 @@ ENDIF
 CALL omp_set_dynamic(.FALSE.)
 CALL omp_set_num_threads(nThread)
 
-phisnm(gb : ge, :) = zero
-IF(ljout) joutnm(:, gb : ge, :, :) = zero !--- BYS edit / 150612 Surface flux
+phisNg(gb : ge, :) = zero
+IF(ljout) JoutNg(:, gb : ge, :, :) = zero !--- BYS edit / 150612 Surface flux
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(irotray, tid, i, j)
 tid = omp_get_thread_num() + 1
 !$OMP MASTER
 DO j = 1, nThread
-  TrackingDat(j)%phisnm(:, :) = zero
+  TrackingDat(j)%phisNg(:, :) = zero
   TrackingDat(j)%phimx(:, :, :) = zero
   TrackingDat(j)%phimy(:, :, :) = zero
-  TrackingDat(j)%joutnm(:, :, :, :) = zero
+  TrackingDat(j)%JoutNg(:, :, :, :) = zero
 ENDDO
 !$OMP END MASTER
 !$OMP BARRIER
@@ -485,7 +485,7 @@ ENDDO
 DO j = 1, nThread
   DO i = 1, nFsr
     DO g = gb, ge
-      phisnm(g, i) = phisnm(g, i) + TrackingDat(j)%phisnm(g, i)
+      phisNg(g, i) = phisNg(g, i) + TrackingDat(j)%phisNg(g, i)
       phimx(:, g, i) = phimx(:, g, i) + TrackingDat(j)%phimx(:, g, i)
       phimy(:, g, i) = phimy(:, g, i) + TrackingDat(j)%phimy(:, g, i)
     ENDDO
@@ -494,14 +494,14 @@ ENDDO
 
 DO i = 1, nFsr
   DO g = gb, ge
-    phimx(1, g, i) = phimx(1, g, i) / xstnm(g, i)
-    phimy(1, g, i) = phimy(1, g, i) / xstnm(g, i)
+    phimx(1, g, i) = phimx(1, g, i) / xstNg(g, i)
+    phimy(1, g, i) = phimy(1, g, i) / xstNg(g, i)
   ENDDO
 ENDDO
 
 IF(ljout) THEN
   DO j = 1, nThread
-    joutnm(:, gb : ge, :, :) = joutnm(:, gb : ge, :, :) + TrackingDat(j)%joutnm(:, gb : ge, :, :)
+    JoutNg(:, gb : ge, :, :) = JoutNg(:, gb : ge, :, :) + TrackingDat(j)%JoutNg(:, gb : ge, :, :)
   ENDDO
 ENDIF
 
@@ -512,9 +512,9 @@ DO l = 1, nxy
   DO j = 1, Cell(icel)%nFsr
     ireg = FsrIdxSt + j - 1
     DO g = gb, ge
-      phisnm(g, ireg) = phisnm(g, ireg) / (xstnm(g, ireg) * Cell(icel)%vol(j)) + srcnm(g, ireg)
-      phimx(:, g, ireg) = phimx(:, g, ireg) / (xstnm(g, ireg) * Cell(icel)%vol(j))
-      phimy(:, g, ireg) = phimy(:, g, ireg) / (xstnm(g, ireg) * Cell(icel)%vol(j))
+      phisNg(g, ireg) = phisNg(g, ireg) / (xstNg(g, ireg) * Cell(icel)%vol(j)) + srcNg(g, ireg)
+      phimx(:, g, ireg) = phimx(:, g, ireg) / (xstNg(g, ireg) * Cell(icel)%vol(j))
+      phimy(:, g, ireg) = phimy(:, g, ireg) / (xstNg(g, ireg) * Cell(icel)%vol(j))
     ENDDO
   ENDDO  
 ENDDO
@@ -619,13 +619,13 @@ FsrCentroid => CoreInfo%CoreFsrCentroid(:, :, iz)
 !Tracking Dat Pointing
 FsrIdx => TrackingDat%FsrIdx
 ExpAppIdx => TrackingDat%ExpAppIdxnm
-OptLenList => TrackingDat%OptLenListnm
+OptLenList => TrackingDat%OptLenListNg
 cmOptLen => TrackingDat%cmOptLen; cmOptLenInv => TrackingDat%cmOptLenInv
-phisC => TrackingDat%phisnm; phimx => TrackingDat%phimx; phimy => TrackingDat%phimy
-srcC => TrackingDat%srcnm; srcSlope => TrackingDat%srcSlope
-xst => TrackingDat%xstnm; jout => TrackingDat%joutnm
-PhiAngOut => TrackingDat%PhiAngOutnm
-PhiAngIn => TrackingDat%phiAngInnm
+phisC => TrackingDat%phisNg; phimx => TrackingDat%phimx; phimy => TrackingDat%phimy
+srcC => TrackingDat%srcNg; srcSlope => TrackingDat%srcSlope
+xst => TrackingDat%xstNg; jout => TrackingDat%JoutNg
+PhiAngOut => TrackingDat%PhiAngOutNg
+PhiAngIn => TrackingDat%PhiAngInNg
 ExpA => TrackingDat%ExpA
 ExpB => TrackingDat%ExpB
 E1 => TrackingDat%E1; E3 => TrackingDat%E3
