@@ -27,7 +27,7 @@ INTEGER, OPTIONAL :: FastMocLv
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThread
+INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThr
 INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ixy, krot
 REAL :: wttmp, tmpsrc, ONETHREE, ONEFIVE, ONESEVEN
 ! ----------------------------------------------------
@@ -38,7 +38,7 @@ nPolarAng = RayInfo%nPolarAngle
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
-nThread = PE%nThread
+nThr = PE%nThread
 
 lAFSS = nTracerCntl%lAFSS
 ! ----------------------------------------------------
@@ -105,16 +105,16 @@ DO krot = 1, 2
 END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-phis1g = ZERO
-phim1g = ZERO
-
 IF (.NOT. lAFSS) THEN
-  DO ithr = 1, nThread
+  phis1g = ZERO
+  phim1g = ZERO
+
+  DO ithr = 1, nThr
     phis1g = phis1g + TrackingDat(ithr)%phis1g
     phim1g = phim1g + TrackingDat(ithr)%phim1g
   END DO
 ELSE
-  DO ithr = 1, nThread
+  DO ithr = 1, nThr
     DO iazi = 1, RayInfo%nAziAngle
       DO ipol = 1, RayInfo%nPolarAngle
         DO ifsr = 1, nFsr
@@ -133,12 +133,17 @@ ELSE
       END DO
     END DO
   END DO
+  !phia1g = ZERO
+  !
+  !DO ithr = 1, nThr
+  !  phia1g = phia1g + TrackingDat(ithr)%phia1g
+  !END DO
 END IF
 
 IF (ljout) THEN
   jout1g = ZERO
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nThr
     jout1g = jout1g + TrackingDat(ithr)%jout1g
   END DO
 END IF

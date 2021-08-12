@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, gb, ge, lJout)
 
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, ONE, RTHREE, RFIVE, RSEVEN
@@ -17,7 +17,7 @@ TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg, phimNg, srcmNM
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg, phimNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: iz, gb, ge
@@ -89,7 +89,7 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    CALL RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingDat(ithr), phisNg, phimNg, srcmNM, MocJoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
+    CALL RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingDat(ithr), phisNg, phimNg, srcmNg, MocJoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -115,15 +115,15 @@ DO ixy = 1, nxy
       
       phisNg(ig, jfsr) = phisNg(ig, jfsr) * wttmp + srcNg(ig, jfsr)
       
-      phimNg(1:2, ig, jfsr) = phimNg(1:2, ig, jfsr) * wttmp + srcmNM(1:2, ig, jfsr) * RTHREE
+      phimNg(1:2, ig, jfsr) = phimNg(1:2, ig, jfsr) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
       
       IF (ScatOd .LT. 2) CYCLE
       
-      phimNg(3:5, ig, jfsr) = phimNg(3:5, ig, jfsr) * wttmp + srcmNM(3:5, ig, jfsr) * RFIVE
+      phimNg(3:5, ig, jfsr) = phimNg(3:5, ig, jfsr) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
       
       IF (ScatOd .LT. 3) CYCLE
       
-      phimNg(6:9, ig, jfsr) = phimNg(6:9, ig, jfsr) * wttmp + srcmNM(6:9, ig, jfsr) * RSEVEN
+      phimNg(6:9, ig, jfsr) = phimNg(6:9, ig, jfsr) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
     END DO
   END DO
 END DO
@@ -136,7 +136,7 @@ NULLIFY (Cell)
 
 END SUBROUTINE RayTraceDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNM, MocJoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
+SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNg, MocJoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
 
 USE ALLOCS
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
@@ -151,7 +151,7 @@ TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, srcmNM
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: jAsy, iz, gb, ge, ScatOd
@@ -218,21 +218,21 @@ IF (lHex .AND. hLgc%l360) THEN
           SrcAngNg1(ig, ipol, ifsr, 1) = srcNg(ig, ifsr)
           SrcAngNg2(ig, ipol, ifsr, 1) = srcNg(ig, ifsr)
           
-          srctmp = comp(1, ipol, iazi) * srcmNM(1, ig, ifsr) + comp(2, ipol, iazi) * srcmNM(2, ig, ifsr)
+          srctmp = comp(1, ipol, iazi) * srcmNg(1, ig, ifsr) + comp(2, ipol, iazi) * srcmNg(2, ig, ifsr)
           
           SrcAngNg1(ig, ipol, ifsr, 1) = SrcAngNg1(ig, ipol, ifsr, 1) + srctmp
           SrcAngNg2(ig, ipol, ifsr, 1) = SrcAngNg2(ig, ipol, ifsr, 1) - srctmp
           
           IF (ScatOd .LT. 2) CYCLE
           
-          srctmp = comp(3, ipol, iazi) * srcmNM(3, ig, ifsr) + comp(4, ipol, iazi) * srcmNM(4, ig, ifsr) + comp(5, ipol, iazi) * srcmNM(5, ig, ifsr)
+          srctmp = comp(3, ipol, iazi) * srcmNg(3, ig, ifsr) + comp(4, ipol, iazi) * srcmNg(4, ig, ifsr) + comp(5, ipol, iazi) * srcmNg(5, ig, ifsr)
           
           SrcAngNg1(ig, ipol, ifsr, 1) = SrcAngNg1(ig, ipol, ifsr, 1) + srctmp
           SrcAngNg2(ig, ipol, ifsr, 1) = SrcAngNg2(ig, ipol, ifsr, 1) + srctmp
           
           IF (ScatOd .LT. 3) CYCLE
           
-          srctmp = comp(6, ipol, iazi) * srcmNM(6, ig, ifsr) + comp(7, ipol, iazi) * srcmNM(7, ig, ifsr) + comp(8, ipol, iazi) * srcmNM(8, ig, ifsr) + comp(9, ipol, iazi) * srcmNM(9, ig, ifsr)
+          srctmp = comp(6, ipol, iazi) * srcmNg(6, ig, ifsr) + comp(7, ipol, iazi) * srcmNg(7, ig, ifsr) + comp(8, ipol, iazi) * srcmNg(8, ig, ifsr) + comp(9, ipol, iazi) * srcmNg(9, ig, ifsr)
           
           SrcAngNg1(ig, ipol, ifsr, 1) = SrcAngNg1(ig, ipol, ifsr, 1) + srctmp
           SrcAngNg2(ig, ipol, ifsr, 1) = SrcAngNg2(ig, ipol, ifsr, 1) - srctmp
@@ -266,21 +266,21 @@ ELSE
           SrcAngNg1(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
           SrcAngNg2(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
           
-          srctmp = comp(1, ipol, iazi) * srcmNM(1, ig, ifsr) + comp(2, ipol, iazi) * srcmNM(2, ig, ifsr)
+          srctmp = comp(1, ipol, iazi) * srcmNg(1, ig, ifsr) + comp(2, ipol, iazi) * srcmNg(2, ig, ifsr)
           
           SrcAngNg1(ig, ipol, ifsr, iazi) = SrcAngNg1(ig, ipol, ifsr, iazi) + srctmp
           SrcAngNg2(ig, ipol, ifsr, iazi) = SrcAngNg2(ig, ipol, ifsr, iazi) - srctmp
           
           IF (ScatOd .LT. 2) CYCLE
           
-          srctmp = comp(3, ipol, iazi) * srcmNM(3, ig, ifsr) + comp(4, ipol, iazi) * srcmNM(4, ig, ifsr) + comp(5, ipol, iazi) * srcmNM(5, ig, ifsr)
+          srctmp = comp(3, ipol, iazi) * srcmNg(3, ig, ifsr) + comp(4, ipol, iazi) * srcmNg(4, ig, ifsr) + comp(5, ipol, iazi) * srcmNg(5, ig, ifsr)
           
           SrcAngNg1(ig, ipol, ifsr, iazi) = SrcAngNg1(ig, ipol, ifsr, iazi) + srctmp
           SrcAngNg2(ig, ipol, ifsr, iazi) = SrcAngNg2(ig, ipol, ifsr, iazi) + srctmp
           
           IF (ScatOd .LT. 3) CYCLE
           
-          srctmp = comp(6, ipol, iazi) * srcmNM(6, ig, ifsr) + comp(7, ipol, iazi) * srcmNM(7, ig, ifsr) + comp(8, ipol, iazi) * srcmNM(8, ig, ifsr) + comp(9, ipol, iazi) * srcmNM(9, ig, ifsr)
+          srctmp = comp(6, ipol, iazi) * srcmNg(6, ig, ifsr) + comp(7, ipol, iazi) * srcmNg(7, ig, ifsr) + comp(8, ipol, iazi) * srcmNg(8, ig, ifsr) + comp(9, ipol, iazi) * srcmNg(9, ig, ifsr)
           
           SrcAngNg1(ig, ipol, ifsr, iazi) = SrcAngNg1(ig, ipol, ifsr, iazi) + srctmp
           SrcAngNg2(ig, ipol, ifsr, iazi) = SrcAngNg2(ig, ipol, ifsr, iazi) - srctmp

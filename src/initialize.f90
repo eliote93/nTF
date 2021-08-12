@@ -15,8 +15,7 @@ USE FXRVAR_MOD,    ONLY : lFXRVAR
 USE XS_COMMON,     ONLY : AlignFxrs, AlignIsodata, AlignMLGdata, AlignResVarPin, AlignResIsoData
 USE MOC_COMMON,    ONLY : AllocCoreMacXs
 USE MPIComm_Mod,   ONLY : MPI_SYNC
-USE MOC_MOD,       ONLY : initRT, initAFSS
-
+USE MOC_MOD,       ONLY : initRT
 #ifdef __INTEL_MKL
 USE MKL_INIT
 #endif

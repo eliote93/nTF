@@ -314,6 +314,7 @@
 		<Filter Name="Group Major">
 		<File RelativePath=".\src\RayTrace_GM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_GM.f90"/>
+		<File RelativePath=".\src\SetRtP1Src_GM.f90"/>
 		<File RelativePath=".\src\SetRtSrc_GM.f90"/>
 		<File RelativePath=".\src\SetRtXs_GM.f90"/></Filter>
 		<Filter Name="Linear Src">
@@ -322,6 +323,7 @@
 		<Filter Name="Node Major">
 		<File RelativePath=".\src\RayTrace_NM.f90"/>
 		<File RelativePath=".\src\RayTraceP1_NM.f90"/>
+		<File RelativePath=".\src\SetRtP1Src_NM.f90"/>
 		<File RelativePath=".\src\SetRtSrc_NM.f90"/>
 		<File RelativePath=".\src\SetRtXs_NM.f90"/></Filter></Filter>
 		<Filter Name="Parallel Computing">

@@ -258,7 +258,7 @@ USE MOC_MOD,     ONLY : RayTrace_GM,           SetRtMacXsGM,      SetRtSrcGM,   
                         AddConstSrc,                                              &
                         phis1g,             MocJout1g,         xst1g,             &
                         Src1g,               AxSrc1g,           AxPxs1g,           &
-                        PhiAngIn1g,         srcm
+                        PhiAngIn1g
 USE DcplXsGen_Mod,  ONLY : DcplSetMocAxEff
 USE BasicOperation, ONLY : CP_VA
 USE SUbGrp_Mod,     ONLY : FxrChiGen

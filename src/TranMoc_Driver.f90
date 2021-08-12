@@ -20,8 +20,7 @@ USE MOC_MOD,           ONLY : RayTrace_GM,                SetRtMacXsGM_Cusping, 
                               MocResidual,             PsiErr,               PseudoAbsorptionGM,      &
                               PowerUpdate,                                                          &
                               phis1g,                  MocJout1g,            xst1g,                 &
-                              Src1g,                    AxSrc1g,              PhiAngin1g,            &
-                              srcm
+                              Src1g,                    AxSrc1g,              PhiAngin1g
 USE Timer,             ONLY : nTracer_dclock, TimeChk
 USE FILES,             ONLY : io8
 

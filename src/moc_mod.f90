@@ -5,7 +5,7 @@ USE TYPEDEF, ONLY : TrackingDat_Type
 IMPLICIT NONE
 
 ! Basic
-REAL, POINTER, DIMENSION(:,:)   :: wtang, hwt, srcm
+REAL, POINTER, DIMENSION(:,:)   :: wtang, hwt
 REAL, POINTER, DIMENSION(:,:,:) :: wtsurf, comp, mwt, mwt2, LinPsi
 
 INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay
@@ -18,12 +18,12 @@ REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb ! Approximation of Exponet
 
 ! Group Major
 REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g, axSrc1g, axPxs1g
-REAL, POINTER, DIMENSION(:,:)   :: phiAngIn1g, phim1g, LinSrc1g
+REAL, POINTER, DIMENSION(:,:)   :: phiAngIn1g, phim1g, LinSrc1g, srcm1g
 REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g, SrcAng1g1, SrcAng1g2, phia1g
 
 ! Node Major
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNM
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg, SrcAngNg1, SrcAngNg2, phiaNg
 
 ! Domain Decomposition
@@ -270,7 +270,7 @@ INTEGER :: iz, gb, ge, krot
 
 END SUBROUTINE HexTrackRotRayDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, gb, ge, lJout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
@@ -280,7 +280,7 @@ TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNM
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: iz, gb, ge
@@ -288,7 +288,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNM, JoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
+SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNg, JoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -299,7 +299,7 @@ TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, srcmnm
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 INTEGER :: jAsy, iz, gb, ge, ScatOd
@@ -373,47 +373,6 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTrace_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceGM_AFSS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
-
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)  :: RayInfo
-TYPE (CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER, DIMENSION(:)     :: phis, xst, src
-REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn
-REAL, POINTER, DIMENSION(:,:,:) :: jout
-
-INTEGER :: iz
-LOGICAL :: ljout
-
-INTEGER, OPTIONAL :: FastMocLv
-
-END SUBROUTINE RayTraceGM_AFSS
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTrace_Tran_OMP_AFSS(RayInfo, CoreInfo, phis, phi1a, phi2a, PhiAngIn, xst, src, srcang1g1, srcang1g2, jout, iz, ljout, FastMocLv, lAFSS)
-
-USE PARAM
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
-
-IMPLICIT NONE
-
-TYPE(RayInfo_Type) :: RayInfo
-TYPE(CoreInfo_Type) :: CoreInfo
-
-REAL :: phis(:), PhiAngIn(:, :), xst(:), src(:), jout(:, :, :)
-REAL :: phi1a(:,:,:)
-REAL :: phi2a(:,:,:)
-REAL :: srcang1g1(:,:,:), srcang1g2(:,:,:)
-INTEGER :: iz
-LOGICAL :: ljout
-INTEGER, OPTIONAL :: FastMocLv
-LOGICAL, OPTIONAL :: lAFSS
-
-END SUBROUTINE RayTrace_Tran_OMP_AFSS
-! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -432,7 +391,7 @@ LOGICAL :: ljout
 
 END SUBROUTINE RayTrace_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmnm, JoutNg, iz, gb, ge, ljout)
+SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, JoutNg, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type, MultigridInfo_Type
 
@@ -445,12 +404,12 @@ INTEGER :: iz, gb, ge
 LOGICAL :: ljout
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmnm
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 END SUBROUTINE RayTraceP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -459,9 +418,9 @@ IMPLICIT NONE
 TYPE (RayInfo_Type) :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:)     :: phis, xst, src
-REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn, srcm, phim
-REAL, POINTER, DIMENSION(:,:,:) :: jout
+REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, srcm1g, phim1g
+REAL, POINTER, DIMENSION(:,:,:) :: jout1g
 
 INTEGER :: iz
 LOGICAL :: ljout
@@ -470,26 +429,6 @@ INTEGER :: ScatOd
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTraceP1_GM
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1GM_AFSS(RayInfo, CoreInfo, phis, phim, PhiAngIn, xst, src, srcm, jout, iz, ljout, ScatOd, FastMocLv)
-
-USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type) :: RayInfo
-TYPE (CoreInfo_Type) :: CoreInfo
-
-REAL, POINTER, DIMENSION(:)     :: phis, xst, src
-REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn, srcm, phim
-REAL, POINTER, DIMENSION(:,:,:) :: jout
-
-INTEGER :: iz, ScatOd
-LOGICAL :: ljout
-
-INTEGER, OPTIONAL :: FastMocLv
-
-END SUBROUTINE RayTraceP1GM_AFSS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src1g, LinSrc, Slope1g, jout, iz, ljout)
 
@@ -767,7 +706,7 @@ LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 
 END SUBROUTINE SetRtLinSrc_CASMO
 ! ------------------------------------------------------------------------------------------------------------                             
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm, phim, xstr1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type, PE_Type
 
@@ -779,16 +718,16 @@ TYPE (PE_Type)        :: PE
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)       :: xstr1g
-REAL, POINTER, DIMENSION(:,:)     :: srcm
-REAL, POINTER, DIMENSION(:,:,:,:) :: phim
+REAL, POINTER, DIMENSION(:)       :: xst1g
+REAL, POINTER, DIMENSION(:,:)     :: srcm1g
+REAL, POINTER, DIMENSION(:,:,:,:) :: phim1g
 
 INTEGER :: myzb, myze, ig, ng, iz, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim
 
 END SUBROUTINE SetRtP1SrcGM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmnm, phimNg, xstNg, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
+SUBROUTINE SetRtP1SrcNM(Core, Fxr, srcmNg, phimNg, xstNg, iz, gb, ge, ng, GroupInfo, lxslib, ScatOd, PE, Offset)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_Type
 
@@ -801,7 +740,7 @@ TYPE (PE_Type)        :: PE
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
 REAL, POINTER, DIMENSION(:,:)   :: xstNg
-REAL, POINTER, DIMENSION(:,:,:) :: srcmnm, phimNg
+REAL, POINTER, DIMENSION(:,:,:) :: srcmNg, phimNg
 
 REAL :: eigv
 INTEGER :: gb, ge, ng, iz, ifsr, ifxr, ScatOd
@@ -1255,20 +1194,6 @@ TYPE (nTracerCntl_Type) :: nTracerCntl
 TYPE (PE_TYPE)          :: PE
 
 END SUBROUTINE initRT
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE initAFSS(RayInfo, CoreInfo, nTracerCntl, PE)
-
-USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE
-USE Cntl,    ONLY : nTracerCntl_Type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)     :: RayInfo
-TYPE (CoreInfo_Type)    :: CoreInfo
-TYPE (nTracerCntl_Type) :: nTracerCntl
-TYPE (PE_TYPE)          :: PE
-
-END SUBROUTINE initAFSS
 ! ------------------------------------------------------------------------------------------------------------
 END INTERFACE
 

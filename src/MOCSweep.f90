@@ -6,11 +6,10 @@ USE TYPEDEF,     ONLY : CoreInfo_Type, RayInfo_Type, FmInfo_Type, PE_TYPE, FxrIn
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
-USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtLinSrc, SetRtP1SrcGM, AddBucklingGM, RayTraceGM_AFSS, RayTrace_GM, RayTraceP1_GM, RayTraceP1GM_AFSS, &
-                        PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PseudoAbsorptionGM, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
-                        phis1g, phim1g, MocJout1g, xst1g, src1g, AxSrc1g, PhiAngin1g, srcm, &
-                        LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
-                        SetRtMacXsNM, SetRtsrcNM, AddBucklingNM, SetRtP1srcNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, PhiAngInNg, MocJoutNg, xstNg, srcNg, phimNg, srcmNM, &
+USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtP1SrcGM, AddBucklingGM, PseudoAbsorptionGM, RayTrace_GM, RayTraceP1_GM, phis1g, phim1g, MocJout1g, xst1g, src1g, PhiAngin1g, srcm1g, AxSrc1g, &
+                        SetRtMacXsNM, SetRtsrcNM, SetRtP1srcNM, AddBucklingNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, phimNg, MocJoutNg, xstNg, srcNg, PhiAngInNg, srcmNg, &
+                        PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
+                        SetRtLinSrc, LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrentNg, DcmpGatherCurrent1g
 USE SUbGrp_Mod,  ONLY : FxrChiGen
 USE IOUTIL,      ONLY : message
@@ -190,7 +189,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               PhiAngin1g => FmInfo%PhiAngin(:, :, ig, iz)
               
               IF (lscat1) phim1g => phim(:, :, ig, iz)
-              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
+              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm1g, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
               
               IF (ldcmp) DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)
             END IF
@@ -199,15 +198,15 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. ldcmp) THEN
                 IF (.NOT. lscat1) THEN
-                  CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,       MocJout1g, iz, lJout, fmoclv)
+                  CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, Srcm, MocJout1g, iz, lJout, nscttod, fmoclv)
+                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, nscttod, fmoclv)
                 END IF
               ELSE
                 IF (lScat1) THEN
-                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm, MocJout1g, iz, lJout)
+                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout)
                 ELSE
-                  CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,       MocJout1g, iz, lJout)
+                  CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout)
                 END IF
               END IF
             ELSE
@@ -308,7 +307,7 @@ ELSE
             IF (.NOT. lLSCASMO) THEN
               CALL SetRtsrcNM(Core, Fxr(:, iz), srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNM, phimNg, xstNg, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
+              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNg, phimNg, xstNg, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
             ELSE
               CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNg, phisSlope, srcNg, srcSlope, psi, psiSlope, AxSrc, xstNg, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
             END IF
@@ -318,7 +317,7 @@ ELSE
           IF (.NOT. ldcmp) THEN
             IF (.NOT. lLSCASMO) THEN
               IF (lscat1) THEN
-                CALL RayTraceP1_NM  (RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
+                CALL RayTraceP1_NM  (RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
               ELSE
                 CALL RayTrace_NM    (RayInfo, Core, phisNg,         PhiAngInNg, xstNg, srcNg,         MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
               END IF
@@ -327,7 +326,7 @@ ELSE
             END IF
           ELSE
             IF (lScat1) THEN
-              CALL RayTraceDcmpP1_NM(RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNM, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
+              CALL RayTraceDcmpP1_NM(RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
             ELSE
               IF (.NOT.lLSCASMO) THEN
                 CALL RayTraceDcmp_NM(RayInfo, Core, phisNg,         PhiAngInNg, xstNg, srcNg,         MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
