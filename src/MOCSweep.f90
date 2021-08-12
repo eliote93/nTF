@@ -7,7 +7,7 @@ USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
 USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtP1SrcGM, AddBucklingGM, PseudoAbsorptionGM, RayTrace_GM, RayTraceP1_GM, phis1g, phim1g, MocJout1g, xst1g, src1g, PhiAngin1g, srcm1g, phia1g, AxSrc1g, &
-                        SetRtMacXsNM, SetRtsrcNM, SetRtP1srcNM, AddBucklingNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, phimNg, MocJoutNg, xstNg, srcNg, PhiAngInNg, srcmNg, &
+                        SetRtMacXsNM, SetRtsrcNM, SetRtP1srcNM, AddBucklingNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, phimNg, MocJoutNg, xstNg, srcNg, PhiAngInNg, srcmNg, phiaNg, &
                         PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         SetRtLinSrc, LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrentNg, DcmpGatherCurrent1g
@@ -58,29 +58,39 @@ INTEGER :: hostnm
 
 TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 
-REAL, POINTER, DIMENSION(:,:)       :: psi, psid, psic
-REAL, POINTER, DIMENSION(:,:,:)     :: phis, axsrc, axpxs
-REAL, POINTER, DIMENSION(:,:,:,:)   :: linsrcslope, phim
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: radjout
+REAL, POINTER, DIMENSION(:)           :: wmoc
+REAL, POINTER, DIMENSION(:,:)         :: psi, psid, psic
+REAL, POINTER, DIMENSION(:,:,:)       :: phis, axsrc, axpxs
+REAL, POINTER, DIMENSION(:,:,:,:)     :: linsrcslope, phim, phiangin
+REAL, POINTER, DIMENSION(:,:,:,:,:)   :: radjout
+REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn, phia
 ! ----------------------------------------------------
 
 tmocst = nTracer_dclock(FALSE, FALSE)
 
-! Pointing
-FXR     => FmInfo%Fxr
-phis    => FmInfo%PHIS
-psi     => FmInfo%PSI
-psid    => FmInfo%PSID
-psic    => FmInfo%PSIC
-RadJout => FmInfo%RadJout
-AxSrc   => FmInfo%AxSrc
-AxPXS   => FmInfo%AxPXS
+CALL omp_set_num_threads(PE%nThread)
 
 Master   = PE%Master
 RTMaster = PE%RTMaster
+myzb     = PE%myzb
+myze     = PE%myze
 
-IF (nTracerCntl%lscat1)  phim        => FmInfo%phim
-IF (nTracerCntl%lLinSrc) LinSrcSlope => FmInfo%LinSrcSlope
+! Pointing
+FXR      => FmInfo%Fxr
+phis     => FmInfo%PHIS
+psi      => FmInfo%PSI
+psid     => FmInfo%PSID
+psic     => FmInfo%PSIC
+RadJout  => FmInfo%RadJout
+AxSrc    => FmInfo%AxSrc
+AxPXS    => FmInfo%AxPXS
+phiangin => FmInfo%phiangin
+
+IF (nTracerCntl%lmocUR)      wmoc        => FmInfo%w
+IF (nTracerCntl%lAFSS)       phia        => FmInfo%phia
+IF (nTracerCntl%lscat1)      phim        => FmInfo%phim
+IF (nTracerCntl%lLinSrc)     LinSrcSlope => FmInfo%LinSrcSlope
+IF (nTracerCntl%lDomainDcmp) AsyPhiAngIn => FmInfo%AsyPhiAngIn
 
 ! sSPH
 IF (nTracerCntl%lsSPHreg) THEN
@@ -90,13 +100,8 @@ IF (nTracerCntl%lsSPHreg) THEN
   CALL calcPinSSPH(Core, Fxr, PE)
 END IF
 
-CALL omp_set_num_threads(PE%nThread)
-
 ! Basic
-myzb   = PE%myzb
-myze   = PE%myze
-lJout  = TRUE
-ScatOd = nTracerCntl%scatod
+lJout = TRUE
 
 nPolarAngle = RayInfo%nPolarAngle
 nPhiAngSv   = RayInfo%nPhiAngSv
@@ -127,6 +132,7 @@ laxrefFDM = nTracerCntl%laxrefFDM
 ldcmp     = nTracerCntl%ldomaindcmp
 lAFSS     = nTracerCntl%lAFSS
 fmoclv    = nTracerCntl%FastMOCLv
+ScatOd    = nTracerCntl%scatod
 
 nitermax = itrcntl%MOCItrCntl%nitermax
 psiconv  = itrcntl%psiconv
@@ -150,11 +156,9 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     
     tgmdel = ZERO
     
-    IF (Master) THEN
-      WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
-      CALL message(io8, TRUE, TRUE, mesg)
-    END IF
-    
+    WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
+    IF (Master) CALL message(io8, TRUE, TRUE, mesg)
+        
     IF (RTMaster) THEN
       CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
       
@@ -171,21 +175,24 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
         DO iz = myzb, myze
           IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
           
+          ! Pointing
           IF (RTMASTER) THEN
-            PhiAngin1g => FmInfo%PhiAngin(:, :, ig, iz)
-            
-            MocJout1g => RadJout(:, :, :, iz, ig)
+            phis1g     => phis(:, iz, ig)
+            PhiAngin1g => PhiAngin(:, :, ig, iz)
+            MocJout1g  => RadJout(:, :, :, iz, ig)
             
             IF (l3dim)  AxSrc1g         = AxSrc(:, iz, ig)
             IF (lscat1) phim1g         => phim(:, :, ig, iz)
-            IF (ldcmp)  DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)
+            IF (lscat1) phimNg         => phim(:, :, :, iz)
+            IF (ldcmp)  DcmpPhiAngIn1g => AsyPhiAngIn(:, :, :, :, ig, iz)
+            IF (lAFSS)  phia1g         => phia(:, :, :, :, ig, iz)
           END IF
           
           DO iinn = 1, ninn
             ljout = iinn.EQ.ninn .OR. lmocUR
             
+            ! SET : XS, Src.
             IF (RTMASTER) THEN
-              ! SET : XS
               CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
               CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig), AxPXS(:, iz, ig), xst1g, iz, ig, ng, GroupInfo, l3dim)
@@ -193,10 +200,9 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
 #ifdef Buckling
               IF (nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, lRST)
 #endif
-              ! SET : Src.
               CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm1g, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, lAFSS, ScatOd, PE)
+              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, lAFSS, ScatOd, PE)
             END IF
             
             ! Ray Trace
@@ -228,14 +234,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (PE%nRTProc .GT. 1) CALL DcmpGatherCurrent1g(Core, MocJout1g)
 #endif
             IF (.NOT. RTMASTER) CYCLE
+            IF (.NOT. lmocUR)   CYCLE
             
-            IF (.NOT. lmocUR) THEN
-              phis(:, iz, ig) = phis1g
-            ELSE
-              CALL FluxUnderRelaxation   (Core, Phis1g, Phis, FmInfo%w(ig), iz, ig, PE)
-              CALL FluxInUnderRelaxation (Core, PhiANgIn1g, FmInfo%PhiAngIn, FmInfo%w(ig), nPolarAngle, nPhiAngSv, iz, ig, PE)
-              CALL CurrentUnderRelaxation(Core, MocJout1g, RadJout, FmInfo%w(ig),iz, ig, PE)
-            END IF
+            CALL FluxUnderRelaxation   (Core, Phis1g, Phis, wmoc(ig), iz, ig, PE)
+            CALL FluxInUnderRelaxation (Core, PhiANgIn1g, PhiAngIn, wmoc(ig), nPolarAngle, nPhiAngSv, iz, ig, PE)
+            CALL CurrentUnderRelaxation(Core, MocJout1g, RadJout, wmoc(ig),iz, ig, PE)
           END DO
         END DO
         
@@ -261,11 +264,9 @@ ELSE
   DO iout = 1, nitermax
     itrcntl%mocit = itrcntl%mocit + 1
     
-    IF (MASTER) THEN
-      WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
-      CALL message(io8, TRUE, TRUE, mesg)
-    END IF
-    
+    WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
+    IF (MASTER) CALL message(io8, TRUE, TRUE, mesg)
+        
     IF (RTMaster) THEN
       CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
       
@@ -281,10 +282,11 @@ ELSE
           phisNg(ig, :) = phis(:, iz, ig)
         END DO
         
-        PhiAngInNg => FmInfo%PhiAngIn(:, :, :, iz)
+        PhiAngInNg => PhiAngIn(:, :, :, iz)
         
-        IF (lscat1) phimNg => phim(:, :, :, iz)
-        IF (ldcmp)  DcmpPhiAngInNg => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
+        IF (lscat1) phimNg         => phim(:, :, :, iz)
+        IF (ldcmp)  DcmpPhiAngInNg => AsyPhiAngIn(:, :, :, :, :, iz)
+        IF (lAFSS)  phiaNg         => phia(:, :, :, :, :, iz)
         
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
@@ -371,20 +373,16 @@ ELSE
           GrpBeg = grpbndy(1, jswp)
           GrpEnd = grpbndy(2, jswp)
           
-          IF (master) THEN
-            WRITE (mesg, '(10X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
-            CALL message(io8, FALSE, TRUE, mesg)
-          END IF
+          WRITE (mesg, '(10X, A, I4, 2X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', GrpBeg, ' to ', GrpEnd, ' finished in ', tnmdel(jswp), 'Sec'
+          IF (master) CALL message(io8, FALSE, TRUE, mesg)
         END DO
       ELSE
         tgmdel = sum(tnmdel(1:nginfo))
         
         CALL MPI_MAX_REAL(tgmdel, PE%MPI_NTRACER_COMM, TRUE)
         
-        IF (master) THEN
-          WRITE (mesg, '(10X, A5, I4, 2X, A, F10.3, 2X, A)') 'Plane ', iz, ' finished in ', tgmdel, 'Sec'
-          CALL message(io8, FALSE, TRUE, mesg)
-        END IF
+        WRITE (mesg, '(10X, A5, I4, 2X, A, F10.3, 2X, A)') 'Plane ', iz, ' finished in ', tgmdel, 'Sec'
+        IF (master) CALL message(io8, FALSE, TRUE, mesg)
       END IF
     END DO
     
@@ -423,10 +421,8 @@ eigerr = errdat(2)
 reserr = errdat(3)
 #endif
 
-IF (MASTER) THEN
-  WRITE (mesg ,'(A5,I7,F15.6, 3(1pE12.3))') 'RT', itrcntl%mocit, eigv, eigerr, fiserr, reserr
-  CALL message(io8, TRUE, TRUE, mesg)
-END IF
+WRITE (mesg ,'(A5,I7,F15.6, 3(1pE12.3))') 'RT', itrcntl%mocit, eigv, eigerr, fiserr, reserr
+IF (MASTER) CALL message(io8, TRUE, TRUE, mesg)
 
 ItrCntl%MocItrCntl%ResErr = ResErr
 
@@ -439,21 +435,47 @@ IF (fiserr.LT.psiconv .AND. eigerr.LT.eigconv .AND. reserr.LT.resconv) THEN
   
   IF (nTracerCntl%lFeedBack) last_TH = TRUE
 END IF
-! ----------------------------------------------------
+
+! FIN
 IF (nTracerCntl%lCusping_MPI .AND. fiserr.LT.ItrCntl%decuspconv) nTracerCntl%lCusping_MPI = FALSE
 
 tmoced = nTracer_dclock(FALSE, FALSE)
 
 TimeChk%MocTime = TimeChk%MocTime + tmoced - tmocst
-
+! ----------------------------------------------------
 NULLIFY (FXR)
+NULLIFY (phis)
 NULLIFY (psi)
 NULLIFY (psid)
 NULLIFY (psic)
-NULLIFY (phis)
-NULLIFY (phim)
 NULLIFY (RadJout)
-NULLIFY (axsrc)
+NULLIFY (AxSrc)
+NULLIFY (AxPxs)
+NULLIFY (phiangin)
+
+IF (lmocur)  NULLIFY (wmoc)
+IF (lAFSS)   NULLIFY (phia)
+IF (lscat1)  NULLIFY (phim)
+IF (lLinSrc) NULLIFY (LinSrcSlope)
+IF (ldcmp)   NULLIFY (AsyPhiAngIn)
+
+IF (RTMASTER) THEN
+  IF (.NOT. nTracerCntl%lNodeMajor) THEN
+    NULLIFY (phis1g)
+    NULLIFY (PhiAngin1g)
+    NULLIFY (MocJout1g)
+    
+    IF (lscat1) NULLIFY (phim1g)
+    IF (ldcmp)  NULLIFY (DcmpPhiAngIn1g)
+    IF (lAFSS)  NULLIFY (phia1g)
+  ELSE
+    NULLIFY (PhiAngInNg)
+    
+    IF (lscat1) NULLIFY (phimNg)
+    IF (ldcmp)  NULLIFY (DcmpPhiAngInNg)
+    IF (lAFSS)  NULLIFY (phiaNg)
+  END IF
+END IF
 ! ----------------------------------------------------
 
 END SUBROUTINE MOCSweep

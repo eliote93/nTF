@@ -163,10 +163,13 @@ DO ipin = xyb, xye
     DO ig = gb, ge
       xstinv = ONE / xstNg(ig, jfsr)
       
-      srcmNg(1:2, ig - ioff, jfsr) = 3._8 * srcmNg(1:2, ig - ioff, jfsr) * xstinv
+      !srcmNg(1:2, ig - ioff, jfsr) = 3._8 * srcmNg(1:2, ig - ioff, jfsr) * xstinv
+      srcmNg(1:2, ig - ioff, jfsr) = srcmNg(1:2, ig - ioff, jfsr) * xstinv
       
-      IF (ScatOd .GE. 2) srcmNg(3:5, ig - ioff, jfsr) = 5._8 * srcmNg(3:5, ig - ioff, jfsr) * xstinv
-      IF (ScatOd .EQ. 3) srcmNg(6:9, ig - ioff, jfsr) = 7._8 * srcmNg(6:9, ig - ioff, jfsr) * xstinv
+      !IF (ScatOd .GE. 2) srcmNg(3:5, ig - ioff, jfsr) = 5._8 * srcmNg(3:5, ig - ioff, jfsr) * xstinv
+      !IF (ScatOd .EQ. 3) srcmNg(6:9, ig - ioff, jfsr) = 7._8 * srcmNg(6:9, ig - ioff, jfsr) * xstinv
+      IF (ScatOd .GE. 2) srcmNg(3:5, ig - ioff, jfsr) = srcmNg(3:5, ig - ioff, jfsr) * xstinv
+      IF (ScatOd .EQ. 3) srcmNg(6:9, ig - ioff, jfsr) = srcmNg(6:9, ig - ioff, jfsr) * xstinv
     END DO
   END DO
 END DO

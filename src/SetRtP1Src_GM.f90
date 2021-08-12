@@ -1,4 +1,4 @@
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
 
 USE OMP_LIB
 USE PARAM,        ONLY : ZERO, TRUE, FALSE, ONE
@@ -16,9 +16,9 @@ TYPE(PE_Type)        :: PE
 
 TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)       :: xst1g
-REAL, POINTER, DIMENSION(:,:)     :: srcm1g
-REAL, POINTER, DIMENSION(:,:,:,:) :: phim1g
+REAL, POINTER, DIMENSION(:)     :: xst1g
+REAL, POINTER, DIMENSION(:,:)   :: srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: phimNg
 
 INTEGER :: ig, ng, iz, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim, lAFSS
@@ -106,18 +106,18 @@ DO ipin = 1, nxy
       SELECT CASE (ScatOd)
       CASE (1)
         DO jg = 1, ng
-          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phim1g(1:2, jfsr, jg, iz)
+          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
         END DO
       CASE (2)
         DO jg = 1, ng
-          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phim1g(1:2, jfsr, jg, iz)
-          srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phim1g(3:5, jfsr, jg, iz)
+          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+          srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
         END DO
       CASE (3)
         DO jg = 1, ng
-          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phim1g(1:2, jfsr, jg, iz)
-          srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phim1g(3:5, jfsr, jg, iz)
-          srcm1g(6:9, jfsr) = srcm1g(6:9, jfsr) + XsMacP3Sm(jg, ig) * phim1g(6:9, jfsr, jg, iz)
+          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+          srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
+          srcm1g(6:9, jfsr) = srcm1g(6:9, jfsr) + XsMacP3Sm(jg, ig) * phimNg(6:9, jfsr, jg)
         END DO
       END SELECT
     END DO
@@ -150,10 +150,13 @@ DO ipin = 1, nxy
     jfsr   = FsrIdxSt + ifxr - 1
     xstinv = ONE / xst1g(jfsr)
     
-    srcm1g(1:2, jfsr) = 3._8 * srcm1g(1:2, jfsr) * xstinv
+    !srcm1g(1:2, jfsr) = 3._8 * srcm1g(1:2, jfsr) * xstinv
+    srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) * xstinv
     
-    IF (ScatOd .GE. 2) srcm1g(3:5, jfsr) = 5._8 * srcm1g(3:5, jfsr) * xstinv
-    IF (ScatOd .EQ. 3) srcm1g(6:9, jfsr) = 7._8 * srcm1g(6:9, jfsr) * xstinv
+    !IF (ScatOd .GE. 2) srcm1g(3:5, jfsr) = 5._8 * srcm1g(3:5, jfsr) * xstinv
+    !IF (ScatOd .EQ. 3) srcm1g(6:9, jfsr) = 7._8 * srcm1g(6:9, jfsr) * xstinv
+    IF (ScatOd .GE. 2) srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) * xstinv
+    IF (ScatOd .EQ. 3) srcm1g(6:9, jfsr) = srcm1g(6:9, jfsr) * xstinv
   END DO
 END DO
 !$OMP END DO

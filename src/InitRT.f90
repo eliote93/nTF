@@ -198,6 +198,15 @@ DO ipol = 1, nPolarAng
   END DO
 END DO
 
+DO ipol = 1, nPolarAng
+  DO iazi = 1, nAziAng
+    comp(1:2, ipol, iazi) = comp(1:2, ipol, iazi) * 3._8
+    
+    IF (scatod .GE. 2) comp(3:5, ipol, iazi) = comp(3:5, ipol, iazi) * 5._8
+    IF (scatod .EQ. 3) comp(6:9, ipol, iazi) = comp(6:9, ipol, iazi) * 7._8
+  END DO
+END DO
+
 DO ithr = 1, nThr
   TrackingDat(ithr)%mwt  => mwt
   TrackingDat(ithr)%mwt2 => mwt2

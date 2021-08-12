@@ -709,7 +709,7 @@ LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 
 END SUBROUTINE SetRtLinSrc_CASMO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type, PE_Type
 
@@ -723,7 +723,7 @@ TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
 REAL, POINTER, DIMENSION(:)       :: xst1g
 REAL, POINTER, DIMENSION(:,:)     :: srcm1g
-REAL, POINTER, DIMENSION(:,:,:,:) :: phim1g
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg
 
 INTEGER :: myzb, myze, ig, ng, iz, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim, lAFSS

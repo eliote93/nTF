@@ -53,6 +53,7 @@ DO iazi = 1, nAziAng
       SrcAng1g2(ipol, ifsr, iazi) = src1g(ifsr)
       
       tmpsrc = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
+      !tmpsrc = 3. * (comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr))
       
       SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
       SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
@@ -60,6 +61,7 @@ DO iazi = 1, nAziAng
       IF (scatod .LT. 2) CYCLE
       
       tmpsrc = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
+      !tmpsrc = 5. * (comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr))
       
       SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  tmpsrc
       SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  tmpsrc
@@ -67,6 +69,7 @@ DO iazi = 1, nAziAng
       IF (scatod .LT. 3) CYCLE
       
       tmpsrc = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
+      !tmpsrc = 7. * (comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr))
       
       SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
       SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
@@ -148,9 +151,9 @@ IF (ljout) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-ONETHREE = ONE / 3._8
-ONEFIVE  = ONE / 5._8
-ONESEVEN = ONE / 7.
+!ONETHREE = ONE / 3._8
+!ONEFIVE  = ONE / 5._8
+!ONESEVEN = ONE / 7.
 
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
@@ -169,15 +172,18 @@ DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
     phis1g(jfsr) = phis1g(jfsr) * wttmp + src1g(jfsr)
     
     !IF (.NOT. lAFSS) THEN
-      phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr) * ONETHREE
+      !phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr) * ONETHREE
+      phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr)
       
       IF (scatod .LT. 2) CYCLE
       
-      phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr) * ONEFIVE
+      !phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr) * ONEFIVE
+      phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr)
       
       IF (scatod .LT. 3) CYCLE
       
-      phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr) * ONESEVEN
+      !phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr) * ONESEVEN
+      phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr)
     !ELSE
     !  phia1g(:, :, :, jfsr) = phia1g(:, :, :, jfsr) * wttmp
     !END IF

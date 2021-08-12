@@ -114,15 +114,13 @@ DO ixy = 1, nxy
     
     phis1g(jfsr) = phis1g(jfsr) * wttmp + src1g(jfsr)
     
-    phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr) * RTHREE
+    !phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr) * RTHREE
+    phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr)
     
-    IF (ScatOd .LT. 2) CYCLE
-    
-    phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr) * RFIVE
-    
-    IF (ScatOd .LT. 3) CYCLE
-    
-    phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr) * RSEVEN
+    !IF (ScatOd .GE. 2) phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr) * RFIVE
+    !IF (ScatOd .EQ. 3) phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr) * RSEVEN
+    IF (ScatOd .GE. 2) phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr)
+    IF (ScatOd .EQ. 3) phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr)
   END DO
 END DO
 !$OMP END DO

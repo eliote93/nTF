@@ -152,15 +152,13 @@ DO ixy = 1, nxy
       
       phisNg(ig, jfsr) = phisNg(ig, jfsr) * wttmp + srcNg(ig, jfsr)
       
-      phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
+      !phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
+      phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr)
       
-      IF (ScatOd .LT. 2) CYCLE
-      
-      phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
-      
-      IF (ScatOd .LT. 3) CYCLE
-      
-      phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
+      !IF (ScatOd .GE. 2) phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
+      !IF (ScatOd .EQ. 3) phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
+      IF (ScatOd .GE. 2) phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr)
+      IF (ScatOd .EQ. 3) phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr)
     END DO
   END DO
 END DO
