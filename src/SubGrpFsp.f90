@@ -4,7 +4,7 @@ SUBROUTINE SubGrpFsp(Core, Fxr, THInfo, RayInfo,  GroupInfo, nTracerCntl, PE)
 USE PARAM,        ONLY : FALSE
 USE TYPEDEF,      ONLY : CoreInfo_Type, FxrInfo_Type, THInfo_Type, RayInfo_Type, GroupInfo_Type, PE_Type
 USE CNTL,         ONLY : nTracerCntl_Type
-USE SUBGRP_MOD,   ONLY : UpdtCoreIsoInfo, SubGrpFsp_CAT, SubGrpFsp_ISO, SubGrpFsp_MLG, CalcDancoff, CalcEscXSCP
+USE SUBGRP_MOD,   ONLY : UpdtCoreIsoInfo, SubGrpFsp_CAT, SubGrpFsp_ISO, SubGrpFsp_MLG_GM, CalcDancoff, CalcEscXSCP
 USE TH_Mod,       ONLY : Cal_RefFuelTemp
 USE IOUTIL,       ONLY : terminate
 USE SubGrpFspNM,  ONLY : SubGrpFSP_MLG_NM
@@ -54,7 +54,7 @@ ELSE
     IF (nTracerCntl%lNodeMajor) THEN
       CALL SubGrpFsp_MLG_NM(Core, Fxr, THInfo, RayInfo, GroupInfo)
     ELSE
-      CALL SubGrpFsp_MLG   (Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
+      CALL SubGrpFsp_MLG_GM(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
     END IF
   ELSE
     IF (nTracerCntl%lNodeMajor) CALL terminate("ONLY GROUP MAJOR")
@@ -423,7 +423,7 @@ TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
 
 END SUBROUTINE SubGrpFsp_ISO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
+SUBROUTINE SubGrpFsp_MLG_GM(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
 
 USE allocs
 USE PARAM,      ONLY : FALSE, ONE, ZERO, EPSM3, TRUE, VoidCell, mesg
@@ -458,7 +458,7 @@ REAL :: lv, errmax, errmaxlv, Tbeg, Tend, rt1, rt2, rtnet
 
 REAL, POINTER, DIMENSION(:)     :: phis1g, phis1gd, siglamPot, xstr1g, src1g
 REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g
-REAL, POINTER, DIMENSION(:,:,:) :: jout
+REAL, POINTER, DIMENSION(:,:,:) :: jout1g
 
 LOGICAL :: lCLD, lAIC, master, RTmaster, lDcpl, lSilent, ldcmp
 ! ----------------------------------------------------
@@ -541,9 +541,9 @@ DO iz = myzb, myze
           
           rt1   = nTracer_dclock(FALSE, FALSE)
           IF (ldcmp) THEN
-            CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE)
+            CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
           ELSE
-            CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+            CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
           END IF
           rt2   = nTracer_dclock(FALSE, FALSE)
           rtnet = rtnet + (rt2 - rt1)
@@ -599,9 +599,9 @@ DO iz = myzb, myze
         
         rt1   = nTracer_dclock(FALSE, FALSE)
         IF (ldcmp) THEN
-          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE)
+          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
         ELSE
-          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
         END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
@@ -647,9 +647,9 @@ DO iz = myzb, myze
         
         rt1   = nTracer_dclock(FALSE, FALSE)
         IF (ldcmp) THEN
-          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE)
+          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
         ELSE
-          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
+          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
         END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
@@ -692,7 +692,7 @@ TimeChk%SubGrpTime      = TimeChk%SubGrpTime      + (Tend - Tbeg)
 TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + rtnet
 ! ----------------------------------------------------
 
-END SUBROUTINE SubGrpFsp_MLG
+END SUBROUTINE SubGrpFsp_MLG_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CalcDancoff(Core, Fxr, RayInfo, THInfo, nTracerCntl, PE)
 

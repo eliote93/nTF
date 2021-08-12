@@ -110,7 +110,7 @@ END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 phisNg(gb:ge, :)    = ZERO
-phimNg(:, gb:ge, :) = ZERO
+phimNg(:, :, gb:ge) = ZERO
 IF (ljout) JoutNg(:, gb:ge, :, :) = ZERO
 
 DO ithr = 1, nthr
@@ -119,7 +119,7 @@ DO ithr = 1, nthr
       phisNg(ig, ifsr) = phisNg(ig, ifsr) + TrackingDat(ithr)%phisNg(ig, ifsr)
       
       DO iod = 1, nod
-        phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + TrackingDat(ithr)%phimNg(iod, ig, ifsr)
+        phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + TrackingDat(ithr)%phimNg(iod, ifsr, ig)
       END DO
     END DO
   END DO
@@ -152,15 +152,15 @@ DO ixy = 1, nxy
       
       phisNg(ig, jfsr) = phisNg(ig, jfsr) * wttmp + srcNg(ig, jfsr)
       
-      phimNg(1:2, ig, jfsr) = phimNg(1:2, ig, jfsr) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
+      phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
       
       IF (ScatOd .LT. 2) CYCLE
       
-      phimNg(3:5, ig, jfsr) = phimNg(3:5, ig, jfsr) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
+      phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
       
       IF (ScatOd .LT. 3) CYCLE
       
-      phimNg(6:9, ig, jfsr) = phimNg(6:9, ig, jfsr) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
+      phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
     END DO
   END DO
 END DO
@@ -328,7 +328,7 @@ DO icray = jbeg, jend, jinc
               phisNg(ig, ifsr) = phisNg(ig, ifsr) + wt(ipol) * phid
               
               DO iod = 1, nod
-                phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + mwt(iod, ipol, iazi) * phid ! NOTICE : 1
+                phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + mwt(iod, ipol, iazi) * phid ! NOTICE : 1
               END DO
             END DO
           END DO
@@ -401,7 +401,7 @@ DO icray = jbeg, jend, jinc
               phisNg(ig, ifsr) = phisNg(ig, ifsr) + wt(ipol) * phid
               
               DO iod = 1, nod
-                phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + mwt2(iod, ipol, iazi) * phid ! NOTICE : 2
+                phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + mwt2(iod, ipol, iazi) * phid ! NOTICE : 2
               END DO
             END DO
           END DO
@@ -614,7 +614,7 @@ DO icRay = jbeg, jend, jinc
             phisNg(ig, ifsr) = phisNg(ig, ifsr) + wtazi(ipol) * phid
             
             DO iod = 1, nod
-              phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
+              phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
             END DO
           END DO
         END DO

@@ -56,7 +56,7 @@ USE ALLOCS
 USE PARAM,     ONLY : ONE
 USE TYPEDEF,   ONLY : coreinfo_type
 USE GEOM,      ONLY : Core, ng, nbd
-USE Core_mod,  ONLY : Phis, psi, psid, Psic, Psicd, Power, PhiAngin, RadJout, LinSrcSlope, Phim, nCoreFsr, nCoreFxr, nPhiAngSv, CMInfo, FmInfo, wmoc, srcSlope, phisSlope, psiSlope, AsyPhiAngIn
+USE Core_mod,  ONLY : Phis, psi, psid, Psic, Psicd, Power, PhiAngin, RadJout, LinSrcSlope, Phim, nCoreFsr, nCoreFxr, nPhiAngSv, CMInfo, FmInfo, wmoc, srcSlope, phisSlope, psiSlope, AsyPhiAngIn, phia
 USE PE_MOD,    ONLY : PE
 USE RAYS,      ONLY : RayInfo, RayInfo4CMfd
 USE CNTL,      ONLY : nTracerCntl
@@ -65,7 +65,7 @@ USE XSLIB_MOD, ONLY : igresb, igrese
 
 IMPLICIT NONE
 
-INTEGER :: nFsr, nz, nModRay, nxy, nxya, myzb, myze, nPolar
+INTEGER :: nFsr, nz, nModRay, nxy, nxya, myzb, myze, nPolar, nAzi
 ! ----------------------------------------------------
 
 nFsr     = Core%nCoreFsr
@@ -79,6 +79,7 @@ myzb = PE%myzb
 myze = PE%myze
 
 nPolar    = RayInfo%nPolarAngle
+nAzi      = RayInfo%nAziAngle
 nModRay   = RayInfo%nModRay
 nPhiAngSv = RayInfo%nPhiAngSv
 
@@ -111,27 +112,14 @@ IF (nTracerCntl%lDomainDcmp) THEN
   AsyPhiAngIn = ONE
 END IF
 
+IF (nTracerCntl%lAFSS) CALL dmalloc0(phia, 1, 2, 1, nPolar, 1, nAzi, 1, nCoreFsr, 1, ng, myzb, myze)
+
 ! Flux Moments
 IF (nTracerCntl%lScat1) THEN
   SELECT CASE (nTracerCntl%SCatOd)
-  CASE (1)
-    IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL dmalloc0(phim, 1, 2, 1, nfsr, 1, ng, myzb, myze)
-    ELSE
-      CALL dmalloc0(phim, 1, 2, 1, ng, 1, nfsr, myzb, myze)
-    END IF
-  CASE (2)
-    IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL dmalloc0(phim, 1, 5, 1, nfsr, 1, ng, myzb, myze)
-    ELSE
-      CALL dmalloc0(phim, 1, 5, 1, ng, 1, nfsr, myzb, myze)
-    END IF
-  CASE (3)
-    IF (.NOT. nTracerCntl%lNodeMajor) THEN
-      CALL dmalloc0(phim, 1, 9, 1, nfsr, 1, ng, myzb, myze)
-    ELSE
-      CALL dmalloc0(phim, 1, 9, 1, ng, 1, nfsr, myzb, myze)
-    END IF
+  CASE (1); CALL dmalloc0(phim, 1, 2, 1, nfsr, 1, ng, myzb, myze)
+  CASE (2); CALL dmalloc0(phim, 1, 5, 1, nfsr, 1, ng, myzb, myze)
+  CASE (3); CALL dmalloc0(phim, 1, 9, 1, nfsr, 1, ng, myzb, myze)
   END SELECT
 END IF
 
@@ -152,7 +140,7 @@ ENDIF
 IF (nTracerCntl%lLinSrc) CALL dmalloc0(LinSrcSlope, 1, 2, 1, nfsr, myzb, myze, 1, ng)
 
 ! Decusping
-IF (nTracerCntl%lDecusp) ALLOCATE (FmInfo%neighphis (nFsr, ng, 2))
+IF (nTracerCntl%lDecusp) CALL dmalloc(FmInfo%neighphis, nFsr, ng, 2)
 
 ! Pointing
 FmInfo%phis     => Phis
@@ -165,10 +153,11 @@ FMInfo%Power    => Power
 FMInfo%RadJout  => RadJout ! 1 : In-coming / 2 : Out-going / 3 : Surf. phi
 FmInfo%w        => wmoc
 
+RayInfo4CMfd%PhiAngIn => PhiAngIn
+
 IF (nTracerCntl%lLinSrc) FmInfo%LinSrcSlope => LinSrcSlope
 IF (nTracerCntl%lScat1)  FmInfo%phim        => phim
-
-RayInfo4CMfd%PhiAngIn => PhiAngIn
+IF (nTracerCntl%lAFSS)   FmInfo%phia        => phia
 
 IF (nTracerCntl%lDomainDcmp) THEN
   FMInfo      %AsyPhiAngIn => AsyPhiAngIn

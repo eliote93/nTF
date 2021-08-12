@@ -43,7 +43,7 @@ INTERFACE
     TYPE(nTracerCntl_Type) :: nTracerCntl
     TYPE(PE_TYPE) :: PE
   END SUBROUTINE  
-  SUBROUTINE SubGrpFsp_MLG(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
+  SUBROUTINE SubGrpFsp_MLG_GM(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
     USE PARAM
     USE TYPEDEF,  ONLY : CoreInfo_Type,   FxrInfo_Type,   GroupInfo_Type,    RayInfo_Type,    PE_TYPE, THInfo_Type
     USE CNTL,     ONLY : nTracerCntl_Type

@@ -61,7 +61,7 @@ DcmpPhiAngOutNg(:, gb:ge, :, :, :) = ZERO
 
 phisNg(gb:ge, :) = ZERO
 IF (lJout) MocJoutNg(:, gb:ge, :, :) = ZERO
-phimNg(:, gb:ge, :) = ZERO
+phimNg(:, :, gb:ge) = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
   IF (lHex) THEN
@@ -115,15 +115,15 @@ DO ixy = 1, nxy
       
       phisNg(ig, jfsr) = phisNg(ig, jfsr) * wttmp + srcNg(ig, jfsr)
       
-      phimNg(1:2, ig, jfsr) = phimNg(1:2, ig, jfsr) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
+      phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
       
       IF (ScatOd .LT. 2) CYCLE
       
-      phimNg(3:5, ig, jfsr) = phimNg(3:5, ig, jfsr) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
+      phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
       
       IF (ScatOd .LT. 3) CYCLE
       
-      phimNg(6:9, ig, jfsr) = phimNg(6:9, ig, jfsr) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
+      phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
     END DO
   END DO
 END DO
@@ -200,7 +200,7 @@ END SELECT
 CALL dmalloc0(TrackingLoc%phisNg, gb, ge, FsrSt, FsrEd)
 IF (ljout) CALL dmalloc0(TrackingLoc%JoutNg, 1, 3, gb, ge, 1, nbd, PinSt, PinEd)
 
-CALL dmalloc0(TrackingLoc%phimNg, 1, nOd, gb, ge, FsrSt, FsrEd)
+CALL dmalloc0(TrackingLoc%phimNg, 1, nOd, FsrSt, FsrEd, gb, ge)
 
 srcNg => TrackingLoc%srcNg
 ! ----------------------------------------------------
@@ -305,7 +305,7 @@ DO ifsr = FsrSt, FsrEd
     phisNg(ig, ifsr) = phisNg(ig, ifsr) + TrackingLoc%phisNg(ig, ifsr)
     
     DO iod = 1, nod
-      phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + TrackingLoc%phimNg(iod, ig, ifsr)
+      phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + TrackingLoc%phimNg(iod, ifsr, ig)
     END DO
   END DO
 END DO
@@ -521,7 +521,7 @@ DO imray = jbeg, jend, jinc
           phisNg(ig, iFSR) = phisNg(ig, iFSR) + wtazi(ipol) * phid
           
           DO iod = 1, nod
-            phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
+            phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
           END DO
         END DO
       END DO

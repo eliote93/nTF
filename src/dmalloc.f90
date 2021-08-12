@@ -43,6 +43,7 @@ module allocs
     module procedure mallocd05
     module procedure malloci05
     module procedure mallocl05
+    module procedure mallocd06
     END interface
     !
     contains
@@ -351,5 +352,12 @@ module allocs
     a=.FALSE.
     nbytesf=nbytesf+size(a)
     END SUBROUTINE
+    !
+    SUBROUTINE mallocd06(a,nb1,ne1,nb2,ne2,nb3,ne3,nb4,ne4,nb5,ne5,nb6,ne6)
 
+    REAL(8),pointer :: a(:,:,:,:,:,:)
+    allocate(a(nb1:ne1,nb2:ne2,nb3:ne3,nb4:ne4,nb5:ne5,nb6:ne6))
+    a=0
+    nbytesf=nbytesf+size(a)
+    END SUBROUTINE
 END module

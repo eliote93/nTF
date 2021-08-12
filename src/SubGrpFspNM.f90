@@ -41,8 +41,8 @@ INTEGER :: ig, iz, ilv, iter, itersum, itermax, ithr, mg, nlv, nFsr, nFxr, nPhiA
 REAL :: errmax, Tbeg, Tend, rtTbeg, rtTend
 LOGICAL :: lCLD, lAIC, ldcmp
 
-REAL, POINTER, DIMENSION(:,:)     :: phis, phisd, Siglp, xst, src
-REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, phisdNg, SiglpNg, xstNg, srcNg
+REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 ! ----------------------------------------------------
 
@@ -82,16 +82,16 @@ DO iz = myzb, myze
   ge = GroupInfo%nofg + GroupInfo%norg
   mg = mlgdata(iz)%f_nmaclv * GroupInfo%norg
   
-  CALL dmalloc(phis,   mg, nFsr)
-  CALL dmalloc(phisd,  mg, nFsr)
-  CALL dmalloc(Siglp,  mg, nFxr)
-  CALL dmalloc(xst,    mg, nFsr)
-  CALL dmalloc(src,    mg, nFsr)
-  CALL dmalloc(PhiAngIn, nPolarAngle, mg, nPhiAngSv)
+  CALL dmalloc(phisNg,  mg, nFsr)
+  CALL dmalloc(phisdNg, mg, nFsr)
+  CALL dmalloc(SiglpNg, mg, nFxr)
+  CALL dmalloc(xstNg,   mg, nFsr)
+  CALL dmalloc(srcNg,   mg, nFsr)
+  CALL dmalloc(PhiAngInNg, nPolarAngle, nPhiAngSv, mg)
   
-  phis     = ONE
-  PhiAngIn = ONE
-  PhiAngIn(:, :, 1) = ZERO
+  phisNg     = ONE
+  PhiAngInNg = ONE
+  PhiAngInNg(:, 1, :) = ZERO
   
   IF (ldcmp) THEN
     DEALLOCATE (DcmpPhiAngOutNg)
@@ -108,33 +108,33 @@ DO iz = myzb, myze
   END IF
   
   CALL UpdtFnAdj_NM      (Core, Fxr, iz, gb, ge)
-  CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
-  CALL SetSubGrpSrc_NM   (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  CALL SetPlnLsigP_MLG_NM(Core, Fxr, SiglpNg, xstNg, iz, gb, ge)
+  CALL SetSubGrpSrc_NM   (Core, Fxr, SiglpNg, xstNg, srcNg, iz, 1, mg)
   
   DO iter = 1, itermax
-    CALL CopyFlux(phis, phisd, nFsr, mg)
+    CALL CopyFlux(phisNg, phisdNg, nFsr, mg)
     
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     
-    CALL EquipXSGen_MLG_NM(Core, Fxr, Siglp, xst, phis, iz, gb, ge)
+    CALL EquipXSGen_MLG_NM(Core, Fxr, SiglpNg, xstNg, phisNg, iz, gb, ge)
     CALL UpdtFtAdj_NM     (Core, Fxr, iz, gb, ge)
     
-    errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
+    errmax = SubGrpFspErr_NM(phisNg, phisdNg, nFsr, mg)
     
     IF (errmax .LT. EPSM3) EXIT
     IF (iter .EQ. itermax) EXIT
     
-    CALL SetPlnLsigP_MLG_NM(Core, Fxr, Siglp, xst, iz, gb, ge)
-    CALL SetSubGrpSrc_NM   (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+    CALL SetPlnLsigP_MLG_NM(Core, Fxr, SiglpNg, xstNg, iz, gb, ge)
+    CALL SetSubGrpSrc_NM   (Core, Fxr, SiglpNg, xstNg, srcNg, iz, 1, mg)
   END DO
   
   WRITE (mesg, '(2X, A, I3, A, I5,1P, E13.3)') '[Fuel] Pln', iz, '  In_itr', iter, errmax
@@ -142,7 +142,7 @@ DO iz = myzb, myze
   
   itersum = itersum + iter
 
-  DEALLOCATE(phis, phisd, PhiAngIn, Siglp, xst, src)
+  DEALLOCATE(phisNg, phisdNg, PhiAngInNg, SiglpNg, xstNg, srcNg)
 END DO
 
 #ifdef MPI_ENV
@@ -161,16 +161,16 @@ DO iz = myzb, myze
   lAIC = FALSE
   mg   = mlgdata0%c_nmaclv1G
 
-  CALL dmalloc(phis,   mg, nFsr)
-  CALL dmalloc(phisd,  mg, nFsr)
-  CALL dmalloc(Siglp,  mg, nFxr)
-  CALL dmalloc(xst,    mg, nFsr)
-  CALL dmalloc(src,    mg, nFsr)
-  CALL dmalloc(PhiAngIn, nPolarAngle, mg, nPhiAngSv)
+  CALL dmalloc(phisNg,   mg, nFsr)
+  CALL dmalloc(phisdNg,  mg, nFsr)
+  CALL dmalloc(SiglpNg,  mg, nFxr)
+  CALL dmalloc(xstNg,    mg, nFsr)
+  CALL dmalloc(srcNg,    mg, nFsr)
+  CALL dmalloc(PhiAngInNg, nPolarAngle, nPhiAngSv, mg)
   
-  phis     = ONE
-  PhiAngIn = ONE
-  PhiAngIn(:, :, 1) = ZERO
+  phisNg     = ONE
+  PhiAngInNg = ONE
+  PhiAngInNg(:, 1, :) = ZERO
   
   IF (ldcmp) THEN
     DEALLOCATE (DcmpPhiAngOutNg)
@@ -187,24 +187,24 @@ DO iz = myzb, myze
     END DO
   END IF
   
-  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
-  CALL SetSubGrpSrc_NM     (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, SiglpNg, xstNg, iz, lCLD, lAIC)
+  CALL SetSubGrpSrc_NM     (Core, Fxr, SiglpNg, xstNg, srcNg, iz, 1, mg)
   
   DO iter = 1, itermax
-    CALL CopyFlux(phis, phisd, nFsr, mg)
+    CALL CopyFlux(phisNg, phisdNg, nFsr, mg)
     
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     
-    errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
+    errmax = SubGrpFspErr_NM(phisNg, phisdNg, nFsr, mg)
     
     IF (errmax .LT. EPSM3) EXIT
     IF (iter .EQ. itermax) EXIT
@@ -215,9 +215,9 @@ DO iz = myzb, myze
   
   itersum = itersum + iter
   
-  CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, mg, lCLD, lAIC)
+  CALL EquipXSGen_1gMLG_NM(Core, Fxr, SiglpNg, phisNg, xstNg, iz, mg, lCLD, lAIC)
 
-  DEALLOCATE(phis, phisd, PhiAngIn, Siglp, xst, src)
+  DEALLOCATE(phisNg, phisdNg, PhiAngInNg, SiglpNg, xstNg, srcNg)
 END DO
 
 #ifdef MPI_ENV
@@ -236,16 +236,16 @@ DO iz = myzb, myze
   lAIC = TRUE
   mg   = mlgdata(iz)%f_nmaclv1G
 
-  CALL dmalloc(phis,   mg, nFsr)
-  CALL dmalloc(phisd,  mg, nFsr)
-  CALL dmalloc(Siglp,  mg, nFxr)
-  CALL dmalloc(xst,    mg, nFsr)
-  CALL dmalloc(src,    mg, nFsr)
-  CALL dmalloc(PhiAngIn, nPolarAngle, mg, nPhiAngSv)
+  CALL dmalloc(phisNg,   mg, nFsr)
+  CALL dmalloc(phisdNg,  mg, nFsr)
+  CALL dmalloc(SiglpNg,  mg, nFxr)
+  CALL dmalloc(xstNg,    mg, nFsr)
+  CALL dmalloc(srcNg,    mg, nFsr)
+  CALL dmalloc(PhiAngInNg, nPolarAngle, nPhiAngSv, mg)
   
-  phis     = ONE
-  PhiAngIn = ONE
-  PhiAngIn(:, :, 1) = ZERO
+  phisNg     = ONE
+  PhiAngInNg = ONE
+  PhiAngInNg(:, :, 1) = ZERO
   
   IF (ldcmp) THEN
     DEALLOCATE (DcmpPhiAngOutNg)
@@ -262,24 +262,24 @@ DO iz = myzb, myze
     END DO
   END IF
   
-  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, Siglp, xst, iz, lCLD, lAIC)
-  CALL SetSubGrpSrc_NM     (Core, Fxr, Siglp, xst, src, iz, 1, mg)
+  CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, SiglpNg, xstNg, iz, lCLD, lAIC)
+  CALL SetSubGrpSrc_NM     (Core, Fxr, SiglpNg, xstNg, srcNg, iz, 1, mg)
   
   DO iter = 1, itermax
-    CALL CopyFlux(phis, phisd, nFsr, mg)
+    CALL CopyFlux(phisNg, phisdNg, nFsr, mg)
     
     rtTbeg = nTracer_dclock(FALSE, FALSE)
     
     IF (ldcmp) THEN
-      CALL RayTraceDcmp_NM(RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
+      CALL RayTraceDcmp_NM(RayInfo, Core, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, 1, mg, FALSE)
     ELSE
-      CALL RayTrace_NM    (RayInfo, Core, phis, PhiAngIn, xst, src, JoutNg, iz, 1, mg, FALSE)
+      CALL RayTrace_NM    (RayInfo, Core, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, 1, mg, FALSE)
     END IF
     
     rtTend = nTracer_dclock(FALSE, FALSE)
     TimeChk%NetRTSubGrpTime = TimeChk%NetRTSubGrpTime + (rtTend - rtTbeg)
     
-    errmax = SubGrpFspErr_NM(phis, phisd, nFsr, mg)
+    errmax = SubGrpFspErr_NM(phisNg, phisdNg, nFsr, mg)
     
     IF (errmax .LT. EPSM3) EXIT
     IF (iter .EQ. itermax) EXIT
@@ -290,9 +290,9 @@ DO iz = myzb, myze
   
   itersum = itersum + iter
   
-  CALL EquipXSGen_1gMLG_NM(Core, Fxr, Siglp, phis, xst, iz, mg, lCLD, lAIC)
+  CALL EquipXSGen_1gMLG_NM(Core, Fxr, SiglpNg, phisNg, xstNg, iz, mg, lCLD, lAIC)
 
-  DEALLOCATE (phis, phisd, PhiAngIn, Siglp, xst, src)
+  DEALLOCATE (phisNg, phisdNg, PhiAngInNg, SiglpNg, xstNg, srcNg)
 END DO
 ! ----------------------------------------------------
 #ifdef MPI_ENV

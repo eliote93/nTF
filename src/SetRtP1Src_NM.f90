@@ -110,22 +110,22 @@ DO ipin = xyb, xye
         SELECT CASE (ScatOd)
         CASE (1)
           DO jg = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jg, jfsr)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
           END DO
           
           srcmNg(1:2, ig - ioff, jfsr) = scatSrc(1:2)
         CASE (2)
           DO jg = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jg, jfsr)
-            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jg, jfsr)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
           ENDDO
           
           srcmNg(1:5, ig - ioff, jfsr) = scatSrc(1:5)
         CASE (3)
           DO jg = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jg, jfsr)
-            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jg, jfsr)
-            scatSrc(6:9) = scatSrc(6:9) + XsMacP3Sm(jg, ig) * phimNg(6:9, jg, jfsr)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
+            scatSrc(6:9) = scatSrc(6:9) + XsMacP3Sm(jg, ig) * phimNg(6:9, jfsr, jg)
           ENDDO
           
           srcmNg(1:9, ig - ioff, jfsr) = scatSrc(1:9)

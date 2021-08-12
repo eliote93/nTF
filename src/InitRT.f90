@@ -225,7 +225,7 @@ IF (.NOT. ldcmp) THEN
       TrackingDat(ithr)%SrcAngNg1 => SrcAngNg1
       TrackingDat(ithr)%SrcAngNg2 => SrcAngNg2
       
-      CALL dmalloc(TrackingDat(ithr)%phimNg, nod, ng, nFsr)
+      CALL dmalloc(TrackingDat(ithr)%phimNg, nod, nFsr, ng)
     END DO
   END IF
 END IF
