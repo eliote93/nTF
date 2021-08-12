@@ -6,7 +6,7 @@ USE TYPEDEF,     ONLY : CoreInfo_Type, RayInfo_Type, FmInfo_Type, PE_TYPE, FxrIn
 USE CNTL,        ONLY : nTracerCntl_Type
 USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
-USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtP1SrcGM, AddBucklingGM, PseudoAbsorptionGM, RayTrace_GM, RayTraceP1_GM, phis1g, phim1g, MocJout1g, xst1g, src1g, PhiAngin1g, srcm1g, AxSrc1g, &
+USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtP1SrcGM, AddBucklingGM, PseudoAbsorptionGM, RayTrace_GM, RayTraceP1_GM, phis1g, phim1g, MocJout1g, xst1g, src1g, PhiAngin1g, srcm1g, phia1g, AxSrc1g, &
                         SetRtMacXsNM, SetRtsrcNM, SetRtP1srcNM, AddBucklingNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, phimNg, MocJoutNg, xstNg, srcNg, PhiAngInNg, srcmNg, &
                         PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         SetRtLinSrc, LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
@@ -40,7 +40,7 @@ TYPE (ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, nscttod, fmoclv
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, ScatOd, fmoclv
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
@@ -93,10 +93,10 @@ END IF
 CALL omp_set_num_threads(PE%nThread)
 
 ! Basic
-myzb    = PE%myzb
-myze    = PE%myze
-lJout   = TRUE
-nscttod = nTracerCntl%scatod
+myzb   = PE%myzb
+myze   = PE%myze
+lJout  = TRUE
+ScatOd = nTracerCntl%scatod
 
 nPolarAngle = RayInfo%nPolarAngle
 nPhiAngSv   = RayInfo%nPhiAngSv
@@ -155,9 +155,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
       CALL message(io8, TRUE, TRUE, mesg)
     END IF
     
-    IF (RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
-    
-    IF (lLinSrc .AND. RTMaster) CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
+    IF (RTMaster) THEN
+      CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+      
+      IF (lLinSrc) CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
+    END IF
     
     DO jswp = 1, nginfo
       GrpBeg = grpbndy(1, jswp)
@@ -169,7 +171,15 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
         DO iz = myzb, myze
           IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
           
-          IF (RTMASTER .AND. l3dim) AxSrc1g = AxSrc(:, iz, ig)
+          IF (RTMASTER) THEN
+            PhiAngin1g => FmInfo%PhiAngin(:, :, ig, iz)
+            
+            MocJout1g => RadJout(:, :, :, iz, ig)
+            
+            IF (l3dim)  AxSrc1g         = AxSrc(:, iz, ig)
+            IF (lscat1) phim1g         => phim(:, :, ig, iz)
+            IF (ldcmp)  DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)
+          END IF
           
           DO iinn = 1, ninn
             ljout = iinn.EQ.ninn .OR. lmocUR
@@ -186,12 +196,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
               ! SET : Src.
               CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              PhiAngin1g => FmInfo%PhiAngin(:, :, ig, iz)
-              
-              IF (lscat1) phim1g => phim(:, :, ig, iz)
-              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm1g, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, nscttod, PE)
-              
-              IF (ldcmp) DcmpPhiAngIn1g => FMInfo%AsyPhiAngIn(:, :, :, :, ig, iz)
+              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm1g, phim, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, lAFSS, ScatOd, PE)
             END IF
             
             ! Ray Trace
@@ -200,7 +205,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
                 IF (.NOT. lscat1) THEN
                   CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, nscttod, fmoclv)
+                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, phia1g, iz, lJout, ScatOd, fmoclv)
                 END IF
               ELSE
                 IF (lScat1) THEN
@@ -226,15 +231,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             
             IF (.NOT. lmocUR) THEN
               phis(:, iz, ig) = phis1g
-              
-              IF (lScat1) phim(:, :, ig, iz) = phim1g
             ELSE
               CALL FluxUnderRelaxation   (Core, Phis1g, Phis, FmInfo%w(ig), iz, ig, PE)
               CALL FluxInUnderRelaxation (Core, PhiANgIn1g, FmInfo%PhiAngIn, FmInfo%w(ig), nPolarAngle, nPhiAngSv, iz, ig, PE)
               CALL CurrentUnderRelaxation(Core, MocJout1g, RadJout, FmInfo%w(ig),iz, ig, PE)
             END IF
-            
-            IF (lJout .AND. RTMASTER .AND. .NOT. lmocUR) RadJout(:, :, :, iz, ig) = MocJout1g
           END DO
         END DO
         
@@ -265,9 +266,11 @@ ELSE
       CALL message(io8, TRUE, TRUE, mesg)
     END IF
     
-    IF (RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
-    
-    IF (lLSCASMO .AND. RTMaster) CALL LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
+    IF (RTMaster) THEN
+      CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+      
+      IF (lLSCASMO) CALL LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
+    END IF
     
     DO iz = myzb, myze
       IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
@@ -281,8 +284,7 @@ ELSE
         PhiAngInNg => FmInfo%PhiAngIn(:, :, :, iz)
         
         IF (lscat1) phimNg => phim(:, :, :, iz)
-        
-        IF (ldcmp) DcmpPhiAngInNg => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
+        IF (ldcmp)  DcmpPhiAngInNg => FMInfo%AsyPhiAngIn(:, :, :, :, :, iz)
         
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
 #ifdef LkgSplit
@@ -307,7 +309,7 @@ ELSE
             IF (.NOT. lLSCASMO) THEN
               CALL SetRtsrcNM(Core, Fxr(:, iz), srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNg, phimNg, xstNg, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, nscttod, PE)
+              IF (lScat1) CALL SetRtP1srcNM(Core, Fxr(:, iz), srcmNg, phimNg, xstNg, iz, GrpBeg, GrpEnd, ng, GroupInfo, lXsLib, ScatOd, PE)
             ELSE
               CALL SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNg, phisSlope, srcNg, srcSlope, psi, psiSlope, AxSrc, xstNg, eigv, iz, GrpBeg, GrpEnd, ng, GroupInfo, l3dim, lxslib, lscat1, FALSE)
             END IF

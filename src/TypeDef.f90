@@ -618,53 +618,28 @@ TYPE DcplCmfdLs_Type
 END TYPE
 
 TYPE FMInfo_TYPE
-
-  REAL, POINTER :: Phis(:, :, :) !nFsr, iz, ng
-  REAL, POINTER :: Phi1a(:, :, :, :, :) !Polar, nFsr, Azimuthal, iz, ng
-  REAL, POINTER :: Phi2a(:, :, :, :, :) !Polar, nFsr, Azimuthal, iz, ng
-  REAL, POINTER :: PhiAngIn(:, :, :, :)
-  REAL, POINTER :: AsyPhiAngIn(:, :, :, :, :, :)   !--- CNJ Edit : Domain Decomposition
-  REAL, POINTER :: Psi(:, :), PsiD(:, :)
-  REAL, POINTER :: PsiC(:, :), PsicD(:, :)
-  REAL, POINTER :: Power(:, :)
-  REAL, POINTER :: RadJout(:, :, :, :, :)
-  REAL, POINTER :: AxSrc(:, :, :), AxPXS(:, :, :)
-  REAL, POINTER :: phim(:, :, :, :)
-  REAL, POINTER :: LinSrcSlope(:, :, :, :)
-  REAL, POINTER :: PhiCrit(:), SpecConv(:)
-
-  REAL, POINTER :: gPhis(:, :, :) !-- JSU EDIT 2017/08/10
-
-  REAL,POINTER :: w(:)   !Under Relaxation Factor
-  TYPE(FXRInfo_TYPE), POINTER :: Fxr(:, :)
-
-  !Transient Variables----------------------------------------------------------------------------------
-  REAL, POINTER :: TranPower(:, :)
-  REAL, POINTER :: TranPhi(:, :, :)
-  REAL, POINTER :: Prec(:, :, :)                     !Precursor Number density
-  REAL, POINTER :: PrecSrc(:, :)
-  REAL, POINTER :: PrecSrcK(:, :, :)
-  REAL, POINTER :: TranPsi(:, :), TranPsid(:, :)
-  REAL, POINTER :: ResSrc(:, :, :)                   !Connected with CmInfo%ResSrc using Pointers
-  REAL, POINTER :: neighPhis(:, :, :)                !Neighbor phis for AFW decusping
-
-  !BDF
-  REAL, POINTER :: TranPhi2(:, :, :), TranPhi3(:, :, :), TranPhi4(:, :, :), TranPhi5(:, :, :)
-
-  !SCM
-  REAL, POINTER :: TranPrec(:, :, :)
-
-  REAL, POINTER :: PhiSCM(:, :, :)
-  REAL, POINTER :: PsiSCM(:, :)
-  REAL, POINTER :: xsnfSCM(:, :, :)
-
-  !AfSrc
-  REAL, POINTER :: TranPhi1a(:, :, :, :, :), TranPhi2a(:, :, :, :, :)
-
+  REAL, POINTER, DIMENSION(:)           :: PhiCrit, SpecConv, w
+  REAL, POINTER, DIMENSION(:,:)         :: psi, psid, psic, psicd, power
+  REAL, POINTER, DIMENSION(:,:,:)       :: phis, AxSrc, AxPxs, gPhis
+  REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn, phim, LinSrcSlope
+  REAL, POINTER, DIMENSION(:,:,:,:,:)   :: RadJout
+  REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn, phia
+  
+  TYPE (FXRInfo_TYPE), POINTER, DIMENSION(:,:) :: Fxr
+  ! ----------------------------------------------------
+  REAL, POINTER, DIMENSION(:,:)   :: TranPower, PrecSrc, TranPsi, TranPsid
+  REAL, POINTER, DIMENSION(:,:,:) :: TranPhi, Prec, PrecSrcK, ResSrc, neighPhis
+  
+  ! BDF
+  REAL, POINTER, DIMENSION(:,:,:) :: TranPhi2, TranPhi3, TranPhi4, TranPhi5
+  
+  ! SCM
+  REAL, POINTER, DIMENSION(:,:)   :: PsiSCM
+  REAL, POINTER, DIMENSION(:,:,:) :: TranPrec, PhiSCM, xsnfSCM
+  
   !AM3
-  REAL, POINTER :: ResSrcD(:, :, :)
-  !-----------------------------------------------------------------------------------------------------
-ENDTYPE
+  REAL, POINTER, DIMENSION(:,:,:) :: ResSrcD
+END TYPE FMinfo_type
 
 
 TYPE CMInfo_Type

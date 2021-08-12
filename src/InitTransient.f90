@@ -23,8 +23,6 @@ USE CORE_MOD,         ONLY : FmInfo,            CmInfo,            GroupInfo,   
                              AvgShpFrqCm,       AvgShpFrqFm,       PrecFrqCm,          PrecFrqFm,  &
                              PhiSCM,            PhiCSCM,           PsiSCM,             PsiCSCM,    &
                              xsnfSCM,                                                              &
-                             !AfSrc                                                                &
-                             TranPhi1a,         TranPhi2a,                                         &
                              !AM3
                              ResSrcCmd,         ResSrcFmd
 USE TRAN_MOD,         ONLY : TranCntl,          TranInfo,          XsChange,                       &

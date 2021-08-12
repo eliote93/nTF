@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, phia1g, iz, ljout, ScatOd, FastMocLv)
 
 USE TIMER
 USE ALLOCS
@@ -16,9 +16,10 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
-REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, srcm1g, phim1g
-REAL, POINTER, DIMENSION(:,:,:) :: jout1g
+REAL, POINTER, DIMENSION(:)       :: phis1g, xst1g, src1g
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, srcm1g, phim1g
+REAL, POINTER, DIMENSION(:,:,:)   :: jout1g
+REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 INTEGER :: iz, ScatOd
 LOGICAL :: ljout, lAFSS
@@ -114,7 +115,11 @@ IF (.NOT. lAFSS) THEN
     phim1g = phim1g + TrackingDat(ithr)%phim1g
   END DO
 ELSE
+  !phia1g = ZERO
+  
   DO ithr = 1, nThr
+    !phia1g = phia1g + TrackingDat(ithr)%phia1g
+    
     DO iazi = 1, RayInfo%nAziAngle
       DO ipol = 1, RayInfo%nPolarAngle
         DO ifsr = 1, nFsr
@@ -133,11 +138,6 @@ ELSE
       END DO
     END DO
   END DO
-  !phia1g = ZERO
-  !
-  !DO ithr = 1, nThr
-  !  phia1g = phia1g + TrackingDat(ithr)%phia1g
-  !END DO
 END IF
 
 IF (ljout) THEN
@@ -168,15 +168,19 @@ DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
     
     phis1g(jfsr) = phis1g(jfsr) * wttmp + src1g(jfsr)
     
-    phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr) * ONETHREE
-    
-    IF (scatod .LT. 2) CYCLE
-    
-    phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr) * ONEFIVE
-    
-    IF (scatod .LT. 3) CYCLE
-    
-    phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr) * ONESEVEN
+    !IF (.NOT. lAFSS) THEN
+      phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr) * ONETHREE
+      
+      IF (scatod .LT. 2) CYCLE
+      
+      phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr) * ONEFIVE
+      
+      IF (scatod .LT. 3) CYCLE
+      
+      phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr) * ONESEVEN
+    !ELSE
+    !  phia1g(:, :, :, jfsr) = phia1g(:, :, :, jfsr) * wttmp
+    !END IF
   END DO
 END DO
 !$OMP END PARALLEL

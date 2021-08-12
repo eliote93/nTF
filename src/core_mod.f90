@@ -1,106 +1,92 @@
 MODULE Core_mod
-USE PARAM
-USE TYPEDEF, ONLY : Fxrinfo_type,   PinXs_Type,    GroupInfo_Type,       &
-                    CMFDLS_TYPE,    AXFLX_TYPE,                          &
-                    CMInfo_Type,    FMInfo_Type,                         &
-                    THInfo_Type
+  
+USE PARAM,   ONLY : ONE
+USE TYPEDEF, ONLY : Fxrinfo_type, PinXs_Type, GroupInfo_Type, CMFDLS_TYPE, AXFLX_TYPE, CMInfo_Type, FMInfo_Type, THInfo_Type
 
 INTEGER :: nCoreFsr, nCoreFxr, nPhiAngSv
 
-REAL :: eigv = 1.0_8
-REAL :: peigv = 1.0_8
-REAL :: eigv_adj = 1.0_8
-REAL :: peigv_adj = 1.0_8
-REAL :: xkconv, xkcrit                                      !Converged K, Critical K
+REAL :: eigv      = ONE
+REAL :: peigv     = ONE
+REAL :: eigv_adj  = ONE
+REAL :: peigv_adj = ONE
 
-REAL, POINTER, SAVE :: PHIS(:,:,:)                          !Scalar Flux Vectors
-REAL, POINTER, SAVE :: PSI(:,:), PSID(:,:)                  !Fsr FIssion Scource
-REAL, POINTER, SAVE :: Power(:, :)                           !Power
-REAL, POINTER, SAVE :: PSIC(:,:), PSICD(:,:)                !Cell Fission Source Term
+REAL :: xkconv ! Converged K
+REAL :: xkcrit ! Critical K
 
-REAL, POINTER, SAVE :: LinSrcSlope(:, :, :, :)                 !Linear Source Approx. Slope
+! Basic 
+REAL, POINTER, SAVE, DIMENSION(:)           :: wmoc
+REAL, POINTER, SAVE, DIMENSION(:,:)         :: psi, psid    ! FSR FIssion Scource
+REAL, POINTER, SAVE, DIMENSION(:,:)         :: power
+REAL, POINTER, SAVE, DIMENSION(:,:)         :: psic, psicd  ! Cell Fission Source
+REAL, POINTER, SAVE, DIMENSION(:,:,:)       :: phis         ! Scalar Flux
+REAL, POINTER, SAVE, DIMENSION(:,:,:)       :: AxSrc, AxPxs ! Axial Source, Psuedo Absorption XS
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:)     :: PhiAngIn     ! Angular Flux at the Boundary
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:)     :: phim
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:)   :: RadJout      ! Moc Jout (idir, ibd, ixy, iz, ig)
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:,:) :: phia         ! Angular Flux (idir, ipol, iazi, ifsr, ig, iz)
 
-!--- CNJ Edit : CASMO Linear Source
-REAL, POINTER :: srcSlope(:, :, :, :)
-REAL, POINTER :: phisSlope(:, :, :, :)
-REAL, POINTER :: psiSlope(:, :, :)
+! Linear Source
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:) :: LinSrcSlope ! Linear Source Approx. Slope
 
-!REAL, POINTER, SAVE :: tSrc(:,:)                           !
-!REAL, POINTER, SAVE :: xst1g(:,:)                          !transport XS
-REAL, POINTER, SAVE :: PhiAngin(:,:,:,:)                    !Angular Flux data at the boundary
+REAL, POINTER, DIMENSION(:,:,:)   :: psiSlope
+REAL, POINTER, DIMENSION(:,:,:,:) :: srcSlope, phisSlope
 
-!--- CNJ Edit : Domain Decomposition
-REAL, POINTER :: AsyPhiAngIn(:, :, :, :, :, :)
+! Domain Decomposition
+REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn
 
-REAL, POINTER, SAVE :: RadJout(:, :, :, :, :)               !Moc Jout (Surface, Pin, Plane, Group)
-REAL, POINTER, SAVE :: AxSrc(:, :, :), AxPXS(:, :, :)       !Axial Source, Psuedo Absorption XS
-REAL, POINTER, SAVE :: wmoc(:)
-!REAL, POINTER, SAVE :: MocJout1g(:, :, :, :)
-!REAL, POINTER, SAVE ::
- 
-!REAL, POINTER, SAVE :: PHIS1g(:, :)
+! CMFD
+TYPE (PinXS_Type), POINTER, DIMENSION(:,:) :: PinXS
 
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
-REAL, POINTER, SAVE :: PhiC(:, :, :)
-REAL, POINTER, SAVE :: PhiFm(:, :, :), PsiFm(:, :), PsiFmD(:, :)
-REAL, POINTER, SAVE :: phim(:, :, :, :)
-REAL, POINTER, SAVE :: AxDtil(:, :, :, :), AxDhat(:, :, :, :), AxPDhat(:, :, :, :)
-!Group Condensed CMFD
-TYPE(PinXS_TYPE), POINTER :: GcPinXS(:, :)      !Group Condensed PinXS
-TYPE(CMFDLS_TYPE), POINTER :: GcCMFDLS(:)
-!TYPE(CMFDLS_TYPE), POINTER :: CMFD2GLS(:)
-REAL, POINTER :: GcPsiC(:, :), GcPsicD(:, :)
-REAL, POINTER :: GcPhiC(:, :, :)
-!Critical Spectrum
-REAL, POINTER, SAVE :: PhiCrit(:), SpecConv(:)              ! Critical Spectrum and Conversion Factor
+REAL, POINTER, SAVE, DIMENSION(:,:)     :: PsiFm, PsiFmD
+REAL, POINTER, SAVE, DIMENSION(:,:,:)   :: PhiC, PhiFm
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:) :: AxDtil, AxDhat, AxPDhat
 
-!Transient Variables------------------------------------------------------------------------------------
-REAL, POINTER, SAVE :: TranPhi(:, :, :)
-REAL, POINTER, SAVE :: TranPhiCm(:, :, :), TranPhiFm(:, :, :)   
+! Group Condensed CMFD
+TYPE (PinXS_TYPE),  POINTER, DIMENSION(:,:) :: GcPinXS
+TYPE (CMFDLS_TYPE), POINTER, DIMENSION(:)   :: GcCMFDLS
 
-REAL, POINTER, SAVE :: Prec(:, :, :)                         ! Precursor Number Density
-REAL, POINTER, SAVE :: PrecCm(:, :, :) ,PrecFm(:, :, :)      ! Precursor Number Density
+REAL, POINTER, DIMENSION(:,:)   :: GcPsiC, GcPsicD
+REAL, POINTER, DIMENSION(:,:,:) :: GcPhiC
 
-REAL, POINTER, SAVE :: TranPsi(:, :), TranPsid(:, :)            ! Transient Fission Source
-REAL, POINTER, SAVE :: TranPsiCm(:, :), TranPsiCmd(:, :)
-REAL, POINTER, SAVE :: TranPsiFm(:, :), TranPsiFmd(:, :)
+! Critical Spectrum
+REAL, POINTER, SAVE, DIMENSION(:) :: PhiCrit  ! Critical Spectrum
+REAL, POINTER, SAVE, DIMENSION(:) :: SpecConv ! Conversion Factor
+! ------------------------------------------------------------------------------------------------------------
+! Transient Variables
+REAL, POINTER, SAVE, DIMENSION(:,:) :: TranPsi, TranPsid ! Transient Fission Source
+REAL, POINTER, SAVE, DIMENSION(:,:) :: TranPsiCm, TranPsiCmd, TranPsiFm, TranPsiFmd
 
-REAL, POINTER, SAVE :: ResSrcCm(:, :, :), ResSrcFm(:, :, :)   !Theta Method Source 
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: TranPhi, TranPhiCm, TranPhiFm
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: Prec, PrecCm, PrecFm ! Precursor Number Density
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: ResSrcCm, ResSrcFm   ! Theta Method Source 
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: GcTranSrc
 
-REAL, POINTER, SAVE :: GcTranSrc(:, :, :)
+! Adaptive Theta
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: ThetaCM
 
-!Adaptive Theta
-REAL, POINTER, SAVE :: ThetaCM(:, :, :)
+! BDF Variables
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: TranPhi2, TranPhi3, TranPhi4, TranPhi5
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: TranPhiCm2, TranPhiCm3, TranPhiCm4, TranPhiCm5
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: TranPhiFm2, TranPhiFm3, TranPhiFm4, TranPhiFm5
 
-!BDF Variables
-REAL, POINTER, SAVE :: TranPhi2(:, :, :), TranPhi3(:, :, :), TranPhi4(:, :, :), TranPhi5(:, :, :)
-REAL, POINTER, SAVE :: TranPhiCm2(:, :, :), TranPhiCm3(:, :, :), TranPhiCm4(:, :, :), TranPhiCm5(:, :, :)
-REAL, POINTER, SAVE :: TranPhiFm2(:, :, :), TranPhiFm3(:, :, :), TranPhiFm4(:, :, :), TranPhiFm5(:, :, :)
+! SCM Variables
+REAL, POINTER, SAVE, DIMENSION(:,:) :: PsiSCM, PsiCSCM
 
-!SCM Variables
-REAL, POINTER, SAVE :: TranPrec(:, :, :)
-REAL, POINTER, SAVE :: ShpFrqCM(:, :, :), ShpFrqCMd(:, :, :)
-REAL, POINTER, SAVE :: ShpFrqFM(:, :, :), ShpFrqFMd(:, :, :)
-REAL, POINTER, SAVE :: AvgShpFrqCM(:, :, :), AvgShpFrqFM(:, :, :)
-REAL, POINTER, SAVE :: PrecFrqCM(:, :, :), PrecFrqFM(:, :, :)
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: TranPrec, ShpFrqCM, ShpFrqCMd, ShpFrqFM, ShpFrqFMd
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: AvgShpFrqCM, AvgShpFrqFM, PrecFrqCM, PrecFrqFM
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: PhiSCM, PhiCSCM, xsnfSCM
 
-REAL, POINTER, SAVE :: PhiSCM(:, :, :), PhiCSCM(:, :, :)
-REAL, POINTER, SAVE :: PsiSCM(:, :), PsiCSCM(:, :)
-REAL, POINTER, SAVE :: xsnfSCM(:, :, :)
-
-!AfSrc
-REAL, POINTER, SAVE :: TranPhi1a(:, :, :, :, :), TranPhi2a(:, :, :, :, :)
-
-!AM3
-REAL, POINTER, SAVE :: ResSrcCMd(:, :, :), ResSrcFMd(:, :, :)
+! AM3
+REAL, POINTER, SAVE, DIMENSION(:,:,:) :: ResSrcCMd, ResSrcFMd
 !-------------------------------------------------------------------------------------------------------
+TYPE (FMINfo_Type) :: FmInfo
+TYPE (CMInfo_TYpe) :: CmInfo
+TYPE (THInfo_Type) :: THInfo
 
-TYPE(CMFDLS_TYPE), POINTER :: CoreCMFDLs(:)
-TYPE(Fxrinfo_type), POINTER, SAVE :: Fxr(:,:)
-TYPE(GroupInfo_Type),SAVE :: GroupInfo, GcGroupInfo
-!TYPE(AXFLX_TYPE), POINTER, SAVE :: AxFlx(:, :)
-TYPE(FMINfo_Type) :: FmInfo
-TYPE(CMInfo_TYpe) :: CmInfo
-TYPE(THInfo_Type) :: THInfo
+TYPE (GroupInfo_Type), SAVE :: GroupInfo, GcGroupInfo
 
-END MODULE
+TYPE (CMFDLS_TYPE), POINTER, DIMENSION(:) :: CoreCMFDLs
+
+TYPE (Fxrinfo_type), POINTER, SAVE, DIMENSION(:,:) :: Fxr
+! ------------------------------------------------------------------------------------------------------------
+END MODULE core_mod

@@ -17,14 +17,16 @@ TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
 REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb ! Approximation of Exponetial Function
 
 ! Group Major
-REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g, axSrc1g, axPxs1g
-REAL, POINTER, DIMENSION(:,:)   :: phiAngIn1g, phim1g, LinSrc1g, srcm1g
-REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g, SrcAng1g1, SrcAng1g2, phia1g
+REAL, POINTER, DIMENSION(:)       :: phis1g, xst1g, src1g, axSrc1g, axPxs1g
+REAL, POINTER, DIMENSION(:,:)     :: phiAngIn1g, phim1g, LinSrc1g, srcm1g
+REAL, POINTER, DIMENSION(:,:,:)   :: MocJout1g, SrcAng1g1, SrcAng1g2
+REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 ! Node Major
-REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
-REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg, SrcAngNg1, SrcAngNg2, phiaNg
+REAL, POINTER, DIMENSION(:,:)       :: phisNg, srcNg, xstNg
+REAL, POINTER, DIMENSION(:,:,:)     :: phimNg, PhiAngInNg, srcmNg
+REAL, POINTER, DIMENSION(:,:,:,:)   :: MocJoutNg, SrcAngNg1, SrcAngNg2
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
 
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
@@ -409,7 +411,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 END SUBROUTINE RayTraceP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, phia1g, iz, ljout, ScatOd, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -418,9 +420,10 @@ IMPLICIT NONE
 TYPE (RayInfo_Type) :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
-REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, srcm1g, phim1g
-REAL, POINTER, DIMENSION(:,:,:) :: jout1g
+REAL, POINTER, DIMENSION(:)       :: phis1g, xst1g, src1g
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, srcm1g, phim1g
+REAL, POINTER, DIMENSION(:,:,:)   :: jout1g
+REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 INTEGER :: iz
 LOGICAL :: ljout
@@ -705,8 +708,8 @@ INTEGER :: myzb, myze, gb, ge, ng, iz
 LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 
 END SUBROUTINE SetRtLinSrc_CASMO
-! ------------------------------------------------------------------------------------------------------------                             
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type, PE_Type
 
@@ -723,7 +726,7 @@ REAL, POINTER, DIMENSION(:,:)     :: srcm1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: phim1g
 
 INTEGER :: myzb, myze, ig, ng, iz, ScatOd
-LOGICAL :: lxslib, lscat1, l3dim
+LOGICAL :: lxslib, lscat1, l3dim, lAFSS
 
 END SUBROUTINE SetRtP1SrcGM
 ! ------------------------------------------------------------------------------------------------------------

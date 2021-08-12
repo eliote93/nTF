@@ -1,4 +1,4 @@
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phim1g, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
 
 USE OMP_LIB
 USE PARAM,        ONLY : ZERO, TRUE, FALSE, ONE
@@ -21,7 +21,7 @@ REAL, POINTER, DIMENSION(:,:)     :: srcm1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: phim1g
 
 INTEGER :: ig, ng, iz, ScatOd
-LOGICAL :: lxslib, lscat1, l3dim
+LOGICAL :: lxslib, lscat1, l3dim, lAFSS
 ! ----------------------------------------------------
 TYPE (XsMac_Type), POINTER :: XsMac
 
@@ -52,7 +52,7 @@ IF (.NOT. lxsLib) THEN
   IF (ScatOd .EQ. 3) XsMacP3sm = ZERO
 END IF
 
-srcm1g = ZERO
+IF (.NOT. lAFSS) srcm1g = ZERO
 tid  = 1
 
 !$ call omp_set_dynamic(FALSE)
@@ -123,7 +123,7 @@ DO ipin = 1, nxy
     END DO
   END DO
   
-  CALL ReturnXsMacDat(XsMac) !Memory leak problem !! 17/01/09   big memory but stable
+  CALL ReturnXsMacDat(XsMac)
 END DO
 !$OMP END DO
 !$OMP END PARALLEL
