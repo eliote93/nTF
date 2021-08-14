@@ -14,16 +14,15 @@ REAL :: xkconv ! Converged K
 REAL :: xkcrit ! Critical K
 
 ! Basic 
-REAL, POINTER, SAVE, DIMENSION(:)           :: wmoc
-REAL, POINTER, SAVE, DIMENSION(:,:)         :: psi, psid    ! FSR FIssion Scource
-REAL, POINTER, SAVE, DIMENSION(:,:)         :: power
-REAL, POINTER, SAVE, DIMENSION(:,:)         :: psic, psicd  ! Cell Fission Source
-REAL, POINTER, SAVE, DIMENSION(:,:,:)       :: phis         ! Scalar Flux
-REAL, POINTER, SAVE, DIMENSION(:,:,:)       :: AxSrc, AxPxs ! Axial Source, Psuedo Absorption XS
-REAL, POINTER, SAVE, DIMENSION(:,:,:,:)     :: PhiAngIn     ! Angular Flux at the Boundary
-REAL, POINTER, SAVE, DIMENSION(:,:,:,:)     :: phim
-REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:)   :: RadJout      ! Moc Jout (idir, ibd, ixy, iz, ig)
-REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:,:) :: phia         ! Angular Flux (idir, ipol, iazi, ifsr, ig, iz)
+REAL, POINTER, SAVE, DIMENSION(:)         :: wmoc
+REAL, POINTER, SAVE, DIMENSION(:,:)       :: psi, psid    ! FSR FIssion Scource
+REAL, POINTER, SAVE, DIMENSION(:,:)       :: power
+REAL, POINTER, SAVE, DIMENSION(:,:)       :: psic, psicd  ! Cell Fission Source
+REAL, POINTER, SAVE, DIMENSION(:,:,:)     :: phis         ! Scalar Flux
+REAL, POINTER, SAVE, DIMENSION(:,:,:)     :: AxSrc, AxPxs ! Axial Source, Psuedo Absorption XS
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:)   :: PhiAngIn     ! Angular Flux at the Boundary
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:)   :: phim
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:) :: RadJout      ! Moc Jout (idir, ibd, ixy, iz, ig)
 
 ! Linear Source
 REAL, POINTER, SAVE, DIMENSION(:,:,:,:) :: LinSrcSlope ! Linear Source Approx. Slope
@@ -51,6 +50,10 @@ REAL, POINTER, DIMENSION(:,:,:) :: GcPhiC
 ! Critical Spectrum
 REAL, POINTER, SAVE, DIMENSION(:) :: PhiCrit  ! Critical Spectrum
 REAL, POINTER, SAVE, DIMENSION(:) :: SpecConv ! Conversion Factor
+
+! Angular Flux Storage System
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:)     :: srcm ! (ipol, iazi, ig, iz)
+REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:,:) :: phia ! Angular Flux (idir, ipol, iazi, ifsr, ig, iz)
 ! ------------------------------------------------------------------------------------------------------------
 ! Transient Variables
 REAL, POINTER, SAVE, DIMENSION(:,:) :: TranPsi, TranPsid ! Transient Fission Source

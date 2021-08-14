@@ -3,13 +3,12 @@
 SUBROUTINE SetRtSrcGM(Core, Fxr, src1g, phis, psi, axsrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
 
 USE OMP_LIB
-USE PARAM,          ONLY : ZERO, TRUE, FALSE, ONE, nTHREADMAX
-USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, PE_TYPE, XsMac_Type
-USE BenchXs,        ONLY : GetChiBen, getChiDynBen, xssben, xssDynBen
-USE MacXsLib_mod,   ONLY : MacXsScatMatrix
-USE BasicOperation, ONLY : CP_CA
-USE CNTL,           ONLY : nTracerCntl
-USE TRAN_MOD,       ONLY : TranInfo
+USE PARAM,        ONLY : ZERO, TRUE, FALSE, ONE, nTHREADMAX
+USE TYPEDEF,      ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, PE_TYPE, XsMac_Type
+USE BenchXs,      ONLY : GetChiBen, getChiDynBen, xssben, xssDynBen
+USE MacXsLib_mod, ONLY : MacXsScatMatrix
+USE CNTL,         ONLY : nTracerCntl
+USE TRAN_MOD,     ONLY : TranInfo
 
 IMPLICIT NONE
 
@@ -301,8 +300,7 @@ USE TYPEDEF,        ONLY : coreinfo_type,          Fxrinfo_type,          Cell_T
 USE BenchXs,        ONLY : GetChiBen,              xssben,                GetChiDynBen,    xssben_Cusping, &
                            MacXsBen,               xssDynBen,             xssDynben_Cusping, DynMacXsBen
 USE MacXsLib_mod,   ONLY : MacXsScatMatrix
-USE BasicOperation, ONLY : CP_CA
-USE CNTL,             ONLY : nTracerCntl
+USE CNTL,           ONLY : nTracerCntl
 USE OMP_LIB
 USE TRAN_MOD,       ONLY : TranInfo
 IMPLICIT NONE

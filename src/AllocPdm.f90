@@ -1,6 +1,7 @@
 #include <defines.h>
+  ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocPDM()
-!Allocate Problem Dependent Memomy
+! Allocate Problem Dependent Memomy
 
 USE PARAM,    ONLY : TRUE, mesg
 USE CNTL,     ONLY : nTracerCntl
@@ -56,7 +57,8 @@ USE ALLOCS
 USE PARAM,     ONLY : ONE
 USE TYPEDEF,   ONLY : coreinfo_type
 USE GEOM,      ONLY : Core, ng, nbd
-USE Core_mod,  ONLY : Phis, psi, psid, Psic, Psicd, Power, PhiAngin, RadJout, LinSrcSlope, Phim, nCoreFsr, nCoreFxr, nPhiAngSv, CMInfo, FmInfo, wmoc, srcSlope, phisSlope, psiSlope, AsyPhiAngIn, phia
+USE Core_mod,  ONLY : Phis, psi, psid, Psic, Psicd, Power, PhiAngin, RadJout, LinSrcSlope, Phim, nCoreFsr, nCoreFxr, nPhiAngSv, CMInfo, FmInfo, &
+                      wmoc, srcSlope, phisSlope, psiSlope, AsyPhiAngIn, phia, srcm
 USE PE_MOD,    ONLY : PE
 USE RAYS,      ONLY : RayInfo, RayInfo4CMfd
 USE CNTL,      ONLY : nTracerCntl
@@ -103,16 +105,25 @@ CALL dmalloc0(psicd, 1, nxy, myzb, myze)
 CALL dmalloc0(PhiAngin, 1, nPolar, 1, nPhiAngSv, 1, ng, myzb, myze)
 
 IF (nTracerCntl%lDomainDcmp) THEN
-  IF (nTracerCntl%lNodeMajor) THEN
-    ALLOCATE (AsyPhiAngIn (nPolar, ng, 2, nModRay, nxya, myzb:myze))
-  ELSE
+  IF (.NOT. nTracerCntl%lNodeMajor) THEN
     ALLOCATE (AsyPhiAngIn (nPolar, 2, nModRay, nxya, ng, myzb:myze))
+  ELSE
+    ALLOCATE (AsyPhiAngIn (nPolar, ng, 2, nModRay, nxya, myzb:myze))
   END IF
   
   AsyPhiAngIn = ONE
 END IF
 
-IF (nTracerCntl%lAFSS) CALL dmalloc0(phia, 1, 2, 1, nPolar, 1, nAzi, 1, nCoreFsr, 1, ng, myzb, myze)
+! AFSS
+IF (nTracerCntl%lAFSS) THEN
+  SELECT CASE (nTracerCntl%ScatOd)
+  CASE (1); CALL dmalloc0(srcm, 1, 2, 1, nFsr, 1, ng, myzb, myze)
+  CASE (2); CALL dmalloc0(srcm, 1, 5, 1, nFsr, 1, ng, myzb, myze)
+  CASE (3); CALL dmalloc0(srcm, 1, 9, 1, nFsr, 1, ng, myzb, myze)
+  END SELECT
+  
+  CALL dmalloc0(phia, 1, 2, 1, nPolar, 1, nAzi, 1, nCoreFsr, 1, ng, myzb, myze)
+END IF
 
 ! Flux Moments
 IF (nTracerCntl%lScat1) THEN
@@ -157,11 +168,15 @@ RayInfo4CMfd%PhiAngIn => PhiAngIn
 
 IF (nTracerCntl%lLinSrc) FmInfo%LinSrcSlope => LinSrcSlope
 IF (nTracerCntl%lScat1)  FmInfo%phim        => phim
-IF (nTracerCntl%lAFSS)   FmInfo%phia        => phia
 
 IF (nTracerCntl%lDomainDcmp) THEN
   FMInfo      %AsyPhiAngIn => AsyPhiAngIn
   RayInfo4Cmfd%AsyPhiAngIn => AsyPhiAngIn
+END IF
+
+IF (nTracerCntl%lAFSS) THEN
+  FmInfo%phia => phia
+  FmInfo%srcm => srcm
 END IF
 ! ----------------------------------------------------
 
@@ -172,8 +187,8 @@ SUBROUTINE AllocMocVariables()
 USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
-USE Moc_mod, ONLY : phis1g, MocJout1g, Xst1g, src1g, srcm1g, AxSrc1g, LinSrc1g, LinPsi, AxPxs1g, &
-                    phisNg, MocJoutNg, xstNg, srcNg, srcmNg, DcmpPhiAngOutNg, DcmpPhiAngOut1g, DcmpPhiAngIn1g
+USE Moc_mod, ONLY : MocJout1g, Xst1g, src1g, srcm1g, DcmpPhiAngOut1g, AxSrc1g, LinSrc1g, LinPsi, AxPxs1g, &
+                    MocJoutNg, xstNg, srcNg, srcmNg, DcmpPhiAngOutNg, phisNg, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
@@ -202,7 +217,6 @@ IF (nTracerCntl%lNodeMajor) THEN
   CALL dmalloc(xstNg, ng, nFsr)
   CALL dmalloc(srcNg, ng, nFsr)
 ELSE
-  CALL dmalloc(phis1g,    nFsr)
   CALL dmalloc(MocJout1g, 3, nBd, nxy)
   
   CALL dmalloc(xst1g, nFsr)
@@ -210,13 +224,19 @@ ELSE
 END IF
 
 ! Src. Moment
+SELECT CASE (nTracerCntl%ScatOd)
+CASE (1); CALL dmalloc(srcmNg, 2, nFsr, ng)
+CASE (2); CALL dmalloc(srcmNg, 5, nFsr, ng)
+CASE (3); CALL dmalloc(srcmNg, 9, nFsr, ng)
+END SELECT
+
 IF (nTracerCntl%lscat1) THEN
   IF (nTracerCntl%lNodeMajor) THEN
-    SELECT CASE (nTracerCntl%ScatOd)
-    CASE (1); CALL dmalloc(srcmNg, 2, ng, nFsr)
-    CASE (2); CALL dmalloc(srcmNg, 5, ng, nFsr)
-    CASE (3); CALL dmalloc(srcmNg, 9, ng, nFsr)
-    END SELECT
+    !SELECT CASE (nTracerCntl%ScatOd)
+    !CASE (1); CALL dmalloc(srcmNg, 2, ng, nFsr)
+    !CASE (2); CALL dmalloc(srcmNg, 5, ng, nFsr)
+    !CASE (3); CALL dmalloc(srcmNg, 9, ng, nFsr)
+    !END SELECT
   ELSE
     SELECT CASE (nTracerCntl%ScatOd)
     CASE (1); CALL dmalloc(srcm1g, 2, nFsr)

@@ -17,16 +17,15 @@ TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
 REAL, TARGET, DIMENSION(-40000:0, 1:12) :: expa, expb ! Approximation of Exponetial Function
 
 ! Group Major
-REAL, POINTER, DIMENSION(:)       :: phis1g, xst1g, src1g, axSrc1g, axPxs1g
-REAL, POINTER, DIMENSION(:,:)     :: phiAngIn1g, phim1g, LinSrc1g, srcm1g
-REAL, POINTER, DIMENSION(:,:,:)   :: MocJout1g, SrcAng1g1, SrcAng1g2
-REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
+REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g, axSrc1g, axPxs1g
+REAL, POINTER, DIMENSION(:,:)   :: phiAngIn1g, phim1g, LinSrc1g, srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g, SrcAng1g1, SrcAng1g2
 
 ! Node Major
-REAL, POINTER, DIMENSION(:,:)       :: phisNg, srcNg, xstNg
-REAL, POINTER, DIMENSION(:,:,:)     :: phimNg, PhiAngInNg, srcmNg
-REAL, POINTER, DIMENSION(:,:,:,:)   :: MocJoutNg, SrcAngNg1, SrcAngNg2
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
+REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
+REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
+REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg, SrcAngNg1, SrcAngNg2
+
 
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
@@ -34,6 +33,10 @@ REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:,:)   :: DcmpAsyClr ! (iAsy, iClr)
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
+
+! Angular Flux Storage System
+REAL, POINTER, DIMENSION(:,:,:,:)   :: phia1g
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
 
 INTERFACE
 
@@ -709,21 +712,23 @@ LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 
 END SUBROUTINE SetRtLinSrc_CASMO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(RayInfo, Core, Fxr, srcm1g, srcmNg, phimNg, xst1g, phiaNg, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type, PE_Type
 
 IMPLICIT NONE
 
+TYPE (RayInfo_Type)   :: RayInfo
 TYPE (CoreInfo_Type)  :: Core
 TYPE (GroupInfo_Type) :: GroupInfo
 TYPE (PE_Type)        :: PE
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)       :: xst1g
-REAL, POINTER, DIMENSION(:,:)     :: srcm1g
-REAL, POINTER, DIMENSION(:,:,:)   :: phimNg
+REAL, POINTER, DIMENSION(:)         :: xst1g
+REAL, POINTER, DIMENSION(:,:)       :: srcm1g
+REAL, POINTER, DIMENSION(:,:,:)     :: srcmNg, phimNg
+REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
 
 INTEGER :: myzb, myze, ig, ng, iz, ScatOd
 LOGICAL :: lxslib, lscat1, l3dim, lAFSS

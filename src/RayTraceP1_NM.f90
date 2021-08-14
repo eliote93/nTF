@@ -4,7 +4,7 @@ SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, s
 
 USE TIMER
 USE OMP_LIB
-USE PARAM,   ONLY : FALSE, ZERO, ONE, RTHREE, RFIVE, RSEVEN
+USE PARAM,   ONLY : FALSE, ZERO, ONE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : TrackingDat, SrcAngNg1, SrcAngNg2, comp
 USE geom,    ONLY : ng, nbd
@@ -41,9 +41,11 @@ ScatOd = nTracerCntl%ScatOd
 nAziAng   = RayInfo%nAziAngle
 nPolarAng = RayInfo%nPolarAngle
 
-nod = 2
-IF (ScatOd .EQ. 2) nod = 5
-IF (ScatOd .EQ. 3) nod = 9
+SELECT CASE (ScatOd)
+CASE(1); nod = 2
+CASE(2); nod = 5
+CASE(3); nod = 9
+END SELECT
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, Ifsr, ipol, ig, srctmp)
 ithr = omp_get_thread_num() + 1
@@ -55,21 +57,21 @@ DO iazi = 1, nAziAng
         SrcAngNg1(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
         SrcAngNg2(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
         
-        srctmp = comp(1, ipol, iazi) * srcmNg(1, ig, ifsr) + comp(2, ipol, iazi) * srcmNg(2, ig, ifsr)
+        srctmp = comp(1, ipol, iazi) * srcmNg(1, ifsr, ig) + comp(2, ipol, iazi) * srcmNg(2, ifsr, ig)
         
         SrcAngNg1(ig, ipol, ifsr, iazi) = SrcAngNg1(ig, ipol, ifsr, iazi) + srctmp
         SrcAngNg2(ig, ipol, ifsr, iazi) = SrcAngNg2(ig, ipol, ifsr, iazi) - srctmp
         
         IF (ScatOd .LT. 2) CYCLE
         
-        srctmp = comp(3, ipol, iazi) * srcmNg(3, ig, ifsr) + comp(4, ipol, iazi) * srcmNg(4, ig, ifsr) + comp(5, ipol, iazi) * srcmNg(5, ig, ifsr)
+        srctmp = comp(3, ipol, iazi) * srcmNg(3, ifsr, ig) + comp(4, ipol, iazi) * srcmNg(4, ifsr, ig) + comp(5, ipol, iazi) * srcmNg(5, ifsr, ig)
         
         SrcAngNg1(ig, ipol, ifsr, iazi) = SrcAngNg1(ig, ipol, ifsr, iazi) + srctmp
         SrcAngNg2(ig, ipol, ifsr, iazi) = SrcAngNg2(ig, ipol, ifsr, iazi) + srctmp
         
         IF (ScatOd .LT. 3) CYCLE
         
-        srctmp = comp(6, ipol, iazi) * srcmNg(6, ig, ifsr) + comp(7, ipol, iazi) * srcmNg(7, ig, ifsr) + comp(8, ipol, iazi) * srcmNg(8, ig, ifsr) + comp(9, ipol, iazi) * srcmNg(9, ig, ifsr)
+        srctmp = comp(6, ipol, iazi) * srcmNg(6, ifsr, ig) + comp(7, ipol, iazi) * srcmNg(7, ifsr, ig) + comp(8, ipol, iazi) * srcmNg(8, ifsr, ig) + comp(9, ipol, iazi) * srcmNg(9, ifsr, ig)
         
         SrcAngNg1(ig, ipol, ifsr, iazi) = SrcAngNg1(ig, ipol, ifsr, iazi) + srctmp
         SrcAngNg2(ig, ipol, ifsr, iazi) = SrcAngNg2(ig, ipol, ifsr, iazi) - srctmp
@@ -152,13 +154,10 @@ DO ixy = 1, nxy
       
       phisNg(ig, jfsr) = phisNg(ig, jfsr) * wttmp + srcNg(ig, jfsr)
       
-      !phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr) * RTHREE
-      phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, ig, jfsr)
+      phimNg(1:2, jfsr, ig) = phimNg(1:2, jfsr, ig) * wttmp + srcmNg(1:2, jfsr, ig)
       
-      !IF (ScatOd .GE. 2) phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr) * RFIVE
-      !IF (ScatOd .EQ. 3) phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr) * RSEVEN
-      IF (ScatOd .GE. 2) phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, ig, jfsr)
-      IF (ScatOd .EQ. 3) phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, ig, jfsr)
+      IF (ScatOd .GE. 2) phimNg(3:5, jfsr, ig) = phimNg(3:5, jfsr, ig) * wttmp + srcmNg(3:5, jfsr, ig)
+      IF (ScatOd .EQ. 3) phimNg(6:9, jfsr, ig) = phimNg(6:9, jfsr, ig) * wttmp + srcmNg(6:9, jfsr, ig)
     END DO
   END DO
 END DO
@@ -249,9 +248,11 @@ DO ig = gb, ge
   PhiAngOut(1:nPolarAng, ig) = PhiAngInNg(1:nPolarAng, PhiAnginSvIdx, ig)
 END DO
 
-nod = 2
-IF(ScatOd .EQ. 2) nod = 5
-IF(ScatOd .EQ. 3) nod = 9
+SELECT CASE (ScatOd)
+CASE(1); nod = 2
+CASE(2); nod = 5
+CASE(3); nod = 9
+END SELECT
 
 IF (krot .EQ. 1) THEN
   jbeg = 1; jend = nCoreRay; jinc = 1

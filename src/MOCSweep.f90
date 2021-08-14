@@ -19,11 +19,8 @@ USE XSLIB_MOD,   ONLY : igresb, igrese
 USE SPH_mod,     ONLY : ssphf, ssphfNM, calcPinSSPH
 USE HexData,     ONLY : nInnMOCItr
 
-use SubChCoupling_mod, ONLY : last_TH
+USE SubChCoupling_mod, ONLY : last_TH
 
-#ifdef __INTEL_COMPILER
-USE IFPORT,      ONLY : HOSTNM
-#endif
 #ifdef MPI_ENV
 USE MPICOMM_MOD, ONLY : BCAST, MPI_SYNC, MPI_MAX_REAL
 #endif
@@ -48,20 +45,12 @@ REAL :: errdat(3), tnmdel(2)
 
 LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp
 
-CHARACTER(80) :: hostname
-
-#ifdef __PGI
-#ifdef __linux
-INTEGER :: hostnm
-#endif
-#endif
-
 TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 
 REAL, POINTER, DIMENSION(:)           :: wmoc
 REAL, POINTER, DIMENSION(:,:)         :: psi, psid, psic
 REAL, POINTER, DIMENSION(:,:,:)       :: phis, axsrc, axpxs
-REAL, POINTER, DIMENSION(:,:,:,:)     :: linsrcslope, phim, phiangin
+REAL, POINTER, DIMENSION(:,:,:,:)     :: linsrcslope, phim, phiangin, srcm
 REAL, POINTER, DIMENSION(:,:,:,:,:)   :: radjout
 REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn, phia
 ! ----------------------------------------------------
@@ -87,10 +76,11 @@ AxPXS    => FmInfo%AxPXS
 phiangin => FmInfo%phiangin
 
 IF (nTracerCntl%lmocUR)      wmoc        => FmInfo%w
-IF (nTracerCntl%lAFSS)       phia        => FmInfo%phia
 IF (nTracerCntl%lscat1)      phim        => FmInfo%phim
 IF (nTracerCntl%lLinSrc)     LinSrcSlope => FmInfo%LinSrcSlope
 IF (nTracerCntl%lDomainDcmp) AsyPhiAngIn => FmInfo%AsyPhiAngIn
+IF (nTracerCntl%lAFSS)       phia        => FmInfo%phia
+IF (nTracerCntl%lAFSS)       srcm        => FmInfo%srcm
 
 ! sSPH
 IF (nTracerCntl%lsSPHreg) THEN
@@ -165,15 +155,17 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
       IF (lLinSrc) CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
     END IF
     
-    DO jswp = 1, nginfo
-      GrpBeg = grpbndy(1, jswp)
-      GrpEnd = grpbndy(2, jswp)
+    DO iz = myzb, myze
+      IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
       
-      DO ig = GrpBeg, GrpEnd
-        tgmst = nTracer_dclock(FALSE, FALSE)
+      srcmNg => srcm(:, :, :, iz)
+      
+      DO jswp = 1, nginfo
+        GrpBeg = grpbndy(1, jswp)
+        GrpEnd = grpbndy(2, jswp)
         
-        DO iz = myzb, myze
-          IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
+        DO ig = GrpBeg, GrpEnd
+          !tgmst = nTracer_dclock(FALSE, FALSE)
           
           ! Pointing
           IF (RTMASTER) THEN
@@ -185,7 +177,12 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (lscat1) phim1g         => phim(:, :, ig, iz)
             IF (lscat1) phimNg         => phim(:, :, :, iz)
             IF (ldcmp)  DcmpPhiAngIn1g => AsyPhiAngIn(:, :, :, :, ig, iz)
-            IF (lAFSS)  phia1g         => phia(:, :, :, :, ig, iz)
+            
+            IF (lAFSS) THEN
+              phia1g => phia(:, :, :, :, ig, iz)
+              phiaNg => phia(:, :, :, :,  :, iz)
+              srcm1g => srcmNg(:, :, ig)
+            END IF
           END IF
           
           DO iinn = 1, ninn
@@ -202,7 +199,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
 #endif
               CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, AxSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, lscat1, FALSE, PE)
               
-              IF (lscat1) CALL SetRtP1SrcGM(Core, Fxr(:, iz), srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, lAFSS, ScatOd, PE)
+              IF (lscat1) CALL SetRtP1SrcGM(RayInfo, Core, Fxr(:, iz), srcm1g, srcmNg, phimNg, xst1g, phiaNg, iz, ig, ng, GroupInfo, l3dim, lXsLib, lscat1, lAFSS, ScatOd, PE)
             END IF
             
             ! Ray Trace
@@ -243,19 +240,17 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
         END DO
         
         ! Time
-        tgmed  = nTracer_dclock(FALSE, FALSE)
-        tgmdel = tgmdel + tgmed - tgmst
-        
-        IF (.NOT.lDmesg .AND. MOD(ig, 10).NE.0 .AND. ig.NE.ng) CYCLE
-        
-        CALL MPI_MAX_REAL(tgmdel, PE%MPI_RTMASTER_COMM, TRUE)
-        
-        IF (master) THEN
-          WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tgmdel, 'Sec'
-          CALL message(io8, FALSE, TRUE, mesg)
-        END IF
-        
-        tgmdel = ZERO
+        !tgmed  = nTracer_dclock(FALSE, FALSE)
+        !tgmdel = tgmdel + tgmed - tgmst
+        !
+        !IF (.NOT.lDmesg .AND. MOD(ig, 10).NE.0 .AND. ig.NE.ng) CYCLE
+        !
+        !CALL MPI_MAX_REAL(tgmdel, PE%MPI_RTMASTER_COMM, TRUE)
+        !
+        !WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tgmdel, 'Sec'
+        !IF (master) CALL message(io8, FALSE, TRUE, mesg)
+        !        
+        !tgmdel = ZERO
       END DO
     END DO
   END DO
@@ -454,10 +449,11 @@ NULLIFY (AxPxs)
 NULLIFY (phiangin)
 
 IF (lmocur)  NULLIFY (wmoc)
-IF (lAFSS)   NULLIFY (phia)
 IF (lscat1)  NULLIFY (phim)
 IF (lLinSrc) NULLIFY (LinSrcSlope)
 IF (ldcmp)   NULLIFY (AsyPhiAngIn)
+IF (lAFSS)   NULLIFY (phia)
+IF (lAFSS)   NULLIFY (srcm)
 
 IF (RTMASTER) THEN
   IF (.NOT. nTracerCntl%lNodeMajor) THEN
