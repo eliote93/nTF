@@ -19,7 +19,7 @@ TYPE (PE_TYPE)          :: PE
 
 INTEGER :: nFsr, nxy, ithr, scatod, nod, nPolarAng, nAziAng, ipol, iazi, nthr
 REAL :: wttmp, wtsin2, wtcos, wtpolar
-LOGICAL :: lscat1, ldcmp, lLinSrcCASMO
+LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
@@ -39,6 +39,7 @@ CALL omp_set_num_threads(nThr)
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
+lGM          = .NOT. nTracerCntl%lNodeMajor
 scatod       = nTracerCntl%scatod
 lscat1       = nTracerCntl%lscat1
 ldcmp        = nTracerCntl%lDomainDcmp
@@ -96,7 +97,7 @@ DO ithr = 1, nThr
 END DO
 
 ! Basic : GM vs. NM
-IF (.NOT. nTracerCntl%lNodeMajor) THEN
+IF (lGM) THEN
   IF (.NOT. ldcmp) THEN
     DO ithr = 1, nThr
       CALL dmalloc(TrackingDat(ithr)%phis1g, nFsr)
@@ -125,7 +126,7 @@ END IF
 ! AFSS
 IF (nTracerCntl%lAFSS) THEN
   DO ithr = 1, nthr
-    IF (.NOT. nTracerCntl%lNodeMajor) THEN
+    IF (lGM) THEN
       CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPolarAng, nAziAng, nFsr)
     ELSE
       CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPolarAng, nAziAng, nFsr)
@@ -216,7 +217,7 @@ END DO
 ! ----------------------------------------------------
 ! P1 : GM vs. NM
 IF (.NOT. ldcmp) THEN
-  IF (.NOT. nTracerCntl%lNodeMajor) THEN
+  IF (lGM) THEN
     CALL dmalloc(SrcAng1g1, nPolarAng, nFsr, nAziAng)
     CALL dmalloc(SrcAng1g2, nPolarAng, nFsr, nAziAng)
       

@@ -34,10 +34,6 @@ REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 INTEGER, POINTER, DIMENSION(:,:)   :: DcmpAsyClr ! (iAsy, iClr)
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
 
-! Angular Flux Storage System
-REAL, POINTER, DIMENSION(:,:,:,:)   :: phia1g
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
-
 INTERFACE
 
 ! ------------------------------------------------------------------------------------------------------------
@@ -414,7 +410,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 END SUBROUTINE RayTraceP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, phia1g, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
@@ -423,10 +419,9 @@ IMPLICIT NONE
 TYPE (RayInfo_Type) :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:)       :: phis1g, xst1g, src1g
-REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, srcm1g, phim1g
-REAL, POINTER, DIMENSION(:,:,:)   :: jout1g
-REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
+REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, srcm1g, phim1g
+REAL, POINTER, DIMENSION(:,:,:) :: jout1g
 
 INTEGER :: iz
 LOGICAL :: ljout
@@ -712,26 +707,24 @@ LOGICAL :: lxslib, lscat1, l3dim, lNegFix
 
 END SUBROUTINE SetRtLinSrc_CASMO
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SetRtP1SrcGM(RayInfo, Core, Fxr, srcm1g, srcmNg, phimNg, xst1g, phiaNg, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
-USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type, PE_Type
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, XsMac_Type, PE_Type
 
 IMPLICIT NONE
 
-TYPE (RayInfo_Type)   :: RayInfo
 TYPE (CoreInfo_Type)  :: Core
 TYPE (GroupInfo_Type) :: GroupInfo
 TYPE (PE_Type)        :: PE
 
 TYPE (Fxrinfo_type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)         :: xst1g
-REAL, POINTER, DIMENSION(:,:)       :: srcm1g
-REAL, POINTER, DIMENSION(:,:,:)     :: srcmNg, phimNg
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
+REAL, POINTER, DIMENSION(:)     :: xst1g
+REAL, POINTER, DIMENSION(:,:)   :: srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: phimNg
 
 INTEGER :: myzb, myze, ig, ng, iz, ScatOd
-LOGICAL :: lxslib, lscat1, l3dim, lAFSS
+LOGICAL :: lxslib, lscat1, l3dim
 
 END SUBROUTINE SetRtP1SrcGM
 ! ------------------------------------------------------------------------------------------------------------

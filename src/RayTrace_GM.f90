@@ -25,14 +25,16 @@ INTEGER, OPTIONAL :: FastMocLv
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nFsr, nxy, nThread
+INTEGER :: nFsr, nxy, nThr
 INTEGER :: ithr, FsrIdxSt, icel, iRotRay, ifsr, jfsr, ixy, krot, iazi, ipol
+
+REAL :: phia1g(2)
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
-nThread = PE%nThread
+nThr = PE%nThread
 
 lAFSS = nTracerCntl%lAFSS
 ! ----------------------------------------------------
@@ -67,25 +69,33 @@ END DO
 phis1g = ZERO
 
 IF (.NOT. lAFSS) THEN
-  DO ithr = 1, nThread
+  DO ithr = 1, nThr
     phis1g = phis1g + TrackingDat(ithr)%phis1g
   END DO
 ELSE
-  DO ithr = 1, nThread
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ipol, ifsr, ithr)
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ifsr = 1, nFsr
     DO iazi = 1, RayInfo%nAziAngle
       DO ipol = 1, RayInfo%nPolarAngle
-        DO ifsr = 1, nFsr
-          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * (TrackingDat(ithr)%phia1g(FORWARD, ipol, iazi, ifsr) + TrackingDat(ithr)%phia1g(BACKWARD, ipol, iazi, ifsr))
+        phia1g = ZERO
+        
+        DO ithr = 1, nThr
+          phia1g(:) = phia1g(:) + trackingdat(ithr)%phia1g(:, ipol, iazi, ifsr)
         END DO
+        
+        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (phia1g(FORWARD) + phia1g(BACKWARD))
       END DO
     END DO
   END DO
+  !$OMP END DO NOWAIT
+  !$OMP END PARALLEL
 END IF
 
 IF (ljout) THEN
   jout1g = ZERO
   
-  DO ithr = 1, nThread
+  DO ithr = 1, nThr
     jout1g = jout1g + TrackingDat(ithr)%jout1g
   END DO
 END IF

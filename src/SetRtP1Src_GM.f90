@@ -1,8 +1,8 @@
-SUBROUTINE SetRtP1SrcGM(RayInfo, Core, Fxr, srcm1g, srcmNg, phimNg, xst1g, phiaNg, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lAFSS, ScatOd, PE)
+SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
 USE OMP_LIB
 USE PARAM,        ONLY : ZERO, TRUE, FALSE, ONE, FORWARD, BACKWARD
-USE TYPEDEF,      ONLY : RayInfo_type, coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type, PE_Type
+USE TYPEDEF,      ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type, PE_Type
 USE BenchXs,      ONLY : GetChiBen, xssben, xssm1ben, xssm2ben, xssm3ben, xssm1DynBen, xssm2DynBen, xssm3DynBen
 USE MacXsLib_mod, ONLY : MacP1XsScatMatrix, MacP2XsScatMatrix, MacP3XsScatMatrix
 USE XsUtil_mod,   ONLY : GetXsMacDat, ReturnXsMacDat
@@ -11,30 +11,28 @@ USE MOC_MOD,      ONLY : mwt
 
 IMPLICIT NONE
 
-TYPE (RayInfo_Type)   :: RayInfo
 TYPE (CoreInfo_Type)  :: Core
 TYPE (GroupInfo_Type) :: GroupInfo
 TYPE (PE_Type)        :: PE
 
 TYPE(FxrInfo_Type), DIMENSION(:) :: Fxr
 
-REAL, POINTER, DIMENSION(:)         :: xst1g
-REAL, POINTER, DIMENSION(:,:)       :: srcm1g
-REAL, POINTER, DIMENSION(:,:,:)     :: srcmNg, phimNg
-REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
+REAL, POINTER, DIMENSION(:)     :: xst1g
+REAL, POINTER, DIMENSION(:,:)   :: srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: phimNg
 
 INTEGER :: ig, ng, iz, ScatOd
-LOGICAL :: lxslib, lscat1, l3dim, lAFSS
+LOGICAL :: lxslib, lscat1, l3dim
 ! ----------------------------------------------------
 TYPE (XsMac_Type), POINTER :: XsMac
 
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: CellInfo
 
-INTEGER :: nxy, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr, nPol, nAzi
-INTEGER :: ifsr, jfsr, ifxr, jfxr, ipin, icel, itype, jg, tid, ipol, iazi
+INTEGER :: nxy, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
+INTEGER :: ifsr, jfsr, ifxr, jfxr, ipin, icel, itype, jg, tid
 
-REAL :: xstinv, phimtmp(1:9)
+REAL :: xstinv
 
 REAL, POINTER, DIMENSION(:,:) :: XsMacP1sm, XsMacP2sm, XsMacP3sm
 ! ----------------------------------------------------
@@ -42,9 +40,6 @@ REAL, POINTER, DIMENSION(:,:) :: XsMacP1sm, XsMacP2sm, XsMacP3sm
 Pin      => Core%Pin
 CellInfo => Core%CellInfo
 nxy       = Core%nxy
-
-nPol = RayInfo%nPolarAngle
-nAzi = RayInfo%nAziAngle
 ! ----------------------------------------------------
 IF (.NOT. lxsLib) THEN
   ALLOCATE (XsMacP1sm (ng, ng))
@@ -58,7 +53,7 @@ IF (.NOT. lxsLib) THEN
   IF (ScatOd .EQ. 3) XsMacP3sm = ZERO
 END IF
 
-IF (.NOT. lAFSS) srcm1g = ZERO
+srcm1g = ZERO
 tid  = 1
 
 !$ call omp_set_dynamic(FALSE)
@@ -109,112 +104,23 @@ DO ipin = 1, nxy
     DO ifsr = 1, nFsrInFxr
       jfsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(ifsr, ifxr) - 1
       
-      IF (.NOT. lAFSS) THEN
-        SELECT CASE (ScatOd)
-        CASE (1)
-          DO jg = 1, ng
-            srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
-          END DO
-        CASE (2)
-          DO jg = 1, ng
-            srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
-            srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
-          END DO
-        CASE (3)
-          DO jg = 1, ng
-            srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
-            srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
-            srcm1g(6:9, jfsr) = srcm1g(6:9, jfsr) + XsMacP3Sm(jg, ig) * phimNg(6:9, jfsr, jg)
-          END DO
-        END SELECT
-      ELSE
-        SELECT CASE (ScatOd)
-        CASE (1)
-          phimtmp = ZERO
-          
-          DO iazi = 1, nAzi
-            DO ipol = 1, nPol
-              phimtmp(1:2) = phimtmp(1:2) + mwt(1:2, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, ig) - phiaNg(BACKWARD, ipol, iazi, jfsr, ig))
-            END DO
-          END DO
-          
-          srcm1g(1:2, jfsr) = XsMacP1Sm(ig, ig) * (phimtmp(1:2) + srcmNg(1:2, jfsr, ig))
-          
-          DO jg = 1, ng
-            IF (ig .EQ. jg) CYCLE
-            
-            phimtmp = ZERO
-            
-            DO iazi = 1, nAzi
-              DO ipol = 1, nPol
-                phimtmp(1:2) = phimtmp(1:2) + mwt(1:2, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, jg) - phiaNg(BACKWARD, ipol, iazi, jfsr, jg))
-              END DO
-            END DO
-            
-            srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * (phimtmp(1:2) + srcmNg(1:2, jfsr, jg))
-          END DO
-        CASE (2)
-          phimtmp = ZERO
-            
-          DO iazi = 1, nAzi
-            DO ipol = 1, nPol
-              phimtmp(1:2) = phimtmp(1:2) + mwt(1:2, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, ig) - phiaNg(BACKWARD, ipol, iazi, jfsr, ig))
-              phimtmp(3:5) = phimtmp(3:5) + mwt(3:5, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, ig) + phiaNg(BACKWARD, ipol, iazi, jfsr, ig))
-            END DO
-          END DO
-          
-          srcm1g(1:2, jfsr) = XsMacP1Sm(ig, ig) * (phimtmp(1:2) + srcmNg(1:2, jfsr, ig))
-          srcm1g(3:5, jfsr) = XsMacP2Sm(ig, ig) * (phimtmp(3:5) + srcmNg(3:5, jfsr, ig))
-          
-          DO jg = 1, ng
-            IF (ig .EQ. jg) CYCLE
-            
-            phimtmp = ZERO
-            
-            DO iazi = 1, nAzi
-              DO ipol = 1, nPol
-                phimtmp(1:2) = phimtmp(1:2) + mwt(1:2, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, jg) - phiaNg(BACKWARD, ipol, iazi, jfsr, jg))
-                phimtmp(3:5) = phimtmp(3:5) + mwt(3:5, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, jg) + phiaNg(BACKWARD, ipol, iazi, jfsr, jg))
-              END DO
-            END DO
-            
-            srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * (phimtmp(1:2) + srcmNg(1:2, jfsr, jg))
-            srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * (phimtmp(3:5) + srcmNg(3:5, jfsr, jg))
-          END DO
-        CASE (3)
-          phimtmp = ZERO
-            
-          DO iazi = 1, nAzi
-            DO ipol = 1, nPol
-              phimtmp(1:2) = phimtmp(1:2) + mwt(1:2, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, ig) - phiaNg(BACKWARD, ipol, iazi, jfsr, ig))
-              phimtmp(3:5) = phimtmp(3:5) + mwt(3:5, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, ig) + phiaNg(BACKWARD, ipol, iazi, jfsr, ig))
-              phimtmp(6:9) = phimtmp(6:9) + mwt(6:9, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, ig) - phiaNg(BACKWARD, ipol, iazi, jfsr, ig))
-            END DO
-          END DO
-          
-          srcm1g(1:2, jfsr) = XsMacP1Sm(ig, ig) * (phimtmp(1:2) + srcmNg(1:2, jfsr, ig))
-          srcm1g(3:5, jfsr) = XsMacP2Sm(ig, ig) * (phimtmp(3:5) + srcmNg(3:5, jfsr, ig))
-          srcm1g(6:9, jfsr) = XsMacP3Sm(ig, ig) * (phimtmp(6:9) + srcmNg(6:9, jfsr, ig))
-          
-          DO jg = 1, ng
-            IF (ig .EQ. jg) CYCLE
-            
-            phimtmp = ZERO
-            
-            DO iazi = 1, nAzi
-              DO ipol = 1, nPol
-                phimtmp(1:2) = phimtmp(1:2) + mwt(1:2, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, jg) - phiaNg(BACKWARD, ipol, iazi, jfsr, jg))
-                phimtmp(3:5) = phimtmp(3:5) + mwt(3:5, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, jg) + phiaNg(BACKWARD, ipol, iazi, jfsr, jg))
-                phimtmp(6:9) = phimtmp(6:9) + mwt(6:9, ipol, iazi) * (phiaNg(FORWARD, ipol, iazi, jfsr, jg) - phiaNg(BACKWARD, ipol, iazi, jfsr, jg))
-              END DO
-            END DO
-            
-            srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * (phimtmp(1:2) + srcmNg(1:2, jfsr, jg))
-            srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * (phimtmp(3:5) + srcmNg(3:5, jfsr, jg))
-            srcm1g(6:9, jfsr) = srcm1g(6:9, jfsr) + XsMacP3Sm(jg, ig) * (phimtmp(6:9) + srcmNg(6:9, jfsr, jg))
-          END DO
-        END SELECT
-      END IF
+      SELECT CASE (ScatOd)
+      CASE (1)
+        DO jg = 1, ng
+          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+        END DO
+      CASE (2)
+        DO jg = 1, ng
+          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+          srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
+        END DO
+      CASE (3)
+        DO jg = 1, ng
+          srcm1g(1:2, jfsr) = srcm1g(1:2, jfsr) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+          srcm1g(3:5, jfsr) = srcm1g(3:5, jfsr) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
+          srcm1g(6:9, jfsr) = srcm1g(6:9, jfsr) + XsMacP3Sm(jg, ig) * phimNg(6:9, jfsr, jg)
+        END DO
+      END SELECT
     END DO
   END DO
   

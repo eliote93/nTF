@@ -50,10 +50,6 @@ REAL, POINTER, DIMENSION(:,:,:) :: GcPhiC
 ! Critical Spectrum
 REAL, POINTER, SAVE, DIMENSION(:) :: PhiCrit  ! Critical Spectrum
 REAL, POINTER, SAVE, DIMENSION(:) :: SpecConv ! Conversion Factor
-
-! Angular Flux Storage System
-REAL, POINTER, SAVE, DIMENSION(:,:,:,:)     :: srcm ! (ipol, iazi, ig, iz)
-REAL, POINTER, SAVE, DIMENSION(:,:,:,:,:,:) :: phia ! Angular Flux (idir, ipol, iazi, ifsr, ig, iz)
 ! ------------------------------------------------------------------------------------------------------------
 ! Transient Variables
 REAL, POINTER, SAVE, DIMENSION(:,:) :: TranPsi, TranPsid ! Transient Fission Source

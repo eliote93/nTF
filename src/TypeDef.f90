@@ -621,9 +621,9 @@ TYPE FMInfo_TYPE
   REAL, POINTER, DIMENSION(:)           :: PhiCrit, SpecConv, w
   REAL, POINTER, DIMENSION(:,:)         :: psi, psid, psic, psicd, power
   REAL, POINTER, DIMENSION(:,:,:)       :: phis, AxSrc, AxPxs, gPhis
-  REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn, phim, LinSrcSlope, srcm
+  REAL, POINTER, DIMENSION(:,:,:,:)     :: PhiAngIn, phim, LinSrcSlope
   REAL, POINTER, DIMENSION(:,:,:,:,:)   :: RadJout
-  REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn, phia
+  REAL, POINTER, DIMENSION(:,:,:,:,:,:) :: AsyPhiAngIn
   
   TYPE (FXRInfo_TYPE), POINTER, DIMENSION(:,:) :: Fxr
   ! ----------------------------------------------------

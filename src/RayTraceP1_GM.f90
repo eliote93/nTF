@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, phia1g, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
 
 USE TIMER
 USE ALLOCS
@@ -16,10 +16,9 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-REAL, POINTER, DIMENSION(:)       :: phis1g, xst1g, src1g
-REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, srcm1g, phim1g
-REAL, POINTER, DIMENSION(:,:,:)   :: jout1g
-REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
+REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, srcm1g, phim1g
+REAL, POINTER, DIMENSION(:,:,:) :: jout1g
 
 INTEGER :: iz, ScatOd
 LOGICAL :: ljout, lAFSS
@@ -30,7 +29,9 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThr
 INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ixy, krot
+
 REAL :: wttmp, tmpsrc
+REAL :: phia1g(2)
 ! ----------------------------------------------------
 
 nAziAng   = RayInfo%nAziAngle
@@ -57,14 +58,14 @@ DO iazi = 1, nAziAng
       SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
       SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
       
-      IF (scatod .LT. 2) CYCLE
+      IF (ScatOd .LT. 2) CYCLE
       
       tmpsrc = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
             
       SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  tmpsrc
       SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  tmpsrc
       
-      IF (scatod .LT. 3) CYCLE
+      IF (ScatOd .LT. 3) CYCLE
       
       tmpsrc = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
             
@@ -106,30 +107,37 @@ DO krot = 1, 2
 END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
-IF (.NOT. lAFSS) THEN
-  phis1g = ZERO
-  phim1g = ZERO
+phis1g = ZERO
+phim1g = ZERO
 
+IF (.NOT. lAFSS) THEN
   DO ithr = 1, nThr
     phis1g = phis1g + TrackingDat(ithr)%phis1g
     phim1g = phim1g + TrackingDat(ithr)%phim1g
   END DO
 ELSE
-  phia1g = ZERO
-  
-  DO ithr = 1, nThr
-    phia1g = phia1g + TrackingDat(ithr)%phia1g
-  END DO
-  
-  phis1g = ZERO
-  
-  DO iazi = 1, RayInfo%nAziAngle
-    DO ipol = 1, RayInfo%nPolarAngle
-      DO ifsr = 1, nFsr
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (phia1g(FORWARD, ipol, iazi, ifsr) + phia1g(BACKWARD, ipol, iazi, ifsr))
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ipol, ifsr, ithr)
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ifsr = 1, nFsr
+    DO iazi = 1, RayInfo%nAziAngle
+      DO ipol = 1, RayInfo%nPolarAngle
+        phia1g = ZERO
+        
+        DO ithr = 1, nThr
+          phia1g(:) = phia1g(:) + trackingdat(ithr)%phia1g(:, ipol, iazi, ifsr)
+        END DO
+        
+        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+        
+        phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+        
+        IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+        IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
       END DO
     END DO
   END DO
+  !$OMP END DO NOWAIT
+  !$OMP END PARALLEL
 END IF
 
 IF (ljout) THEN
@@ -156,14 +164,10 @@ DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
     
     phis1g(jfsr) = phis1g(jfsr) * wttmp + src1g(jfsr)
     
-    IF (.NOT. lAFSS) THEN
-      phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr)
-      
-      IF (scatod .GE. 2) phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr)
-      IF (scatod .EQ. 3) phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr)
-    ELSE
-      phia1g(:, :, :, jfsr) = phia1g(:, :, :, jfsr) * wttmp
-    END IF
+    phim1g(1:2, jfsr) = phim1g(1:2, jfsr) * wttmp + srcm1g(1:2, jfsr)
+    
+    IF (ScatOd .GE. 2) phim1g(3:5, jfsr) = phim1g(3:5, jfsr) * wttmp + srcm1g(3:5, jfsr)
+    IF (ScatOd .EQ. 3) phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr)
   END DO
 END DO
 !$OMP END PARALLEL
