@@ -140,15 +140,17 @@ lHex = nTracerCntl%lHex
 
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
+! ----------------------------------------------------
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr)
+ithr = omp_get_thread_num() + 1
 
-DO ithr = 1, nthr
-  TrackingDat(ithr)%phis1g = ZERO
-  IF (ljout) TrackingDat(ithr)%jout1g = ZERO
-  
-  TrackingDat(ithr)%src1g      => src1g
-  TrackingDat(ithr)%xst1g      => xst1g
-  TrackingDat(ithr)%PhiAngIn1g => PhiAngIn1g
-END DO
+TrackingDat(ithr)%phis1g = ZERO
+IF (ljout) TrackingDat(ithr)%jout1g = ZERO
+
+TrackingDat(ithr)%src1g      => src1g
+TrackingDat(ithr)%xst1g      => xst1g
+TrackingDat(ithr)%PhiAngIn1g => PhiAngIn1g
+!$OMP END PARALLEL
 
 phis1g = ZERO
 ! ----------------------------------------------------

@@ -231,7 +231,7 @@ IF (lHex .AND. hLgc%l360) THEN
         SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) - srctmp
       END DO
     END DO
-        
+    
     DO krot = 1, 2
       DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
         jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
