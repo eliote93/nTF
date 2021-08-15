@@ -37,9 +37,9 @@ TYPE (GroupInfo_Type) :: GroupInfo
 
 TYPE (FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 ! ----------------------------------------------------
-INTEGER :: ig, iz, ilv, iter, itersum, itermax, ithr, mg, nlv, nFsr, nFxr, nPhiAngSv, nPolarAngle, gb, ge, myzb, myze
+INTEGER :: ig, iz, ilv, iter, itersum, itermax, ithr, mg, nlv, nFsr, nFxr, nPhiAngSv, gb, ge, myzb, myze, nPol, nAzi, nThr, nModRay, nxya
 REAL :: errmax, Tbeg, Tend, rtTbeg, rtTend
-LOGICAL :: lCLD, lAIC, ldcmp
+LOGICAL :: lCLD, lAIC, ldcmp, lAFSS
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, phisdNg, SiglpNg, xstNg, srcNg
 REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
@@ -50,19 +50,24 @@ Tbeg = nTracer_dclock(FALSE, FALSE)
 
 nFxr = Core%nCoreFxr
 nFsr = Core%nCoreFsr
+nxya = Core%nxya
 
 myzb = PE%myzb
 myze = PE%myze
 
-nPolarAngle = RayInfo%nPolarAngle
-nPhiAngSv   = RayInfo%nPhiAngSv
+nAzi      = RayInfo%nAziAngle
+nPol      = RayInfo%nPolarAngle
+nPhiAngSv = RayInfo%nPhiAngSv
+nModRay   = RayInfo%nModRay
 
 ldcmp = nTracerCntl%lDomainDcmp
+lAFSS = nTracerCntl%lAFSS
 
 itermax = 100
 IF (.NOT.ldcmp .AND. any(Core%RadBC(1:4) .EQ. VoidCell)) itermax = 1
 
-CALL omp_set_num_threads(PE%nThread)
+nThr = PE%nThread
+CALL omp_set_num_threads(nThr)
 
 WRITE (mesg, '(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), "C"
 IF (PE%MASTER) CALL message(io8, TRUE, TRUE, mesg)
@@ -87,7 +92,7 @@ DO iz = myzb, myze
   CALL dmalloc(SiglpNg, mg, nFxr)
   CALL dmalloc(xstNg,   mg, nFsr)
   CALL dmalloc(srcNg,   mg, nFsr)
-  CALL dmalloc(PhiAngInNg, nPolarAngle, nPhiAngSv, mg)
+  CALL dmalloc(PhiAngInNg, nPol, nPhiAngSv, mg)
   
   phisNg     = ONE
   PhiAngInNg = ONE
@@ -96,14 +101,21 @@ DO iz = myzb, myze
   IF (ldcmp) THEN
     DEALLOCATE (DcmpPhiAngOutNg)
     
-    CALL dmalloc(DcmpPhiAngOutNg, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-    CALL dmalloc(DcmpPhiAngInNg,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngOutNg, nPol, mg, 2, nModRay, nxya)
+    CALL dmalloc(DcmpPhiAngInNg,  nPol, mg, 2, nModRay, nxya)
     
     DcmpPhiAngInNg = ONE
   ELSE
-    DO ithr = 1, PE%nThread
+    DO ithr = 1, nThr
       DEALLOCATE (TrackingDat(ithr)%phisNg)
       CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
+    END DO
+  END IF
+  
+  IF (lAFSS) THEN
+    DO ithr = 1, nThr
+      DEALLOCATE (TrackingDat(ithr)%phiaNg)
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, mg, nPol, nAzi, nFsr)
     END DO
   END IF
   
@@ -166,7 +178,7 @@ DO iz = myzb, myze
   CALL dmalloc(SiglpNg,  mg, nFxr)
   CALL dmalloc(xstNg,    mg, nFsr)
   CALL dmalloc(srcNg,    mg, nFsr)
-  CALL dmalloc(PhiAngInNg, nPolarAngle, nPhiAngSv, mg)
+  CALL dmalloc(PhiAngInNg, nPol, nPhiAngSv, mg)
   
   phisNg     = ONE
   PhiAngInNg = ONE
@@ -176,14 +188,21 @@ DO iz = myzb, myze
     DEALLOCATE (DcmpPhiAngOutNg)
     DEALLOCATE (DcmpPhiAngInNg)
     
-    CALL dmalloc(DcmpPhiAngOutNg, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-    CALL dmalloc(DcmpPhiAngInNg,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngOutNg, nPol, mg, 2, nModRay, nxya)
+    CALL dmalloc(DcmpPhiAngInNg,  nPol, mg, 2, nModRay, nxya)
     
     DcmpPhiAngInNg = ONE
   ELSE
-    DO ithr = 1, PE%nThread
+    DO ithr = 1, nThr
       DEALLOCATE (TrackingDat(ithr)%phisNg)
       CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
+    END DO
+  END IF
+  
+  IF (lAFSS) THEN
+    DO ithr = 1, nThr
+      DEALLOCATE (TrackingDat(ithr)%phiaNg)
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, mg, nPol, nAzi, nFsr)
     END DO
   END IF
   
@@ -241,7 +260,7 @@ DO iz = myzb, myze
   CALL dmalloc(SiglpNg,  mg, nFxr)
   CALL dmalloc(xstNg,    mg, nFsr)
   CALL dmalloc(srcNg,    mg, nFsr)
-  CALL dmalloc(PhiAngInNg, nPolarAngle, nPhiAngSv, mg)
+  CALL dmalloc(PhiAngInNg, nPol, nPhiAngSv, mg)
   
   phisNg     = ONE
   PhiAngInNg = ONE
@@ -251,14 +270,21 @@ DO iz = myzb, myze
     DEALLOCATE (DcmpPhiAngOutNg)
     DEALLOCATE (DcmpPhiAngInNg)
     
-    CALL dmalloc(DcmpPhiAngOutNg, nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
-    CALL dmalloc(DcmpPhiAngInNg,  nPolarAngle, mg, 2, RayInfo%nModRay, Core%nxya)
+    CALL dmalloc(DcmpPhiAngOutNg, nPol, mg, 2, nModRay, nxya)
+    CALL dmalloc(DcmpPhiAngInNg,  nPol, mg, 2, nModRay, nxya)
     
     DcmpPhiAngInNg = ONE
   ELSE
-    DO ithr = 1, PE%nThread
+    DO ithr = 1, nThr
       DEALLOCATE (TrackingDat(ithr)%phisNg)
       CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
+    END DO
+  END IF
+  
+  IF (lAFSS) THEN
+    DO ithr = 1, nThr
+      DEALLOCATE (TrackingDat(ithr)%phiaNg)
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, mg, nPol, nAzi, nFsr)
     END DO
   END IF
   
@@ -304,11 +330,18 @@ IF (ldcmp) THEN
   DEALLOCATE (DcmpPhiAngOutNg)
   DEALLOCATE (DcmpPhiAngInNg)
   
-  CALL dmalloc(DcmpPhiAngOutNg, nPolarAngle, ng, 2, RayInfo%nModRay, Core%nxya)
+  CALL dmalloc(DcmpPhiAngOutNg, nPol, ng, 2, nModRay, nxya)
 ELSE
-  DO ithr = 1, PE%nThread
+  DO ithr = 1, nThr
     DEALLOCATE (TrackingDat(ithr)%phisNg)
     CALL dmalloc(TrackingDat(ithr)%phisNg, ng, nFsr)
+  END DO
+END IF
+
+IF (lAFSS) THEN
+  DO ithr = 1, nThr
+    DEALLOCATE (TrackingDat(ithr)%phiaNg)
+    CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
   END DO
 END IF
 

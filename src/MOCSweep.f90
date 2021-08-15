@@ -43,7 +43,7 @@ INTEGER :: grpbndy(2, 2)
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
 REAL :: errdat(3), tnmdel(2)
 
-LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lAFSS, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp
+LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp
 
 TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 
@@ -118,7 +118,6 @@ lmocUR    = nTracerCntl%lmocUR
 lbsq      = nTracerCntl%lbsq
 laxrefFDM = nTracerCntl%laxrefFDM
 ldcmp     = nTracerCntl%ldomaindcmp
-lAFSS     = nTracerCntl%lAFSS
 fmoclv    = nTracerCntl%FastMOCLv
 ScatOd    = nTracerCntl%scatod
 

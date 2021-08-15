@@ -34,9 +34,10 @@ REAL :: phia1g(2)
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
-nThr = PE%nThread
-
 lAFSS = nTracerCntl%lAFSS
+
+nthr = PE%nThread
+CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
@@ -73,12 +74,12 @@ IF (.NOT. lAFSS) THEN
     phis1g = phis1g + TrackingDat(ithr)%phis1g
   END DO
 ELSE
-  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ipol, ifsr, ithr)
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1g, ithr)
   !$OMP DO SCHEDULE(GUIDED)
   DO ifsr = 1, nFsr
     DO iazi = 1, RayInfo%nAziAngle
       DO ipol = 1, RayInfo%nPolarAngle
-        phia1g = ZERO
+        phia1g = ZERO ! Need to Test
         
         DO ithr = 1, nThr
           phia1g(:) = phia1g(:) + trackingdat(ithr)%phia1g(:, ipol, iazi, ifsr)
@@ -165,7 +166,7 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 INTEGER :: mp(2)
 INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv
-INTEGER :: ipin, icel, iasy, ireg, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nFsr, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, ibcel
+INTEGER :: ipin, icel, iasy, ifsr, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nFsr, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, ibcel
 
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay, 2) :: CellRayIdxSt, SurfIdx
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay) :: PinIdx
@@ -256,14 +257,14 @@ IF (.NOT. lFast) THEN
         LenSeg      => CellRay%LenSeg
         
         DO iRaySeg = 1, nRaySeg
-          ireg = FsrIdxSt + CellRay%LocalFsrIdx(iRaySeg) - 1
+          ifsr = FsrIdxSt + CellRay%LocalFsrIdx(iRaySeg) - 1
           
-          tau = -LenSeg(iRaySeg) * xst1g(ireg)
-          tau = -CellRay%LenSeg(iRaySeg) * xst1g(ireg)
+          tau = -LenSeg(iRaySeg) * xst1g(ifsr)
+          tau = -CellRay%LenSeg(iRaySeg) * xst1g(ifsr)
           
           irsegidx = irsegidx + 1
           
-          FsrIdx    (irsegidx, j) = ireg
+          FsrIdx    (irsegidx, j) = ifsr
           OptLenList(irsegidx, j) = tau
           ExpAppIdx (irsegidx, j) = max(INT(tau), -40000)
           ExpAppIdx (irsegidx, j) = min(0, ExpAppIdx(irsegidx, j))
@@ -301,11 +302,11 @@ ELSE IF (FastMocLV .EQ. 1) THEN
        
        DO k = FastRay%Ray1DIdx(1, l, j), FastRay%Ray1DIdx(2, l, j)
          irsegidx = irsegidx + 1
-         ireg     = FsrIdxSt + CellRay1D%LocalFsrIdx(K) - 1
+         ifsr     = FsrIdxSt + CellRay1D%LocalFsrIdx(K) - 1
          
-         FsrIdx(irsegidx, j) = ireg
+         FsrIdx(irsegidx, j) = ifsr
          
-         tau = -CellRay1D%LenSeg(k) * xst1g(ireg)
+         tau = -CellRay1D%LenSeg(k) * xst1g(ifsr)
          
          OptLenList(irsegidx, j) = tau
          ExpAppIdx (irsegidx, j) = max(INT(tau), -40000)
@@ -332,11 +333,11 @@ ELSE IF (FastMocLv .EQ. 2) THEN
     FastRaySeg => RayInfo%FastCoreRayDat(i, iz)%RaySeg(j)
     
     DO l = 1, FastRay%nTotRaySeg(j)
-      ireg = FastRaySeg%FsrIdx(l)
+      ifsr = FastRaySeg%FsrIdx(l)
       
-      FsrIdx(l, j) = ireg
+      FsrIdx(l, j) = ifsr
       
-      tau = -FastRaySeg%LenSeg(l) * xst1g(ireg)
+      tau = -FastRaySeg%LenSeg(l) * xst1g(ifsr)
       
       OptLenList(l, j) = tau
       ExpAppIdx (l, j) = max(INT(tau), -40000)
@@ -378,27 +379,28 @@ DO j = jbeg, jend, jinc
   IF (idir .EQ. 1) THEN ! Forward Sweep
     PhiAngOut1g(:, 1) = phiobdPolar(:)
     
+    ! Iter. : FSR
     DO ir = 1, nRaySeg
-      ireg = FsrIdx(ir, j)
+      ifsr = FsrIdx(ir, j)
       
       DO ipol = 1, nPolarAng
         wt = wtang(ipol, iazi)
         
-        phid = (PhiAngOut1g(ipol, ir) - src1g(ireg)) * ExpAppPolar(ipol, ir, j)
+        phid = (PhiAngOut1g(ipol, ir) - src1g(ifsr)) * ExpAppPolar(ipol, ir, j)
         
         PhiAngOut1g(ipol, ir+1) = PhiAngOut1g(ipol, ir) - phid
         
         IF (lAFSS) THEN
-          phia1g(FORWARD, ipol, iazi, ireg) = phia1g(FORWARD, ipol, iazi, ireg) + phid
+          phia1g(FORWARD, ipol, iazi, ifsr) = phia1g(FORWARD, ipol, iazi, ifsr) + phid
         ELSE
-          phis1g(ireg) = phis1g(ireg) + wt*phid
+          phis1g(ifsr) = phis1g(ifsr) + wt*phid
         END IF
       END DO
     END DO
     
     phiobdPolar(:) = PhiAngOut1g(:, nRaySeg+1)
     
-    ! Surface
+    ! Surf.
     IF (ljout) THEN
       DO ir = 1, nTotCellRay(j)
         DO ipol = 1, nPolarANg
@@ -422,27 +424,29 @@ DO j = jbeg, jend, jinc
     
     ir = nRaySeg + 1
     
+    ! Iter. : FSR
     DO ir1 = 1, nRaySeg
       ir   = ir - 1
-      ireg = FsrIdx(ir, j)
+      ifsr = FsrIdx(ir, j)
       
       DO ipol = 1, nPolarAng
         wt = wtang(ipol, iazi)
         
-        phid = (PhiAngOut1g(ipol, ir + 2) - src1g(ireg)) * ExpAppPolar(ipol, ir, j)
+        phid = (PhiAngOut1g(ipol, ir + 2) - src1g(ifsr)) * ExpAppPolar(ipol, ir, j)
         
         PhiAngOut1g(ipol, ir+1) = PhiAngOut1g(ipol, ir + 2) - phid
         
         IF (lAFSS) THEN
-          phia1g(BACKWARD, ipol, iazi, ireg) = phia1g(BACKWARD, ipol, iazi, ireg) + phid
+          phia1g(BACKWARD, ipol, iazi, ifsr) = phia1g(BACKWARD, ipol, iazi, ifsr) + phid
         ELSE
-          phis1g(ireg) = phis1g(ireg) + wt * phid
+          phis1g(ifsr) = phis1g(ifsr) + wt * phid
         END IF
       END DO
     END DO
     
     phiobdPolar(:) = PhiAngOut1g(:, 2)
     
+    ! Surf.
     IF (lJout) THEN
       DO ir = 1, nTotCellRay(j)
         DO ipol = 1, nPolarAng
@@ -523,8 +527,8 @@ LOGICAL, INTENT(IN) :: ljout, lAFSS
 INTEGER, INTENT(IN) :: irotray, iz, krot
 INTEGER, INTENT(IN) :: FastMocLv
 ! ----------------------------------------------------
-INTEGER :: iazi, ipol, iaRay, jaRay, iAsy, iSurf, PhiAnginSvIdx, PhiAngOutSvIdx, ifsr, irsegidx, icellrayidx
-INTEGER :: icRay, jbeg, jend, jinc, ihpRay, iRaySeg, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, jcRay, iReg, iCel, iRaySeg1
+INTEGER :: iazi, ipol, iaRay, jaRay, iAsy, iSurf, PhiAnginSvIdx, PhiAngOutSvIdx, irsegidx, icellrayidx
+INTEGER :: icRay, jbeg, jend, jinc, ihpRay, iRaySeg, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, jcRay, ifsr, iCel, iRaySeg1
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, nRaySeg
 
 INTEGER :: CellRayIdxSt(nMaxCellRay, nMaxCoreRay, 2)
@@ -607,10 +611,10 @@ DO icRay = 1, nCoreRay
       
       DO iRaySeg = 1, CelRay_Loc%nSegRay
         irSegIdx = irSegIdx + 1
-        iReg     =  CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
-        tau      = -CelRay_Loc%SegLgh(iRaySeg) * xst1g(iReg) ! Optimum Length
+        ifsr     =  CelRay_Loc%MshIdx(iRaySeg) + Pin(jhPin)%FsrIdxSt - 1
+        tau      = -CelRay_Loc%SegLgh(iRaySeg) * xst1g(ifsr) ! Optimum Length
         
-        FsrIdx    (irSegIdx, icRay) = iReg
+        FsrIdx    (irSegIdx, icRay) = ifsr
         OptLenList(irSegIdx, icRay) = tau
         ExpAppIdx (irSegIdx, icRay) = max(INT(tau), -40000)
         ExpAppIdx (irSegIdx, icRay) = min(0, ExpAppIdx(irSegIdx, icRay))
@@ -652,26 +656,27 @@ DO icRay = jbeg, jend, jinc
   IF (jcRay .GT. 0) THEN
     PhiAngOut1g(:, 1) = locphiout(:)
     
+    ! Iter. : FSR
     DO iRaySeg = 1, nRaySeg
-      iReg = FsrIdx(iRaySeg, icRay)
+      ifsr = FsrIdx(iRaySeg, icRay)
       
       DO iPol = 1, nPolarAng
         wt   = wtang(iPol, iAzi)
-        phid = (PhiAngOut1g(iPol, iRaySeg) - src1g(iReg)) * ExpAppPolar(iPol, iRaySeg, icRay)
+        phid = (PhiAngOut1g(iPol, iRaySeg) - src1g(ifsr)) * ExpAppPolar(iPol, iRaySeg, icRay)
         
         PhiAngOut1g(ipol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg) - phid
         
         IF (lAFSS) THEN
-          phia1g(FORWARD, iPol, iAzi, iReg) = phia1g(FORWARD, iPol, iAzi, iReg) + phid
+          phia1g(FORWARD, iPol, iAzi, ifsr) = phia1g(FORWARD, iPol, iAzi, ifsr) + phid
         ELSE
-          phis1g(iReg) = phis1g(iReg) + wt * phid
+          phis1g(ifsr) = phis1g(ifsr) + wt * phid
         END IF
       END DO
     END DO
     
     locphiout(:) = PhiAngOut1g(:, nRaySeg+1)
     
-    ! Surface
+    ! Surf.
     IF (ljout) THEN
       DO iRaySeg = 1, nTotCellRay(icRay)
         DO iPol = 1, nPolarAng
@@ -693,27 +698,28 @@ DO icRay = jbeg, jend, jinc
     
     iRaySeg = nRaySeg + 1
     
+    ! Iter. : FSR
     DO iRayseg1 = 1, nRaySeg
       iRaySeg = iRaySeg - 1
-      iReg    = FsrIdx(iRaySeg, icRay)
+      ifsr    = FsrIdx(iRaySeg, icRay)
       
       DO iPol = 1, nPolarAng
         wt   = wtang(iPol, iAzi)
-        phid = (PhiAngOut1g(iPol, iRaySeg + 2) - src1g(iReg)) * ExpAppPolar(iPol, iRaySeg, icRay)
+        phid = (PhiAngOut1g(iPol, iRaySeg + 2) - src1g(ifsr)) * ExpAppPolar(iPol, iRaySeg, icRay)
         
         PhiAngOut1g(iPol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg + 2) - phid
         
         IF (lAFSS) THEN
-          phia1g(BACKWARD, iPol, iAzi, iReg) = phia1g(BACKWARD, iPol, iAzi, iReg) + phid
+          phia1g(BACKWARD, iPol, iAzi, ifsr) = phia1g(BACKWARD, iPol, iAzi, ifsr) + phid
         ELSE
-          phis1g(iReg) = phis1g(iReg) + wt * phid
+          phis1g(ifsr) = phis1g(ifsr) + wt * phid
         END IF
       END DO
     END DO
     
     locphiout(:) = PhiAngOut1g(:, 2)
     
-    ! Surface
+    ! Surf.
     IF (lJout) THEN
       DO iRaySeg = 1, nTotCellRay(icRay)
         DO iPol = 1, nPolarAng
