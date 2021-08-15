@@ -74,9 +74,12 @@ DO iClr = 1, nClr
 #endif
   
   DO ithr = 1, nthr
+    TrackingDat(ithr)%phis1g          => phis1g
     TrackingDat(ithr)%PhiAngIn1g      => PhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngIn1g  => DcmpPhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
+    
+    IF (lJout) TrackingDat(ithr)%Jout1g => MocJout1g
   END DO
   
   !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy)
@@ -86,7 +89,7 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    CALL RtDcmpThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, MocJout1g, jAsy, iz, lJout, lHex)
+    CALL RtDcmpThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, jAsy, iz, lJout, lHex)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -119,11 +122,10 @@ NULLIFY (Cell)
 
 END SUBROUTINE RayTraceDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, MocJout1g, jAsy, iz, lJout, lHex)
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, jAsy, iz, lJout, lHex)
 
 USE allocs
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type
-USE geom,    ONLY : nbd
 USE MOC_MOD, ONLY : HexTrackRotRayDcmp_GM
 USE HexData, ONLY : hAsy
 
@@ -133,8 +135,7 @@ TYPE (RayInfo_Type)     :: RayInfo
 TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
-REAL, POINTER, DIMENSION(:)     :: phis1g
-REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
+REAL, POINTER, DIMENSION(:) :: phis1g
 
 INTEGER :: jAsy, iz
 LOGICAL :: lJout, lHex
@@ -146,29 +147,11 @@ TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ixy, ibd
+INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr
 ! ----------------------------------------------------
-
-Cell => CoreInfo%Cellinfo
-Pin  => CoreInfo%Pin
 
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-
-IF (lHex) THEN
-  PinSt = hAsy(jAsy)%PinIdxSt
-  PinEd = hAsy(jAsy)%PinIdxSt + hAsy(jAsy)%nTotPin - 1
-ELSE
-  PinSt = CoreInfo%Asy(jAsy)%GlobalPinIdx(1)
-  PinEd = CoreInfo%Asy(jAsy)%GlobalPinIdx(CoreInfo%AsyInfo(CoreInfo%Asy(jAsy)%AsyType)%nxy)
-END IF
-
-FsrSt = Pin(PinSt)%FsrIdxSt
-FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
-
-! ALLOC
-CALL dmalloc0(TrackingLoc%phis1g, FsrSt, FsrEd)
-IF (ljout) CALL dmalloc0(TrackingLoc%Jout1g, 1, 3, 1, nbd, PinSt, PinEd)
 
 ! RT
 DO krot = 1, 2
@@ -181,27 +164,28 @@ DO krot = 1, 2
   END DO
 END DO
 
-! GATHER
-DO ifsr = FsrSt, FsrEd
-  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis1g(ifsr)
-END DO
+NULLIFY (DcmpAsyRay)
+NULLIFY (DcmpAsyRayCount)
 
-IF (lJout) THEN
-  DO ixy = PinSt, PinEd
-    DO ibd = 1, nbd
-      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout1g(:, ibd, ixy)
-    END DO
-  END DO
+! AFSS
+!IF (.NOT. lAFSS) RETURN
+
+Cell => CoreInfo%Cellinfo
+Pin  => CoreInfo%Pin
+
+IF (lHex) THEN
+  PinSt = hAsy(jAsy)%PinIdxSt
+  PinEd = hAsy(jAsy)%PinIdxSt + hAsy(jAsy)%nTotPin - 1
+ELSE
+  PinSt = CoreInfo%Asy(jAsy)%GlobalPinIdx(1)
+  PinEd = CoreInfo%Asy(jAsy)%GlobalPinIdx(CoreInfo%AsyInfo(CoreInfo%Asy(jAsy)%AsyType)%nxy)
 END IF
 
-! FREE
-DEALLOCATE (TrackingLoc%phis1g)
-IF (lJout) DEALLOCATE (TrackingLoc%Jout1g)
+FsrSt = Pin(PinSt)%FsrIdxSt
+FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
 
 NULLIFY (Cell)
 NULLIFY (Pin)
-NULLIFY (DcmpAsyRay)
-NULLIFY (DcmpAsyRayCount)
 ! ----------------------------------------------------
 
 END SUBROUTINE RtDcmpThr_GM

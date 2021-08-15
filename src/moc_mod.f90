@@ -116,7 +116,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis, MocJout, jAsy, iz, lJout, lHex)
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, jAsy, iz, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -126,8 +126,7 @@ TYPE (RayInfo_Type)     :: RayInfo
 TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
-REAL, POINTER, DIMENSION(:)     :: phis
-REAL, POINTER, DIMENSION(:,:,:) :: MocJout
+REAL, POINTER, DIMENSION(:) :: phis1g
 
 INTEGER :: jAsy, iz
 LOGICAL :: lJout, lHex
