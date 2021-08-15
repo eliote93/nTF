@@ -5,10 +5,12 @@ USE allocs
 USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, EXPA, EXPB, hwt, DcmpAsyClr
+USE MOC_MOD, ONLY : ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, EXPA, EXPB, hwt, DcmpAsyClr, AziRotRay, &
+                    trackingdat, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
 USE ioutil,  ONLY : message, terminate
+USE HexData, ONLY : hLgc, hRotRay, hcRay
 
 IMPLICIT NONE
 
@@ -17,9 +19,9 @@ TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (nTracerCntl_Type) :: nTracerCntl
 TYPE (PE_TYPE)          :: PE
 
-INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr
+INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr, iray
 REAL :: wttmp, wtsin2, wtcos, wtpolar
-LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM
+LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
@@ -40,6 +42,7 @@ nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
 lGM          = .NOT. nTracerCntl%lNodeMajor
+lHex         = nTracerCntl%lHex
 scatod       = nTracerCntl%scatod
 lscat1       = nTracerCntl%lscat1
 ldcmp        = nTracerCntl%lDomainDcmp
@@ -74,7 +77,7 @@ DO ipol = 1, nPol
 END DO
 
 ! Hex.
-IF (nTracerCntl%lHex) THEN
+IF (lHex) THEN
   CALL dmalloc(hwt, nPol, nAzi)
   
   DO ipol = 1, nPol
@@ -91,7 +94,7 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%wtang  => wtang
   TrackingDat(ithr)%wtsurf => wtsurf
   
-  IF (.NOT. nTracerCntl%lHex) CYCLE
+  IF (.NOT. lHex) CYCLE
   
   TrackingDat(ithr)%hwt => hwt
 END DO
@@ -125,13 +128,25 @@ END IF
 
 ! AFSS
 IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
-  DO ithr = 1, nthr
-    IF (lGM) THEN
-      CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, nAzi, nFsr)
-    ELSE
-      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
-    END IF
-  END DO
+  IF (lHex .AND. hLgc%l360) THEN
+    CALL dmalloc0(AziRotRay, 0, RayInfo%nRotRay, 1, nAzi)
+    
+    DO iray = 1, RayInfo%nRotRay
+      iazi = hcRay(hRotRay(iray)%cRayIdx(1))%AzmIdx
+      
+      AziRotRay(0, iazi) = AziRotRay(0, iazi) + 1
+      
+      AziRotRay(AziRotRay(0, iazi), iazi) = iray
+    END DO
+  ELSE
+    DO ithr = 1, nthr
+      IF (lGM) THEN
+        CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, nAzi, nFsr)
+      ELSE
+        CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
+      END IF
+    END DO
+  END IF
 END IF
 
 ! Dcmp. & Lin Src CASMO

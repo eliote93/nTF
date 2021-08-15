@@ -26,13 +26,15 @@ REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
 REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg, SrcAngNg1, SrcAngNg2
 
-
 ! Domain Decomposition
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:,:)   :: DcmpAsyClr ! (iAsy, iClr)
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
+
+! AFSS
+INTEGER, POINTER, DIMENSION(:,:) :: AziRotRay ! (iRotRay, iAzi)
 
 INTERFACE
 
@@ -116,7 +118,22 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, jAsy, iz, lJout, lHex, lAFSS)
+SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, jAsy, iz, lJout, lHex)
+
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)     :: RayInfo
+TYPE (CoreInfo_Type)    :: CoreInfo
+TYPE (TrackingDat_Type) :: TrackingLoc
+
+INTEGER :: jAsy, iz
+LOGICAL :: lJout, lHex
+
+END SUBROUTINE RtDcmpThr_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtDcmpAFSSThr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, jAsy, iz, lJout, lHex)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -129,9 +146,9 @@ TYPE (TrackingDat_Type) :: TrackingLoc
 REAL, POINTER, DIMENSION(:) :: phis1g
 
 INTEGER :: jAsy, iz
-LOGICAL :: lJout, lHex, lAFSS
+LOGICAL :: lJout, lHex
 
-END SUBROUTINE RtDcmpThr_GM
+END SUBROUTINE RtDcmpAFSSThr_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HexTrackRotRayDcmp_GM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, krot, lAFSS)
 

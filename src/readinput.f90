@@ -135,18 +135,18 @@ IF (MASTER) THEN
     END IF
     
     IF (nTracerCntl%lDomainDcmp) THEN
-      mesg = 'DCMP : T'
+      mesg = '  DCMP : T'
       CALL message(io8, TRUE, TRUE, mesg)
     ELSE
-      mesg = 'DCMP : F'
+      mesg = '  DCMP : F'
       CALL message(io8, TRUE, TRUE, mesg)
     END IF
     
     IF (nTracerCntl%lAFSS) THEN
-      mesg = 'AFSS : T'
+      mesg = '  AFSS : T'
       CALL message(io8, TRUE, TRUE, mesg)
     ELSE
-      mesg = 'AFSS : F'
+      mesg = '  AFSS : F'
       CALL message(io8, TRUE, TRUE, mesg)
     END IF
   END IF
