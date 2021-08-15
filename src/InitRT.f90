@@ -124,7 +124,7 @@ ELSE IF (.NOT. ldcmp) THEN
 END IF
 
 ! AFSS
-IF (nTracerCntl%lAFSS) THEN
+IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
   DO ithr = 1, nthr
     IF (lGM) THEN
       CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, nAzi, nFsr)

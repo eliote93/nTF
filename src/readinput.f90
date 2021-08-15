@@ -102,55 +102,54 @@ IF (MASTER) THEN
   mesg = 'Reading Input from '// trim(filename(5)) // '...'
   CALL message(io8, TRUE, TRUE, mesg)
   
-  IF (nTracerCntl%TRSolver .NE. 1 )THEN
+  IF (nTracerCntl%TRSolver .NE. 1) THEN
     mesg = 'SCHEME : multigroup MC'
+    CALL message(io8, TRUE, TRUE, mesg)
   ELSE
     IF (nTracerCntl%lNodeMajor) THEN
-      IF (nTracerCntl%lDomainDcmp) THEN
-        IF (nTracerCntl%lLinSrcCASMO) THEN
-            IF (nTracerCntl%lHybrid) THEN
-              mesg = 'SCHEME : NODE MAJOR / DCMP : T / LinSrc : T(Hybrid)'
-            ELSE
-              mesg = 'SCHEME : NODE MAJOR / DCMP : T / LinSrc : T'
-            END IF
-        ELSE
-          mesg = 'SCHEME : NODE MAJOR / DCMP : T / LinSrc : F'
-        END IF
+      IF (nTracerCntl%ScatOd .GT. 0) THEN
+        mesg = 'SCHEME : Node Major Pn'
       ELSE
-        IF (nTracerCntl%lLinSrcCASMO) THEN
-          mesg = 'SCHEME : NODE MAJOR / DCMP : F / LinSrc : T'
-        ELSE
-          mesg = 'SCHEME : NODE MAJOR / DCMP : F / LinSrc : F'
-        END IF
+        mesg = 'SCHEME : Node Major Trc'
       END IF
-      IF (nTracerCntl%ScatOd .GT. 0)THEN
-        IF (.NOT. PE%lCUDA) THEN
-          mesg = 'SCHEME : NODE MAJOR / DCMP : T / Pn AFSS : T'
-        ELSE IF (nTracerCntl%lDomainDcmp) THEN
-          mesg = 'SCHEME : NODE MAJOR / DCMP : T / Pn AFSS : F'
-        ELSE IF (nTracerCntl%lAFSS) THEN
-          mesg = 'SCHEME : NODE MAJOR / DCMP : F / Pn AFSS : T'
-        END IF
-      END IF
+      CALL message(io8, TRUE, TRUE, mesg)
     ELSE
-      IF (nTracerCntl%lDomainDcmp) THEN
-        IF (nTracerCntl%lAFSS) THEN
-          mesg = 'SCHEME : GROUP MAJOR / DCMP : T / AFSS : T'
-        ELSE
-          mesg = 'SCHEME : GROUP MAJOR / DCMP : T / AFSS : F'
-        END IF
+      IF (nTracerCntl%ScatOd .GT. 0) THEN
+        mesg = 'SCHEME : Group Major Pn'
       ELSE
-        IF (nTracerCntl%lAFSS) THEN
-          mesg = 'SCHEME : GROUP MAJOR / DCMP : F / AFSS : T'
-        ELSE
-          mesg = 'SCHEME : GROUP MAJOR / DCMP : F / AFSS : F'
-        END IF
+        mesg = 'SCHEME : Group Major Trc'
       END IF
-      
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
+    
+    IF (nTracerCntl%lLinSrcCASMO) THEN
+      IF (nTracerCntl%lHybrid) THEN
+        mesg = 'LINSRC : T (Hybrid)'
+      ELSE
+        mesg = 'LINSRC : T'
+      END IF
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      mesg = 'LINSRC : F'
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
+    
+    IF (nTracerCntl%lDomainDcmp) THEN
+      mesg = 'DCMP : T'
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      mesg = 'DCMP : F'
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
+    
+    IF (nTracerCntl%lAFSS) THEN
+      mesg = 'AFSS : T'
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      mesg = 'AFSS : F'
+      CALL message(io8, TRUE, TRUE, mesg)
     END IF
   END IF
-  
-  CALL message(io8, TRUE, TRUE, mesg)
 END IF
 ! ----------------------------------------------------
 #ifndef MPI_ASYNC_READ
