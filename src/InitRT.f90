@@ -138,6 +138,14 @@ IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
       
       AziRotRay(AziRotRay(0, iazi), iazi) = iray
     END DO
+    
+    DO ithr = 1, nthr
+      IF (lGM) THEN
+        CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, 1, nFsr)
+      ELSE
+        CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, 1, nFsr)
+      END IF
+    END DO
   ELSE
     DO ithr = 1, nthr
       IF (lGM) THEN

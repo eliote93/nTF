@@ -389,6 +389,26 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RayTrace_GM
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RtAFSS_GM(RayInfo, CoreInfo, phis, PhiAngIn, xst, src, jout, iz, ljout, FastMocLv)
+
+USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type)  :: RayInfo
+TYPE (CoreInfo_Type) :: CoreInfo
+
+REAL, POINTER, DIMENSION(:)     :: phis, xst, src
+REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn
+REAL, POINTER, DIMENSION(:,:,:) :: jout
+
+INTEGER :: iz
+LOGICAL :: ljout
+
+INTEGER, OPTIONAL :: FastMocLv
+
+END SUBROUTINE RtAFSS_GM
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type

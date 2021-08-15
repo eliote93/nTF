@@ -118,7 +118,7 @@ IF (.NOT. lAFSS) THEN
   END DO
 ELSE
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1g, ithr)
-  !$OMP DO SCHEDULE(GUIDED)
+  !$OMP DO SCHEDULE(GUIDED) ! No Collapse
   DO ifsr = 1, nFsr
     DO iazi = 1, RayInfo%nAziAngle
       DO ipol = 1, RayInfo%nPolarAngle
