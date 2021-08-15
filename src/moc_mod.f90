@@ -10,6 +10,7 @@ REAL, POINTER, DIMENSION(:,:,:) :: wtsurf, comp, mwt, mwt2, LinPsi
 
 INTEGER :: nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay
 
+INTEGER, DIMENSION(2, 100) :: OmpRotRay
 INTEGER, TARGET :: AziMap(360, 2)
 
 TYPE(TrackingDat_Type), SAVE :: TrackingDat(100)
@@ -35,6 +36,7 @@ INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
 
 ! AFSS
 INTEGER, POINTER, DIMENSION(:,:) :: AziRotRay ! (iRotRay, iAzi)
+INTEGER, DIMENSION(0:100, 1:100) :: OmpAzi
 
 INTERFACE
 
@@ -409,6 +411,38 @@ INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RtAFSS_GM
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS, jazi)
+
+USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE(RayInfo_Type),     INTENT(INOUT) :: RayInfo
+TYPE(CoreInfo_Type),    INTENT(INOUT) :: CoreInfo
+TYPE(TrackingDat_Type), INTENT(INOUT) :: TrackingDat
+
+LOGICAL, INTENT(IN) :: ljout, lAFSS
+INTEGER, INTENT(IN) :: irotray, iz, krot, FastMocLv
+INTEGER, OPTIONAL :: jazi
+
+END SUBROUTINE RecTrackRotRay_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS, jazi)
+
+USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE(RayInfo_Type),     INTENT(INOUT) :: RayInfo
+TYPE(CoreInfo_Type),    INTENT(INOUT) :: CoreInfo
+TYPE(TrackingDat_Type), INTENT(INOUT) :: TrackingDat
+
+LOGICAL, INTENT(IN) :: ljout, lAFSS
+INTEGER, INTENT(IN) :: irotray, iz, krot, FastMocLv
+INTEGER, OPTIONAL :: jazi
+
+END SUBROUTINE HexTrackRotRay_GM
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, JoutNg, iz, gb, ge, ljout)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
@@ -486,6 +520,42 @@ INTEGER :: ScatOd
 INTEGER, OPTIONAL :: FastMocLv
 
 END SUBROUTINE RtAFSSP1_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE RecTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv, lAFSS, jazi)
+
+USE param,   ONLY : FORWARD, BACKWARD
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type),     INTENT(INOUT) :: RayInfo
+TYPE (CoreInfo_Type),    INTENT(INOUT) :: CoreInfo
+TYPE (TrackingDat_Type), INTENT(INOUT) :: TrackingDat
+
+LOGICAL, INTENT(IN) :: ljout, lAFSS
+INTEGER, INTENT(IN) :: irotray, iz, krot, ScatOd
+INTEGER, INTENT(IN) :: FastMocLv
+INTEGER, OPTIONAL :: jazi
+
+END SUBROUTINE RecTrackRotRayP1_GM
+! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE HexTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv, lAFSS, jazi)
+
+USE param,   ONLY : FORWARD, BACKWARD
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
+
+IMPLICIT NONE
+
+TYPE (RayInfo_Type),     INTENT(INOUT) :: RayInfo
+TYPE (CoreInfo_Type),    INTENT(INOUT) :: CoreInfo
+TYPE (TrackingDat_Type), INTENT(INOUT) :: TrackingDat
+
+LOGICAL, INTENT(IN) :: ljout, lAFSS
+INTEGER, INTENT(IN) :: irotray, iz, krot, ScatOd
+INTEGER, INTENT(IN) :: FastMocLv
+INTEGER, OPTIONAL :: jazi
+
+END SUBROUTINE HexTrackRotRayP1_GM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src1g, LinSrc, Slope1g, jout, iz, ljout)
 

@@ -53,11 +53,10 @@ lAFSS = nTracerCntl%lAFSS
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, Ifsr, ipol, ig, srctmp)
-ithr = omp_get_thread_num() + 1
-
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, Ifsr, ipol, ig, srctmp)
+!$OMP DO SCHEDULE(GUIDED)
 DO iazi = 1, nAziAng
-  DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
+  DO ifsr = 1, nFsr
     DO ipol = 1, nPolarAng
       DO ig = gb, ge
         SrcAngNg1(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
@@ -85,6 +84,7 @@ DO iazi = 1, nAziAng
      END DO
   END DO
 END DO
+!$OMP END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 !$OMP PARALLEL PRIVATE(ithr, krot, iRotRay)
@@ -101,21 +101,17 @@ TrackingDat(ithr)%PhiAngInNg => PhiAngInNg
 TrackingDat(ithr)%SrcAngNg1  => SrcAngNg1
 TrackingDat(ithr)%SrcAngNg2  => SrcAngNg2
 
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE (2)
 DO krot = 1, 2
-  IF (nTracerCntl%lHex) THEN
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+  DO iRotRay = 1, RayInfo%nRotRay
+    IF (nTracerCntl%lHex) THEN
       CALL HexTrackRotRayP1_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge, ScatOd, lAFSS)
-    END DO
-    !$OMP END DO NOWAIT
-  ELSE
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+    ELSE
       CALL RecTrackRotRayP1_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge, ScatOd, lAFSS)
-    END DO
-    !$OMP END DO NOWAIT
-  END IF
+    END IF
+  END DO
 END DO
+!$OMP END DO NOWAIT
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 phisNg(gb:ge, :)    = ZERO

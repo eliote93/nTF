@@ -5,7 +5,7 @@ USE allocs
 USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, EXPA, EXPB, hwt, DcmpAsyClr, AziRotRay, &
+USE MOC_MOD, ONLY : ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, EXPA, EXPB, hwt, DcmpAsyClr, AziRotRay, OmpRotRay, OmpAzi, &
                     trackingdat, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
@@ -19,7 +19,7 @@ TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (nTracerCntl_Type) :: nTracerCntl
 TYPE (PE_TYPE)          :: PE
 
-INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr, iray
+INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr, iray, ntmp1, ntmp2, itmp, nRotRay
 REAL :: wttmp, wtsin2, wtcos, wtpolar
 LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex
 
@@ -34,6 +34,7 @@ AziAng   => RayInfo%AziAngle
 PolarAng => RayInfo%PolarAngle
 nPol      = RayInfo%nPolarAngle
 nAzi      = RayInfo%nAziAngle
+nRotRay   = RayInfo%nRotRay
 
 nthr = PE%nThread
 CALL omp_set_num_threads(nThr)
@@ -87,6 +88,49 @@ IF (lHex) THEN
   END DO
 END IF
 ! ----------------------------------------------------
+! Omp Rot Ray, DEBUG
+ntmp1 = nRotRay / nthr
+ntmp2 = nRotRay - ntmp1 * nthr
+
+iray = 1
+
+DO itmp = 1, ntmp2
+  OmpRotRay(1, itmp) = iray
+  OmpRotRay(2, itmp) = iray + ntmp1
+  
+  iray = iray + ntmp1 + 1
+END DO
+
+DO itmp = ntmp2 + 1, nthr
+  OmpRotRay(1, itmp) = iray
+  OmpRotRay(2, itmp) = iray + ntmp1 - 1
+  
+  iray = iray + ntmp1
+END DO
+
+! Omp Azi
+ntmp1 = nAzi / nthr
+ntmp2 = nAzi - ntmp1 * nthr
+
+OmpAzi(0, 1:ntmp2)      = ntmp1 + 1
+OmpAzi(0, ntmp2+1:nthr) = ntmp1
+
+iazi = 0
+
+DO itmp = 1, ntmp1
+  DO ithr = 1, nthr
+    iazi = iazi + 1
+    
+    OmpAzi(itmp, ithr) = iazi
+  END DO
+END DO
+
+DO itmp = 1, ntmp2
+  iazi = iazi + 1
+  
+  OmpAzi(ntmp1+1, itmp) = iazi
+END DO
+! ----------------------------------------------------
 ! Basic
 DO ithr = 1, nThr
   TrackingDat(ithr)%ExpA   => ExpA
@@ -128,10 +172,11 @@ END IF
 
 ! AFSS
 IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
-  IF (lHex .AND. hLgc%l360) THEN
-    CALL dmalloc0(AziRotRay, 0, RayInfo%nRotRay, 1, nAzi)
+  IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
+    ! SET : Azi Rot Ray
+    CALL dmalloc0(AziRotRay, 0, nRotRay, 1, nAzi)
     
-    DO iray = 1, RayInfo%nRotRay
+    DO iray = 1, nRotRay
       iazi = hcRay(hRotRay(iray)%cRayIdx(1))%AzmIdx
       
       AziRotRay(0, iazi) = AziRotRay(0, iazi) + 1
@@ -139,11 +184,12 @@ IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
       AziRotRay(AziRotRay(0, iazi), iazi) = iray
     END DO
     
-    DO ithr = 1, nthr
+    ! ALLOC
+    DO ithr = 1, ithr
       IF (lGM) THEN
-        CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, 1, nFsr)
+        CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, OmpAzi(0, ithr), nFsr)
       ELSE
-        CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, 1, nFsr)
+        CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, OmpAzi(0, ithr), nFsr)
       END IF
     END DO
   ELSE

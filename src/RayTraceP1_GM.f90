@@ -5,7 +5,7 @@ SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, s
 USE OMP_LIB
 USE PARAM,   ONLY : FALSE, ZERO, ONE, FALSE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt
+USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
@@ -27,7 +27,7 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nAzi, nPol, nFsr, nxy, nThr
 INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ixy, krot
-REAL :: wttmp, tmpsrc
+REAL :: wttmp, srctmp
 ! ----------------------------------------------------
 
 nAzi = RayInfo%nAziAngle
@@ -39,36 +39,36 @@ nxy  = CoreInfo%nxy
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, ifsr, ipol, tmpsrc)
-ithr = omp_get_thread_num() + 1
-
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ifsr, ipol, srctmp)
+!$OMP DO SCHEDULE(GUIDED)
 DO iazi = 1, nAzi
-  DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
+  DO ifsr = 1, nFsr
     DO ipol = 1, nPol
       SrcAng1g1(ipol, ifsr, iazi) = src1g(ifsr)
       SrcAng1g2(ipol, ifsr, iazi) = src1g(ifsr)
       
-      tmpsrc = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
-            
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
+      srctmp = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
+      
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - srctmp
       
       IF (ScatOd .LT. 2) CYCLE
       
-      tmpsrc = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
-            
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  tmpsrc
+      srctmp = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
+      
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  srctmp
       
       IF (ScatOd .LT. 3) CYCLE
       
-      tmpsrc = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
-            
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
+      srctmp = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
+      
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - srctmp
      END DO
   END DO
 END DO
+!$OMP END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
@@ -84,21 +84,17 @@ TrackingDat(ithr)%xst1g      => xst1g
 TrackingDat(ithr)%SrcAng1g1  => SrcAng1g1
 TrackingDat(ithr)%SrcAng1g2  => SrcAng1g2
 
+!$OMP DO SCHEDULE(GUIDED)
 DO krot = 1, 2
-  IF (nTracerCntl%lHex) THEN
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+  DO iRotRay = 1, RayInfo%nRotRay
+    IF (nTracerCntl%lHex) THEN
       CALL HexTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat(ithr), lJout, iRotRay, iz, krot, ScatOd, FastMocLv, FALSE)
-    END DO
-    !$OMP END DO NOWAIT
-  ELSE
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+    ELSE
       CALL RecTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat(ithr), lJout, iRotRay, iz, krot, ScatOd, FastMocLv, FALSE)
-    END DO
-    !$OMP END DO NOWAIT
-  END IF
+    END IF
+  END DO
 END DO
+!$OMP END DO NOWAIT
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 phis1g = ZERO
@@ -120,10 +116,9 @@ END IF
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)
-ithr = omp_get_thread_num() + 1
-
-DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)
+!$OMP DO SCHEDULE(GUIDED)
+DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt
   icel     = Pin(ixy)%Cell(iz)
   
@@ -139,6 +134,7 @@ DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
     IF (ScatOd .EQ. 3) phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr)
   END DO
 END DO
+!$OMP END DO
 !$OMP END PARALLEL
 
 NULLIFY (Cell)
@@ -152,7 +148,7 @@ SUBROUTINE RtAFSSP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, ONE, FORWARD, BACKWARD, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt, AziRotRay
+USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt, AziRotRay, OmpAzi
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hLgc
@@ -174,10 +170,10 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nAzi, nPol, nFsr, nxy, nThr
-INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, jRotRay, ifsr, jfsr, ixy, krot
+INTEGER :: ithr, FsrIdxSt, icel, iazi, jazi, ipol, iod, iRotRay, jRotRay, ifsr, jfsr, ixy, krot
 LOGICAL :: lHex
 
-REAL :: wttmp, tmpsrc
+REAL :: wttmp, srctmp
 REAL :: phia1g(2)
 ! ----------------------------------------------------
 
@@ -192,36 +188,36 @@ lHex = nTracerCntl%lHex
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, ifsr, ipol, tmpsrc)
-ithr = omp_get_thread_num() + 1
-
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ifsr, ipol, srctmp)
+!$OMP DO SCHEDULE(GUIDED)
 DO iazi = 1, nAzi
   DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
     DO ipol = 1, nPol
       SrcAng1g1(ipol, ifsr, iazi) = src1g(ifsr)
       SrcAng1g2(ipol, ifsr, iazi) = src1g(ifsr)
       
-      tmpsrc = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
-            
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
+      srctmp = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
+      
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - srctmp
       
       IF (ScatOd .LT. 2) CYCLE
       
-      tmpsrc = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
-            
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  tmpsrc
+      srctmp = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
+      
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  srctmp
       
       IF (ScatOd .LT. 3) CYCLE
       
-      tmpsrc = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
-            
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
+      srctmp = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
+      
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - srctmp
      END DO
   END DO
 END DO
+!$OMP END DO
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr)
@@ -241,49 +237,51 @@ TrackingDat(ithr)%SrcAng1g2  => SrcAng1g2
 phis1g = ZERO
 phim1g = ZERO
 ! ----------------------------------------------------
-IF (lHex .AND. hLgc%l360) THEN
-  DO iazi = 1, nAzi
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay, jRotRay)
-    ithr = omp_get_thread_num() + 1
+IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, jazi, krot, iRotRay, jRotRay)
+  ithr = omp_get_thread_num() + 1
+  
+  TrackingDat(ithr)%phia1g = ZERO
+  
+  DO iazi = 1, OmpAzi(0, ithr)
+    jazi = OmpAzi(iazi, ithr)
     
-    TrackingDat(ithr)%phia1g = ZERO
-    
-    !$OMP DO SCHEDULE(GUIDED)
     DO krot = 1, 2
-      DO iRotRay = 1, AziRotRay(0, iazi)
-        jRotRay = AziRotRay(iRotRay, iazi)
+      DO iRotRay = 1, AziRotRay(0, jazi)
+        jRotRay = AziRotRay(iRotRay, jazi)
         
         IF (lHex) THEN
-          CALL HexTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat(ithr), lJout, iRotRay, iz, krot, ScatOd, FastMocLv, TRUE)
+          CALL HexTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat(ithr), lJout, jRotRay, iz, krot, ScatOd, FastMocLv, TRUE, iazi)
         ELSE
-          CALL RecTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat(ithr), lJout, iRotRay, iz, krot, ScatOd, FastMocLv, TRUE)
+          CALL RecTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat(ithr), lJout, jRotRay, iz, krot, ScatOd, FastMocLv, TRUE, iazi)
         END IF
       END DO
     END DO
-    !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
-    
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ipol, phia1g, ithr)
-    !$OMP DO SCHEDULE(GUIDED) ! No Collapse
-    DO ifsr = 1, nFsr
-      DO ipol = 1, nPol
-        phia1g = ZERO ! Need to Test
+  END DO
+  !$OMP END PARALLEL
+  
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ithr, iazi, jazi, ipol)
+  !$OMP DO SCHEDULE(GUIDED) ! No Collapse
+  DO ifsr = 1, nFsr
+    DO ithr = 1, nThr
+      DO iazi = 1, OmpAzi(0, ithr)
+        jazi = OmpAzi(iazi, ithr)
         
-        DO ithr = 1, nThr
-          phia1g(:) = phia1g(:) + trackingdat(ithr)%phia1g(:, ipol, 1, ifsr)
+        DO ipol = 1, RayInfo%nPolarAngle
+          phia1g(:) = trackingdat(ithr)%phia1g(:, ipol, iazi, ifsr)
+          
+          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, jazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+          
+          IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+          IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
         END DO
-        
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-        
-        phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-        
-        IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-        IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
       END DO
     END DO
-    !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
   END DO
+  !$OMP END DO NOWAIT
+  !$OMP END PARALLEL
 ELSE
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
   ithr = omp_get_thread_num() + 1
@@ -338,10 +336,9 @@ END IF
 Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)
-ithr = omp_get_thread_num() + 1
-
-DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)
+!$OMP DO SCHEDULE(GUIDED)
+DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt
   icel     = Pin(ixy)%Cell(iz)
   
@@ -357,6 +354,7 @@ DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
     IF (ScatOd .EQ. 3) phim1g(6:9, jfsr) = phim1g(6:9, jfsr) * wttmp + srcm1g(6:9, jfsr)
   END DO
 END DO
+!$OMP END DO
 !$OMP END PARALLEL
 
 NULLIFY (Cell)
@@ -365,7 +363,7 @@ NULLIFY (Pin)
 
 END SUBROUTINE RtAFSSP1_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv, lAFSS)
+SUBROUTINE RecTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv, lAFSS, jazi)
 
 USE PARAM,   ONLY : TRUE, FALSE, ZERO, FORWARD, BACKWARD
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Asy_Type, AsyInfo_Type, PinInfo_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type, ModRayInfo_type, AsyRayInfo_type,  &
@@ -380,6 +378,7 @@ TYPE (TrackingDat_Type), INTENT(INOUT) :: TrackingDat
 
 LOGICAL, INTENT(IN) :: ljout, lAFSS
 INTEGER, INTENT(IN) :: irotray, iz, krot, ScatOd, FastMocLv
+INTEGER, OPTIONAL :: jazi
 ! ----------------------------------------------------
 TYPE (Pin_Type),            POINTER, DIMENSION(:) :: Pin
 TYPE (Asy_Type),            POINTER, DIMENSION(:) :: Asy
@@ -405,7 +404,7 @@ REAL, POINTER, DIMENSION(:,:,:)   :: ExpAppPolar, jout1g, wtsurf, mwt, mwt2, Src
 REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 INTEGER :: mp(2)
-INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv, nOd
+INTEGER :: iazi, kazi, ipol, iCoreRay, iasyray, iceray, irayseg, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv, nOd
 INTEGER :: ipin, icel, iasy, ifsr, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nFsr, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, iod, ibcel
 
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay, 2) :: CellRayIdxSt, SurfIdx
@@ -617,8 +616,10 @@ END IF
 ! ----------------------------------------------------
 DO j = jbeg, jend, jinc
   iazi = CoreRay(RotRay(irotray)%RayIdx(j))%iang
-  
   idir = RotRay(i)%DIR(j)
+  kazi = iazi
+  
+  IF (present(jazi)) kazi = jazi
   IF (krot .EQ. 2) idir = mp(idir) ! Reverse the sweep direction
   
   nRaySeg = nTotRaySeg(j)
@@ -638,7 +639,7 @@ DO j = jbeg, jend, jinc
         PhiAngOut1g(ipol, ir+1) = PhiAngOut1g(ipol, ir) - phid
         
         IF (lAFSS) THEN
-          phia1g(FORWARD, ipol, iazi, ifsr) = phia1g(FORWARD, ipol, iazi, ifsr) + phid
+          phia1g(FORWARD, ipol, kazi, ifsr) = phia1g(FORWARD, ipol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt*phid
           
@@ -689,7 +690,7 @@ DO j = jbeg, jend, jinc
         PhiAngOut1g(ipol, ir+1) = PhiAngOut1g(ipol, ir + 2) - phid
         
         IF (lAFSS) THEN
-          phia1g(BACKWARD, ipol, iazi, ifsr) = phia1g(BACKWARD, ipol, iazi, ifsr) + phid
+          phia1g(BACKWARD, ipol, kazi, ifsr) = phia1g(BACKWARD, ipol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
           
@@ -770,13 +771,13 @@ IF (lAFSS) NULLIFY (phia1g)
 
 END SUBROUTINE RecTrackRotRayP1_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv, lAFSS)
+SUBROUTINE HexTrackRotRayP1_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, ScatOd, FastMocLv, lAFSS, jazi)
 
 USE param,   ONLY : FORWARD, BACKWARD
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type, Pin_Type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type
 USE Moc_Mod, ONLY : nMaxCellRay, nMaxCoreRay
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
-USE HexData, ONLY : hAsy, haRay, hcRay, hRotRay, hAsyTypInfo, hLgc
+USE HexData, ONLY : hAsy, haRay, hcRay, hRotRay, hAsyTypInfo
 
 IMPLICIT NONE
 
@@ -787,8 +788,9 @@ TYPE (TrackingDat_Type), INTENT(INOUT) :: TrackingDat
 LOGICAL, INTENT(IN) :: ljout, lAFSS
 INTEGER, INTENT(IN) :: irotray, iz, krot, ScatOd
 INTEGER, INTENT(IN) :: FastMocLv
+INTEGER, OPTIONAL :: jazi
 ! ----------------------------------------------------
-INTEGER :: iazi, jazi, ipol, iaRay, jaRay, iAsy, iSurf, icRay, jbeg, jend, jinc, ihpRay, ifsr, iRaySeg, iRaySeg1, iCel
+INTEGER :: iazi, kazi, ipol, iaRay, jaRay, iAsy, iSurf, icRay, jbeg, jend, jinc, ihpRay, ifsr, iRaySeg, iRaySeg1, iCel
 INTEGER :: PhiAnginSvIdx, PhiAngOutSvIdx, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, jcRay, nod, iod, irsegidx, icellrayidx
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, nRaySeg
 
@@ -825,22 +827,22 @@ nCoreRay     = hRotRay_Loc%ncRay
 
 Pin => CoreInfo%Pin
 
-phis1g         => TrackingDat%phis1g
-phim1g         => TrackingDat%phim1g
-xst1g          => TrackingDat%xst1g
-jout1g         => TrackingDat%jout1g
-ExpA           => TrackingDat%ExpA
-ExpB           => TrackingDat%ExpB
-wtang          => TrackingDat%wtang
-mwt            => TrackingDat%mwt
-mwt2           => TrackingDat%mwt2
-SrcAng1g1      => TrackingDat%SrcAng1g1
-SrcAng1g2      => TrackingDat%SrcAng1g2
-locphiout       = TrackingDat%PhiAngIn1g(:, PhiAnginSvIdx)
-FsrIdx         => TrackingDat%FsrIdx
-ExpAppIdx      => TrackingDat%ExpAppIdx
-OptLenList     => TrackingDat%OptLenList
-ExpAppPolar    => TrackingDat%ExpAppPolar
+phis1g      => TrackingDat%phis1g
+phim1g      => TrackingDat%phim1g
+xst1g       => TrackingDat%xst1g
+jout1g      => TrackingDat%jout1g
+ExpA        => TrackingDat%ExpA
+ExpB        => TrackingDat%ExpB
+wtang       => TrackingDat%wtang
+mwt         => TrackingDat%mwt
+mwt2        => TrackingDat%mwt2
+SrcAng1g1   => TrackingDat%SrcAng1g1
+SrcAng1g2   => TrackingDat%SrcAng1g2
+locphiout    = TrackingDat%PhiAngIn1g(:, PhiAnginSvIdx)
+FsrIdx      => TrackingDat%FsrIdx
+ExpAppIdx   => TrackingDat%ExpAppIdx
+OptLenList  => TrackingDat%OptLenList
+ExpAppPolar => TrackingDat%ExpAppPolar
 PhiAngOut1g => TrackingDat%PhiAngOut1g
 
 IF (lAFSS) phia1g => TrackingDat%phia1g
@@ -917,9 +919,9 @@ END IF
 DO icRay = jbeg, jend, jinc
   jcRay = hRotRay_Loc%cRayIdx(icRay)
   iAzi  = hcRay(abs(hRotRay_Loc%cRayIdx(icRay)))%AzmIdx
-  jazi  = iazi
+  kazi  = iazi
   
-  IF (hLgc%l360)   jazi  = 1
+  IF (present(jazi)) kazi = jazi
   IF (krot .EQ. 2) jcRay = -jcRay !Reverse the Sweep Direction
   
   nRaySeg = nTotRaySeg(icRay)
@@ -938,7 +940,7 @@ DO icRay = jbeg, jend, jinc
         PhiAngOut1g(ipol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg) - phid
         
         IF (lAFSS) THEN
-          phia1g(FORWARD, iPol, jazi, ifsr) = phia1g(FORWARD, iPol, jazi, ifsr) + phid
+          phia1g(FORWARD, iPol, kazi, ifsr) = phia1g(FORWARD, iPol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
           
@@ -985,7 +987,7 @@ DO icRay = jbeg, jend, jinc
         PhiAngOut1g(iPol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg + 2) - phid
         
         IF (lAFSS) THEN
-          phia1g(BACKWARD, iPol, jazi, ifsr) = phia1g(BACKWARD, iPol, jazi, ifsr) + phid
+          phia1g(BACKWARD, iPol, kazi, ifsr) = phia1g(BACKWARD, iPol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
           

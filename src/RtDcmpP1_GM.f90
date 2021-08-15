@@ -196,7 +196,7 @@ END SELECT
 
 src1g => TrackingLoc%src1g
 ! ----------------------------------------------------
-IF (lHex .AND. hLgc%l360) THEN
+IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
   CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
   CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
   
@@ -450,7 +450,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%l360)   jazi = 1
+  IF (hLgc%l360 .AND. hLgc%lRadVac) jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng

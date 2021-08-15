@@ -220,7 +220,7 @@ FsrSt = Pin(PinSt)%FsrIdxSt
 FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
 
 ! RT
-IF (lHex .AND. hLgc%l360) THEN
+IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
   CALL dmalloc0(TrackingLoc%phia1g, 1, 2, 1, nPol, 1, 1, FsrSt, FsrEd)
   
   DO iazi = 1, nAzi
@@ -374,7 +374,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%l360)   jazi = 1
+  IF (hLgc%l360 .AND. hLgc%lRadVac) jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng

@@ -5,7 +5,7 @@ SUBROUTINE RayTrace_GM(RayInfo, CoreInfo, phis1g, PhiAngIn1g, xst1g, src1g, jout
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, FALSE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : TrackingDat
+USE Moc_Mod, ONLY : RecTrackRotRay_GM, HexTrackRotRay_GM, TrackingDat
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
@@ -45,21 +45,17 @@ TrackingDat(ithr)%src1g      => src1g
 TrackingDat(ithr)%xst1g      => xst1g
 TrackingDat(ithr)%PhiAngIn1g => PhiAngIn1g
 
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO krot = 1, 2
-  IF (nTracerCntl%lHex) THEN
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+  DO iRotRay = 1, RayInfo%nRotRay
+    IF (nTracerCntl%lHex) THEN
       CALL HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, FastMocLv, FALSE)
-    END DO
-    !$OMP END DO NOWAIT
-  ELSE
-    !$OMP DO SCHEDULE(GUIDED)
-    DO iRotRay = 1, RayInfo%nRotRay
+    ELSE
       CALL RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, FastMocLv, FALSE)
-    END DO
-    !$OMP END DO NOWAIT
-  END IF
+    END IF
+  END DO
 END DO
+!$OMP END DO NOWAIT
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 phis1g = ZERO
@@ -105,7 +101,7 @@ SUBROUTINE RtAFSS_GM(RayInfo, CoreInfo, phis1g, PhiAngIn1g, xst1g, src1g, jout1g
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, FORWARD, BACKWARD, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : TrackingDat, wtang, AziRotRay
+USE Moc_Mod, ONLY : RecTrackRotRay_GM, HexTrackRotRay_GM, TrackingDat, wtang, AziRotRay, OmpAzi
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hLgc
@@ -127,7 +123,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
 INTEGER :: nFsr, nxy, nThr
-INTEGER :: ithr, FsrIdxSt, icel, iRotRay, jRotRay, ifsr, jfsr, ixy, krot, iazi, ipol
+INTEGER :: ithr, FsrIdxSt, icel, iRotRay, jRotRay, ifsr, jfsr, ixy, krot, iazi, jazi, ipol
 LOGICAL :: lHex
 
 REAL :: phia1g(2)
@@ -154,44 +150,44 @@ TrackingDat(ithr)%PhiAngIn1g => PhiAngIn1g
 
 phis1g = ZERO
 ! ----------------------------------------------------
-IF (lHex .AND. hLgc%l360) THEN
-  DO iazi = 1, RayInfo%nAziAngle
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay, jRotRay)
-    ithr = omp_get_thread_num() + 1
+IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, jazi, krot, iRotRay, jRotRay)
+  ithr = omp_get_thread_num() + 1
+  
+  TrackingDat(ithr)%phia1g = ZERO
+  
+  DO iazi = 1, OmpAzi(0, ithr)
+    jazi = OmpAzi(iazi, ithr)
     
-    Trackingdat(Ithr)%phia1g = ZERO
-    
-    !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
     DO krot = 1, 2
-      DO iRotRay = 1, AziRotRay(0, iazi)
-        jRotRay = AziRotRay(iRotRay, iazi)
+      DO iRotRay = 1, AziRotRay(0, jazi)
+        jRotRay = AziRotRay(iRotRay, jazi)
         
         IF (lHex) THEN
-          CALL HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, jRotRay, iz, krot, FastMocLv, TRUE)
+          CALL HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, jRotRay, iz, krot, FastMocLv, TRUE, iazi)
         ELSE
-          CALL RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, jRotRay, iz, krot, FastMocLv, TRUE)
+          CALL RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, jRotRay, iz, krot, FastMocLv, TRUE, iazi)
         END IF
       END DO
     END DO
-    !$OMP END DO
-    !$OMP END PARALLEL
-    
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ipol, phia1g, ithr)
-    !$OMP DO SCHEDULE(GUIDED) ! No Collapse
-    DO ifsr = 1, nFsr
-      DO ipol = 1, RayInfo%nPolarAngle
-        phia1g = ZERO ! Need to Test
+  END DO
+  !$OMP END PARALLEL
+  
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ithr, iazi, jazi, ipol)
+  !$OMP DO SCHEDULE(GUIDED) ! No Collapse
+  DO ifsr = 1, nFsr
+    DO ithr = 1, nThr
+      DO iazi = 1, OmpAzi(0, ithr)
+        jazi = OmpAzi(iazi, ithr)
         
-        DO ithr = 1, nThr
-          phia1g(:) = phia1g(:) + trackingdat(ithr)%phia1g(:, ipol, 1, ifsr)
+        DO ipol = 1, RayInfo%nPolarAngle
+          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, jazi) * (trackingdat(ithr)%phia1g(FORWARD, ipol, iazi, ifsr) + trackingdat(ithr)%phia1g(BACKWARD, ipol, iazi, ifsr))
         END DO
-        
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (phia1g(FORWARD) + phia1g(BACKWARD))
       END DO
     END DO
-    !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
   END DO
+  !$OMP END DO NOWAIT
+  !$OMP END PARALLEL
 ELSE
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
   ithr = omp_get_thread_num() + 1
@@ -262,7 +258,7 @@ NULLIFY (Pin)
 
 END SUBROUTINE RtAFSS_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS)
+SUBROUTINE RecTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS, jazi)
 
 USE PARAM,   ONLY : TRUE, FALSE, ZERO, FORWARD, BACKWARD
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, Pin_Type, Asy_Type, AsyInfo_Type, PinInfo_Type, Cell_Type, AziAngleInfo_Type, PolarAngle_Type, ModRayInfo_type, AsyRayInfo_type,  &
@@ -277,7 +273,8 @@ TYPE(TrackingDat_Type), INTENT(INOUT) :: TrackingDat
 
 LOGICAL, INTENT(IN) :: ljout, lAFSS
 INTEGER, INTENT(IN) :: irotray, iz, krot, FastMocLv
-
+INTEGER, OPTIONAL :: jazi
+! ----------------------------------------------------
 TYPE (Pin_Type),            POINTER, DIMENSION(:) :: Pin
 TYPE (Asy_Type),            POINTER, DIMENSION(:) :: Asy
 TYPE (PinInfo_Type),        POINTER, DIMENSION(:) :: PinInfo
@@ -302,7 +299,7 @@ REAL, POINTER, DIMENSION(:,:,:)   :: ExpAppPolar, jout1g, wtsurf
 REAL, POINTER, DIMENSION(:,:,:,:) :: phia1g
 
 INTEGER :: mp(2)
-INTEGER :: iazi, ipol, iCoreRay, iasyray, iceray, irayseg, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv
+INTEGER :: iazi, kazi, ipol, iCoreRay, iasyray, iceray, irayseg, itype, idir, nRotRay, nCoreRay, nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, nAziAng, nPhiAngSv
 INTEGER :: ipin, icel, iasy, ifsr, isurf, irsegidx, icellrayidx, PhiAnginSvIdx, PhiAngOutSvIdx, nFsr, nxy, i, j, k, l, m, jbeg, jend, jinc, ir, ir1, ibcel
 
 INTEGER, DIMENSION(nMaxCellRay, nMaxCoreRay, 2) :: CellRayIdxSt, SurfIdx
@@ -506,7 +503,9 @@ END IF
 DO j = jbeg, jend, jinc
   idir = RotRay(i)%DIR(j)
   iazi = CoreRay(RotRay(irotray)%RayIdx(j))%iang
+  kazi = iazi
   
+  IF (present(jazi)) kazi = jazi
   IF (krot .eq. 2) idir = mp(idir) ! Reverse the sweep direction
   
   IF (lJout) wt2(1:4) = wtsurf(ipol, iazi, 1:4)
@@ -528,7 +527,7 @@ DO j = jbeg, jend, jinc
         PhiAngOut1g(ipol, ir+1) = PhiAngOut1g(ipol, ir) - phid
         
         IF (lAFSS) THEN
-          phia1g(FORWARD, ipol, iazi, ifsr) = phia1g(FORWARD, ipol, iazi, ifsr) + phid
+          phia1g(FORWARD, ipol, kazi, ifsr) = phia1g(FORWARD, ipol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt*phid
         END IF
@@ -574,7 +573,7 @@ DO j = jbeg, jend, jinc
         PhiAngOut1g(ipol, ir+1) = PhiAngOut1g(ipol, ir + 2) - phid
         
         IF (lAFSS) THEN
-          phia1g(BACKWARD, ipol, iazi, ifsr) = phia1g(BACKWARD, ipol, iazi, ifsr) + phid
+          phia1g(BACKWARD, ipol, kazi, ifsr) = phia1g(BACKWARD, ipol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
         END IF
@@ -646,13 +645,13 @@ IF (lAFSS) NULLIFY (phia1g)
 
 END SUBROUTINE RecTrackRotRay_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS)
+SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv, lAFSS, jazi)
 
 USE PARAM,    ONLY : FORWARD, BACKWARD
 USE TYPEDEF,  ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, TrackingDat_Type
 USE Moc_Mod,  ONLY : nMaxCellRay, nMaxCoreRay
 USE HexType,  ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
-USE HexData,  ONLY : hAsy, haRay, hcRay, hRotRay, hAsyTypInfo, hLgc
+USE HexData,  ONLY : hAsy, haRay, hcRay, hRotRay, hAsyTypInfo
 
 IMPLICIT NONE
 
@@ -663,8 +662,9 @@ TYPE (TrackingDat_Type), INTENT(INOUT) :: TrackingDat
 LOGICAL, INTENT(IN) :: ljout, lAFSS
 INTEGER, INTENT(IN) :: irotray, iz, krot
 INTEGER, INTENT(IN) :: FastMocLv
+INTEGER, OPTIONAL :: jazi
 ! ----------------------------------------------------
-INTEGER :: iazi, jazi, ipol, iaRay, jaRay, iAsy, iSurf, PhiAnginSvIdx, PhiAngOutSvIdx, irsegidx, icellrayidx
+INTEGER :: iazi, kazi, ipol, iaRay, jaRay, iAsy, iSurf, PhiAnginSvIdx, PhiAngOutSvIdx, irsegidx, icellrayidx
 INTEGER :: icRay, jbeg, jend, jinc, ihpRay, iRaySeg, iGeoTyp, iAsyTyp, jhPin, icBss, jcBss, jcRay, ifsr, iCel, iRaySeg1
 INTEGER :: nCoreRay, nAsyRay, nPolarAng, nRaySeg
 
@@ -785,9 +785,9 @@ END IF
 DO icRay = jbeg, jend, jinc
   jcRay = hRotRay_Loc%cRayIdx(icRay)
   iAzi  = hcRay(abs(jcRay))%AzmIdx
-  jazi  = iazi
+  kazi  = iazi
   
-  IF (hLgc%l360)   jazi  = 1
+  IF (present(jazi)) kazi = jazi
   IF (krot .EQ. 2) jcRay = -jcRay !Reverse the Sweep Direction
   
   nRaySeg = nTotRaySeg(icRay)
@@ -806,7 +806,7 @@ DO icRay = jbeg, jend, jinc
         PhiAngOut1g(ipol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg) - phid
         
         IF (lAFSS) THEN
-          phia1g(FORWARD, iPol, jazi, ifsr) = phia1g(FORWARD, iPol, jazi, ifsr) + phid
+          phia1g(FORWARD, iPol, kazi, ifsr) = phia1g(FORWARD, iPol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
         END IF
@@ -849,7 +849,7 @@ DO icRay = jbeg, jend, jinc
         PhiAngOut1g(iPol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg + 2) - phid
         
         IF (lAFSS) THEN
-          phia1g(BACKWARD, iPol, jazi, ifsr) = phia1g(BACKWARD, iPol, jazi, ifsr) + phid
+          phia1g(BACKWARD, iPol, kazi, ifsr) = phia1g(BACKWARD, iPol, kazi, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
         END IF
