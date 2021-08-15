@@ -60,8 +60,8 @@ END DO
 DcmpPhiAngOut1g = ZERO
 
 phis1g = ZERO
-IF (ljout) Mocjout1g = ZERO
 phim1g = ZERO
+IF (ljout) Mocjout1g = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
   IF (lHex) THEN
@@ -77,9 +77,13 @@ DO iClr = 1, nClr
 #endif
   
   DO ithr = 1, nthr
+    TrackingDat(ithr)%phis1g          => phis1g
+    TrackingDat(ithr)%phim1g          => phim1g
     TrackingDat(ithr)%PhiAngIn1g      => PhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngIn1g  => DcmpPhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
+    
+    IF (lJout) TrackingDat(ithr)%Jout1g => MocJout1g
   END DO
   
   !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy)
@@ -89,7 +93,7 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    CALL RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, phim1g, srcm1g, MocJout1g, jAsy, iz, lJout, lHex, ScatOd)
+    CALL RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, phim1g, srcm1g, jAsy, iz, lJout, lHex, ScatOd)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -129,11 +133,10 @@ NULLIFY (Cell)
 
 END SUBROUTINE RayTraceDcmpP1_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, phim1g, srcm1g, MocJout1g, jAsy, iz, lJout, lHex, ScatOd)
+SUBROUTINE RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, phim1g, srcm1g, jAsy, iz, lJout, lHex, ScatOd)
 
 USE allocs
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type
-USE geom,    ONLY : nbd
 USE MOC_MOD, ONLY : HexTrackRotRayDcmpP1_GM, Comp, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpAziRay
 USE HexData, ONLY : hAsy, hLgc
 
@@ -143,9 +146,8 @@ TYPE (RayInfo_Type)     :: RayInfo
 TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
-REAL, POINTER, DIMENSION(:)     :: phis1g
-REAL, POINTER, DIMENSION(:,:)   :: phim1g, srcm1g
-REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
+REAL, POINTER, DIMENSION(:)   :: phis1g
+REAL, POINTER, DIMENSION(:,:) :: phim1g, srcm1g
 
 INTEGER :: jAsy, iz, ScatOd
 LOGICAL :: lJout, lHex
@@ -160,7 +162,7 @@ REAL, POINTER, DIMENSION(:,:,:) :: SrcAng1g1, SrcAng1g2
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ixy, ibd
+INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr
 INTEGER :: nAziAng, nPolarAng, nOd, iOd, iazi, ipol, jAsyRay
 REAL :: srctmp
 ! ----------------------------------------------------
@@ -185,15 +187,10 @@ FsrSt = Pin(PinSt)%FsrIdxSt
 FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
 
 SELECT CASE (ScatOd)
-  CASE (1); nod = 2
-  CASE (2); nod = 5
-  CASE (3); nod = 9
+CASE (1); nod = 2
+CASE (2); nod = 5
+CASE (3); nod = 9
 END SELECT
-! ----------------------------------------------------
-CALL dmalloc0(TrackingLoc%phis1g, FsrSt, FsrEd)
-IF (ljout) CALL dmalloc0(TrackingLoc%Jout1g, 1, 3, 1, nbd, PinSt, PinEd)
-
-CALL dmalloc0(TrackingLoc%phim1g, 1, nOd, FsrSt, FsrEd)
 
 src1g => TrackingLoc%src1g
 ! ----------------------------------------------------
@@ -289,26 +286,6 @@ ELSE
   END DO
 END IF
 ! ----------------------------------------------------
-DO ifsr = FsrSt, FsrEd
-  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis1g(ifsr)
-  
-  DO iod = 1, nod
-    phim1g(iod, ifsr) = phim1g(iod, ifsr) + TrackingLoc%phim1g(iod, ifsr)
-  END DO
-END DO
-
-IF (lJout) THEN
-  DO ixy = PinSt, PinEd
-    DO ibd = 1, nbd
-      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout1g(:, ibd, ixy)
-    END DO
-  END DO
-END IF
-! ----------------------------------------------------
-DEALLOCATE (TrackingLoc%phis1g)
-IF (lJout) DEALLOCATE (TrackingLoc%Jout1g)
-
-DEALLOCATE (TrackingLoc%phim1g)
 DEALLOCATE (TrackingLoc%SrcAng1g1)
 DEALLOCATE (TrackingLoc%SrcAng1g2)
 
