@@ -191,7 +191,7 @@ CALL omp_set_num_threads(nthr)
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ifsr, ipol, srctmp)
 !$OMP DO SCHEDULE(GUIDED)
 DO iazi = 1, nAzi
-  DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
+  DO ifsr = 1, nFsr
     DO ipol = 1, nPol
       SrcAng1g1(ipol, ifsr, iazi) = src1g(ifsr)
       SrcAng1g2(ipol, ifsr, iazi) = src1g(ifsr)
