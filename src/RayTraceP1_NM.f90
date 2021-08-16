@@ -54,7 +54,7 @@ nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, Ifsr, ipol, ig, srctmp)
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(4)
 DO iazi = 1, nAziAng
   DO ifsr = 1, nFsr
     DO ipol = 1, nPolarAng
@@ -101,7 +101,7 @@ TrackingDat(ithr)%PhiAngInNg => PhiAngInNg
 TrackingDat(ithr)%SrcAngNg1  => SrcAngNg1
 TrackingDat(ithr)%SrcAngNg2  => SrcAngNg2
 
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE (2)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO krot = 1, 2
   DO iRotRay = 1, RayInfo%nRotRay
     IF (nTracerCntl%lHex) THEN
@@ -131,7 +131,7 @@ IF (.NOT. lAFSS) THEN
   END DO
 ELSE
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phiaNg, ithr, ig)
-  !$OMP DO SCHEDULE(GUIDED)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO ifsr = 1, nFsr
     DO iazi = 1, nAziAng
       DO ipol = 1, nPolarAng

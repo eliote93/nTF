@@ -40,7 +40,7 @@ nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ifsr, ipol, srctmp)
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
 DO iazi = 1, nAzi
   DO ifsr = 1, nFsr
     DO ipol = 1, nPol
@@ -84,7 +84,7 @@ TrackingDat(ithr)%xst1g      => xst1g
 TrackingDat(ithr)%SrcAng1g1  => SrcAng1g1
 TrackingDat(ithr)%SrcAng1g2  => SrcAng1g2
 
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
 DO krot = 1, 2
   DO iRotRay = 1, RayInfo%nRotRay
     IF (nTracerCntl%lHex) THEN
@@ -189,7 +189,7 @@ nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(iazi, ifsr, ipol, srctmp)
-!$OMP DO SCHEDULE(GUIDED)
+!$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
 DO iazi = 1, nAzi
   DO ifsr = 1, nFsr
     DO ipol = 1, nPol
@@ -227,9 +227,9 @@ TrackingDat(ithr)%phis1g = ZERO
 TrackingDat(ithr)%phim1g = ZERO
 IF (ljout) TrackingDat(ithr)%jout1g = ZERO
   
-TrackingDat(ithr)%PhiAngIn1g => PhiAngIn1g
 TrackingDat(ithr)%src1g      => src1g
 TrackingDat(ithr)%xst1g      => xst1g
+TrackingDat(ithr)%PhiAngIn1g => PhiAngIn1g
 TrackingDat(ithr)%SrcAng1g1  => SrcAng1g1
 TrackingDat(ithr)%SrcAng1g2  => SrcAng1g2
 !$OMP END PARALLEL
@@ -272,10 +272,10 @@ IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
           
           phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, jazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
           
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, jazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
           
-          IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-          IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+          IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, jazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+          IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, jazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
         END DO
       END DO
     END DO
@@ -288,7 +288,7 @@ ELSE
   
   TrackingDat(ithr)%phia1g = ZERO
   
-  !$OMP DO SCHEDULE(GUIDED)
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
   DO krot = 1, 2
     DO iRotRay = 1, RayInfo%nRotRay
       IF (lHex) THEN
