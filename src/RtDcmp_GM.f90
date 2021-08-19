@@ -91,11 +91,11 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    IF (.NOT. lAFSS) THEN
+    !IF (.NOT. lAFSS) THEN
       CALL RtDcmpThr_GM    (RayInfo, CoreInfo, TrackingDat(ithr),         jAsy, iz, lJout, lHex)
-    ELSE
-      CALL RtDcmpAFSSThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, jAsy, iz, lJout, lHex)
-    END IF
+    !ELSE
+    !  CALL RtDcmpAFSSThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, jAsy, iz, lJout, lHex)
+    !END IF
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -392,9 +392,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; jdir = FORWARD;  IF (lAFSS) locphia1g => TrackingDat%phia1g1(:,:,jazi)
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; jdir = FORWARD;  !IF (lAFSS) locphia1g => TrackingDat%phia1g1(:,:,jazi)
   ELSE
-    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; jdir = BACKWARD; IF (lAFSS) locphia1g => TrackingDat%phia1g2(:,:,jazi)
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; jdir = BACKWARD; !IF (lAFSS) locphia1g => TrackingDat%phia1g2(:,:,jazi)
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc
@@ -440,11 +440,11 @@ DO imray = jbeg, jend, jinc
         
         PhiAngOut1g(ipol) = PhiAngOut1g(ipol) - phid
         
-        IF (lAFSS) THEN
-          locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid
-        ELSE
+        !IF (lAFSS) THEN
+        !  locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid
+        !ELSE
           phis1g(ifsr) = phis1g(ifsr) + wtazi(ipol) * phid
-        END IF
+        !END IF
       END DO
     END DO
     
@@ -483,7 +483,7 @@ NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (hwt)
 
-IF (lAFSS) NULLIFY (locphia1g)
+!IF (lAFSS) NULLIFY (locphia1g)
 
 ! Dcmp.
 NULLIFY (AsyRayList)

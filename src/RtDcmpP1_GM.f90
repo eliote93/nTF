@@ -200,10 +200,10 @@ IF (hLgc%lNoRef) THEN
   CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
   CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
   
-  IF (lAFSS) THEN
-    CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
-    CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
-  END IF
+  !IF (lAFSS) THEN
+  !  CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
+  !  CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
+  !END IF
   
   DO iazi = 1, nAzi
     SrcAng1g1 => TrackingLoc%SrcAng1g1
@@ -247,24 +247,24 @@ IF (hLgc%lNoRef) THEN
       END DO
     END DO
     
-    IF (.NOT. lAFSS) CYCLE
-    
-    DO ifsr = FsrSt, FsrEd
-      DO ipol = 1, nPol
-        phia1g(1) = TrackingLoc%phia1g1(ipol, ifsr, 1)
-        phia1g(2) = TrackingLoc%phia1g2(ipol, ifsr, 1)
-        
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-        
-        phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-        
-        IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-        IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-      END DO
-    END DO
-    
-    TrackingLoc%phia1g1 = ZERO
-    TrackingLoc%phia1g2 = ZERO
+    !IF (.NOT. lAFSS) CYCLE
+    !
+    !DO ifsr = FsrSt, FsrEd
+    !  DO ipol = 1, nPol
+    !    phia1g(1) = TrackingLoc%phia1g1(ipol, ifsr, 1)
+    !    phia1g(2) = TrackingLoc%phia1g2(ipol, ifsr, 1)
+    !    
+    !    phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+    !    
+    !    phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+    !    
+    !    IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+    !    IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+    !  END DO
+    !END DO
+    !
+    !TrackingLoc%phia1g1 = ZERO
+    !TrackingLoc%phia1g2 = ZERO
   END DO
 ELSE
   CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
@@ -301,10 +301,10 @@ ELSE
     END DO
   END DO
   
-  IF (lAFSS) THEN
-    CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
-    CALL dmalloc0(TrackingLoc%phia1g1, 2, nPol, FsrSt, FsrEd, 1, nAzi)
-  END IF
+  !IF (lAFSS) THEN
+  !  CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
+  !  CALL dmalloc0(TrackingLoc%phia1g1, 2, nPol, FsrSt, FsrEd, 1, nAzi)
+  !END IF
   
   DO krot = 1, 2
     DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
@@ -316,32 +316,32 @@ ELSE
     END DO
   END DO
   
-  IF (lAFSS) THEN
-    DO ifsr = FsrSt, FsrEd
-      DO iazi = 1, nAzi
-        DO ipol = 1, nPol
-          phia1g(1) = TrackingLoc%phia1g1(ipol, ifsr, iazi)
-          phia1g(2) = TrackingLoc%phia1g2(ipol, ifsr, iazi)
-          
-          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-          
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-          
-          IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-          IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-        END DO
-      END DO
-    END DO
-  END IF
+  !IF (lAFSS) THEN
+  !  DO ifsr = FsrSt, FsrEd
+  !    DO iazi = 1, nAzi
+  !      DO ipol = 1, nPol
+  !        phia1g(1) = TrackingLoc%phia1g1(ipol, ifsr, iazi)
+  !        phia1g(2) = TrackingLoc%phia1g2(ipol, ifsr, iazi)
+  !        
+  !        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+  !        
+  !        phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+  !        
+  !        IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
+  !        IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
+  !      END DO
+  !    END DO
+  !  END DO
+  !END IF
 END IF
 ! ----------------------------------------------------
 DEALLOCATE (TrackingLoc%SrcAng1g1)
 DEALLOCATE (TrackingLoc%SrcAng1g2)
 
-IF (lAFSS) THEN
-  DEALLOCATE (TrackingLoc%phia1g1)
-  DEALLOCATE (TrackingLoc%phia1g2)
-END IF
+!IF (lAFSS) THEN
+!  DEALLOCATE (TrackingLoc%phia1g1)
+!  DEALLOCATE (TrackingLoc%phia1g2)
+!END IF
 
 NULLIFY (Cell)
 NULLIFY (Pin)
@@ -476,9 +476,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; LocMwt => TrackingDat%mwt;  jdir = FORWARD;  IF (lAFSS) locphia1g => TrackingDat%phia1g1(:,:,jazi)
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; LocMwt => TrackingDat%mwt;  jdir = FORWARD;  !IF (lAFSS) locphia1g => TrackingDat%phia1g1(:,:,jazi)
   ELSE
-    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; LocMwt => TrackingDat%mwt2; jdir = BACKWARD; IF (lAFSS) locphia1g => TrackingDat%phia1g2(:,:,jazi)
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; LocMwt => TrackingDat%mwt2; jdir = BACKWARD; !IF (lAFSS) locphia1g => TrackingDat%phia1g2(:,:,jazi)
   END IF
   
   IF (idir .EQ. 1) THEN
@@ -530,15 +530,15 @@ DO imray = jbeg, jend, jinc
         
         PhiAngOut1g(ipol) = PhiAngOut1g(ipol) - phid
         
-        IF (lAFSS) THEN
-          locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid
-        ELSE
+        !IF (lAFSS) THEN
+        !  locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid
+        !ELSE
           phis1g(ifsr) = phis1g(ifsr) + wtazi(ipol) * phid
           
           DO iod = 1, nod
             phim1g(iod, ifsr) = phim1g(iod, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
           END DO
-        END IF
+        !END IF
       END DO
     END DO
     
@@ -577,7 +577,7 @@ NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (hwt)
 
-IF (lAFSS) NULLIFY (locphia1g)
+!IF (lAFSS) NULLIFY (locphia1g)
 
 ! Dcmp.
 NULLIFY (AsyRayList)
