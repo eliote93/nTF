@@ -6,7 +6,7 @@ USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
 USE MOC_MOD, ONLY : ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, EXPA, EXPB, hwt, DcmpAsyClr, AziRotRay, OmpRotRay, OmpAzi, &
-                    trackingdat, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2
+                    trackingdat, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, phia1g1, phia1g2
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
 USE ioutil,  ONLY : message, terminate
@@ -172,6 +172,11 @@ END IF
 
 ! AFSS
 IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp .AND. lGM) THEN
+  !CALL dmalloc(phia1g1, nPol, nFsr, nAzi) ! pol 2 fsr
+  !CALL dmalloc(phia1g2, nPol, nFsr, nAzi)
+  CALL dmalloc(phia1g1, nFsr, nPol, nAzi) ! fsr 2 pol
+  CALL dmalloc(phia1g2, nFsr, nPol, nAzi)
+  
   IF (hLgc%lNoRef) THEN
     ! SET : Azi Rot Ray
     CALL dmalloc0(AziRotRay, 0, nRotRay, 1, nAzi)
@@ -186,13 +191,17 @@ IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp .AND. lGM) THEN
     
     ! ALLOC
     DO ithr = 1, ithr
-      CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, OmpAzi(0, ithr))
-      CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, OmpAzi(0, ithr))
+      !CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, OmpAzi(0, ithr)) ! pol 2 fsr
+      !CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, OmpAzi(0, ithr))
+      CALL dmalloc(TrackingDat(ithr)%phia1g1, nFsr, nPol, OmpAzi(0, ithr)) ! fsr 2 pol
+      CALL dmalloc(TrackingDat(ithr)%phia1g2, nFsr, nPol, OmpAzi(0, ithr))
     END DO
   ELSE
     DO ithr = 1, nthr
-      CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi)
-      CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
+      !CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi) ! pol 2 fsr
+      !CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
+      CALL dmalloc(TrackingDat(ithr)%phia1g1, nFsr, nPol, nAzi) ! fsr 2 pol
+      CALL dmalloc(TrackingDat(ithr)%phia1g2, nFsr, nPol, nAzi)
     END DO
   END IF
 END IF

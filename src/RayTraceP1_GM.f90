@@ -168,7 +168,7 @@ SUBROUTINE RtAFSSP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, ONE, FORWARD, BACKWARD, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt, AziRotRay, OmpAzi
+USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt, AziRotRay, OmpAzi, phia1g1, phia1g2
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hLgc
@@ -195,8 +195,8 @@ INTEGER :: nAzi, nPol, nFsr, nxy, nThr
 INTEGER :: ithr, FsrIdxSt, icel, iazi, jazi, ipol, iod, iRotRay, jRotRay, ifsr, jfsr, ixy, krot
 LOGICAL :: lHex
 
-REAL :: wttmp, srctmp
-REAL :: phia1g(2)
+REAL :: wttmp, srctmp, mwttmp(9)
+REAL :: phia1gp, phia1gm, phistmp, phimtmp(9)
 
 REAL :: ttmp1, ttmp2 ! DEBUG
 ! ----------------------------------------------------
@@ -291,29 +291,107 @@ IF (hLgc%lNoRef) THEN
   wtime1 = wtime1 + ttmp2 - ttmp1
   ttmp1 = OMP_GET_WTIME()
   
-  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ithr, iazi, jazi, ipol)
-  !$OMP DO SCHEDULE(GUIDED) ! No Collapse
-  DO ifsr = 1, nFsr
-    DO ithr = 1, nThr
-      DO iazi = 1, OmpAzi(0, ithr)
-        jazi = OmpAzi(iazi, ithr)
-        
-        DO ipol = 1, RayInfo%nPolarAngle
-          phia1g(1) = trackingdat(ithr)%phia1g1(ipol, ifsr, iazi)
-          phia1g(2) = trackingdat(ithr)%phia1g2(ipol, ifsr, iazi)
-          
-          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, jazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-          
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, jazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-          
-          IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, jazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-          IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, jazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-        END DO
-      END DO
+  phia1g1 = ZERO
+  phia1g2 = ZERO
+  
+  DO ithr = 1, nthr
+    DO iazi = 1, OmpAzi(0, ithr)
+      jazi = OmpAzi(iazi, ithr)
+      
+      phia1g1(:,:,jazi) = phia1g1(:,:,jazi) + trackingdat(ithr)%phia1g1(:,:,iazi)
+      phia1g2(:,:,jazi) = phia1g2(:,:,jazi) + trackingdat(ithr)%phia1g2(:,:,iazi)
     END DO
   END DO
-  !$OMP END DO NOWAIT
-  !$OMP END PARALLEL
+  
+  SELECT CASE (ScatOd)
+  CASE (1)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, mwttmp, phia1gp, phia1gm, phistmp, phimtmp)
+    !$OMP DO SCHEDULE(GUIDED)
+    DO ifsr = 1, nFsr
+      phistmp = ZERO
+      phimtmp = ZERO
+      
+      DO iazi = 1, nAzi
+        DO ipol = 1, nPol
+          mwttmp(1:2) = mwt(1:2, ipol, iazi)
+          
+          !phia1gp = phia1g1(ipol, ifsr, iazi) + phia1g2(ipol, ifsr, iazi) ! pol 2 fsr
+          !phia1gm = phia1g2(ipol, ifsr, iazi) - phia1g2(ipol, ifsr, iazi)
+          phia1gp = phia1g1(ifsr, ipol, iazi) + phia1g2(ifsr, ipol, iazi) ! fsr 2 pol
+          phia1gm = phia1g2(ifsr, ipol, iazi) - phia1g2(ifsr, ipol, iazi)
+          
+          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwttmp(1:2) * phia1gm
+        END DO
+      END DO
+      
+      phis1g(ifsr) = phistmp
+      
+      phim1g(1:2, ifsr) = phimtmp(1:2)
+    END DO
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+  CASE (2)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, mwttmp, phia1gp, phia1gm, phistmp, phimtmp)
+    !$OMP DO SCHEDULE(GUIDED)
+    DO ifsr = 1, nFsr
+      phistmp = ZERO
+      phimtmp = ZERO
+      
+      DO iazi = 1, nAzi
+        DO ipol = 1, nPol
+          mwttmp(1:5) = mwt(1:5, ipol, iazi)
+          
+          !phia1gp = phia1g1(ipol, ifsr, iazi) + phia1g2(ipol, ifsr, iazi) ! pol 2 fsr
+          !phia1gm = phia1g2(ipol, ifsr, iazi) - phia1g2(ipol, ifsr, iazi)
+          phia1gp = phia1g1(ifsr, ipol, iazi) + phia1g2(ifsr, ipol, iazi) ! fsr 2 pol
+          phia1gm = phia1g2(ifsr, ipol, iazi) - phia1g2(ifsr, ipol, iazi)
+          
+          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwttmp(1:2) * phia1gm
+          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwttmp(3:5) * phia1gp
+        END DO
+      END DO
+      
+      phis1g(ifsr) = phistmp
+      
+      phim1g(1:5, ifsr) = phimtmp(1:5)
+    END DO
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+  CASE (3)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, mwttmp, phia1gp, phia1gm, phistmp, phimtmp)
+    !$OMP DO SCHEDULE(GUIDED)
+    DO ifsr = 1, nFsr
+      phistmp = ZERO
+      phimtmp = ZERO
+      
+      DO iazi = 1, nAzi
+        DO ipol = 1, nPol
+          mwttmp(1:9) = mwt(1:9, ipol, iazi)
+          
+          !phia1gp = phia1g1(ipol, ifsr, iazi) + phia1g2(ipol, ifsr, iazi) ! pol 2 fsr
+          !phia1gm = phia1g2(ipol, ifsr, iazi) - phia1g2(ipol, ifsr, iazi)
+          phia1gp = phia1g1(ifsr, ipol, iazi) + phia1g2(ifsr, ipol, iazi) ! fsr 2 pol
+          phia1gm = phia1g2(ifsr, ipol, iazi) - phia1g2(ifsr, ipol, iazi)
+          
+          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwttmp(1:2) * phia1gm
+          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwttmp(3:5) * phia1gp
+          phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwttmp(6:9) * phia1gm
+        END DO
+      END DO
+      
+      phis1g(ifsr) = phistmp
+      
+      phim1g(1:9, ifsr) = phimtmp(1:9)
+    END DO
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+  END SELECT
   
   ! DEBUG
   ttmp2 = OMP_GET_WTIME()
@@ -342,29 +420,103 @@ ELSE
   wtime1 = wtime1 + ttmp2 - ttmp1
   ttmp1 = OMP_GET_WTIME()  ! DEBUG
   
-  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1g, ithr)
-  !$OMP DO SCHEDULE(GUIDED) ! No Collapse
-  DO ifsr = 1, nFsr
-    DO iazi = 1, nAzi
-      DO ipol = 1, nPol
-        phia1g = ZERO ! Need to Test
-        
-        DO ithr = 1, nThr
-          phia1g(1) = phia1g(1) + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi)
-          phia1g(2) = phia1g(2) + trackingdat(ithr)%phia1g2(ipol, ifsr, iazi)
+  SELECT CASE (ScatOd)
+  CASE (1)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1gp, phia1gm, mwttmp, ithr)
+    !$OMP DO SCHEDULE(GUIDED) ! No Collapse
+    DO ifsr = 1, nFsr
+      phistmp = ZERO
+      
+      DO iazi = 1, nAzi
+        DO ipol = 1, nPol
+          phia1gp = ZERO
+          phia1gm = ZERO
+          mwttmp(1:2) = mwt(1:2, ipol, iazi)
+          
+          DO ithr = 1, nThr
+            !phia1gp = phia1gp + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi) + trackingdat(ithr)%phia1g2(ipol, ifsr, iazi) ! pol 2 fsr
+            !phia1gm = phia1gm + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi) - trackingdat(ithr)%phia1g2(ipol, ifsr, iazi)
+            phia1gp = phia1gp + trackingdat(ithr)%phia1g1(ifsr, ipol, iazi) + trackingdat(ithr)%phia1g2(ifsr, ipol, iazi) ! fsr 2 pol
+            phia1gm = phia1gm + trackingdat(ithr)%phia1g1(ifsr, ipol, iazi) - trackingdat(ithr)%phia1g2(ifsr, ipol, iazi)
+          END DO
+          
+          phistmp = phistmp + wtang(ipol, iAzi) * phia1gp
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwttmp(1:2) * phia1gm
         END DO
-        
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-        
-        phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
-        
-        IF (ScatOd .GE. 2) phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * (phia1g(FORWARD) + phia1g(BACKWARD))
-        IF (ScatOd .EQ. 3) phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * (phia1g(FORWARD) - phia1g(BACKWARD))
       END DO
+      
+      phis1g(ifsr) = phistmp
+      
+      phim1g(1:2, ifsr) = phimtmp(1:2)
     END DO
-  END DO
-  !$OMP END DO NOWAIT
-  !$OMP END PARALLEL
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+  CASE (2)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1gp, phia1gm, mwttmp, ithr)
+    !$OMP DO SCHEDULE(GUIDED) ! No Collapse
+    DO ifsr = 1, nFsr
+      phistmp = ZERO
+      
+      DO iazi = 1, nAzi
+        DO ipol = 1, nPol
+          phia1gp = ZERO
+          phia1gm = ZERO
+          mwttmp(1:5) = mwt(1:5, ipol, iazi)
+          
+          DO ithr = 1, nThr
+            !phia1gp = phia1gp + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi) + trackingdat(ithr)%phia1g2(ipol, ifsr, iazi) ! pol 2 fsr
+            !phia1gm = phia1gm + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi) - trackingdat(ithr)%phia1g2(ipol, ifsr, iazi)
+            phia1gp = phia1gp + trackingdat(ithr)%phia1g1(ifsr, ipol, iazi) + trackingdat(ithr)%phia1g2(ifsr, ipol, iazi) ! fsr 2 pol
+            phia1gm = phia1gm + trackingdat(ithr)%phia1g1(ifsr, ipol, iazi) - trackingdat(ithr)%phia1g2(ifsr, ipol, iazi)
+          END DO
+          
+          phistmp = phistmp + wtang(ipol, iAzi) * phia1gp
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwttmp(1:2) * phia1gm
+          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwttmp(3:5) * phia1gp
+        END DO
+      END DO
+      
+      phis1g(ifsr) = phistmp
+      
+      phim1g(1:5, ifsr) = phimtmp(1:5)
+    END DO
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+  CASE (3)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1gp, phia1gm, mwttmp, ithr)
+    !$OMP DO SCHEDULE(GUIDED) ! No Collapse
+    DO ifsr = 1, nFsr
+      phistmp = ZERO
+      
+      DO iazi = 1, nAzi
+        DO ipol = 1, nPol
+          phia1gp = ZERO
+          phia1gm = ZERO
+          mwttmp(1:9) = mwt(1:9, ipol, iazi)
+          
+          DO ithr = 1, nThr
+            !phia1gp = phia1gp + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi) + trackingdat(ithr)%phia1g2(ipol, ifsr, iazi) ! pol 2 fsr
+            !phia1gm = phia1gm + trackingdat(ithr)%phia1g1(ipol, ifsr, iazi) - trackingdat(ithr)%phia1g2(ipol, ifsr, iazi)
+            phia1gp = phia1gp + trackingdat(ithr)%phia1g1(ifsr, ipol, iazi) + trackingdat(ithr)%phia1g2(ifsr, ipol, iazi) ! fsr 2 pol
+            phia1gm = phia1gm + trackingdat(ithr)%phia1g1(ifsr, ipol, iazi) - trackingdat(ithr)%phia1g2(ifsr, ipol, iazi)
+          END DO
+          phistmp = phistmp + wtang(ipol, iAzi) * phia1gp
+          
+          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwttmp(1:2) * phia1gm
+          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwttmp(3:5) * phia1gp
+          phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwttmp(6:9) * phia1gm
+        END DO
+      END DO
+      
+      phis1g(ifsr) = phistmp
+      
+      phim1g(1:9, ifsr) = phimtmp(1:9)
+    END DO
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+  END SELECT
   
   ! DEBUG
   ttmp2 = OMP_GET_WTIME()
@@ -985,7 +1137,8 @@ DO icRay = jbeg, jend, jinc
         PhiAngOut1g(ipol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg) - phid
         
         IF (lAFSS) THEN
-          locphia1g(iPol, ifsr) = locphia1g(iPol, ifsr) + phid
+          !locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid ! pol 2 fsr
+          locphia1g(ifsr, ipol) = locphia1g(ifsr, ipol) + phid ! fsr 2 pol
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
           
@@ -1034,7 +1187,8 @@ DO icRay = jbeg, jend, jinc
         PhiAngOut1g(iPol, iRaySeg+1) = PhiAngOut1g(iPol, iRaySeg + 2) - phid
         
         IF (lAFSS) THEN
-          locphia1g(iPol, ifsr) = locphia1g(iPol, ifsr) + phid
+          !locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid ! pol 2 fsr
+          locphia1g(ifsr, ipol) = locphia1g(ifsr, ipol) + phid ! fsr 2 pol
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wt * phid
           

@@ -198,11 +198,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. ldcmp) THEN
                 IF (.NOT. lscat1) THEN
-                  IF (.NOT. lAFSS) THEN
+                  !IF (.NOT. lAFSS) THEN
                     CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
-                  ELSE
-                    CALL RtAFSS_GM        (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
-                  END IF
+                  !ELSE
+                  !  CALL RtAFSS_GM        (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
+                  !END IF
                 ELSE
                   IF (.NOT. lAFSS) THEN
                     CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, ScatOd, fmoclv)

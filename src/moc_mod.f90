@@ -38,6 +38,8 @@ INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAziRay ! (imRay, iAzi, iAsy)
 INTEGER, POINTER, DIMENSION(:,:) :: AziRotRay ! (iRotRay, iAzi)
 INTEGER, DIMENSION(0:100, 1:100) :: OmpAzi
 
+REAL, POINTER, DIMENSION(:,:,:) :: phia1g1, phia1g2
+
 INTERFACE
 
 ! ------------------------------------------------------------------------------------------------------------
