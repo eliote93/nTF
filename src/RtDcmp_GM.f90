@@ -220,8 +220,9 @@ FsrSt = Pin(PinSt)%FsrIdxSt
 FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
 
 ! RT
-IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
-  CALL dmalloc0(TrackingLoc%phia1g, 1, 2, 1, nPol, 1, 1, FsrSt, FsrEd)
+IF (hLgc%lNoRef) THEN
+  CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
+  CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
   
   DO iazi = 1, nAzi
     DO krot = 1, 2
@@ -238,14 +239,16 @@ IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
     
     DO ifsr = FsrSt, FsrEd
       DO ipol = 1, nPol
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g(FORWARD, ipol, 1, ifsr) + TrackingLoc%phia1g(BACKWARD, ipol, 1, ifsr))
+        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g1(ipol, 1, ifsr) + TrackingLoc%phia1g2(ipol, 1, ifsr))
       END DO
     END DO
     
-    TrackingLoc%phia1g = ZERO
+    TrackingLoc%phia1g1 = ZERO
+    TrackingLoc%phia1g2 = ZERO
   END DO
 ELSE
-  CALL dmalloc0(TrackingLoc%phia1g, 1, 2, 1, nPol, 1, nAzi, FsrSt, FsrEd)
+  CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
+  CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, nAzi)
   
   DO krot = 1, 2
     DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
@@ -260,13 +263,14 @@ ELSE
   DO ifsr = FsrSt, FsrEd
     DO iazi = 1, nAzi
       DO ipol = 1, nPol
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g(FORWARD, ipol, iazi, ifsr) + TrackingLoc%phia1g(BACKWARD, ipol, iazi, ifsr))
+        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g1(ipol, iazi, ifsr) + TrackingLoc%phia1g2(ipol, iazi, ifsr))
       END DO
     END DO
   END DO
 END IF
 
-DEALLOCATE (TrackingLoc%phia1g)
+DEALLOCATE (TrackingLoc%phia1g1)
+DEALLOCATE (TrackingLoc%phia1g2)
 
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
@@ -300,9 +304,9 @@ TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
 REAL, POINTER, DIMENSION(:)       :: phis1g, src1g, xst1g
-REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, EXPA, EXPB, wtang, hwt
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, EXPA, EXPB, wtang, hwt, locphia1g
 REAL, POINTER, DIMENSION(:,:,:)   :: jout1g
-REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g, phia1g
+REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
 
@@ -354,8 +358,6 @@ EXPA       => TrackingDat%EXPA
 EXPB       => TrackingDat%EXPB
 hwt        => TrackingDat%hwt
 
-IF (lAFSS) phia1g => TrackingDat%phia1g
-
 ! Iter.
 IF (DcmpAsyRay%lRotRayBeg(krot)) THEN
   PhiAngOut1g(1:nPolarAng) = PhiAngIn1g    (1:nPolarAng, PhiAnginSvIdx)
@@ -374,7 +376,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%l360 .AND. hLgc%lRadVac) jazi = 1
+  IF (hLgc%lNoRef) jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng
@@ -390,9 +392,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; jdir = FORWARD
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; jdir = FORWARD;  IF (lAFSS) locphia1g => TrackingDat%phia1g1(:,:,jazi)
   ELSE
-    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; jdir = BACKWARD
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; jdir = BACKWARD; IF (lAFSS) locphia1g => TrackingDat%phia1g2(:,:,jazi)
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc
@@ -439,7 +441,7 @@ DO imray = jbeg, jend, jinc
         PhiAngOut1g(ipol) = PhiAngOut1g(ipol) - phid
         
         IF (lAFSS) THEN
-          phia1g(jdir, ipol, jazi, ifsr) = phia1g(jdir, ipol, jazi, ifsr) + phid
+          locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid
         ELSE
           phis1g(ifsr) = phis1g(ifsr) + wtazi(ipol) * phid
         END IF
@@ -481,7 +483,7 @@ NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (hwt)
 
-IF (lAFSS) NULLIFY (phia1g)
+IF (lAFSS) NULLIFY (locphia1g)
 
 ! Dcmp.
 NULLIFY (AsyRayList)

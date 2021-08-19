@@ -29,6 +29,9 @@ TYPE(Type_HexGapCel),     POINTER :: gCel_Loc
 TYPE(Type_HexAsyTypInfo), POINTER :: aInf_Loc
 ! ----------------------------------------------------
 
+hLgc%lNoRef = hLgc%l360 .AND. hLgc%lRadVac
+!hLgc%lNoRef = FALSE ! DEBUG
+
 IF (hLgc%lSngCel .AND. nTracerCntl%lCMFD) CALL terminate("SINGLE CELL CMFD IS NOT AVAILABLE")
 IF (hLgc%lSngCel .AND. .NOT.(nZ.EQ.1)) CALL terminate("3-D SINGLE CELL PROBLEM IS NOT AVAILABLE")
 IF (hLgc%lSngCel) RETURN

@@ -471,6 +471,7 @@ TYPE Type_HexLogical
   LOGICAL :: lRadVac   = FALSE
   LOGICAL :: lAxRef(2) = FALSE ! (Bottom/Top)
   LOGICAL :: lAxVac(2) = FALSE ! (Bottom/Top)
+  LOGICAL :: lNoRef    = FALSE
   
   LOGICAL :: lVss     = FALSE
   LOGICAL :: lVyg     = FALSE

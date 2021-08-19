@@ -70,6 +70,10 @@ INTEGER, POINTER, DIMENSION(:)   :: NumMray ! (0:iazm), 0 : # of All mRays
 INTEGER, POINTER, DIMENSION(:,:) :: AngMray ! (1:2, iazm), Index of Starting & End mRay
 
 REAL, POINTER, DIMENSION(:) :: AzmAng, AzmWgt, AzmDel, AzmDel_X, AzmDel_Y, AzmTan, AzmSin, AzmCos ! (iazm)
+
+! DEBUG
+REAL :: wtime1 = ZERO
+REAL :: wtime2 = ZERO
 ! ----------------------------------------------------
 TYPE(Type_HexLogical) :: hLgc
 

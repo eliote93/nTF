@@ -171,8 +171,8 @@ ELSE IF (.NOT. ldcmp) THEN
 END IF
 
 ! AFSS
-IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
-  IF (lHex .AND. hLgc%l360 .AND. hLgc%lRadVac) THEN
+IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp .AND. lGM) THEN
+  IF (hLgc%lNoRef) THEN
     ! SET : Azi Rot Ray
     CALL dmalloc0(AziRotRay, 0, nRotRay, 1, nAzi)
     
@@ -186,19 +186,13 @@ IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp) THEN
     
     ! ALLOC
     DO ithr = 1, ithr
-      IF (lGM) THEN
-        CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, OmpAzi(0, ithr), nFsr)
-      ELSE
-        CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, OmpAzi(0, ithr), nFsr)
-      END IF
+      CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, OmpAzi(0, ithr))
+      CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, OmpAzi(0, ithr))
     END DO
   ELSE
     DO ithr = 1, nthr
-      IF (lGM) THEN
-        CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, nAzi, nFsr)
-      ELSE
-        CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
-      END IF
+      CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi)
+      CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
     END DO
   END IF
 END IF
