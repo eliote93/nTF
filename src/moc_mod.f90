@@ -26,8 +26,9 @@ REAL, POINTER, DIMENSION(:,:)     :: phisNg, srcNg, xstNg
 REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg, SrcAngNg1, SrcAngNg2
 
-
 ! Domain Decomposition
+INTEGER :: nClr ! # of Colors
+
 REAL, POINTER, DIMENSION(:,:,:,:,:) :: DcmpPhiAngInNg, DcmpPhiAngOutNg
 REAL, POINTER, DIMENSION(:,:,:,:)   :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
@@ -1197,5 +1198,33 @@ TYPE (PE_TYPE)          :: PE
 END SUBROUTINE initRT
 ! ------------------------------------------------------------------------------------------------------------
 END INTERFACE
+
+CONTAINS
+! ------------------------------------------------------------------------------------------------------------
+FUNCTION setDcmpClr(lHex, l060, iClr, mocit)
+
+IMPLICIT NONE
+
+LOGICAL :: lHex, l060
+INTEGER :: iClr, iit, mocit, setDcmpClr
+
+INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
+INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
+
+IF (lHex) THEN
+  iit = mod(mocit, 3)
+ELSE
+  iit = mod(mocit, 2)
+END IF
+
+IF (lHex) THEN
+  setDcmpClr = AuxHex(iClr, iit)
+  IF (l060) setDcmpClr = iClr
+ELSE
+  setDcmpClr = AuxRec(iClr, iit)
+END IF
+
+END FUNCTION setDcmpClr
+! ------------------------------------------------------------------------------------------------------------
 
 END MODULE MOC_MOD

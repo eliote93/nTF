@@ -5,7 +5,7 @@ SUBROUTINE RayTraceDcmp_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, 
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Cell_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpAsyClr, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg, RtDcmpThr_NM
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpAsyClr, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg, RtDcmpThr_NM, nClr, setDcmpClr
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : itrcntl
@@ -26,7 +26,7 @@ LOGICAL :: lJout
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr, nClr, iit
+INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr
 LOGICAL :: lHex
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
@@ -38,14 +38,6 @@ Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
 lHex = nTracerCntl%lHex
-
-IF (lHex) THEN
-  nClr = 3; iit = mod(itrcntl%mocit, 3)
-  
-  IF (hLgc%l060) nClr = 1
-ELSE
-  nClr = 2; iit = mod(itrcntl%mocit, 2)
-END IF
 
 nthr = PE%nthread
 CALL OMP_SET_NUM_THREADS(nThr)
@@ -61,13 +53,7 @@ phisNg(gb:ge, :) = ZERO
 IF (ljout) MocJoutNg(:, gb:ge, :, :) = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
-  IF (lHex) THEN
-    jClr = AuxHex(iClr, iit)
-    
-    IF (hLgc%l060) jClr = iClr
-  ELSE
-    jClr = AuxRec(iClr, iit)
-  END IF
+  jClr = setDcmpClr(lHex, hLgc%l060, iClr, itrcntl%mocit)
   
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFluxNg(RayInfo, PhiAngInNg, DcmpPhiAngInNg)

@@ -5,10 +5,11 @@ USE allocs
 USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, EXPA, EXPB, hwt, DcmpAsyClr
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, EXPA, EXPB, hwt, DcmpAsyClr, nClr
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
 USE ioutil,  ONLY : message, terminate
+USE HexData, ONLY : hLgc
 
 IMPLICIT NONE
 
@@ -19,7 +20,7 @@ TYPE (PE_TYPE)          :: PE
 
 INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr
 REAL :: wttmp, wtsin2, wtcos, wtpolar
-LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM
+LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
@@ -40,6 +41,7 @@ nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
 lGM          = .NOT. nTracerCntl%lNodeMajor
+lHex         = nTracerCntl%lHex
 scatod       = nTracerCntl%scatod
 lscat1       = nTracerCntl%lscat1
 ldcmp        = nTracerCntl%lDomainDcmp
@@ -51,6 +53,13 @@ IF (nTracerCntl%lscat1) THEN
     CASE (2); nod = 5
     CASE (3); nod = 9
   END SELECT
+END IF
+
+IF (lHex) THEN
+  nClr = 3
+  IF (hLgc%l060) nClr = 1
+ELSE
+  nClr = 2
 END IF
 ! ----------------------------------------------------
 ! EXP
@@ -74,7 +83,7 @@ DO ipol = 1, nPol
 END DO
 
 ! Hex.
-IF (nTracerCntl%lHex) THEN
+IF (lHex) THEN
   CALL dmalloc(hwt, nPol, nAzi)
   
   DO ipol = 1, nPol
@@ -91,7 +100,7 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%wtang  => wtang
   TrackingDat(ithr)%wtsurf => wtsurf
   
-  IF (.NOT. nTracerCntl%lHex) CYCLE
+  IF (.NOT. lHex) CYCLE
   
   TrackingDat(ithr)%hwt => hwt
 END DO

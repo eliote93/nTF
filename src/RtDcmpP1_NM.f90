@@ -5,7 +5,7 @@ SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstN
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, ONE
 USE TYPEDEF,     ONLY : RayInfo_Type, Coreinfo_type, Pin_Type, Cell_Type
-USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpAsyClr, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg, RtDcmpP1Thr_NM
+USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpAsyClr, DcmpGatherBndyFluxNg, DcmpScatterBndyFluxNg, DcmpLinkBndyFluxNg, RtDcmpP1Thr_NM, nClr, setDcmpClr
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : itrcntl
@@ -26,7 +26,7 @@ LOGICAL :: lJout
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr, nClr, iit, ScatOd
+INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr, ScatOd
 LOGICAL :: lHex
 REAL :: wttmp
 
@@ -40,14 +40,6 @@ Pin  => CoreInfo%Pin
 
 lHex   = nTracerCntl%lHex
 ScatOd = nTracerCntl%ScatOd
-
-IF (lHex) THEN
-  nClr = 3; iit = mod(itrcntl%mocit, 3)
-  
-  IF (hLgc%l060) nClr = 1
-ELSE
-  nClr = 2; iit = mod(itrcntl%mocit, 2)
-END IF
 
 nthr = PE%nthread
 CALL OMP_SET_NUM_THREADS(nThr)
@@ -64,13 +56,7 @@ IF (lJout) MocJoutNg(:, gb:ge, :, :) = ZERO
 phimNg(:, :, gb:ge) = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
-  IF (lHex) THEN
-    jClr = AuxHex(iClr, iit)
-    
-    IF (hLgc%l060) jClr = iClr
-  ELSE
-    jClr = AuxRec(iClr, iit)
-  END IF
+  jClr = setDcmpClr(lHex, hLgc%l060, iClr, itrcntl%mocit)
   
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFluxNg(RayInfo, PhiAngInNg, DcmpPhiAngInNg)
@@ -199,7 +185,7 @@ CALL dmalloc0(TrackingLoc%phimNg, 1, nOd, FsrSt, FsrEd, gb, ge)
 
 srcNg => TrackingLoc%srcNg
 ! ----------------------------------------------------
-IF (lHex .AND. hLgc%l360) THEN
+IF (hLgc%lNoRef) THEN
   CALL dmalloc0(TrackingLoc%SrcAngNg1, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   CALL dmalloc0(TrackingLoc%SrcAngNg2, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   
@@ -440,7 +426,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%l360)   jazi = 1
+  IF (hLgc%lNoRef) jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng
