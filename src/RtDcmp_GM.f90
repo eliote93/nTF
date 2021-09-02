@@ -91,11 +91,11 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    !IF (.NOT. lAFSS) THEN
+    IF (.NOT. lAFSS) THEN
       CALL RtDcmpThr_GM    (RayInfo, CoreInfo, TrackingDat(ithr),         jAsy, iz, lJout, lHex)
-    !ELSE
-    !  CALL RtDcmpAFSSThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, jAsy, iz, lJout, lHex)
-    !END IF
+    ELSE
+      CALL RtDcmpAFSSThr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, jAsy, iz, lJout, lHex)
+    END IF
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -196,7 +196,7 @@ TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, jAsyRay, ifsr, nPol, nAzi, ipol, iazi
+INTEGER :: kRot, iAsyRay, jAsyRay, ifsr, nPol, nAzi, ipol, iazi, PinSt, PinEd, FsrSt, FsrEd
 ! ----------------------------------------------------
 
 DcmpAsyRay      => RayInfo%DcmpAsyRay
@@ -239,7 +239,7 @@ IF (hLgc%lNoRef) THEN
     
     DO ifsr = FsrSt, FsrEd
       DO ipol = 1, nPol
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g1(ipol, 1, ifsr) + TrackingLoc%phia1g2(ipol, 1, ifsr))
+        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g1(ipol, ifsr, 1) + TrackingLoc%phia1g2(ipol, ifsr, 1))
       END DO
     END DO
     
@@ -263,7 +263,7 @@ ELSE
   DO ifsr = FsrSt, FsrEd
     DO iazi = 1, nAzi
       DO ipol = 1, nPol
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g1(ipol, iazi, ifsr) + TrackingLoc%phia1g2(ipol, iazi, ifsr))
+        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iAzi) * (TrackingLoc%phia1g1(ipol, ifsr, iazi) + TrackingLoc%phia1g2(ipol, ifsr, iazi))
       END DO
     END DO
   END DO
@@ -304,8 +304,8 @@ TYPE (Type_HexAsyRay), POINTER :: haRay_Loc
 TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
 REAL, POINTER, DIMENSION(:)       :: phis1g, src1g, xst1g
-REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, EXPA, EXPB, wtang, hwt, locphia1g
-REAL, POINTER, DIMENSION(:,:,:)   :: jout1g
+REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, EXPA, EXPB, wtang, hwt
+REAL, POINTER, DIMENSION(:,:,:)   :: jout1g, locphia1g
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
@@ -392,9 +392,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; jdir = FORWARD;  !IF (lAFSS) locphia1g => TrackingDat%phia1g1(:,:,jazi)
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; jdir = FORWARD;  IF (lAFSS) locphia1g => TrackingDat%phia1g1
   ELSE
-    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; jdir = BACKWARD; !IF (lAFSS) locphia1g => TrackingDat%phia1g2(:,:,jazi)
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; jdir = BACKWARD; IF (lAFSS) locphia1g => TrackingDat%phia1g2
   END IF
   ! --------------------------------------------------
   DO ipray = ipst, iped, ipinc
@@ -440,11 +440,11 @@ DO imray = jbeg, jend, jinc
         
         PhiAngOut1g(ipol) = PhiAngOut1g(ipol) - phid
         
-        !IF (lAFSS) THEN
-        !  locphia1g(ipol, ifsr) = locphia1g(ipol, ifsr) + phid
-        !ELSE
+        IF (lAFSS) THEN
+          locphia1g(ipol, ifsr, jazi) = locphia1g(ipol, ifsr, jazi) + phid
+        ELSE
           phis1g(ifsr) = phis1g(ifsr) + wtazi(ipol) * phid
-        !END IF
+        END IF
       END DO
     END DO
     
@@ -483,7 +483,7 @@ NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (hwt)
 
-!IF (lAFSS) NULLIFY (locphia1g)
+IF (lAFSS) NULLIFY (locphia1g)
 
 ! Dcmp.
 NULLIFY (AsyRayList)

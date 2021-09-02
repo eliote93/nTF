@@ -9,8 +9,6 @@ USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, Comp,
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
-USE HexData, ONLY : wtime1, wtime2 ! DEBUG
-
 IMPLICIT NONE
 
 TYPE (RayInfo_Type)  :: RayInfo
@@ -30,8 +28,6 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 INTEGER :: nAzi, nPol, nFsr, nxy, nThr
 INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ixy, krot
 REAL :: wttmp, srctmp
-
-REAL :: ttmp1, ttmp2 ! DEBUG
 ! ----------------------------------------------------
 
 nAzi = RayInfo%nAziAngle
@@ -92,8 +88,6 @@ TrackingDat(ithr)%SrcAng1g2  => SrcAng1g2
 phis1g = ZERO
 phim1g = ZERO
 
-ttmp1 = OMP_GET_WTIME() ! DEBUG
-
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
 
@@ -109,21 +103,11 @@ DO krot = 1, 2
 END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
-
-! DEBUG
-ttmp2  = OMP_GET_WTIME()
-wtime1 = wtime1 + ttmp2 - ttmp1
 ! ----------------------------------------------------
-ttmp1 = OMP_GET_WTIME() ! DEBUG
-
 DO ithr = 1, nThr
   phis1g = phis1g + TrackingDat(ithr)%phis1g
   phim1g = phim1g + TrackingDat(ithr)%phim1g
 END DO
-
-! DEBUG
-ttmp2  = OMP_GET_WTIME()
-wtime2 = wtime2 + ttmp2 - ttmp1
 
 IF (ljout) THEN
   jout1g = ZERO
@@ -173,8 +157,6 @@ USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 USE HexData, ONLY : hLgc
 
-USE HexData, ONLY : wtime1, wtime2 ! DEBUG
-
 IMPLICIT NONE
 
 TYPE (RayInfo_Type)  :: RayInfo
@@ -197,8 +179,6 @@ LOGICAL :: lHex
 
 REAL :: wttmp, srctmp, mwttmp(9)
 REAL :: phia1gp, phia1gm, phistmp, phimtmp(9)
-
-REAL :: ttmp1, ttmp2 ! DEBUG
 ! ----------------------------------------------------
 
 nAzi = RayInfo%nAziAngle
@@ -264,8 +244,6 @@ phis1g = ZERO
 phim1g = ZERO
 ! ----------------------------------------------------
 IF (hLgc%lNoRef) THEN
-  ttmp1 = OMP_GET_WTIME() ! DEBUG
-  
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, jazi, krot, iRotRay, jRotRay)
   ithr = omp_get_thread_num() + 1
   
@@ -285,12 +263,7 @@ IF (hLgc%lNoRef) THEN
     END DO
   END DO
   !$OMP END PARALLEL
-  
-  ! DEBUG
-  ttmp2 = OMP_GET_WTIME()
-  wtime1 = wtime1 + ttmp2 - ttmp1
-  ttmp1 = OMP_GET_WTIME()
-  
+    
   phia1g1 = ZERO
   phia1g2 = ZERO
   
@@ -392,13 +365,7 @@ IF (hLgc%lNoRef) THEN
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
   END SELECT
-  
-  ! DEBUG
-  ttmp2 = OMP_GET_WTIME()
-  wtime2 = wtime2 + ttmp2 - ttmp1
 ELSE
-  ttmp1 = OMP_GET_WTIME()  ! DEBUG
-  
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
   ithr = omp_get_thread_num() + 1
   
@@ -414,12 +381,7 @@ ELSE
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
-  
-  ! DEBUG
-  ttmp2 = OMP_GET_WTIME()
-  wtime1 = wtime1 + ttmp2 - ttmp1
-  ttmp1 = OMP_GET_WTIME()  ! DEBUG
-  
+    
   SELECT CASE (ScatOd)
   CASE (1)
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, iazi, ipol, phia1gp, phia1gm, mwttmp, ithr)
@@ -517,10 +479,6 @@ ELSE
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
   END SELECT
-  
-  ! DEBUG
-  ttmp2 = OMP_GET_WTIME()
-  wtime2 = wtime2 + ttmp2 - ttmp1
 END IF
 ! ----------------------------------------------------
 IF (ljout) THEN

@@ -25,8 +25,6 @@ USE SubChCoupling_mod, ONLY : last_TH
 USE MPICOMM_MOD, ONLY : BCAST, MPI_SYNC, MPI_MAX_REAL
 #endif
 
-USE HexData, ONLY : wtime1, wtime2 ! DEBUG
-
 IMPLICIT NONE
 
 TYPE (CoreInfo_Type)    :: Core
@@ -386,13 +384,6 @@ ELSE
   END DO
 END IF
 ! ----------------------------------------------------
-
-! DEBUG
-WRITE (*, '(A10, ES9.2)') 'WTIME 1 : ', wtime1
-WRITE (*, '(A10, ES9.2)') 'WTIME 2 : ', wtime2
-
-wtime1 = ZERO
-wtime2 = ZERO
 
 ! UPD : psi
 IF (RTMASTER) THEN
