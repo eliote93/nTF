@@ -199,7 +199,7 @@ CALL dmalloc0(TrackingLoc%phimNg, 1, nOd, FsrSt, FsrEd, gb, ge)
 
 srcNg => TrackingLoc%srcNg
 ! ----------------------------------------------------
-IF (hLgc%lNoRef) THEN
+IF (lHex .AND. hLgc%l360) THEN
   CALL dmalloc0(TrackingLoc%SrcAngNg1, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   CALL dmalloc0(TrackingLoc%SrcAngNg2, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   
@@ -440,7 +440,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%lNoRef) jazi = 1
+  IF (hLgc%l360)   jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng

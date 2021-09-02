@@ -27,7 +27,7 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, iClr, jClr, nClr, iit, ScatOd
-LOGICAL :: lHex, lAFSS
+LOGICAL :: lHex
 REAL :: wttmp
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
@@ -39,7 +39,6 @@ Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
 lHex   = nTracerCntl%lHex
-lAFSS  = nTracerCntl%lAFSS
 ScatOd = nTracerCntl%ScatOd
 
 IF (lHex) THEN
@@ -61,8 +60,8 @@ END DO
 DcmpPhiAngOut1g = ZERO
 
 phis1g = ZERO
-phim1g = ZERO
 IF (ljout) Mocjout1g = ZERO
+phim1g = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
   IF (lHex) THEN
@@ -78,13 +77,9 @@ DO iClr = 1, nClr
 #endif
   
   DO ithr = 1, nthr
-    TrackingDat(ithr)%phis1g          => phis1g
-    TrackingDat(ithr)%phim1g          => phim1g
     TrackingDat(ithr)%PhiAngIn1g      => PhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngIn1g  => DcmpPhiAngIn1g
     TrackingDat(ithr)%DcmpPhiAngOut1g => DcmpPhiAngOut1g
-    
-    IF (lJout) TrackingDat(ithr)%Jout1g => MocJout1g
   END DO
   
   !$OMP PARALLEL PRIVATE(ithr, iAsy, jAsy)
@@ -94,7 +89,7 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    CALL RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, phim1g, srcm1g, jAsy, iz, lJout, lHex, lAFSS, ScatOd)
+    CALL RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingDat(ithr), phis1g, phim1g, srcm1g, MocJout1g, jAsy, iz, lJout, lHex, ScatOd)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -134,12 +129,12 @@ NULLIFY (Cell)
 
 END SUBROUTINE RayTraceDcmpP1_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, phim1g, srcm1g, jAsy, iz, lJout, lHex, lAFSS, ScatOd)
+SUBROUTINE RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, phim1g, srcm1g, MocJout1g, jAsy, iz, lJout, lHex, ScatOd)
 
 USE allocs
-USE PARAM,   ONLY : FORWARD, BACKWARD, ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type
-USE MOC_MOD, ONLY : HexTrackRotRayDcmpP1_GM, Comp, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpAziRay, wtang, mwt
+USE geom,    ONLY : nbd
+USE MOC_MOD, ONLY : HexTrackRotRayDcmpP1_GM, Comp, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpAziRay
 USE HexData, ONLY : hAsy, hLgc
 
 IMPLICIT NONE
@@ -148,11 +143,12 @@ TYPE (RayInfo_Type)     :: RayInfo
 TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (TrackingDat_Type) :: TrackingLoc
 
-REAL, POINTER, DIMENSION(:)   :: phis1g
-REAL, POINTER, DIMENSION(:,:) :: phim1g, srcm1g
+REAL, POINTER, DIMENSION(:)     :: phis1g
+REAL, POINTER, DIMENSION(:,:)   :: phim1g, srcm1g
+REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
 
 INTEGER :: jAsy, iz, ScatOd
-LOGICAL :: lJout, lHex, lAFSS
+LOGICAL :: lJout, lHex
 ! ----------------------------------------------------
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
@@ -164,15 +160,16 @@ REAL, POINTER, DIMENSION(:,:,:) :: SrcAng1g1, SrcAng1g2
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: ifsr, iazi, ipol, iAsyRay, jAsyRay, PinSt, PinEd, FsrSt, FsrEd, kRot, nAzi, nPol
-REAL :: srctmp, phia1gp, phia1gm
+INTEGER :: PinSt, PinEd, FsrSt, FsrEd, kRot, iAsyRay, ifsr, ixy, ibd
+INTEGER :: nAziAng, nPolarAng, nOd, iOd, iazi, ipol, jAsyRay
+REAL :: srctmp
 ! ----------------------------------------------------
 
 Cell => CoreInfo%Cellinfo
 Pin  => CoreInfo%Pin
 
-nAzi             = RayInfo%nAziAngle
-nPol             = RayInfo%nPolarAngle
+nAziAng          = RayInfo%nAziAngle
+nPolarAng        = RayInfo%nPolarAngle
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
@@ -187,23 +184,29 @@ END IF
 FsrSt = Pin(PinSt)%FsrIdxSt
 FsrEd = Pin(PinEd)%FsrIdxSt + Cell(Pin(PinEd)%Cell(iz))%nFsr - 1
 
+SELECT CASE (ScatOd)
+  CASE (1); nod = 2
+  CASE (2); nod = 5
+  CASE (3); nod = 9
+END SELECT
+! ----------------------------------------------------
+CALL dmalloc0(TrackingLoc%phis1g, FsrSt, FsrEd)
+IF (ljout) CALL dmalloc0(TrackingLoc%Jout1g, 1, 3, 1, nbd, PinSt, PinEd)
+
+CALL dmalloc0(TrackingLoc%phim1g, 1, nOd, FsrSt, FsrEd)
+
 src1g => TrackingLoc%src1g
 ! ----------------------------------------------------
-IF (hLgc%lNoRef) THEN
-  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
-  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
+IF (lHex .AND. hLgc%l360) THEN
+  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
+  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPolarAng, FsrSt, FsrEd, 1, 1)
   
-  IF (lAFSS) THEN
-    CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
-    CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
-  END IF
-  
-  DO iazi = 1, nAzi
+  DO iazi = 1, nAziAng
     SrcAng1g1 => TrackingLoc%SrcAng1g1
     SrcAng1g2 => TrackingLoc%SrcAng1g2
     
     DO ifsr = FsrSt, FsrEd
-      DO ipol = 1, nPol
+      DO ipol = 1, nPolarAng
         SrcAng1g1(ipol, ifsr, 1) = src1g(ifsr)
         SrcAng1g2(ipol, ifsr, 1) = src1g(ifsr)
         
@@ -233,67 +236,23 @@ IF (hLgc%lNoRef) THEN
         jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
         
         IF (lHex) THEN
-          CALL HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, ScatOd, lAFSS)
+          CALL HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, ScatOd)
         ELSE
-          !CALL RecTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, ScatOd, lAFSS)
+          !CALL RecTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, ScatOd)
         END IF
       END DO
     END DO
-    
-    IF (.NOT. lAFSS) CYCLE
-    
-    SELECT CASE (ScatOd)
-    CASE (1)
-      DO ifsr = FsrSt, FsrEd
-        DO ipol = 1, nPol
-          phia1gp = TrackingLoc%phia1g1(ipol, ifsr, 1) + TrackingLoc%phia1g2(ipol, ifsr, 1)
-          phia1gm = TrackingLoc%phia1g1(ipol, ifsr, 1) - TrackingLoc%phia1g2(ipol, ifsr, 1)
-          
-          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-          
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-        END DO
-      END DO
-    CASE (2)
-      DO ifsr = FsrSt, FsrEd
-        DO ipol = 1, nPol
-          phia1gp = TrackingLoc%phia1g1(ipol, ifsr, 1) + TrackingLoc%phia1g2(ipol, ifsr, 1)
-          phia1gm = TrackingLoc%phia1g1(ipol, ifsr, 1) - TrackingLoc%phia1g2(ipol, ifsr, 1)
-          
-          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-          
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
-        END DO
-      END DO
-    CASE (3)
-      DO ifsr = FsrSt, FsrEd
-        DO ipol = 1, nPol
-          phia1gp = TrackingLoc%phia1g1(ipol, ifsr, 1) + TrackingLoc%phia1g2(ipol, ifsr, 1)
-          phia1gm = TrackingLoc%phia1g1(ipol, ifsr, 1) - TrackingLoc%phia1g2(ipol, ifsr, 1)
-          
-          phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-          
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
-          phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * phia1gm
-        END DO
-      END DO
-    END SELECT
-    
-    TrackingLoc%phia1g1 = ZERO
-    TrackingLoc%phia1g2 = ZERO
   END DO
 ELSE
-  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
-  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, nAzi)
+  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
+  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
   
   SrcAng1g1 => TrackingLoc%SrcAng1g1
   SrcAng1g2 => TrackingLoc%SrcAng1g2
   
-  DO iazi = 1, nAzi
+  DO iazi = 1, nAziAng
     DO ifsr = FsrSt, FsrEd
-      DO ipol = 1, nPol
+      DO ipol = 1, nPolarAng
         SrcAng1g1(ipol, ifsr, iazi) = src1g(ifsr)
         SrcAng1g2(ipol, ifsr, iazi) = src1g(ifsr)
         
@@ -319,76 +278,39 @@ ELSE
     END DO
   END DO
   
-  IF (lAFSS) THEN
-    CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
-    CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, nAzi)
-  END IF
-  
   DO krot = 1, 2
     DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
       IF (lHex) THEN
-        CALL HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, krot, ScatOd, lAFSS)
+        CALL HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, krot, ScatOd)
       ELSE
-        !CALL RecTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, krot, ScatOd, lAFSS)
+        !CALL RecTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), ljout, iz, krot, ScatOd)
       END IF
     END DO
   END DO
-  
-  IF (lAFSS) THEN
-    SELECT CASE (ScatOd)
-    CASE (1)
-      DO iazi = 1, nAzi
-        DO ifsr = FsrSt, FsrEd
-          DO ipol = 1, nPol
-            phia1gp = TrackingLoc%phia1g1(ipol, ifsr, iazi) + TrackingLoc%phia1g2(ipol, ifsr, iazi)
-            phia1gm = TrackingLoc%phia1g1(ipol, ifsr, iazi) - TrackingLoc%phia1g2(ipol, ifsr, iazi)
-            
-            phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-            
-            phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-          END DO
-        END DO
-      END DO
-    CASE (2)
-      DO iazi = 1, nAzi
-        DO ifsr = FsrSt, FsrEd
-          DO ipol = 1, nPol
-            phia1gp = TrackingLoc%phia1g1(ipol, ifsr, iazi) + TrackingLoc%phia1g2(ipol, ifsr, iazi)
-            phia1gm = TrackingLoc%phia1g1(ipol, ifsr, iazi) - TrackingLoc%phia1g2(ipol, ifsr, iazi)
-            
-            phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-            
-            phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-            phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
-          END DO
-        END DO
-      END DO
-    CASE (3)
-      DO iazi = 1, nAzi
-        DO ifsr = FsrSt, FsrEd
-          DO ipol = 1, nPol
-            phia1gp = TrackingLoc%phia1g1(ipol, ifsr, iazi) + TrackingLoc%phia1g2(ipol, ifsr, iazi)
-            phia1gm = TrackingLoc%phia1g1(ipol, ifsr, iazi) - TrackingLoc%phia1g2(ipol, ifsr, iazi)
-            
-            phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-            
-            phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-            phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
-            phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * phia1gm
-          END DO
-        END DO
-      END DO
-    END SELECT
-  END IF
 END IF
 ! ----------------------------------------------------
+DO ifsr = FsrSt, FsrEd
+  phis1g(ifsr) = phis1g(ifsr) + TrackingLoc%phis1g(ifsr)
+  
+  DO iod = 1, nod
+    phim1g(iod, ifsr) = phim1g(iod, ifsr) + TrackingLoc%phim1g(iod, ifsr)
+  END DO
+END DO
+
+IF (lJout) THEN
+  DO ixy = PinSt, PinEd
+    DO ibd = 1, nbd
+      Mocjout1g(:, ibd, ixy) = Mocjout1g(:, ibd, ixy) + TrackingLoc%jout1g(:, ibd, ixy)
+    END DO
+  END DO
+END IF
+! ----------------------------------------------------
+DEALLOCATE (TrackingLoc%phis1g)
+IF (lJout) DEALLOCATE (TrackingLoc%Jout1g)
+
+DEALLOCATE (TrackingLoc%phim1g)
 DEALLOCATE (TrackingLoc%SrcAng1g1)
 DEALLOCATE (TrackingLoc%SrcAng1g2)
-
-IF (lAFSS) THEN
-  DEALLOCATE (TrackingLoc%phia1g1)
-  DEALLOCATE (TrackingLoc%phia1g2)
-END IF
 
 NULLIFY (Cell)
 NULLIFY (Pin)
@@ -402,9 +324,8 @@ NULLIFY (SrcAng1g2)
 
 END SUBROUTINE RtDcmpP1Thr_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, krot, ScatOd, lAFSS)
+SUBROUTINE HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, krot, ScatOd)
 
-USE PARAM,   ONLY : FORWARD, BACKWARD
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type, Pin_Type, AziAngleInfo_Type
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
 USE HexData, ONLY : hAsy, haRay, hAsyTypInfo, hLgc
@@ -416,7 +337,7 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-LOGICAL, INTENT(IN) :: ljout, lAFSS
+LOGICAL, INTENT(IN) :: ljout
 INTEGER, INTENT(IN) :: iz, krot, ScatOd
 ! ----------------------------------------------------
 TYPE (Pin_Type),          POINTER, DIMENSION(:) :: Pin
@@ -427,13 +348,13 @@ TYPE (Type_HexCelRay), POINTER :: CelRay_Loc
 
 REAL, POINTER, DIMENSION(:)       :: phis1g, src1g, xst1g
 REAL, POINTER, DIMENSION(:,:)     :: PhiAngIn1g, EXPA, EXPB, wtang, hwt, phim1g
-REAL, POINTER, DIMENSION(:,:,:)   :: jout1g, LocMwt, LocSrc, locphia1g
+REAL, POINTER, DIMENSION(:,:,:)   :: jout1g, LocMwt, LocSrc
 REAL, POINTER, DIMENSION(:,:,:,:) :: DcmpPhiAngIn1g, DcmpPhiAngOut1g
 
 INTEGER, POINTER, DIMENSION(:) :: AsyRayList, DirList, AziList
 
 INTEGER :: mp(2)
-INTEGER :: iazi, jazi, ipol, irotray, iasyray, iray, irayseg, idir, jdir, icel, iasy, ifsr, isurf, jbeg, jend, jinc, imray, ipray
+INTEGER :: iazi, jazi, ipol, irotray, iasyray, iray, irayseg, idir, icel, iasy, ifsr, isurf, jbeg, jend, jinc, imray, ipray
 INTEGER :: ipst, iped, ipinc, isfst, isfed, isgst, isged, isginc, iAsyTyp, iGeoTyp, icBss, jhPin, jcBss, iOd, nOd
 INTEGER :: nAsyRay, nPinRay, nRaySeg, FsrIdxSt, nPolarAng, PhiAnginSvIdx, ExpAppIdx
 
@@ -507,7 +428,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%lNoRef) jazi = 1
+  IF (hLgc%l360)   jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng
@@ -523,9 +444,9 @@ DO imray = jbeg, jend, jinc
   nPinRay = haRay_Loc%nhpRay
   
   IF (idir .EQ. 1) THEN
-    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; LocMwt => TrackingDat%mwt;  jdir = FORWARD;  IF (lAFSS) locphia1g => TrackingDat%phia1g1
+    ipst = 1; iped = nPinRay; ipinc = 1;  isfst = 1; isfed = 2; LocMwt => TrackingDat%mwt
   ELSE
-    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; LocMwt => TrackingDat%mwt2; jdir = BACKWARD; IF (lAFSS) locphia1g => TrackingDat%phia1g2
+    iped = 1; ipst = nPinRay; ipinc = -1; isfed = 1; isfst = 2; LocMwt => TrackingDat%mwt2
   END IF
   
   IF (idir .EQ. 1) THEN
@@ -577,15 +498,11 @@ DO imray = jbeg, jend, jinc
         
         PhiAngOut1g(ipol) = PhiAngOut1g(ipol) - phid
         
-        IF (lAFSS) THEN
-          locphia1g(ipol, ifsr, jazi) = locphia1g(ipol, ifsr, jazi) + phid
-        ELSE
-          phis1g(ifsr) = phis1g(ifsr) + wtazi(ipol) * phid
-          
-          DO iod = 1, nod
-            phim1g(iod, ifsr) = phim1g(iod, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
-          END DO
-        END IF
+        phis1g(ifsr) = phis1g(ifsr) + wtazi(ipol) * phid
+        
+        DO iod = 1, nod
+          phim1g(iod, ifsr) = phim1g(iod, ifsr) + LocMwt(iod, ipol, iazi) * phid ! NOTICE
+        END DO
       END DO
     END DO
     
@@ -623,8 +540,6 @@ NULLIFY (wtang)
 NULLIFY (EXPA)
 NULLIFY (EXPB)
 NULLIFY (hwt)
-
-IF (lAFSS) NULLIFY (locphia1g)
 
 ! Dcmp.
 NULLIFY (AsyRayList)

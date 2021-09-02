@@ -717,7 +717,7 @@ USE PARAM,    ONLY : PI, VoidCell
 USE Geom,     ONLY : Core, Albedo
 USE Rays,     ONLY : RayInfo, PolarAngle, AziAngle, RotRay, CoreRay, AsyRay, RayInfo4CMFD
 USE SetRay,   ONLY : SetPolarRayAngle
-USE HexData,  only : ncRay, nRotRay, NumMray, nAzmAng, AzmAng, AzmDel, AzmSin, AzmCos, AzmTan, AzmWgt, nPolAng, nRotRay
+USE HexData,  only : ncRay, nRotRay, hcRay, hRotRay, NumMray, nAzmAng, AzmAng, AzmDel, AzmSin, AzmCos, AzmTan, AzmWgt, nPolAng, nRotRay
 
 IMPLICIT NONE
 

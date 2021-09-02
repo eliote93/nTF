@@ -39,7 +39,7 @@ TYPE (FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 ! ----------------------------------------------------
 INTEGER :: ig, iz, ilv, iter, itersum, itermax, ithr, mg, nlv, nFsr, nFxr, nPhiAngSv, gb, ge, myzb, myze, nPol, nAzi, nThr, nModRay, nxya
 REAL :: errmax, Tbeg, Tend, rtTbeg, rtTend
-LOGICAL :: lCLD, lAIC, ldcmp
+LOGICAL :: lCLD, lAIC, ldcmp, lAFSS
 
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, phisdNg, SiglpNg, xstNg, srcNg
 REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
@@ -61,6 +61,7 @@ nPhiAngSv = RayInfo%nPhiAngSv
 nModRay   = RayInfo%nModRay
 
 ldcmp = nTracerCntl%lDomainDcmp
+lAFSS = nTracerCntl%lAFSS
 
 itermax = 100
 IF (.NOT.ldcmp .AND. any(Core%RadBC(1:4) .EQ. VoidCell)) itermax = 1
@@ -108,6 +109,13 @@ DO iz = myzb, myze
     DO ithr = 1, nThr
       DEALLOCATE (TrackingDat(ithr)%phisNg)
       CALL dmalloc(TrackingDat(ithr)%phisNg, mg, nFsr)
+    END DO
+  END IF
+  
+  IF (lAFSS) THEN
+    DO ithr = 1, nThr
+      DEALLOCATE (TrackingDat(ithr)%phiaNg)
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, mg, nPol, nAzi, nFsr)
     END DO
   END IF
   
@@ -191,6 +199,13 @@ DO iz = myzb, myze
     END DO
   END IF
   
+  IF (lAFSS) THEN
+    DO ithr = 1, nThr
+      DEALLOCATE (TrackingDat(ithr)%phiaNg)
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, mg, nPol, nAzi, nFsr)
+    END DO
+  END IF
+  
   CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, SiglpNg, xstNg, iz, lCLD, lAIC)
   CALL SetSubGrpSrc_NM     (Core, Fxr, SiglpNg, xstNg, srcNg, iz, 1, mg)
   
@@ -266,6 +281,13 @@ DO iz = myzb, myze
     END DO
   END IF
   
+  IF (lAFSS) THEN
+    DO ithr = 1, nThr
+      DEALLOCATE (TrackingDat(ithr)%phiaNg)
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, mg, nPol, nAzi, nFsr)
+    END DO
+  END IF
+  
   CALL SetPlnLsigP_1gMLG_NM(Core, Fxr, SiglpNg, xstNg, iz, lCLD, lAIC)
   CALL SetSubGrpSrc_NM     (Core, Fxr, SiglpNg, xstNg, srcNg, iz, 1, mg)
   
@@ -313,6 +335,13 @@ ELSE
   DO ithr = 1, nThr
     DEALLOCATE (TrackingDat(ithr)%phisNg)
     CALL dmalloc(TrackingDat(ithr)%phisNg, ng, nFsr)
+  END DO
+END IF
+
+IF (lAFSS) THEN
+  DO ithr = 1, nThr
+    DEALLOCATE (TrackingDat(ithr)%phiaNg)
+    CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
   END DO
 END IF
 

@@ -78,7 +78,7 @@ USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_
 USE CNTL,           ONLY : nTracerCntl_Type
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP_cat, SubGrpFspErr, EquipXSGen, SetSubGrpSrc1g, UpdtNDAF_CAT
-USE MOC_MOD,        ONLY : RayTrace_GM, RtAFSS_GM
+USE MOC_MOD,        ONLY : RayTrace_GM
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,      ONLY : LIBDATA, nCat, ResoCat, mapnucl, ldiso, nActiveCat, ResoCatUse
@@ -195,11 +195,7 @@ DO iz = myzb, myze
             phis1gd(1:nFsr) = phis1g(1:nFsr)
             
             rt1   = nTracer_dclock(FALSE, FALSE)
-            !IF (nTracerCntl%lAFSS) THEN
-            !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-            !ELSE
-              CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-            !END IF
+            CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
             rt2   = nTracer_dclock(FALSE, FALSE)
             rtnet = rtnet + (rt2 - rt1)
             
@@ -257,7 +253,7 @@ USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_
 USE CNTL,           ONLY : nTracerCntl_Type
 USE FILES,          ONLY : IO8
 USE SUBGRP_MOD,     ONLY : SetPlnLsigP, SubGrpFspErr, EquipXsGen, SetSubGrpSrc1g, UpdtNDAF
-USE MOC_MOD,        ONLY : RayTrace_GM, RtAFSS_GM
+USE MOC_MOD,        ONLY : RayTrace_GM
 USE IOUTIL,         ONLY : message
 USE TIMER,          ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,      ONLY : LIBDATA, nRes_Cor, idRes_Cor, mapnucl, ldiso
@@ -376,11 +372,7 @@ DO iz = myzb, myze
           phis1gd(1:nFsr) = phis1g(1:nFsr)
           
           rt1   = nTracer_dclock(FALSE, FALSE)
-          !IF (nTracerCntl%lAFSS) THEN
-          !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-          !ELSE
-            CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-          !END IF
+          CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
           rt2   = nTracer_dclock(FALSE, FALSE)
           rtnet = rtnet + (rt2 - rt1)
           
@@ -439,7 +431,7 @@ USE TYPEDEF,    ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_Type
 USE CNTL,       ONLY : nTracerCntl_Type
 USE FILES,      ONLY : IO8
 USE SUBGRP_MOD, ONLY : SetPlnLsigP_MLG, SetPlnLsigP_1gMLG, SubGrpFspErr, EquipXSGen_MLG, EquipXsGen_1gMLG, SetSubGrpSrc1g, UpdtFnAdj, UpdtFtAdj
-USE MOC_MOD,    ONLY : RayTrace_GM, RtAFSS_GM, RayTraceDcmp_GM, DcmpPhiAngIn1g
+USE MOC_MOD,    ONLY : RayTrace_GM, RayTraceDcmp_GM, DcmpPhiAngIn1g
 USE IOUTIL,     ONLY : message
 USE TIMER,      ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,  ONLY : mlgdata, mlgdata0
@@ -551,11 +543,7 @@ DO iz = myzb, myze
           IF (ldcmp) THEN
             CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
           ELSE
-            !IF (nTracerCntl%lAFSS) THEN
-            !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
-            !ELSE
-              CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
-            !END IF
+            CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
           END IF
           rt2   = nTracer_dclock(FALSE, FALSE)
           rtnet = rtnet + (rt2 - rt1)
@@ -613,11 +601,7 @@ DO iz = myzb, myze
         IF (ldcmp) THEN
           CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
         ELSE
-          !IF (nTracerCntl%lAFSS) THEN
-          !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
-          !ELSE
-            CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
-          !END IF
+          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
         END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
@@ -665,11 +649,7 @@ DO iz = myzb, myze
         IF (ldcmp) THEN
           CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
         ELSE
-          !IF (nTracerCntl%lAFSS) THEN
-          !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
-          !ELSE
-            CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
-          !END IF
+          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
         END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
@@ -722,7 +702,7 @@ USE TYPEDEF,    ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, THInfo_Type, P
 USE CNTL,       ONLY : nTracerCntl_Type
 USE FILES,      ONLY : IO8
 USE SUBGRP_MOD, ONLY : SetPlnLsigP_Dancoff, SetPlnLsigP_DancoffAIC, SetSubGrpSrc1g, Set_Dancoff, Set_DancoffAIC, SubGrpFspErr
-USE MOC_MOD,    ONLY : RayTrace_GM, RtAFSS_GM
+USE MOC_MOD,    ONLY : RayTrace_GM
 USE IOUTIL,     ONLY : message
 USE TIMER,      ONLY : nTracer_dclock, TimeChk
 
@@ -804,11 +784,7 @@ DO iz = myzb, myze
     ! Solving ENCM
     phis1gd(1:nFsr) = phis1g(1:nFsr)
     
-    !IF (nTracerCntl%lAFSS) THEN
-    !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-    !ELSE
-      CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-    !END IF
+    CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
     
     ! Update Equivalence XS
     errmax = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)
@@ -847,11 +823,7 @@ DO iz = myzb, myze
       ! Solving FSP
       phis1gd(1:nFsr) = phis1g(1:nFsr)
       
-      !IF (nTracerCntl%lAFSS) THEN
-      !  CALL RtAFSS_GM  (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-      !ELSE
-        CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
-      !END IF
+      CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout, iz, FALSE, nTracerCntl%FastMocLv)
       
       ! Update Equivalence XS
       errmax = SubGrpFspErr(phis1g, phis1gd, nfsr, PE)

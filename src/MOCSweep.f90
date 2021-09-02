@@ -8,7 +8,7 @@ USE itrcntl_mod, ONLY : ItrCntl_TYPE
 USE CORE_MOD,    ONLY : GroupInfo, srcSlope, phisSlope, psiSlope
 USE MOC_MOD,     ONLY : SetRtMacXsGM, SetRtSrcGM, SetRtP1SrcGM, AddBucklingGM, PseudoAbsorptionGM, RayTrace_GM, RayTraceP1_GM, phis1g, phim1g, MocJout1g, xst1g, src1g, PhiAngin1g, srcm1g, AxSrc1g, &
                         SetRtMacXsNM, SetRtsrcNM, SetRtP1srcNM, AddBucklingNM, PseudoAbsorptionNM, RayTrace_NM, RayTraceP1_NM, phisNg, phimNg, MocJoutNg, xstNg, srcNg, PhiAngInNg, srcmNg, &
-                        PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, RtAFSS_GM, RtAFSSP1_GM, &
+                        PsiUpdate, CellPsiUpdate, UpdateEigv, MocResidual, PsiErr, PowerUpdate, FluxUnderRelaxation, FluxInUnderRelaxation, CurrentUnderRelaxation, &
                         SetRtLinSrc, LinPsiUpdate, RayTraceLS_CASMO, RayTraceLS, SetRTLinSrc_CASMO, LinPsiUpdate_CASMO, LinSrc1g, LinPsi, &
                         RayTraceDcmp_NM, RayTraceDcmp_GM, RayTraceDcmpP1_GM, RayTraceDcmpP1_NM, RayTraceLin_Dcmp, DcmpPhiAngInNg, DcmpPhiAngIn1g, DcmpGatherCurrentNg, DcmpGatherCurrent1g
 USE SUbGrp_Mod,  ONLY : FxrChiGen
@@ -43,7 +43,7 @@ INTEGER :: grpbndy(2, 2)
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
 REAL :: errdat(3), tnmdel(2)
 
-LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp, lAFSS
+LOGICAL :: lJout, lxslib, l3dim, lscat1, ltrc, lRST, lssph, lssphreg, MASTER, RTMaster, lDmesg, lLinSrc, lLSCASMO, lmocUR, lbsq, laxrefFDM, ldcmp
 
 TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 
@@ -120,7 +120,6 @@ laxrefFDM = nTracerCntl%laxrefFDM
 ldcmp     = nTracerCntl%ldomaindcmp
 fmoclv    = nTracerCntl%FastMOCLv
 ScatOd    = nTracerCntl%scatod
-lAFSS     = nTracerCntl%lAFSS
 
 nitermax = itrcntl%MOCItrCntl%nitermax
 psiconv  = itrcntl%psiconv
@@ -196,23 +195,15 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             IF (.NOT. lLinSrc) THEN
               IF (.NOT. ldcmp) THEN
                 IF (.NOT. lscat1) THEN
-                  !IF (.NOT. lAFSS) THEN
-                    CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
-                  !ELSE
-                  !  CALL RtAFSS_GM        (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
-                  !END IF
+                  CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  IF (.NOT. lAFSS) THEN
-                    CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, ScatOd, fmoclv)
-                  ELSE
-                    CALL RtAFSSP1_GM      (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, ScatOd, fmoclv)
-                  END IF
+                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, ScatOd, fmoclv)
                 END IF
               ELSE
                 IF (lScat1) THEN
-                  CALL RayTraceDcmpP1_GM  (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout)
+                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout)
                 ELSE
-                  CALL RayTraceDcmp_GM    (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout)
+                  CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout)
                 END IF
               END IF
             ELSE

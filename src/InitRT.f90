@@ -5,12 +5,10 @@ USE allocs
 USE PARAM,   ONLY : mesg, TRUE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, PE_TYPE, AziAngleInfo_Type, PolarAngle_Type
 USE Cntl,    ONLY : nTracerCntl_Type
-USE MOC_MOD, ONLY : ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, EXPA, EXPB, hwt, DcmpAsyClr, AziRotRay, OmpRotRay, OmpAzi, &
-                    trackingdat, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, phia1g1, phia1g2
+USE MOC_MOD, ONLY : trackingdat, ApproxExp, nMaxRaySeg, nMaxCellRay, nMaxAsyRay, nMaxCoreRay, wtang, wtsurf, Comp, mwt, mwt2, SrcAng1g1, SrcAng1g2, SrcAngNg1, SrcAngNg2, EXPA, EXPB, hwt, DcmpAsyClr
 USE geom,    ONLY : nbd, ng
 USE files,   ONLY : io8
 USE ioutil,  ONLY : message, terminate
-USE HexData, ONLY : hLgc, hRotRay, hcRay
 
 IMPLICIT NONE
 
@@ -19,9 +17,9 @@ TYPE (CoreInfo_Type)    :: CoreInfo
 TYPE (nTracerCntl_Type) :: nTracerCntl
 TYPE (PE_TYPE)          :: PE
 
-INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr, iray, ntmp1, ntmp2, itmp, nRotRay
+INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr
 REAL :: wttmp, wtsin2, wtcos, wtpolar
-LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex
+LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
@@ -34,7 +32,6 @@ AziAng   => RayInfo%AziAngle
 PolarAng => RayInfo%PolarAngle
 nPol      = RayInfo%nPolarAngle
 nAzi      = RayInfo%nAziAngle
-nRotRay   = RayInfo%nRotRay
 
 nthr = PE%nThread
 CALL omp_set_num_threads(nThr)
@@ -43,7 +40,6 @@ nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
 lGM          = .NOT. nTracerCntl%lNodeMajor
-lHex         = nTracerCntl%lHex
 scatod       = nTracerCntl%scatod
 lscat1       = nTracerCntl%lscat1
 ldcmp        = nTracerCntl%lDomainDcmp
@@ -78,7 +74,7 @@ DO ipol = 1, nPol
 END DO
 
 ! Hex.
-IF (lHex) THEN
+IF (nTracerCntl%lHex) THEN
   CALL dmalloc(hwt, nPol, nAzi)
   
   DO ipol = 1, nPol
@@ -88,49 +84,6 @@ IF (lHex) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-! Omp Rot Ray, DEBUG
-ntmp1 = nRotRay / nthr
-ntmp2 = nRotRay - ntmp1 * nthr
-
-iray = 1
-
-DO itmp = 1, ntmp2
-  OmpRotRay(1, itmp) = iray
-  OmpRotRay(2, itmp) = iray + ntmp1
-  
-  iray = iray + ntmp1 + 1
-END DO
-
-DO itmp = ntmp2 + 1, nthr
-  OmpRotRay(1, itmp) = iray
-  OmpRotRay(2, itmp) = iray + ntmp1 - 1
-  
-  iray = iray + ntmp1
-END DO
-
-! Omp Azi
-ntmp1 = nAzi / nthr
-ntmp2 = nAzi - ntmp1 * nthr
-
-OmpAzi(0, 1:ntmp2)      = ntmp1 + 1
-OmpAzi(0, ntmp2+1:nthr) = ntmp1
-
-iazi = 0
-
-DO itmp = 1, ntmp1
-  DO ithr = 1, nthr
-    iazi = iazi + 1
-    
-    OmpAzi(itmp, ithr) = iazi
-  END DO
-END DO
-
-DO itmp = 1, ntmp2
-  iazi = iazi + 1
-  
-  OmpAzi(ntmp1+1, itmp) = iazi
-END DO
-! ----------------------------------------------------
 ! Basic
 DO ithr = 1, nThr
   TrackingDat(ithr)%ExpA   => ExpA
@@ -138,7 +91,7 @@ DO ithr = 1, nThr
   TrackingDat(ithr)%wtang  => wtang
   TrackingDat(ithr)%wtsurf => wtsurf
   
-  IF (.NOT. lHex) CYCLE
+  IF (.NOT. nTracerCntl%lHex) CYCLE
   
   TrackingDat(ithr)%hwt => hwt
 END DO
@@ -171,39 +124,14 @@ ELSE IF (.NOT. ldcmp) THEN
 END IF
 
 ! AFSS
-IF (nTracerCntl%lAFSS .AND. .NOT.ldcmp .AND. lGM) THEN
-  !CALL dmalloc(phia1g1, nPol, nFsr, nAzi) ! pol 2 fsr
-  !CALL dmalloc(phia1g2, nPol, nFsr, nAzi)
-  CALL dmalloc(phia1g1, nFsr, nPol, nAzi) ! fsr 2 pol
-  CALL dmalloc(phia1g2, nFsr, nPol, nAzi)
-  
-  IF (hLgc%lNoRef) THEN
-    ! SET : Azi Rot Ray
-    CALL dmalloc0(AziRotRay, 0, nRotRay, 1, nAzi)
-    
-    DO iray = 1, nRotRay
-      iazi = hcRay(hRotRay(iray)%cRayIdx(1))%AzmIdx
-      
-      AziRotRay(0, iazi) = AziRotRay(0, iazi) + 1
-      
-      AziRotRay(AziRotRay(0, iazi), iazi) = iray
-    END DO
-    
-    ! ALLOC
-    DO ithr = 1, ithr
-      !CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, OmpAzi(0, ithr)) ! pol 2 fsr
-      !CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, OmpAzi(0, ithr))
-      CALL dmalloc(TrackingDat(ithr)%phia1g1, nFsr, nPol, OmpAzi(0, ithr)) ! fsr 2 pol
-      CALL dmalloc(TrackingDat(ithr)%phia1g2, nFsr, nPol, OmpAzi(0, ithr))
-    END DO
-  ELSE
-    DO ithr = 1, nthr
-      !CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi) ! pol 2 fsr
-      !CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
-      CALL dmalloc(TrackingDat(ithr)%phia1g1, nFsr, nPol, nAzi) ! fsr 2 pol
-      CALL dmalloc(TrackingDat(ithr)%phia1g2, nFsr, nPol, nAzi)
-    END DO
-  END IF
+IF (nTracerCntl%lAFSS) THEN
+  DO ithr = 1, nthr
+    IF (lGM) THEN
+      CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, nAzi, nFsr)
+    ELSE
+      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
+    END IF
+  END DO
 END IF
 
 ! Dcmp. & Lin Src CASMO

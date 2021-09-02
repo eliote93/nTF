@@ -113,7 +113,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
   ELSE
     ALLOCATE (AsyPhiAngIn (nPolar, ng, 2, nModRay, nxya, myzb:myze))
   END IF
-  
+    
   AsyPhiAngIn = ONE
 END IF
 
@@ -175,7 +175,7 @@ USE ALLOCS
 USE GEOM,    ONLY : Core, ng, nbd
 USE PE_MOD,  ONLY : PE
 USE Moc_mod, ONLY : MocJout1g, Xst1g, src1g, srcm1g, DcmpPhiAngOut1g, AxSrc1g, LinSrc1g, LinPsi, AxPxs1g, &
-                    MocJoutNg, xstNg, srcNg, srcmNg, DcmpPhiAngOutNg, phisNg
+                    MocJoutNg, xstNg, srcNg, srcmNg, DcmpPhiAngOutNg, phisNg, DcmpPhiAngIn1g
 USE rays,    ONLY : RayInfo
 USE CNTL,    ONLY : nTracerCntl
 
