@@ -132,17 +132,6 @@ ELSE IF (.NOT. ldcmp) THEN
   END DO
 END IF
 
-! AFSS
-IF (nTracerCntl%lAFSS) THEN
-  DO ithr = 1, nthr
-    IF (lGM) THEN
-      CALL dmalloc(TrackingDat(ithr)%phia1g, 2,     nPol, nAzi, nFsr)
-    ELSE
-      CALL dmalloc(TrackingDat(ithr)%phiaNg, 2, ng, nPol, nAzi, nFsr)
-    END IF
-  END DO
-END IF
-
 ! Dcmp. & Lin Src CASMO
 IF (ldcmp .AND. lLinSrcCASMO) THEN
   DO ithr = 1, nThr
