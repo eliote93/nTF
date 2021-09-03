@@ -471,7 +471,7 @@ TYPE TrackingDat_Type
   
   ! AFSS
   REAL, POINTER, DIMENSION(:,:,:)   :: phia1g1, phia1g2
-  !REAL, POINTER, DIMENSION(:,:,:,:,:) :: phiaNg
+  REAL, POINTER, DIMENSION(:,:,:,:) :: phiaNg1, phiaNg2
   
   ! CASMO LS
   REAL, POINTER, DIMENSION(:)       :: FsrMxx, FsrMyy, FsrMxy

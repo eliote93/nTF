@@ -222,7 +222,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, MocJoutNg, jAsy, iz, gb, ge, lJout, lHex)
+SUBROUTINE RtDcmpThr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, MocJoutNg, jAsy, iz, gb, ge, lJout, lHex, lAFSS)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -236,11 +236,11 @@ REAL, POINTER, DIMENSION(:,:)     :: phisNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: jAsy, iz, gb, ge
-LOGICAL :: lJout, lHex
+LOGICAL :: lJout, lHex, lAFSS
 
 END SUBROUTINE RtDcmpThr_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
+SUBROUTINE RecTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot, lAFSS)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -251,12 +251,12 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-LOGICAL:: ljout
+LOGICAL :: ljout, lAFSS
 INTEGER :: iz, gb, ge, krot
 
 END SUBROUTINE RecTrackRotRayDcmp_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot)
+SUBROUTINE HexTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, ljout, iz, gb, ge, krot, lAFSS)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -267,7 +267,7 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-LOGICAL:: ljout
+LOGICAL :: ljout, lAFSS
 INTEGER :: iz, gb, ge, krot
 
 END SUBROUTINE HexTrackRotRayDcmp_NM
@@ -290,7 +290,7 @@ LOGICAL :: lJout
 
 END SUBROUTINE RayTraceDcmpP1_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNg, JoutNg, jAsy, iz, gb, ge, ScatOd, lJout, lHex)
+SUBROUTINE RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingLoc, phisNg, phimNg, srcmNg, JoutNg, jAsy, iz, gb, ge, lJout, lHex, lAFSS, ScatOd)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type
 
@@ -305,11 +305,11 @@ REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
 
 INTEGER :: jAsy, iz, gb, ge, ScatOd
-LOGICAL :: lJout, lHex
+LOGICAL :: lJout, lHex, lAFSS
 
 END SUBROUTINE RtDcmpP1Thr_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, lJout, iz, gb, ge, krot, ScatOd)
+SUBROUTINE HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, lJout, iz, gb, ge, krot, lAFSS, ScatOd)
 
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
 
@@ -320,23 +320,7 @@ TYPE (CoreInfo_Type)       :: CoreInfo
 TYPE (TrackingDat_Type)    :: TrackingDat
 TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
 
-LOGICAL :: lJout
-INTEGER :: iz, gb, ge, krot, ScatOd
-
-END SUBROUTINE RecTrackRotRayDcmpP1_NM
-! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingDat, DcmpAsyRay, lJout, iz, gb, ge, krot, ScatOd)
-
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, DcmpAsyRayInfo_Type
-
-IMPLICIT NONE
-
-TYPE (RayInfo_Type)        :: RayInfo
-TYPE (CoreInfo_Type)       :: CoreInfo
-TYPE (TrackingDat_Type)    :: TrackingDat
-TYPE (DcmpAsyRayInfo_Type) :: DcmpAsyRay
-
-LOGICAL :: lJout
+LOGICAL :: lJout, lAFSS
 INTEGER :: iz, gb, ge, krot, ScatOd
 
 END SUBROUTINE HexTrackRotRayDcmpP1_NM
@@ -554,7 +538,6 @@ END SUBROUTINE HexTrackRotRayP1_NM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS(RayInfo, CoreInfo, phis, PhiAngIn, xst, src1g, LinSrc, Slope1g, jout, iz, ljout)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
@@ -572,7 +555,6 @@ END SUBROUTINE RayTraceLS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceLS_CASMO(RayInfo, CoreInfo, phisNg, phisSlope, PhiAngInNg, srcNg, srcSlope, xstNg, JoutNg, iz, gb, ge, ljout)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
 IMPLICIT NONE
@@ -589,7 +571,6 @@ END SUBROUTINE RayTraceLS_CASMO
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceDcmp_LSCASMO(RayInfo, CoreInfo, phisNg, phisSlope, JoutNg, iz, iasy, gb, ge, ljout)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type
 
 IMPLICIT NONE
@@ -607,7 +588,6 @@ END SUBROUTINE RayTraceDcmp_LSCASMO
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE TrackRotRayLSDcmp_CASMO(RayInfo, CoreInfo, TrackingDat, phisC, phimx, phimy, jout, DcmpAsyRay, ljout, iz, gb, ge)
 
-USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, DcmpAsyRayInfo_Type, TrackingDat_Type
 
 IMPLICIT NONE
@@ -626,7 +606,6 @@ END SUBROUTINE TrackRotRayLSDcmp_CASMO
 SUBROUTINE SetRtMacXsGM(core, Fxr, xstr, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE
-USE BenchXs, ONLY : GetXstrBen
 
 IMPLICIT NONE
 
@@ -645,7 +624,6 @@ END SUBROUTINE SetRtMacXsGM
 SUBROUTINE SetRtMacXsGM_Cusping(core, FmInfo, Fxr, xstr, phis, iz, ig, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE, FmInfo_Type
-USE BenchXs, ONLY : GetXstrBen
 
 IMPLICIT NONE
 
@@ -683,7 +661,6 @@ END SUBROUTINE SetRtMacXsNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtMacXsNM_Cusping(core, FmInfo, Fxr, xstNg, iz, ng, lxslib, lTrCorrection, lRST, lssph, lssphreg, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE, FmInfo_Type
 
 IMPLICIT NONE
@@ -723,7 +700,6 @@ END SUBROUTINE SetRtSrcGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcGM_Cusping(Core, FmInfo, Fxr, src, phis, psi, axsrc, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE, FmInfo_Type
 
 IMPLICIT NONE
@@ -744,7 +720,7 @@ END SUBROUTINE SetRtSrcGM_Cusping
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcNM(Core, Fxr, srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
-USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type,  PE_TYPE
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE
 
 IMPLICIT NONE
 
@@ -767,7 +743,6 @@ END SUBROUTINE SetRtSrcNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtSrcNM_Cusping(Core, FmInfo, Fxr, srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix, PE, Offset)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_TYPE, FmInfo_Type
 
 IMPLICIT NONE
@@ -789,8 +764,7 @@ END SUBROUTINE SetRtSrcNM_Cusping
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtLinSrc(Core, Fxr, RayInfo, src1g, LinSrc, LinPsi, LinSrcSlope, xstr1g, eigv, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1)
 
-USE PARAM
-USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type, XsMac_Type
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type
 
 IMPLICIT NONE
 
@@ -808,7 +782,6 @@ END SUBROUTINE SetRtLinSrc
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtLinSrc_CASMO(Core, Fxr, RayInfo, phisNg, phisSlope, srcNg, srcSlope, psi, psiSlope, axsrc, xstNg, eigv, iz, gb, ge, ng, GroupInfo, l3dim, lxslib, lscat1, lNegFix)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, RayInfo_Type, GroupInfo_Type
 
 IMPLICIT NONE
@@ -830,7 +803,7 @@ END SUBROUTINE SetRtLinSrc_CASMO
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetRtP1SrcGM(Core, Fxr, srcm1g, phimNg, xst1g, iz, ig, ng, GroupInfo, l3dim, lxslib, lscat1, ScatOd, PE)
 
-USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, XsMac_Type, PE_Type
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, PE_Type
 
 IMPLICIT NONE
 
@@ -892,10 +865,7 @@ END SUBROUTINE PseudoAbsorptionGM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PseudoAbsorptionNM(Core, Fxr, AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 
-USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
-USE BenchXs,        ONLY : GetChiBen, xssben
-USE MacXsLib_mod,   ONLY : MacXsScatMatrix
-USE BasicOperation, ONLY : CP_CA
+USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type
 
 IMPLICIT NONE
 
@@ -954,7 +924,6 @@ END SUBROUTINE PowerUpdate
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type
 
 IMPLICIT NONE
@@ -972,7 +941,6 @@ END SUBROUTINE LinPsiUpdate
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
 
-USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type
 
 IMPLICIT NONE
@@ -1004,9 +972,6 @@ END SUBROUTINE CellPsiUpdate
 SUBROUTINE UpdateEigv(Core, psi, psid, eigv, peigv, myzb, myze, PE)
 
 USE TYPEDEF, ONLY : coreinfo_type, PE_TYPE
-USE BenchXs, ONLY : xsnfBen
-
-USE BasicOperation, ONLY : CP_CA
 
 IMPLICIT NONE
 
@@ -1104,7 +1069,7 @@ END SUBROUTINE AddBucklingNM
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AddConstSrc(Core, Fxr, Src, xstr1g, ConstSrc, iz, ig, ng)
 
-USE TYPEDEF, ONLY : CoreInfo_Type, Fxrinfo_type, Cell_Type, pin_Type
+USE TYPEDEF, ONLY : CoreInfo_Type, Fxrinfo_type
 
 IMPLICIT NONE
 
@@ -1244,7 +1209,6 @@ END SUBROUTINE DcmpGatherBndyFlux1g
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FluxUnderRelaxation(Core, Phis1g, Phis, w, iz, ig, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, PE_TYPE, Pin_Type, Cell_Type
 
 IMPLICIT NONE
@@ -1261,7 +1225,6 @@ END SUBROUTINE FluxUnderRelaxation
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FluxInUnderRelaxation(Core, PhiAngIn1g, PhiAngIn, w, n1, n2, iz, ig, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, PE_TYPE
 
 IMPLICIT NONE
@@ -1278,7 +1241,6 @@ END SUBROUTINE FluxInUnderRelaxation
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CurrentUnderRelaxation(Core, Jout1g, Jout, w, iz, ig, PE)
 
-USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, PE_TYPE
 
 IMPLICIT NONE
