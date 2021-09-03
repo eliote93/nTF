@@ -437,13 +437,13 @@ INTEGER :: irotray, iz, krot, gb, ge
 
 END SUBROUTINE HexTrackRotRay_NM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, FastMocLv)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type
 
 IMPLICIT NONE
 
-TYPE (RayInfo_Type) :: RayInfo
+TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
 REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
@@ -452,7 +452,6 @@ REAL, POINTER, DIMENSION(:,:,:) :: jout1g
 
 INTEGER :: iz
 LOGICAL :: ljout
-INTEGER :: ScatOd
 
 INTEGER, OPTIONAL :: FastMocLv
 

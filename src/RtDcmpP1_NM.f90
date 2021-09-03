@@ -1,6 +1,6 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, gb, ge, lJout)
+SUBROUTINE RayTraceDcmpP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, gb, ge, ljout)
 
 USE OMP_LIB
 USE PARAM,       ONLY : ZERO, ONE
@@ -21,17 +21,14 @@ REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg, phimNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: iz, gb, ge
-LOGICAL :: lJout, lAFSS
+LOGICAL :: ljout
 ! ----------------------------------------------------
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr, ScatOd
-LOGICAL :: lHex
+LOGICAL :: lHex, lAFSS
 REAL :: wttmp
-
-INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
-INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
 nxy   = CoreInfo%nxy
@@ -53,7 +50,7 @@ END DO
 DcmpPhiAngOutNg(:, gb:ge, :, :, :) = ZERO
 
 phisNg(gb:ge, :) = ZERO
-IF (lJout) MocJoutNg(:, gb:ge, :, :) = ZERO
+IF (ljout) MocJoutNg(:, gb:ge, :, :) = ZERO
 phimNg(:, :, gb:ge) = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
@@ -76,7 +73,7 @@ DO iClr = 1, nClr
   DO iAsy = 1, DcmpAsyClr(0, jClr)
     jAsy = DcmpAsyClr(iAsy, jClr)
     
-    CALL RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingDat(ithr), phisNg, phimNg, srcmNg, MocJoutNg, jAsy, iz, gb, ge, lJout, lHex, lAFSS, ScatOd)
+    CALL RtDcmpP1Thr_NM(RayInfo, CoreInfo, TrackingDat(ithr), phisNg, phimNg, srcmNg, MocJoutNg, jAsy, iz, gb, ge, ljout, lHex, lAFSS, ScatOd)
   END DO
   !$OMP END DO NOWAIT
   !$OMP END PARALLEL
@@ -124,7 +121,7 @@ USE ALLOCS
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE geom,    ONLY : nbd
-USE Moc_Mod, ONLY : HexTrackRotRayDcmpP1_NM, Comp, wtang, mwt, DcmpAziRay
+USE Moc_Mod, ONLY : HexTrackRotRayDcmpP1_NM, Comp, DcmpAziRay, wtang, mwt
 USE HexData, ONLY : hAsy, hLgc
 
 IMPLICIT NONE
@@ -140,8 +137,8 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 INTEGER :: jAsy, iz, gb, ge, ScatOd
 LOGICAL :: lJout, lHex, lAFSS
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
@@ -150,12 +147,12 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: SrcAngNg1, SrcAngNg2
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: kRot, iAsyRay, ifsr, ig, ixy, ibd, iOd, iazi, ipol, jAsyRay, PinSt, PinEd, FsrSt, FsrEd, nAzi, nPol, nOd
+INTEGER :: kRot, iAsyRay, jAsyRay, ifsr, ig, ixy, ibd, iOd, iazi, ipol, PinSt, PinEd, FsrSt, FsrEd, nAzi, nPol, nOd
 REAL :: srctmp, phiaNgp, phiaNgm
 ! ----------------------------------------------------
 
-Cell => CoreInfo%Cellinfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%Cellinfo
 
 nAzi             = RayInfo%nAziAngle
 nPol             = RayInfo%nPolarAngle
@@ -383,8 +380,8 @@ DEALLOCATE (TrackingLoc%SrcAngNg2)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phiaNg1)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phiaNg2)
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 

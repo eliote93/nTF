@@ -28,9 +28,6 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, iClr, jClr
 LOGICAL :: lHex, lAFSS
-
-INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
-INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
 nxy   = CoreInfo%nxy
@@ -110,7 +107,7 @@ SUBROUTINE RtDcmpThr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, MocJout1g, jAsy,
 
 USE allocs
 USE PARAM,   ONLY : ZERO
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE geom,    ONLY : nbd
 USE MOC_MOD, ONLY : HexTrackRotRayDcmp_GM, DcmpAziRay, wtang
 USE HexData, ONLY : hAsy, hLgc
@@ -127,21 +124,21 @@ REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
 INTEGER :: jAsy, iz
 LOGICAL :: lJout, lHex, lAFSS
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: kRot, iAsyRay, jAsyRay, ifsr, ixy, ibd, iazi, ipol, PinSt, PinEd, FsrSt, FsrEd, nPol, nAzi
+INTEGER :: kRot, iAsyRay, jAsyRay, ifsr, ixy, ibd, iazi, ipol, PinSt, PinEd, FsrSt, FsrEd, nAzi, nPol
 ! ----------------------------------------------------
 
-Cell => CoreInfo%Cellinfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%Cellinfo
 
-nPol             = RayInfo%nPolarAngle
 nAzi             = RayInfo%nAziAngle
+nPol             = RayInfo%nPolarAngle
 DcmpAsyRay      => RayInfo%DcmpAsyRay
 DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
 
@@ -239,8 +236,8 @@ IF (lJout) DEALLOCATE (TrackingLoc%Jout1g)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phia1g1)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phia1g2)
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 ! ----------------------------------------------------

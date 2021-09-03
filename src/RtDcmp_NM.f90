@@ -21,16 +21,13 @@ REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 
 INTEGER :: iz, gb, ge
-LOGICAL :: lJout, lAFSS
+LOGICAL :: lJout
 ! ----------------------------------------------------
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr
-LOGICAL :: lHex
-
-INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
-INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
+LOGICAL :: lHex, lAFSS
 ! ----------------------------------------------------
 
 nxy   = CoreInfo%nxy
@@ -129,8 +126,8 @@ REAL, POINTER, DIMENSION(:,:,:,:) :: MocJoutNg
 INTEGER :: jAsy, iz, gb, ge
 LOGICAL :: lJout, lHex, lAFSS
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
@@ -139,8 +136,8 @@ INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 INTEGER :: kRot, iAsyRay, jAsyRay, ifsr, ig, ixy, ibd, iazi, ipol, PinSt, PinEd, FsrSt, FsrEd, nAzi, nPol
 ! ----------------------------------------------------
 
-Cell => CoreInfo%Cellinfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%Cellinfo
 
 nAzi             = RayInfo%nAziAngle
 nPol             = RayInfo%nPolarAngle
@@ -162,8 +159,8 @@ CALL dmalloc0(TrackingLoc%phisNg, gb, ge, FsrSt, FsrEd)
 IF (ljout) CALL dmalloc0(TrackingLoc%JoutNg, 1, 3, gb, ge, 1, nbd, PinSt, PinEd)
 ! ----------------------------------------------------
 IF (hLgc%lNoRef .AND. lAFSS) THEN
-  CALL dmalloc0(TrackingLoc%phiaNg1, 1, nPol, gb, ge, Fsrst, Fsred, 1, 1)
-  CALL dmalloc0(TrackingLoc%phiaNg2, 1, nPol, gb, ge, Fsrst, Fsred, 1, 1)
+  CALL dmalloc0(TrackingLoc%phiaNg1, 1, nPol, gb, ge, Fsrst, FsrEd, 1, 1)
+  CALL dmalloc0(TrackingLoc%phiaNg2, 1, nPol, gb, ge, Fsrst, FsrEd, 1, 1)
   
   DO iazi = 1, nAzi
     TrackingLoc%phiaNg1 = ZERO
@@ -196,8 +193,8 @@ IF (hLgc%lNoRef .AND. lAFSS) THEN
     END DO
   END DO
 ELSE
-  IF (lAFSS) CALL dmalloc0(TrackingLoc%phiaNg1, 1, nPol, gb, ge, Fsrst, Fsred, 1, nAzi)
-  IF (lAFSS) CALL dmalloc0(TrackingLoc%phiaNg2, 1, nPol, gb, ge, Fsrst, Fsred, 1, nAzi)
+  IF (lAFSS) CALL dmalloc0(TrackingLoc%phiaNg1, 1, nPol, gb, ge, Fsrst, FsrEd, 1, nAzi)
+  IF (lAFSS) CALL dmalloc0(TrackingLoc%phiaNg2, 1, nPol, gb, ge, Fsrst, FsrEd, 1, nAzi)
   
   IF (lHex) THEN
     DO krot = 1, 2
@@ -213,15 +210,17 @@ ELSE
     END DO
   END IF
   
-  DO iazi = 1, nAzi
-    DO ifsr = FsrSt, FsrEd
-      DO ig = gb, ge
-        DO ipol = 1, nPol
-          phisNg(ig, ifsr) = phisNg(ig, ifsr) + wtang(ipol, iazi) * (TrackingLoc%phiaNg1(ipol, ig, ifsr, iazi) + TrackingLoc%phiaNg2(ipol, ig, ifsr, iazi))
+  IF (lAFSS) THEN
+    DO iazi = 1, nAzi
+      DO ifsr = FsrSt, FsrEd
+        DO ig = gb, ge
+          DO ipol = 1, nPol
+            phisNg(ig, ifsr) = phisNg(ig, ifsr) + wtang(ipol, iazi) * (TrackingLoc%phiaNg1(ipol, ig, ifsr, iazi) + TrackingLoc%phiaNg2(ipol, ig, ifsr, iazi))
+          END DO
         END DO
       END DO
     END DO
-  END DO
+  END IF
 END IF
 ! ----------------------------------------------------
 IF (.NOT. lAFSS) THEN
@@ -247,8 +246,8 @@ IF (lJout) DEALLOCATE (TrackingLoc%JoutNg)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phiaNg1)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phiaNg2)
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 ! ----------------------------------------------------

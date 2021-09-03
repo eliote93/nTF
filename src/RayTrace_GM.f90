@@ -22,11 +22,10 @@ INTEGER :: iz
 LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: nFsr, nxy, nThr
-INTEGER :: ithr, FsrIdxSt, icel, iRotRay, ifsr, jfsr, ixy, krot, iazi, ipol
+INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, nThr, nxy, FsrIdxSt, nFsr
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
@@ -78,11 +77,11 @@ IF (ljout) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr)
-!$OMP DO
+!$OMP DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   FsrIdxSt = Pin(ixy)%FsrIdxSt
   icel     = Pin(ixy)%Cell(iz)
@@ -96,8 +95,8 @@ END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 ! ----------------------------------------------------
 
 END SUBROUTINE RayTrace_GM

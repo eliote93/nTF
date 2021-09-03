@@ -2,12 +2,11 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayTraceP1_NM(RayInfo, CoreInfo, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, JoutNg, iz, gb, ge, ljout)
 
-USE TIMER
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO, ONE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : RecTrackRotRayP1_NM, HexTrackRotRayP1_NM, TrackingDat, SrcAngNg1, SrcAngNg2, comp, wtang, mwt
-USE geom,    ONLY : ng, nbd
+USE Moc_Mod, ONLY : RecTrackRotRayP1_NM, HexTrackRotRayP1_NM, TrackingDat, wtang, SrcAngNg1, SrcAngNg2, comp, mwt
+USE geom,    ONLY : nbd, ng
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
@@ -16,19 +15,17 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-INTEGER :: iz, gb, ge
-LOGICAL :: ljout
-
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
 REAL, POINTER, DIMENSION(:,:,:)   :: phimNg, PhiAngInNg, srcmNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
+
+INTEGER :: iz, gb, ge
+LOGICAL :: ljout
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nthr, ScatOd, nod
-INTEGER :: iRotRay, ipol, iazi, krot, ithr, FsrIdxSt, icel, ibd, ig, ifsr, jfsr, iod, ixy
-
+INTEGER :: ithr, iRotRay, krot, ixy, ibd, icel, ifsr, jfsr, ig, iazi, ipol, iod, nthr, nxy, FsrIdxSt, nFsr, nAzi, nPol, ScatOd, nOd
 REAL :: wttmp, srctmp
 ! ----------------------------------------------------
 
@@ -37,24 +34,24 @@ nxy  = CoreInfo%nxy
 
 ScatOd = nTracerCntl%ScatOd
 
-nAziAng   = RayInfo%nAziAngle
-nPolarAng = RayInfo%nPolarAngle
+nAzi = RayInfo%nAziAngle
+nPol = RayInfo%nPolarAngle
 
 SELECT CASE (ScatOd)
-CASE(1); nod = 2
-CASE(2); nod = 5
-CASE(3); nod = 9
+CASE(1); nOd = 2
+CASE(2); nOd = 5
+CASE(3); nOd = 9
 END SELECT
 
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, Ifsr, ipol, ig, srctmp)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, ifsr, ipol, ig, srctmp)
 ithr = omp_get_thread_num() + 1
 
-DO iazi = 1, nAziAng
+DO iazi = 1, nAzi
   DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
-    DO ipol = 1, nPolarAng
+    DO ipol = 1, nPol
       DO ig = gb, ge
         SrcAngNg1(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
         SrcAngNg2(ig, ipol, ifsr, iazi) = srcNg(ig, ifsr)
@@ -123,7 +120,7 @@ DO ithr = 1, nthr
     DO ig = gb, ge
       phisNg(ig, ifsr) = phisNg(ig, ifsr) + TrackingDat(ithr)%phisNg(ig, ifsr)
       
-      DO iod = 1, nod
+      DO iod = 1, nOd
         phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + TrackingDat(ithr)%phimNg(iod, ifsr, ig)
       END DO
     END DO
@@ -144,8 +141,8 @@ IF (lJout) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig, wttmp)
 !$OMP DO SCHEDULE(GUIDED)
@@ -171,8 +168,8 @@ END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 ! ----------------------------------------------------
 
 END SUBROUTINE RayTraceP1_NM

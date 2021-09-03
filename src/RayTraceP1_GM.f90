@@ -1,12 +1,11 @@
 #include <defines.h>
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, ScatOd, FastMocLv)
+SUBROUTINE RayTraceP1_GM(RayInfo, CoreInfo, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, jout1g, iz, ljout, FastMocLv)
 
-USE ALLOCS
 USE OMP_LIB
-USE PARAM,   ONLY : FALSE, ZERO, ONE
+USE PARAM,   ONLY : ZERO, FALSE, ONE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, Comp, SrcAng1g1, SrcAng1g2, wtang, mwt
+USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, wtang, Comp, SrcAng1g1, SrcAng1g2, mwt
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
@@ -19,55 +18,55 @@ REAL, POINTER, DIMENSION(:)     :: phis1g, xst1g, src1g
 REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, srcm1g, phim1g
 REAL, POINTER, DIMENSION(:,:,:) :: jout1g
 
-INTEGER :: iz, ScatOd
+INTEGER :: iz
 LOGICAL :: ljout
 INTEGER, OPTIONAL :: FastMocLv
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: nAziAng, nPolarAng, nFsr, nxy, nThr
-INTEGER :: ithr, FsrIdxSt, icel, iazi, ipol, iod, iRotRay, ifsr, jfsr, ixy, krot
-
-REAL :: wttmp, tmpsrc
+INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, iod, nThr, nxy, FsrIdxSt, nFsr, nAzi, nPol, ScatOd
+REAL :: wttmp, srctmp
 ! ----------------------------------------------------
-
-nAziAng   = RayInfo%nAziAngle
-nPolarAng = RayInfo%nPolarAngle
 
 nFsr = CoreInfo%nCoreFsr
 nxy  = CoreInfo%nxy
 
+ScatOd = nTracerCntl%ScatOd
+
+nAzi = RayInfo%nAziAngle
+nPol = RayInfo%nPolarAngle
+
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, ifsr, ipol, tmpsrc)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, ifsr, ipol, srctmp)
 ithr = omp_get_thread_num() + 1
 
-DO iazi = 1, nAziAng
+DO iazi = 1, nAzi
   DO ifsr = PE%myOmpFsrBeg(ithr), PE%myOmpFsrEnd(ithr)
-    DO ipol = 1, nPolarAng
+    DO ipol = 1, nPol
       SrcAng1g1(ipol, ifsr, iazi) = src1g(ifsr)
       SrcAng1g2(ipol, ifsr, iazi) = src1g(ifsr)
       
-      tmpsrc = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
+      srctmp = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
             
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - srctmp
       
       IF (ScatOd .LT. 2) CYCLE
       
-      tmpsrc = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
+      srctmp = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
             
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  tmpsrc
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) +  srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) +  srctmp
       
       IF (ScatOd .LT. 3) CYCLE
       
-      tmpsrc = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
+      srctmp = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
             
-      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + tmpsrc
-      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - tmpsrc
+      SrcAng1g1(ipol, ifsr, iazi) = SrcAng1g1(ipol, ifsr, iazi) + srctmp
+      SrcAng1g2(ipol, ifsr, iazi) = SrcAng1g2(ipol, ifsr, iazi) - srctmp
      END DO
   END DO
 END DO
@@ -121,8 +120,8 @@ IF (ljout) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, ixy, FsrIdxSt, icel, ifsr, jfsr, wttmp)
 ithr = omp_get_thread_num() + 1
@@ -145,8 +144,8 @@ DO ixy = PE%myOmpNxyBeg(ithr), PE%myOmpNxyEnd(ithr)
 END DO
 !$OMP END PARALLEL
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 ! ----------------------------------------------------
 
 END SUBROUTINE RayTraceP1_GM

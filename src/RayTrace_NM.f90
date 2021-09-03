@@ -15,17 +15,17 @@ IMPLICIT NONE
 TYPE (RayInfo_Type)  :: RayInfo
 TYPE (CoreInfo_Type) :: CoreInfo
 
-INTEGER :: iz, gb, ge
-LOGICAL :: ljout
-
 REAL, POINTER, DIMENSION(:,:)     :: phisNg, xstNg, srcNg
 REAL, POINTER, DIMENSION(:,:,:)   :: PhiAngInNg
 REAL, POINTER, DIMENSION(:,:,:,:) :: JoutNg
-! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
-TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 
-INTEGER :: nFsr, nxy, nthr, iRotRay, krot, ithr, FsrIdxSt, icel, ibd, ifsr, jfsr, ig, ixy, iazi, ipol
+INTEGER :: iz, gb, ge
+LOGICAL :: ljout
+! ----------------------------------------------------
+TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
+
+INTEGER :: ithr, iRotRay, krot, ixy, ibd, icel, ifsr, jfsr, ig, iazi, ipol, nthr, nxy, FsrIdxSt, nFsr
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
@@ -51,7 +51,7 @@ IF (nTracerCntl%lHex) THEN
       CALL HexTrackRotRay_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
     END DO
   END DO
-  !$OMP END DO NOWAIT
+  !$OMP END DO
 ELSE
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
   DO krot = 1, 2
@@ -59,7 +59,7 @@ ELSE
       CALL RecTrackRotRay_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
     END DO
   END DO
-  !$OMP END DO NOWAIT
+  !$OMP END DO
 END IF
 !$OMP END PARALLEL
 ! ----------------------------------------------------
@@ -74,7 +74,7 @@ DO ithr = 1, nthr
   END DO
 END DO
 
-IF (lJout) THEN
+IF (ljout) THEN
   JoutNg(:, gb:ge, :, :) = ZERO
   
   DO ithr = 1, nthr
@@ -88,8 +88,8 @@ IF (lJout) THEN
   END DO
 END IF
 ! ----------------------------------------------------
-Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%CellInfo
 
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ixy, FsrIdxSt, icel, ifsr, jfsr, ig)
 !$OMP DO SCHEDULE(GUIDED)
@@ -108,8 +108,8 @@ END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 ! ----------------------------------------------------
 
 END SUBROUTINE RayTrace_NM

@@ -21,17 +21,14 @@ REAL, POINTER, DIMENSION(:,:)   :: PhiAngIn1g, phim1g, srcm1g
 REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
 
 INTEGER :: iz
-LOGICAL :: lJout, lAFSS
+LOGICAL :: lJout
 ! ----------------------------------------------------
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, iClr, jClr, ScatOd
-LOGICAL :: lHex
+LOGICAL :: lHex, lAFSS
 REAL :: wttmp
-
-INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
-INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 ! ----------------------------------------------------
 
 nxy   = CoreInfo%nxy
@@ -120,9 +117,9 @@ SUBROUTINE RtDcmpP1Thr_GM(RayInfo, CoreInfo, TrackingLoc, phis1g, phim1g, srcm1g
 
 USE allocs
 USE PARAM,   ONLY : ZERO
-USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Cell_Type, Pin_Type, DcmpAsyRayInfo_Type
+USE TYPEDEF, ONLY : RayInfo_Type, Coreinfo_type, TrackingDat_Type, Pin_Type, Cell_Type, DcmpAsyRayInfo_Type
 USE geom,    ONLY : nbd
-USE MOC_MOD, ONLY : HexTrackRotRayDcmpP1_GM, Comp, wtang, mwt, DcmpPhiAngIn1g, DcmpPhiAngOut1g, DcmpAziRay
+USE MOC_MOD, ONLY : HexTrackRotRayDcmpP1_GM, Comp, mwt, DcmpAziRay, wtang
 USE HexData, ONLY : hAsy, hLgc
 
 IMPLICIT NONE
@@ -138,8 +135,8 @@ REAL, POINTER, DIMENSION(:,:,:) :: MocJout1g
 INTEGER :: jAsy, iz, ScatOd
 LOGICAL :: lJout, lHex, lAFSS
 ! ----------------------------------------------------
-TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
+TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 TYPE (DcmpAsyRayInfo_Type), POINTER, DIMENSION(:,:) :: DcmpAsyRay
 
@@ -148,12 +145,12 @@ REAL, POINTER, DIMENSION(:,:,:) :: SrcAng1g1, SrcAng1g2
 
 INTEGER, POINTER, DIMENSION(:) :: DcmpAsyRayCount
 
-INTEGER :: kRot, iAsyRay, ifsr, ixy, ibd, iOd, iazi, ipol, jAsyRay, nAzi, nPol, nOd, PinSt, PinEd, FsrSt, FsrEd
+INTEGER :: kRot, iAsyRay, jAsyRay, ifsr, ixy, ibd, iOd, iazi, ipol, PinSt, PinEd, FsrSt, FsrEd, nAzi, nPol, nOd
 REAL :: srctmp, phia1gp, phia1gm
 ! ----------------------------------------------------
 
-Cell => CoreInfo%Cellinfo
 Pin  => CoreInfo%Pin
+Cell => CoreInfo%Cellinfo
 
 nAzi             = RayInfo%nAziAngle
 nPol             = RayInfo%nPolarAngle
@@ -369,8 +366,8 @@ DEALLOCATE (TrackingLoc%SrcAng1g2)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phia1g1)
 IF (lAFSS) DEALLOCATE (TrackingLoc%phia1g2)
 
-NULLIFY (Cell)
 NULLIFY (Pin)
+NULLIFY (Cell)
 NULLIFY (DcmpAsyRay)
 NULLIFY (DcmpAsyRayCount)
 

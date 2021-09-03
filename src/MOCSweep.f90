@@ -197,13 +197,13 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
                 IF (.NOT. lscat1) THEN
                   CALL RayTrace_GM      (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout, fmoclv)
                 ELSE
-                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, ScatOd, fmoclv)
+                  CALL RayTraceP1_GM    (RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout, fmoclv)
                 END IF
               ELSE
-                IF (lScat1) THEN
-                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout)
-                ELSE
+                IF (.NOT. lscat1) THEN
                   CALL RayTraceDcmp_GM  (RayInfo, Core, phis1g,         PhiAngIn1g, xst1g, src1g,         MocJout1g, iz, lJout)
+                ELSE
+                  CALL RayTraceDcmpP1_GM(RayInfo, Core, phis1g, phim1g, PhiAngIn1g, xst1g, src1g, srcm1g, MocJout1g, iz, lJout)
                 END IF
               END IF
             ELSE
@@ -303,23 +303,23 @@ ELSE
           ! Ray Trace
           IF (.NOT. ldcmp) THEN
             IF (.NOT. lLSCASMO) THEN
-              IF (lscat1) THEN
-                CALL RayTraceP1_NM  (RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
-              ELSE
+              IF (.NOT. lscat1) THEN
                 CALL RayTrace_NM    (RayInfo, Core, phisNg,         PhiAngInNg, xstNg, srcNg,         MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
+              ELSE
+                CALL RayTraceP1_NM  (RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, GrpBeg, GrpEnd, ljout)
               END IF
             ELSE
               CALL RayTraceLS_CASMO (RayInfo, Core, phisNg, phisSlope, PhiAngInNg, srcNg, srcSlope, xstNg, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
             END IF
           ELSE
-            IF (lScat1) THEN
-              CALL RayTraceDcmpP1_NM(RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
-            ELSE
+            IF (.NOT. lscat1) THEN
               IF (.NOT.lLSCASMO) THEN
                 CALL RayTraceDcmp_NM(RayInfo, Core, phisNg,         PhiAngInNg, xstNg, srcNg,         MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
               ELSE
                 CALL RayTraceLin_Dcmp(RayInfo, Core, iz, GrpBeg, GrpEnd, lJout, nTracerCntl%lHybrid)
               END IF
+            ELSE
+              CALL RayTraceDcmpP1_NM(RayInfo, Core, phisNg, phimNg, PhiAngInNg, xstNg, srcNg, srcmNg, MocJoutNg, iz, GrpBeg, GrpEnd, lJout)
             END IF
           END IF
           

@@ -90,6 +90,7 @@ DO WHILE (TRUE)
 END DO
 ! ----------------------------------------------------
 BACKSPACE (indev)
+BACKSPACE (io8)
 
 CALL HexChkInp
 CALL HexSetRodCelBss
