@@ -5,7 +5,7 @@ SUBROUTINE RayTrace_NM(RayInfo, CoreInfo, phisNg, PhiAngInNg, xstNg, srcNg, Jout
 USE OMP_LIB
 USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
-USE Moc_Mod, ONLY : TrackingDat, wtang
+USE Moc_Mod, ONLY : RecTrackRotRay_NM, HexTrackRotRay_NM, TrackingDat, wtang
 USE geom,    ONLY : nbd
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
@@ -44,17 +44,23 @@ TrackingDat(ithr)%srcNg      => srcNg
 TrackingDat(ithr)%xstNg      => xstNg
 TrackingDat(ithr)%PhiAngInNg => PhiAngInNg
 
-!$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
-DO krot = 1, 2
-  DO iRotRay = 1, RayInfo%nRotRay
-    IF (nTracerCntl%lHex) THEN
+IF (nTracerCntl%lHex) THEN
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+  DO krot = 1, 2
+    DO iRotRay = 1, RayInfo%nRotRay
       CALL HexTrackRotRay_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
-    ELSE
-      CALL RecTrackRotRay_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
-    END IF
+    END DO
   END DO
-END DO
-!$OMP END DO NOWAIT
+  !$OMP END DO NOWAIT
+ELSE
+  !$OMP DO SCHEDULE(GUIDED) COLLAPSE(2)
+  DO krot = 1, 2
+    DO iRotRay = 1, RayInfo%nRotRay
+      CALL RecTrackRotRay_NM(RayInfo, CoreInfo, TrackingDat(ithr), ljout, iRotRay, iz, krot, gb, ge)
+    END DO
+  END DO
+  !$OMP END DO NOWAIT
+END IF
 !$OMP END PARALLEL
 ! ----------------------------------------------------
 phisNg(gb:ge, :) = ZERO

@@ -221,17 +221,23 @@ IF (hLgc%lNoRef) THEN
       END DO
     END DO
     
-    DO krot = 1, 2
-      DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
-        jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
-        
-        IF (lHex) THEN
+    IF (lHex) THEN
+      DO krot = 1, 2
+        DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
+          jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
+          
           CALL HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), lJout, iz, gb, ge, krot, ScatOd)
-        ELSE
-          !CALL RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), lJout, iz, gb, ge, krot, ScatOd)
-        END IF
+        END DO
       END DO
-    END DO
+    ELSE
+      DO krot = 1, 2
+        DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
+          jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
+          
+          !CALL RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), lJout, iz, gb, ge, krot, ScatOd)
+        END DO
+      END DO
+    END IF
   END DO
 ELSE
   CALL dmalloc0(TrackingLoc%SrcAngNg1, gb, ge, 1, nPolarAng, FsrSt, FsrEd, 1, nAziAng)
@@ -270,15 +276,19 @@ ELSE
     END DO
   END DO
   
-  DO krot = 1, 2
-    DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
-      IF (lHex) THEN
+  IF (lHex) THEN
+    DO krot = 1, 2
+      DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
         CALL HexTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, gb, ge, krot, ScatOd)
-      ELSE
-        !CALL RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, gb, ge, krot, ScatOd)
-      END IF
+      END DO
     END DO
-  END DO
+  ELSE
+    DO krot = 1, 2
+      DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
+        !CALL RecTrackRotRayDcmpP1_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, gb, ge, krot, ScatOd)
+      END DO
+    END DO
+  END IF
 END IF
 ! ----------------------------------------------------
 DO ifsr = FsrSt, FsrEd

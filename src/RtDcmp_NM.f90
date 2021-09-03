@@ -159,15 +159,19 @@ CALL dmalloc0(TrackingLoc%phisNg, gb, ge, FsrSt, FsrEd)
 IF (ljout) CALL dmalloc0(TrackingLoc%JoutNg, 1, 3, gb, ge, 1, nbd, PinSt, PinEd)
 
 ! RT
-DO krot = 1, 2
-  DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
-    IF (lHex) THEN
+IF (lHex) THEN
+  DO krot = 1, 2
+    DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
       CALL HexTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, gb, ge, krot)
-    ELSE
-      CALL RecTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, gb, ge, krot)
-    END IF
+    END DO
   END DO
-END DO
+ELSE
+  DO krot = 1, 2
+    DO iAsyRay = 1, DcmpAsyRayCount(jAsy)
+      !CALL RecTrackRotRayDcmp_NM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(iAsyRay, jAsy), lJout, iz, gb, ge, krot)
+    END DO
+  END DO
+END IF
 
 ! GATHER
 DO ifsr = FsrSt, FsrEd
