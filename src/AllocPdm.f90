@@ -119,11 +119,19 @@ END IF
 
 ! Flux Moments
 IF (nTracerCntl%lScat1) THEN
-  SELECT CASE (nTracerCntl%SCatOd)
-  CASE (1); CALL dmalloc0(phim, 1, 2, 1, nfsr, 1, ng, myzb, myze)
-  CASE (2); CALL dmalloc0(phim, 1, 5, 1, nfsr, 1, ng, myzb, myze)
-  CASE (3); CALL dmalloc0(phim, 1, 9, 1, nfsr, 1, ng, myzb, myze)
-  END SELECT
+  IF (lGM) THEN
+    SELECT CASE (nTracerCntl%SCatOd)
+    CASE (1); CALL dmalloc0(phim, 1, 2, 1, nfsr, 1, ng, myzb, myze)
+    CASE (2); CALL dmalloc0(phim, 1, 5, 1, nfsr, 1, ng, myzb, myze)
+    CASE (3); CALL dmalloc0(phim, 1, 9, 1, nfsr, 1, ng, myzb, myze)
+    END SELECT
+  ELSE
+    SELECT CASE (nTracerCntl%SCatOd)
+    CASE (1); CALL dmalloc0(phim, 1, 2, 1, ng, 1, nfsr, myzb, myze)
+    CASE (2); CALL dmalloc0(phim, 1, 5, 1, ng, 1, nfsr, myzb, myze)
+    CASE (3); CALL dmalloc0(phim, 1, 9, 1, ng, 1, nfsr, myzb, myze)
+    END SELECT
+  END IF
 END IF
 
 ! Power
@@ -224,9 +232,9 @@ IF (nTracerCntl%lscat1) THEN
     END SELECT
   ELSE
     SELECT CASE (nTracerCntl%ScatOd)
-    CASE (1); CALL dmalloc(srcmNg, 2, nFsr, ng)
-    CASE (2); CALL dmalloc(srcmNg, 5, nFsr, ng)
-    CASE (3); CALL dmalloc(srcmNg, 9, nFsr, ng)
+    CASE (1); CALL dmalloc(srcmNg, 2, ng, nFsr)
+    CASE (2); CALL dmalloc(srcmNg, 5, ng, nFsr)
+    CASE (3); CALL dmalloc(srcmNg, 9, ng, nFsr)
     END SELECT
   END IF
 END IF

@@ -238,7 +238,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
         
         WRITE (mesg, '(10X, A, I4, 2X, A, F10.3, 2X, A)') 'Group ', ig, ' finished in ', tgmdel, 'Sec'
         IF (master) CALL message(io8, FALSE, TRUE, mesg)
-                
+        
         tgmdel = ZERO
       END DO
     END DO
@@ -250,13 +250,10 @@ ELSE
     
     WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
     IF (MASTER) CALL message(io8, TRUE, TRUE, mesg)
-        
-    IF (RTMaster) THEN
-      CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
-      
-      IF (lLSCASMO) CALL LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
-    END IF
     
+    IF (RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+    IF (RTMaster .AND. lLSCASMO) CALL LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
+        
     DO iz = myzb, myze
       IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
       

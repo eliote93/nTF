@@ -110,25 +110,25 @@ DO ipin = xyb, xye
         SELECT CASE (ScatOd)
         CASE (1)
           DO jg = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jg, jfsr)
           END DO
           
-          srcmNg(1:2, jfsr, ig - ioff) = scatSrc(1:2)
+          srcmNg(1:2, ig - ioff, jfsr) = scatSrc(1:2)
         CASE (2)
           DO jg = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
-            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jg, jfsr)
+            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jg, jfsr)
           ENDDO
           
-          srcmNg(1:5, jfsr, ig - ioff) = scatSrc(1:5)
+          srcmNg(1:5, ig - ioff, jfsr) = scatSrc(1:5)
         CASE (3)
           DO jg = 1, ng
-            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jfsr, jg)
-            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jfsr, jg)
-            scatSrc(6:9) = scatSrc(6:9) + XsMacP3Sm(jg, ig) * phimNg(6:9, jfsr, jg)
+            scatSrc(1:2) = scatSrc(1:2) + XsMacP1Sm(jg, ig) * phimNg(1:2, jg, jfsr)
+            scatSrc(3:5) = scatSrc(3:5) + XsMacP2Sm(jg, ig) * phimNg(3:5, jg, jfsr)
+            scatSrc(6:9) = scatSrc(6:9) + XsMacP3Sm(jg, ig) * phimNg(6:9, jg, jfsr)
           ENDDO
           
-          srcmNg(1:9, jfsr, ig - ioff) = scatSrc(1:9)
+          srcmNg(1:9, ig - ioff, jfsr) = scatSrc(1:9)
         END SELECT
       END DO
     END DO
@@ -163,10 +163,10 @@ DO ipin = xyb, xye
     DO ig = gb, ge
       xstinv = ONE / xstNg(ig, jfsr)
       
-      srcmNg(1:2, jfsr, ig - ioff) = srcmNg(1:2, jfsr, ig - ioff) * xstinv
+      srcmNg(1:2, ig - ioff, jfsr) = srcmNg(1:2, ig - ioff, jfsr) * xstinv
       
-      IF (ScatOd .GE. 2) srcmNg(3:5, jfsr, ig - ioff) = srcmNg(3:5, jfsr, ig - ioff) * xstinv
-      IF (ScatOd .EQ. 3) srcmNg(6:9, jfsr, ig - ioff) = srcmNg(6:9, jfsr, ig - ioff) * xstinv
+      IF (ScatOd .GE. 2) srcmNg(3:5, ig - ioff, jfsr) = srcmNg(3:5, ig - ioff, jfsr) * xstinv
+      IF (ScatOd .EQ. 3) srcmNg(6:9, ig - ioff, jfsr) = srcmNg(6:9, ig - ioff, jfsr) * xstinv
     END DO
   END DO
 END DO

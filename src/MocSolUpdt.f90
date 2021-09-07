@@ -94,7 +94,7 @@ IF (nTracerCntl%lScat1) THEN
         IF (nTracerCntl%lNodeMajor) THEN
           DO j = 1, nLocalFsr
             ifsr = FsrIdxSt + j - 1
-            phim(:, ifsr, ig, iz) = phim(:, ifsr, ig, iz) * fmult
+            phim(:, ig, ifsr, iz) = phim(:, ig, ifsr, iz) * fmult
           ENDDO
         ENDIF
       ENDDO
@@ -118,7 +118,7 @@ IF (nTracerCntl%lNodeMajor) THEN
       DO j = 1, nLocalFsr
         ifsr = FsrIdxSt + j - 1
         DO ig = 1, ng
-          phim(:, ifsr, ig, iz) = phim(:, ifsr, ig, iz) * fmultMg(ig)
+          phim(:, ig, ifsr, iz) = phim(:, ig, ifsr, iz) * fmultMg(ig)
         ENDDO
       ENDDO
     ENDDO
