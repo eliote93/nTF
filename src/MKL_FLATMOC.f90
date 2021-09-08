@@ -5,81 +5,89 @@
 MODULE MKL_FLATMOC
 
 USE MKL_3D
+
 IMPLICIT NONE
 
-REAL, POINTER, PRIVATE :: phis(:, :, :), phim(:, :, :, :)
-REAL, POINTER, PRIVATE :: psi(:, :), src(:, :, :), srca(:, :, :, :, :), srcm(:, :, :, :), lkg(:, :, :)
-REAL, POINTER, PRIVATE :: xst(:, :, :), pxs(:, :, :)
-REAL, POINTER, PRIVATE :: S(:, :, :, :), F(:, :, :), Chi(:, :, :)
+REAL, POINTER, PRIVATE, DIMENSION(:)         :: hzMOC
+REAL, POINTER, PRIVATE, DIMENSION(:,:)       :: psi, Comp, mwt
+REAL, POINTER, PRIVATE, DIMENSION(:,:,:)     :: phis, src, lkg, xst, pxs, F, chi
+REAL, POINTER, PRIVATE, DIMENSION(:,:,:,:)   :: phim, srcm, S, wtExp
+REAL, POINTER, PRIVATE, DIMENSION(:,:,:,:,:) :: srca
 
-REAL, POINTER, PRIVATE :: wtExp(:, :, :, :), Comp(:, :), mwt(:, :)
-
-REAL, POINTER, PRIVATE :: hzMOC(:)
-INTEGER, POINTER, PRIVATE :: cmRange(:, :), fmRange(:, :)
-INTEGER, POINTER, PRIVATE :: cmMap(:), fmMap(:)
+INTEGER, POINTER, PRIVATE, DIMENSION(:)   :: cmMap, fmMap
+INTEGER, POINTER, PRIVATE, DIMENSION(:,:) :: cmRange, fmRange
 INTEGER, PRIVATE :: nzMOC, nDiv(100)
 
 LOGICAL, PRIVATE :: lFirst = .TRUE.
 
 PRIVATE
+
 PUBLIC :: AllocFlatMOC, FlatMOCDriver
 
 CONTAINS
-
-!--- Public Routines ------------------------------------------------------------------------------
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocFlatMOC(Axial)
+
+USE allocs
 
 IMPLICIT NONE
 
 TYPE(mklAxial_Type) :: Axial
 
 INTEGER :: ng, nxy, nzCMFD, nPolarAngle
+! ----------------------------------------------------
 
-ng = Axial%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
+ng          = Axial%ng
+nxy         = mklGeom%nxy
+nzCMFD      = mklGeom%nzCMFD
 nPolarAngle = mklGeom%nPolar1D
 
 CALL SetSphericalHarmonics(Axial)
-CALL SetSubmesh()
+CALL SetSubmesh
 
-ALLOCATE(phis(ng, nzMOC, nxy))
-ALLOCATE(phim(3, ng, nzMOC, nxy)); phim = 0.0
-ALLOCATE(psi(nzMOC, nxy))
-ALLOCATE(src(ng, nzMOC, nxy))
-ALLOCATE(srca(2, nPolarAngle, ng, nzMOC, nxy)); srca = 0.0
-ALLOCATE(srcm(3, ng, nzMOC, nxy)); srcm = 0.0
-ALLOCATE(lkg(ng, nzMOC, nxy))
-ALLOCATE(xst(ng, nzMOC, nxy))
-ALLOCATE(pxs(ng, nzMOC, nxy))
+CALL dmalloc(psi,         nzMOC, nxy)
+CALL dmalloc(phis,    ng, nzMOC, nxy)
+CALL dmalloc(src,     ng, nzMOC, nxy)
+CALL dmalloc(lkg,     ng, nzMOC, nxy)
+CALL dmalloc(xst,     ng, nzMOC, nxy)
+CALL dmalloc(pxs,     ng, nzMOC, nxy)
+CALL dmalloc(phim, 3, ng, nzMOC, nxy)
+CALL dmalloc(srcm, 3, ng, nzMOC, nxy)
 
-ALLOCATE(wtExp(nPolarAngle, ng, nzMOC, nxy))
+CALL dmalloc(S,   ng, ng, nzCMFD, nxy)
+CALL dmalloc(F,       ng, nzCMFD, nxy)
+CALL dmalloc(Chi,     ng, nzCMFD, nxy)
 
-ALLOCATE(S(ng, ng, nzCMFD, nxy)); S = 0.0
-ALLOCATE(F(ng, nzCMFD, nxy)); F = 0.0
-ALLOCATE(Chi(ng, nzCMFD, nxy)); Chi = 0.0
+CALL dmalloc(srca, 2, nPolarAngle, ng, nzMOC, nxy)
+CALL dmalloc(wtExp,   nPolarAngle, ng, nzMOC, nxy)
+! ----------------------------------------------------
 
-END SUBROUTINE
-
+END SUBROUTINE AllocFlatMOC
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FlatMOCDriver(CMFD, Axial, eigv)
-USE TYPEDEF,        ONLY : PinXS_Type
-USE PE_MOD,         ONLY : PE
-USE TIMER,          ONLY : nTracer_dclock,      TimeChk
+
+USE param,   ONLY : ZERO, FALSE, TRUE
+USE TYPEDEF, ONLY : PinXS_Type
+USE PE_MOD,  ONLY : PE
+USE TIMER,   ONLY : nTracer_dclock, TimeChk
+
 IMPLICIT NONE
 
-TYPE(mklCMFD_Type) :: CMFD
-TYPE(mklAxial_Type) :: Axial
+TYPE (mklCMFD_Type)  :: CMFD
+TYPE (mklAxial_Type) :: Axial
 REAL :: eigv
+! ----------------------------------------------------
+TYPE (PinXS_Type), POINTER, DIMENSION(:,:) :: PinXS
 
-TYPE(PinXS_Type), POINTER :: PinXS(:, :)
-INTEGER :: i, ig, ixy, iz, izf, ng, nxy, nzCMFD, nNeg(1000)
-INTEGER :: ierr, iter, itermax = 10
+INTEGER :: i, ig, ixy, iz, izf, ng, nxy, nzCMFD, ierr, iter, nNeg(1000)
+INTEGER :: itermax = 10
 REAL :: AxNSolverBeg, AxNSolverEnd
+! ----------------------------------------------------
 
 PinXS => CMFD%PinXS
-ng = CMFD%ng
-nxy = mklGeom%nxy
+ng     = CMFD%ng
+
+nxy    = mklGeom%nxy
 nzCMFD = mklGeom%nzCMFD
 
 CALL SetSourceOperator(Axial, PinXS)
@@ -89,126 +97,146 @@ CALL SetLeakage(CMFD, Axial, PinXS)
 CALL SetPseudoAbsorption(Axial)
 CALL SetCrossSection(Axial, PinXS)
 CALL SetConstant(Axial, PinXS)
-
-!PRINT *, 'negative feed flux', mklGeom%myzb, mklGeom%myze, COUNT(phis .LT. 0.0)
-!PRINT *, 'negative incoming', mklGeom%myzb, mklGeom%myze, COUNT(Axial%PhiAngIn .LT. 0.0)
-
+! ----------------------------------------------------
 DO iter = 1, itermax
-  AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
+  AxNSolverBeg = nTracer_dclock(FALSE, FALSE)
+  
   CALL SetSource(Axial, eigv)
-  CALL SetSourceMoment(Axial); CALL SetP1Source(Axial)
-  phis = 0.0; phim = 0.0
+  CALL SetSourceMoment(Axial)
+  CALL SetP1Source(Axial)
+  
+  phis = ZERO
+  phim = ZERO
+  
   !$OMP PARALLEL DO SCHEDULE(GUIDED)
   DO ixy = 1, nxy
     CALL FlatRayTraceP0(Axial, ixy, FALSE)
   ENDDO
   !$OMP END PARALLEL DO
+  
   CALL SetFluxMoment(Axial)
-  AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
+  
+  AxNSolverEnd = nTracer_dclock(FALSE, FALSE)
   TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
+  
   CALL SetBoundaryFlux(Axial)
-ENDDO
+END DO
+! ----------------------------------------------------
+phis = ZERO
+phim = ZERO
+Axial%Jout = ZERO
 
-phis = 0.0; phim = 0.0; Axial%Jout = 0.0
-AxNSolverBeg = nTracer_dclock(.FALSE., .FALSE.)
+AxNSolverBeg = nTracer_dclock(FALSE, FALSE)
+
 !$OMP PARALLEL DO SCHEDULE(GUIDED)
 DO ixy = 1, nxy
   CALL FlatRayTraceP0(Axial, ixy, TRUE)
 ENDDO
 !$OMP END PARALLEL DO
+
 CALL SetFluxMoment(Axial)
-AxNSolverEnd = nTracer_dclock(.FALSE., .FALSE.)
+
+AxNSolverEnd = nTracer_dclock(FALSE, FALSE)
 TimeChk%AxNSolverTime = TimeChk%AxNSolverTime + (AxNSolverEnd - AxNSolverBeg)
+! ----------------------------------------------------
 CALL SetBoundaryFlux(Axial)
 CALL SetCellFlux(Axial)
 
 DO iz = 1, nzMOC
-  nNeg(iz) = COUNT(phis(:, iz, :) .LT. 0.0)
-ENDDO
+  nNeg(iz) = COUNT(phis(:, iz, :) .LT. ZERO)
+END DO
 
-!PRINT *, 'negative flux', mklGeom%myzb, mklGeom%myze
-!PRINT *, nNeg(1 : nzMOC)
-!PRINT *, 'negative outgoing', mklGeom%myzb, mklGeom%myze, COUNT(mklAxial%PhiAngOut .LT. 0.0)
+lFirst = FALSE
+! ----------------------------------------------------
 
-lFirst = .FALSE.
-
-END SUBROUTINE
-
-!--- Private Routines -----------------------------------------------------------------------------
-
+END SUBROUTINE FlatMOCDriver
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetSubmesh()
+! MoC Pln. <= Sub-Pln. <= Pln.
+
+USE allocs
 
 IMPLICIT NONE
 
-INTEGER :: nzCMFD
-INTEGER :: iz, izc, izf
-INTEGER :: myzb, myze
-REAL, POINTER :: hzfm(:)
+INTEGER :: nzCMFD, iz, izc, izf, myzb, myze
+REAL, POINTER, DIMENSION(:) :: hzfm
+! ----------------------------------------------------
 
 nzCMFD = mklGeom%nzCMFD
-myzb = mklGeom%myzb
-myze = mklGeom%myze
-hzfm => mklGeom%hzfm
+myzb   = mklGeom%myzb
+myze   = mklGeom%myze
+hzfm  => mklGeom%hzfm
 
+! SET : # of MoC Pln.
 nzMOC = 0
 
 DO iz = 1, nzCMFD
   nDiv(iz) = INT(mklGeom%hzfm(iz) / mklCntl%MOCHeight) + 1
   nzMOC = nzMOC + nDiv(iz)
-ENDDO
+END DO
 
-ALLOCATE(hzMOC(nzMOC))
-ALLOCATE(cmRange(myzb : myze, 2), fmRange(nzCMFD, 2))
-ALLOCATE(cmMap(nzMOC), fmMap(nzMOC))
+CALL dmalloc(hzMOC, nzMOC)
+CALL dmalloc(cmMap, nzMOC)
+CALL dmalloc(fmMap, nzMOC)
+CALL dmalloc(fmRange, nzCMFD, 2)
+CALL dmalloc0(cmRange, myzb, myze, 1, 2)
 
+! SET : Map of MoC Pln.
 izf = 0
-DO izc = myzb, myze
-  cmRange(izc, 1) = izf + 1
-  DO iz = mklGeom%fmRange(izc, 1), mklGeom%fmRange(izc, 2)
-    fmRange(iz, 1) = izf + 1
-    fmRange(iz, 2) = izf + nDiv(iz)
-    fmMap(fmRange(iz, 1) : fmRange(iz, 2)) = iz
-    hzMOC(izf + 1 : izf + nDiv(iz)) = hzfm(iz) / nDiv(iz)
+
+DO izc = myzb, myze ! Pln.
+  cmRange(izc, 1) = izf + 1 ! MoC Pln St. at Pln.
+  
+  DO iz = mklGeom%fmRange(izc, 1), mklGeom%fmRange(izc, 2) ! Sub-Pln.
+    fmRange(iz, 1) = izf + 1        ! MoC Pln St. at Sub-Pln.
+    fmRange(iz, 2) = izf + nDiv(iz) ! MoC Pln Ed. at Sub-Pln.
+    
+    fmMap(fmRange(iz, 1):fmRange(iz, 2)) = iz ! MoC Pln. to Sub-Pln.
+    hzMOC(izf + 1:izf + nDiv(iz)) = hzfm(iz) / nDiv(iz) ! Hgt. of MoC Pln.
     izf = izf + nDiv(iz)
-  ENDDO
-  cmRange(izc, 2) = izf
-  cmMap(cmRange(izc, 1) : cmRange(izc, 2)) = izc
-ENDDO
+  END DO
+  
+  cmRange(izc, 2) = izf ! MoC Pln Ed.
+  cmMap(cmRange(izc, 1):cmRange(izc, 2)) = izc ! MoC Pln. to Pln.
+END DO
 
-END SUBROUTINE
+NULLIFY (hzfm)
+! ----------------------------------------------------
 
+END SUBROUTINE SetSubmesh
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetSphericalHarmonics(Axial)
+
+USE allocs
 
 IMPLICIT NONE
 
 TYPE(mklAxial_Type) :: Axial
+TYPE(mklAngle_Type), POINTER, DIMENSION(:) :: Angle
 
-TYPE(mklAngle_Type), POINTER :: Angle(:)
-INTEGER :: nPolarAngle
-INTEGER :: ipol
+INTEGER :: nPolarAngle, ipol
+REAL :: cosv
+! ----------------------------------------------------
 
 Angle => Axial%Angle
 nPolarAngle = mklGeom%nPolar1D
 
-ALLOCATE(Comp(3, nPolarAngle), mwt(3, nPolarAngle))
+CALL dmalloc(Comp, 3, nPolarAngle)
+CALL dmalloc(mwt,  3, nPolarAngle)
 
 DO ipol = 1, nPolarAngle
-  Comp(1, ipol) = Angle(ipol)%cosv
-  mwt(1, ipol) = Comp(1, ipol) * Angle(ipol)%wtsurf
-ENDDO
+  cosv = Angle(ipol)%cosv
+  
+  Comp(1, ipol) = cosv
+  Comp(2, ipol) = 0.5 * (3.0 * cosv ** 2 - 1.0)
+  Comp(3, ipol) = 0.5 * (5.0 * cosv ** 3 - 3.0 * cosv)
+  
+  mwt (:, ipol) = Comp(:, ipol) * Angle(ipol)%wtsurf
+END DO
+! ----------------------------------------------------
 
-DO ipol = 1, nPolarAngle
-  Comp(2, ipol) = 0.5 * (3.0 * Angle(ipol)%cosv ** 2 - 1.0)
-  mwt(2, ipol) = Comp(2, ipol) * Angle(ipol)%wtsurf
-ENDDO
-
-DO ipol = 1, nPolarAngle
-  Comp(3, ipol) = 0.5 * (5.0 * Angle(ipol)%cosv ** 3 - 3.0 * Angle(ipol)%cosv)
-  mwt(3, ipol) = Comp(3, ipol) * Angle(ipol)%wtsurf
-ENDDO
-
-END SUBROUTINE
-
+END SUBROUTINE SetSphericalHarmonics
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SetSourceOperator(Axial, PinXS)
 USE TYPEDEF,        ONLY : PinXS_Type
 IMPLICIT NONE
