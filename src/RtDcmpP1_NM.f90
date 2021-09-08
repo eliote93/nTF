@@ -356,7 +356,7 @@ IF (.NOT. lAFSS) THEN
       phisNg(ig, ifsr) = phisNg(ig, ifsr) + TrackingLoc%phisNg(ig, ifsr)
       
       DO iod = 1, nod
-        phimNg(iod, ifsr, ig) = phimNg(iod, ifsr, ig) + TrackingLoc%phimNg(iod, ifsr, ig)
+        phimNg(iod, ig, ifsr) = phimNg(iod, ig, ifsr) + TrackingLoc%phimNg(iod, ig, ifsr)
       END DO
     END DO
   END DO
