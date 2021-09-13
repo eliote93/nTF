@@ -145,6 +145,7 @@ TYPE mklCntl_Type
   INTEGER :: DcplInner = 2                          !--- Inner Iteration for Decoupled CMFD
   INTEGER :: maxOuter = 100, maxInner = 100         !--- Maximum Iterations
   INTEGER :: minOuter = 7, minInner = 3             !--- Minimum Iterations
+  INTEGER :: nAxIter = 10                           !--- # of 1-D Ax. MoC Inner Iter.
   REAL :: CMFDHeight, MOCHeight = 0.5               !--- Maximum Height of CMFD and MOC Subplane
   REAL :: outerConv = 0.1, innerConv = 0.01         !--- Convergence Criteria
   REAL :: Shift = 0.25                              !--- Wielandt Shift Value

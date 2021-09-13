@@ -2373,6 +2373,8 @@ DO while(TRUE)
         READ(oneline, *) astring, mklCntl%AxSolver, option, mklCntl%MOCHeight
       ELSEIF (nLineField .EQ. 4) THEN
         READ(oneline, *) astring, mklCntl%AxSolver, option, mklCntl%MOCHeight, mklGeom%nPolar1D
+      ELSEIF (nLineField .EQ. 5) THEN
+        READ(oneline, *) astring, mklCntl%AxSolver, option, mklCntl%MOCHeight, mklGeom%nPolar1D, mklCntl%nAxIter
       ENDIF
       IF (mklCntl%AxSolver .EQ. 0) THEN
         mklCntl%lAxial = .FALSE.
@@ -2423,7 +2425,11 @@ DO while(TRUE)
     CASE(14) ! DEPL
       READ(oneline, *) astring, mklCntl%lDepl, mklDepl%SysByte, mklDepl%Scale
     CASE(15) ! CMFD
-      READ(oneline, *) astring, mklCntl%lEnter
+      IF (nLineField .EQ. 1) THEN
+        READ(oneline, *) astring, mklCntl%lEnter
+      ELSE IF (nLineField .EQ. 2) THEN
+        READ(oneline, *) astring, mklCntl%lEnter, mklCntl%outerconv
+      END IF
   END SELECT
 ENDDO
 #endif

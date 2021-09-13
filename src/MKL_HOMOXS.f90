@@ -9,60 +9,70 @@ IMPLICIT NONE
 CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizePnXS(CoreInfo, FmInfo, GroupInfo)
-USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       FmInfo_Type,        GroupInfo_Type,     FxrInfo_Type,               &
-                           Pin_Type,            XsMac_Type
-USE MacXsLib_Mod,   ONLY : MacP1XsScatMatrix,   MacP2XsScatMatrix,  MacP3XsScatMatrix
+
+USE PARAM,        ONLY : TRUE, FALSE
+USE TYPEDEF,      ONLY : CoreInfo_Type, FmInfo_Type, GroupInfo_Type, FxrInfo_Type, Pin_Type, XsMac_Type
+USE MacXsLib_Mod, ONLY : MacP1XsScatMatrix, MacP2XsScatMatrix, MacP3XsScatMatrix
+
 IMPLICIT NONE
 
-TYPE(CoreInfo_Type) :: CoreInfo
-TYPE(FmInfo_Type) :: FmInfo
-TYPE(GroupInfo_Type) :: GroupInfo
+TYPE (CoreInfo_Type)  :: CoreInfo
+TYPE (FmInfo_Type)    :: FmInfo
+TYPE (GroupInfo_Type) :: GroupInfo
+! ----------------------------------------------------
+TYPE (superPin_Type), POINTER, DIMENSION(:)   :: superPin
+TYPE (Pin_Type),      POINTER, DIMENSION(:)   :: Pin
+TYPE (FxrInfo_Type),  POINTER, DIMENSION(:,:) :: Fxr
 
-TYPE(superPin_Type), POINTER :: superPin(:)
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
-TYPE(XsMac_Type) :: XsMac
-INTEGER :: ig, ifxr, ixy, ixy_map, ipin, iz, izf
-INTEGER :: ng, nxy, nzCMFD
-INTEGER, POINTER :: pinMap(:), planeMap(:)
+TYPE (XsMac_Type) :: XsMac
+
+INTEGER :: ig, ifxr, ixy, ixy_map, ipin, jz, iz, ng, nxy, nzCMFD
+INTEGER, POINTER, DIMENSION(:) :: pinMap, planeMap
 
 LOGICAL :: lFreeSth
+! ----------------------------------------------------
+
 Pin => CoreInfo%Pin
 Fxr => FmInfo%Fxr
-superPin => mklGeom%superPin
-ng = mklGeom%ng
-nxy = mklGeom%nxy
-nzCMFD = mklGeom%nzCMFD
-planeMap => mklGeom%planeMap
-pinMap => mklGeom%pinMap
 
-lFreeSth = .FALSE.
-DO izf = 1, nzCMFD
-  iz = planeMap(izf)
+ng        = mklGeom%ng
+nxy       = mklGeom%nxy
+nzCMFD    = mklGeom%nzCMFD
+superPin => mklGeom%superPin
+planeMap => mklGeom%planeMap
+pinMap   => mklGeom%pinMap
+
+lFreeSth = FALSE
+
+DO iz = 1, nzCMFD ! Coarse Pln.
+  jz = planeMap(iz)
+  
   DO ixy = 1, nxy
-    IF (.NOT. mklGeom%lH2OCell(izf, ixy)) CYCLE
-    lFreeSth = .TRUE.
+    IF (.NOT. mklGeom%lH2OCell(iz, ixy)) CYCLE
+    
+    lFreeSth = TRUE
     ixy_map = pinMap(ixy)
     ipin = superPin(ixy_map)%pin(1)
     ifxr = Pin(ipin)%FxrIdxSt
-    CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
-!    CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
-!    CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr, iz), 1, ng, ng, GroupInfo)
-    mklAxial%SmP1(:, :, izf, ixy) = XsMac%XsMacP1Sm
-!    mklAxial%SmP2(:, :, izf, ixy) = XsMac%XsMacP2Sm
-!    mklAxial%SmP3(:, :, izf, ixy) = XsMac%XsMacP3Sm
-  ENDDO
-ENDDO
+    
+    CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
+!    CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
+!    CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
+    
+    mklAxial%SmP1(:, :, iz, ixy) = XsMac%XsMacP1Sm
+!    mklAxial%SmP2(:, :, iz, ixy) = XsMac%XsMacP2Sm
+!    mklAxial%SmP3(:, :, iz, ixy) = XsMac%XsMacP3Sm
+  END DO
+END DO
 
 IF (lFreeSth) THEN
-DEALLOCATE(XsMac%xsmaca,XsMac%xsmacf,XsMac%xsmackf,XsMac%xsmacnf)
-DEALLOCATE(XsMac%xsmacp1sm,XsMac%xsmacp2sm,XsMac%xsmacp3sm)
-DEALLOCATE(XsMac%xsmacs,XsMac%xsmacstr,XsMac%xsmacsm)
-DEALLOCATE(XsMac%xsmact,XsMac%xsmactr)
+  DEALLOCATE(XsMac%xsmaca, XsMac%xsmacf, XsMac%xsmackf, XsMac%xsmacnf, XsMac%xsmact,XsMac%xsmactr)
+  DEALLOCATE(XsMac%xsmacp1sm, XsMac%xsmacp2sm, XsMac%xsmacp3sm)
+  DEALLOCATE(XsMac%xsmacs, XsMac%xsmacstr, XsMac%xsmacsm)
 END IF
+! ----------------------------------------------------
 
-END SUBROUTINE
+END SUBROUTINE HomogenizePnXS
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizeGcXS(CoreInfo, PinXS, GcPinXS)
 USE PARAM

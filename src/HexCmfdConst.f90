@@ -645,7 +645,7 @@ TYPE(FxrInfo_Type),  POINTER :: Fxr(:, :)
 TYPE(Pin_Type),      POINTER :: Pin(:)
 TYPE(Cell_Type),     POINTER :: Cell(:)
 
-INTEGER :: izf, iz, iPin, jPin, kPin, iCel, iFXR, jFXR, nzCMFD
+INTEGER :: iz, jz, iPin, jPin, kPin, iCel, iFXR, jFXR, nzCMFD, imix
 
 REAL, POINTER :: hzfm(:)
 ! ----------------------------------------------------
@@ -674,47 +674,63 @@ DO iPin = 1, nhcPin
 END DO
 
 ! Pin Vol Fm
-DO izf = 1, nzCMFD
-  iz = mklGeom%planeMap(izf)
-
+DO iz = 1, nzCMFD ! Coarse Pln.
   DO iPin = 1, nhcPin
-    mklGeom%PinVolFm(iPin, izf) = superPin(iPin)%Area * hzfm(izf)
+    mklGeom%PinVolFm(iPin, iz) = superPin(iPin)%Area * hzfm(iz)
   END DO
 END DO
 
 ! Ref Dat
 DO iPin = 1, nhcPin
   mklGeom%lRefPin(iPin) = .NOT. ANY(superPin(iPin)%lFuel)
-
-  DO izf = 1, nzCMFD
-    iz = mklGeom%planeMap(izf)
-
-    mklGeom%lRefCell(izf, iPin) = .NOT. superPin(iPin)%lFuel(iz)
+  
+  DO iz = 1, nzCMFD ! Coarse Pln.
+    jz = mklGeom%planeMap(iz)
+    
+    mklGeom%lRefCell(iz, iPin) = .NOT. superPin(iPin)%lFuel(jz)
   END DO
 END DO
 
 ! H2O Dat
 DO iPin = 1, nhcPin
-  DO izf = 1, nzCMFD
-    iz = mklGeom%planeMap(izf)
-
-    mklGeom%lH2OCell(izf, iPin) = TRUE
-
+  DO iz = 1, nzCMFD ! Coarse Pln.
+    jz = mklGeom%planeMap(iz)
+    
+    mklGeom%lH2OCell(iz, iPin) = TRUE
+    imix = Fxr(Pin(superPin(iPin)%pin(1))%FxrIdxSt, jz)%imix
+    
     DO jPin = 1, superPin(iPin)%nxy
       kPin = superPin(iPin)%pin(jPin)
-      iCel = Pin(kPin)%Cell(iz)
-
+      iCel = Pin(kPin)%Cell(jz)
+      
       DO iFXR = 1, Cell(iCel)%nFxr
         jfxr = Pin(kPin)%FxrIdxSt + iFXR - 1
-
-        IF (.NOT. Fxr(jfxr, iz)%lH2O) mklGeom%lH2OCell(izf, iPin) = FALSE
+        
+        IF (Fxr(jfxr, jz)%imix .EQ. imix) CYCLE
+        
+        mklGeom%lH2OCell(iz, iPin) = FALSE
+        
+        EXIT
       END DO
+      
+      IF (.NOT. mklGeom%lH2OCell(iz, iPin)) EXIT
     END DO
   END DO
 END DO
-! ----------------------------------------------------
+
+!OPEN (42, FILE = 'tst.out')
+!
+!DO iz = 1, nzCMFD
+!  DO iPin = 1, nhcPin
+!    WRITE (42, '(I2, X, I3, X, L1, X, L1)') iz, iPin, mklGeom%lrefCell(iz, iPin), mklGeom%lH2OCell(iz, iPin)
+!  END DO
+!END DO
+!
+!CLOSE (42)
+!STOP
 
 NULLIFY (superPin, hzfm, Pin, Cell, FXR)
+! ----------------------------------------------------
 
 END SUBROUTINE HexSetGlobalPin
 #endif

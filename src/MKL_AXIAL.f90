@@ -92,7 +92,7 @@ CASE (MOC)
     IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
     
     IF (lFirstAxial) CALL UpdBndyFlux(mklCMFD, mklAxial)
-    CALL FlatMOCDriver(mklCMFD, mklAxial, eigv)
+    CALL FlatMOCDriver(mklCMFD, mklAxial, eigv, mklCntl%nAxIter)
     CALL SetAxialDhat(mklCMFD, mklAxial)
     
   ENDIF
