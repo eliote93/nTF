@@ -1290,18 +1290,13 @@ LOGICAL :: lHex, l060
 INTEGER :: iClr, iit, mocit, setDcmpClr
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
-!INTEGER, PARAMETER :: AuxHex(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
 INTEGER, PARAMETER :: AuxHex(3, 0:1) = [3, 1, 2,  2, 1, 3]
 
-!IF (lHex) THEN
-!  iit = mod(mocit, 3)
-!ELSE
-  iit = mod(mocit, 2)
-!END IF
+iit = mod(mocit, 2)
 
 IF (lHex) THEN
   setDcmpClr = AuxHex(iClr, iit)
-  !IF (l060) setDcmpClr = iClr
+  IF (l060) setDcmpClr = iClr
 ELSE
   setDcmpClr = AuxRec(iClr, iit)
 END IF
