@@ -790,13 +790,13 @@ DO ipin = 1, nxy
         
         DO jg = gb, ge
           srcm(1, ig, izf, ipin) = srcm(1, ig, izf, ipin) + Axial%SmP1(jg, ig, iz, ipin) * phim(1, jg, izf, ipin)
-!          srcm(2, ig, izf, ipin) = srcm(2, ig, izf, ipin) + Axial%SmP2(jg, ig, iz, ipin) * phim(2, jg, izf, ipin)
-!          srcm(3, ig, izf, ipin) = srcm(3, ig, izf, ipin) + Axial%SmP3(jg, ig, iz, ipin) * phim(3, jg, izf, ipin)
+          srcm(2, ig, izf, ipin) = srcm(2, ig, izf, ipin) + Axial%SmP2(jg, ig, iz, ipin) * phim(2, jg, izf, ipin)
+          srcm(3, ig, izf, ipin) = srcm(3, ig, izf, ipin) + Axial%SmP3(jg, ig, iz, ipin) * phim(3, jg, izf, ipin)
         END DO
         
         srcm(1, ig, izf, ipin) = 3.0 * srcm(1, ig, izf, ipin) / xst(ig, izf, ipin)
-!        srcm(2, ig, izf, ipin) = 5.0 *srcm(2, ig, izf, ipin) / xst(ig, izf, ipin)
-!        srcm(3, ig, izf, ipin) = 7.0 * srcm(3, ig, izf, ipin) / xst(ig, izf, ipin)
+        srcm(2, ig, izf, ipin) = 5.0 *srcm(2, ig, izf, ipin) / xst(ig, izf, ipin)
+        srcm(3, ig, izf, ipin) = 7.0 * srcm(3, ig, izf, ipin) / xst(ig, izf, ipin)
       END DO
     END DO
   END DO
@@ -882,12 +882,12 @@ DO ipin = 1, nxy
     DO ig = 1, ng
       DO ipol = 1, nPol
         srca(1, ipol, ig, izf, ipin) = src(ig, izf, ipin) + Comp(1, ipol) * srcm(1, ig, izf, ipin)
-!        srca(1, ipol, ig, izf, ipin) = srca(1, ipol, ig, izf, ipin) + Comp(2, ipol) * srcm(2, ig, izf, ipin)
-!        srca(1, ipol, ig, izf, ipin) = srca(1, ipol, ig, izf, ipin) + Comp(3, ipol) * srcm(3, ig, izf, ipin)
+        srca(1, ipol, ig, izf, ipin) = srca(1, ipol, ig, izf, ipin) + Comp(2, ipol) * srcm(2, ig, izf, ipin)
+        srca(1, ipol, ig, izf, ipin) = srca(1, ipol, ig, izf, ipin) + Comp(3, ipol) * srcm(3, ig, izf, ipin)
         
         srca(2, ipol, ig, izf, ipin) = src(ig, izf, ipin) - Comp(1, ipol) * srcm(1, ig, izf, ipin)
-!        srca(2, ipol, ig, izf, ipin) = srca(2, ipol, ig, izf, ipin) + Comp(2, ipol) * srcm(2, ig, izf, ipin)
-!        srca(2, ipol, ig, izf, ipin) = srca(2, ipol, ig, izf, ipin) - Comp(3, ipol) * srcm(3, ig, izf, ipin)
+        srca(2, ipol, ig, izf, ipin) = srca(2, ipol, ig, izf, ipin) + Comp(2, ipol) * srcm(2, ig, izf, ipin)
+        srca(2, ipol, ig, izf, ipin) = srca(2, ipol, ig, izf, ipin) - Comp(3, ipol) * srcm(3, ig, izf, ipin)
       END DO
     END DO
   END DO
@@ -997,8 +997,8 @@ DO iz = 1, nzCMFD ! Coarse Pln.
           
           phis(   ig, izf, ipin) = phis(   ig, izf, ipin) - del_phi * Angle(ipol)%wtsurf
           phim(1, ig, izf, ipin) = phim(1, ig, izf, ipin) - del_phi * mwt(1, ipol)
-!          phim(2, ig, izf, ipin) = phim(2, ig, izf, ipin) - del_phi * mwt(2, ipol)
-!          phim(3, ig, izf, ipin) = phim(3, ig, izf, ipin) - del_phi * mwt(3, ipol)
+          phim(2, ig, izf, ipin) = phim(2, ig, izf, ipin) - del_phi * mwt(2, ipol)
+          phim(3, ig, izf, ipin) = phim(3, ig, izf, ipin) - del_phi * mwt(3, ipol)
           
           track_phi(ipol, ig) = track_phi(ipol, ig) + del_phi
         END DO
@@ -1049,8 +1049,8 @@ DO iz = nzCMFD, 1, -1 ! Coarse Pln.
           
           phis(   ig, izf, ipin) = phis(   ig, izf, ipin) - del_phi * Angle(ipol)%wtsurf
           phim(1, ig, izf, ipin) = phim(1, ig, izf, ipin) + del_phi * mwt(1, ipol)
-!          phim(2, ig, izf, ipin) = phim(2, ig, izf, ipin) - del_phi * mwt(2, ipol)
-!          phim(3, ig, izf, ipin) = phim(3, ig, izf, ipin) + del_phi * mwt(3, ipol)
+          phim(2, ig, izf, ipin) = phim(2, ig, izf, ipin) - del_phi * mwt(2, ipol)
+          phim(3, ig, izf, ipin) = phim(3, ig, izf, ipin) + del_phi * mwt(3, ipol)
           
           track_phi(ipol, ig) = track_phi(ipol, ig) + del_phi
         END DO

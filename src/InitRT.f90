@@ -57,7 +57,7 @@ END IF
 
 IF (lHex) THEN
   nClr = 3
-  IF (hLgc%l060) nClr = 1
+  !IF (hLgc%l060) nClr = 1
 ELSE
   nClr = 2
 END IF

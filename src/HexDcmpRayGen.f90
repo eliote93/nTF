@@ -160,16 +160,16 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
-IF (hLgc%l060) THEN
-  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 1)
-  
-  DcmpAsyClr(0, 1) = nAsy
-  
-  DO iAsy = 1, nAsy
-    DcmpAsyClr(iAsy, 1) = iAsy
-    Core%Asy(iAsy)%color  = 1
-  END DO
-ELSE
+!IF (hLgc%l060) THEN
+!  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 1)
+!  
+!  DcmpAsyClr(0, 1) = nAsy
+!  
+!  DO iAsy = 1, nAsy
+!    DcmpAsyClr(iAsy, 1) = iAsy
+!    Core%Asy(iAsy)%color  = 1
+!  END DO
+!ELSE
   CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 3)
   
   DO iAsy = 1, nAsy
@@ -187,7 +187,7 @@ ELSE
     
     DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
   END DO
-END IF
+!END IF
 ! ----------------------------------------------------
 ! DEBUG
 !nRef = 0

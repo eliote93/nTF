@@ -140,13 +140,13 @@ DO iCel = 1, nCellType
   IF (hCel_Loc%nSct .NE. 12) CALL terminate("CEL # OF SECTORS")
 END DO
 
-IF (nTracerCntl%lDomainDcmp) THEN
-  DO iCel = 2, nCellType
-    IF (ChkSameVal(hCel(1)%pF2F, hCel(iCel)%pF2F)) CYCLE
-    
-    CALL terminate("INVALID GEOMETRY FOR DCMP.")
-  END DO
-END IF
+!IF (nTracerCntl%lDomainDcmp) THEN
+!  DO iCel = 2, nCellType
+!    IF (ChkSameVal(hCel(1)%pF2F, hCel(iCel)%pF2F)) CYCLE
+!    
+!    CALL terminate("INVALID GEOMETRY FOR DCMP.")
+!  END DO
+!END IF
 
 ! Gap Cel
 IF (nGapType .EQ. 0) CALL terminate("GAP DOES NOT EXIST")

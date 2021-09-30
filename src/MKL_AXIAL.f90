@@ -381,8 +381,10 @@ TYPE (mklCMFD_Type)  :: CMFD
 TYPE (mklAxial_Type) :: Axial
 
 INTEGER :: ng, nxy, nz, nzCMFD, ig, iz, ipin
-REAL :: Dtil, Dhat, myphi, NghLoc, jfdm, jmoc
+REAL :: Dtil, Dhat, myphi, NghLoc, jfdm, jmoc, del, Dprv
 REAL, POINTER, DIMENSION(:,:,:) :: NghPhiC
+
+REAL, PARAMETER :: alp = 10.
 ! ----------------------------------------------------
 
 ng     = CMFD%ng
@@ -393,8 +395,8 @@ nzCMFD = mklGeom%nzCMFD
 CALL dmalloc(NghPhiC, ng, nxy, 2)
 
 CALL InitFastComm
-CALL GetNeighborFast(ng * nxy, Axial%phic(:, :, 1),      NghPhiC(:, :, top),    bottom)
-CALL GetNeighborFast(ng * nxy, Axial%phic(:, :, nzCMFD), NghPhiC(:, :, bottom),    top)
+CALL GetNeighborFast(ng * nxy, Axial%phic(:, :, 1),      NghPhiC(:, :, TOP), BOTTOM)
+CALL GetNeighborFast(ng * nxy, Axial%phic(:, :, nzCMFD), NghPhiC(:, :, BOTTOM), TOP)
 CALL FinalizeFastComm
 
 !$OMP PARALLEL PRIVATE(Dtil, Dhat, myphi, NghLoc, jfdm, jmoc)
@@ -410,31 +412,47 @@ DO iz = 1, nzCMFD
       
       ! Toward Bottom
       IF (iz .EQ. 1) THEN
-        NghLoc = NghPhiC   (ig, ipin, bottom)
+        NghLoc = NghPhiC   (ig, ipin, BOTTOM)
       ELSE
         NghLoc = Axial%phic(ig, ipin, iz - 1)
       END IF
       
-      Dtil = CMFD%AxDtil(bottom, ipin, iz, ig)
+      Dtil = CMFD%AxDtil(BOTTOM, ipin, iz, ig)
       jfdm = -Dtil * (NghLoc - myphi)
-      jmoc = Axial%Jout(out, ig, bottom, iz, ipin) - Axial%Jout(in, ig, bottom, iz, ipin)
+      jmoc = Axial%Jout(out, ig, BOTTOM, iz, ipin) - Axial%Jout(in, ig, BOTTOM, iz, ipin)
       Dhat = -(jmoc - jfdm) / (myphi + NghLoc)
       
-      CMFD%AxDhat(bottom, ipin, iz, ig) = Dhat
+      ! DEBUG
+      Dprv = CMFD%AxDhat(BOTTOM, ipin, iz, ig)
+      del = abs(Dprv - Dhat)
+      
+      IF (del .GT. alp*Dtil) THEN
+        CMFD%AxDhat(BOTTOM, ipin, iz, ig) = Dprv + Dtil * (Dhat - Dprv) / (Dtil - del)
+      ELSE
+        CMFD%AxDhat(BOTTOM, ipin, iz, ig) = Dhat
+      END IF
       
       ! Toward Top
       IF (iz .EQ. nzCMFD) THEN
-        NghLoc = NghPhiC   (ig, ipin, top)
+        NghLoc = NghPhiC   (ig, ipin, TOP)
       ELSE
         NghLoc = Axial%phic(ig, ipin, iz + 1)
       END IF
       
-      Dtil = CMFD%AxDtil(top, ipin, iz, ig)
+      Dtil = CMFD%AxDtil(TOP, ipin, iz, ig)
       jfdm = -Dtil * (NghLoc - myphi)
-      jmoc = Axial%Jout(out, ig, top, iz, ipin) - Axial%Jout(in, ig, top, iz, ipin)
+      jmoc = Axial%Jout(out, ig, TOP, iz, ipin) - Axial%Jout(in, ig, TOP, iz, ipin)
       Dhat = -(jmoc - jfdm) / (myphi + NghLoc)
       
-      CMFD%AxDhat(top, ipin, iz, ig) = Dhat
+      ! DEBUG
+      Dprv = CMFD%AxDhat(TOP, ipin, iz, ig)
+      del = abs(Dprv - Dhat)
+      
+      IF (del .GT. alp*Dtil) THEN
+        CMFD%AxDhat(TOP, ipin, iz, ig) = Dprv + Dtil * (Dhat - Dprv) / (Dtil - del)
+      ELSE
+        CMFD%AxDhat(TOP, ipin, iz, ig) = Dhat
+      END IF
     END DO
   END DO
   !$OMP END DO

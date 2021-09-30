@@ -56,12 +56,12 @@ DO iz = 1, nzCMFD ! Coarse Pln.
     ifxr = Pin(ipin)%FxrIdxSt
     
     CALL MacP1XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
-!    CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
-!    CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
+    CALL MacP2XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
+    CALL MacP3XsScatMatrix(XsMac, Fxr(ifxr, jz), 1, ng, ng, GroupInfo)
     
     mklAxial%SmP1(:, :, iz, ixy) = XsMac%XsMacP1Sm
-!    mklAxial%SmP2(:, :, iz, ixy) = XsMac%XsMacP2Sm
-!    mklAxial%SmP3(:, :, iz, ixy) = XsMac%XsMacP3Sm
+    mklAxial%SmP2(:, :, iz, ixy) = XsMac%XsMacP2Sm
+    mklAxial%SmP3(:, :, iz, ixy) = XsMac%XsMacP3Sm
   END DO
 END DO
 
