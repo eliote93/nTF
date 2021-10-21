@@ -404,7 +404,7 @@ TYPE Type_HexModRay
   
   INTEGER :: AzmIdx = 0
   
-  REAL :: Eq(3)    = ZERO
+  REAL :: Eq(3)    = ZERO ! ax * by = c
   REAL :: Pt(2, 2) = ZERO ! (x/y, y¢Ö)
   
   ! iDir = Negative : y¢Ù, Positive : y¢Ö

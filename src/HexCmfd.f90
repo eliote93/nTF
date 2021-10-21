@@ -310,7 +310,7 @@ IF (nTracerCntl%lDomainDcmp) THEN
             
             atil = PinXS(isxy, iz)%atil(ingh, ig)
             ahat = PinXS(isxy, iz)%ahat(ingh, ig)
-                        
+            
             surfphi = atil * myphi + (slgh - atil) * nghphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN

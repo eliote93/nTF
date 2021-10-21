@@ -44,7 +44,7 @@ DO iAsy = 1, nhAsy
   iGeoTyp = hAsy(iAsy)%GeoTyp
   
   DO imRay = 1, NumMRay(0)
-    IF (haRay(iGeoTyp, 1, imRay)%nhpRay < 1) CYCLE
+    IF (haRay(iGeoTyp, 1, imRay)%nhpRay .LT. 1) CYCLE
     
     mRayLst(imRay, iAsy) = TRUE
   END DO
@@ -102,7 +102,7 @@ DO iAng = 1, nAzmAng
           cRayLst(2, icRayNxt(iDir)) = iAsy_Loc
         END DO
         
-        IF (iNxt > nMaxModRay) CALL terminate("SET CORE RAY")
+        IF (iNxt .GT. nMaxModRay) CALL terminate("SET CORE RAY")
       END DO
       
       ! COLLECT
@@ -174,7 +174,7 @@ DO icRay = 1, ncRay
       jhPin = hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, ihPin) + hAsy(iAsy)%PinIdxSt - 1 ! Global Pin Idx
       nSeg  = 0
       
-      IF (ihPin > hAsyTypInfo(iAsyTyp)%nRodPin(1)) THEN
+      IF (ihPin .GT. hAsyTypInfo(iAsyTyp)%nRodPin(1)) THEN
         DO iz = 1, nZ
           jcBss = gCelBss(gCel(GapPin(hPinInfo(jhPin)%PinTyp)%iCel(iz))%igBss)%icBss ! Gap Pin
           nSeg  = max(nSeg, haRay(iGeoTyp, jcBss, jmRay)%CelRay(iCel)%nSegRay)
@@ -351,7 +351,7 @@ ELSE
         
         tLst(nRotRay)%ncRay = tLst(nRotRay)%ncRay + 1
         
-        IF (tLst(nRotRay)%ncRay > nMaxVacRotRay) CALL terminate("SET : ROT RAY - VAC")
+        IF (tLst(nRotRay)%ncRay .GT. nMaxVacRotRay) CALL terminate("SET : ROT RAY - VAC")
       END DO
     END DO
   END DO

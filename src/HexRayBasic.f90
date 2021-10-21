@@ -192,13 +192,13 @@ DO iang = nAzmAng / 6 + 1, nAzmAng / 3
     Tmp   = Tmp + Delta_Y
     Tmp02 = Tmp - AzmTan(iAng) * aoF2F * HALF
     
-    IF (Tmp02 > aoPch * HALF) THEN
+    IF (Tmp02 .GT. aoPch * HALF) THEN
       Y_MAX = Tmp - Delta_Y
       EXIT
     END IF
   END DO
   
-  IF (iTmp > 2 * NumRay) CALL terminate("FIND MRAY POINT")
+  IF (iTmp .GT. 2 * NumRay) CALL terminate("FIND MRAY POINT")
   
   CALL SetRayIntSct
 END DO
@@ -221,13 +221,13 @@ DO iang = nAzmAng / 3 + 1, nAzmAng / 2
     Tmp   = Tmp + Delta_Y
     Tmp02 = Tmp - AzmTan(iAng) * aoF2F * HALF
     
-    IF (Tmp02 > aoPch * HALF) THEN
+    IF (Tmp02 .GT. aoPch * HALF) THEN
       Y_MAX = Tmp - Delta_Y
       EXIT
     END IF
   END DO
   
-  IF (iTmp > 2 * NumRay) CALL terminate("FIND MRAY POINT")
+  IF (iTmp .GT. 2 * NumRay) CALL terminate("FIND MRAY POINT")
   
   CALL SetRayIntSct
 END DO
@@ -340,7 +340,7 @@ DO iRay = 1, NumRay
   
   IF (nPt .NE. 2) CALL terminate("SET MRAY INT SCT")
   
-  IF (Pt(2, 1) > Pt(2, 2)) THEN
+  IF (Pt(2, 1) .GT. Pt(2, 2)) THEN
     Sol(1:2)   = Pt(1:2, 1)
     Pt(1:2, 1) = Pt(1:2, 2)
     Pt(1:2, 2) = Sol(1:2)
@@ -416,7 +416,7 @@ ixy(1) = 0; lRef(1) = FALSE
 ! ----------------------------------------------------
 DO imRay = 1, NumMray(0)
   hmRay_Loc => hmRay(imRay)
-  
+    
   Eqn    =  hmRay_Loc%Eq
   iAng   =  hmRay_Loc%AzmIdx
   Slp(1) =  AzmCos(iAng)
@@ -428,7 +428,7 @@ DO imRay = 1, NumMray(0)
     gInf_Loc => hGeoTypInfo(iGeo)
     
     DO iBndy = 1, gInf_Loc%nBndy
-      IF (lRef(iGeo) .EQV. (abs(gInf_Loc%Eqn(3, iBndy)) > hEps)) CYCLE
+      IF (lRef(iGeo) .EQV. (abs(gInf_Loc%Eqn(3, iBndy)) .GT. hEps)) CYCLE
       
       ! FIND : Intersection
       CALL SolveLineEqn(Eqn(1:3), gInf_Loc%Eqn(1:3, iBndy), Sol(1:2), lSol)
@@ -446,17 +446,17 @@ DO imRay = 1, NumMray(0)
       iDir = mp * CalPtLineSgn(tMov, gInf_Loc%Eqn(1:3, iBndy), gInf_Loc%Cnt) ! Negative : y¢Ù, Positive : y¢Ö
       Ang  = FindRefAng(Slp(1:2), [-gInf_Loc%Eqn(2, iBndy), gInf_Loc%Eqn(1, iBndy)])
       
-      IF(Ang(2) < ZERO) Ang = - Ang ! [0, Pi]
+      IF (Ang(2) .LT. ZERO) Ang = - Ang ! [0, Pi]
       
       DO jAng = 1, nAzmAng
-        IF(jAng .EQ. iAng) CYCLE
+        IF (jAng .EQ. iAng) CYCLE
         
         lChk = ChkSameVal(Ang(1), AzmCos(jAng))
         
-        IF(lChk) EXIT
+        IF (lChk) EXIT
       END DO
       
-      IF (jAng > nAzmAng) CALL terminate("FIND MRAY REF ANG")
+      IF (jAng .GT. nAzmAng) CALL terminate("FIND MRAY REF ANG")
       ! ----------------------------------------------------
       DO jBndy = 1, 6
         lChk = ChkPtEqn(Sol(1:2), AsyEqn(1:3, jBndy))
@@ -466,7 +466,7 @@ DO imRay = 1, NumMray(0)
       
       hmRay_Loc%NxtAsy_Ref(1:2, iDir, iGeo) = aNxt(jBndy, 1:2) * ixy(iGeo)
       
-      lBndyPt(iDir, iGeo, imRay) = (jBndy < 7) .AND. lRef(iGeo)
+      lBndyPt(iDir, iGeo, imRay) = (jBndy .LT. 7) .AND. lRef(iGeo)
       lNxtRef(iDir, iGeo, imRay) = TRUE
       RefAng (iDir, iGeo, imRay) = jAng
       Pt(1:2, iDir, iGeo, imRay) = Sol(1:2)
@@ -580,7 +580,7 @@ DO imRay = 1, NumMray(0)
     gInf_Loc => hGeoTypInfo(iGeo)
     
     DO iBndy = 1, gInf_Loc%nBndy
-      IF (abs(gInf_Loc%Eqn(3, iBndy)) > hEps) CYCLE
+      IF (abs(gInf_Loc%Eqn(3, iBndy)) .GT. hEps) CYCLE
       
       ! FIND : Intersection
       CALL SolveLineEqn(Eqn(1:3), gInf_Loc%Eqn(1:3, iBndy), Sol(1:2), lSol)
@@ -598,17 +598,17 @@ DO imRay = 1, NumMray(0)
       iDir = mp * CalPtLineSgn(tMov, gInf_Loc%Eqn(1:3, iBndy), gInf_Loc%Cnt) ! Negative : y¢Ù, Positive : y¢Ö
       Ang  = FindRotAng(Slp(1:2), [-gInf_Loc%Eqn(2, iBndy), gInf_Loc%Eqn(1, iBndy)], PI_3)
       
-      IF(Ang(2) < ZERO) Ang = - Ang ! [0, Pi]
+      IF (Ang(2) .LT. ZERO) Ang = - Ang ! [0, Pi]
       
       DO jAng = 1, nAzmAng
-        IF(jAng .EQ. iAng) CYCLE
+        IF (jAng .EQ. iAng) CYCLE
         
         lChk = ChkSameVal(Ang(1), AzmCos(jAng))
         
-        IF(lChk) EXIT
+        IF (lChk) EXIT
       END DO
       
-      IF (jAng > nAzmAng) CALL terminate("FIND MRAY ROT ANG")
+      IF (jAng .GT. nAzmAng) CALL terminate("FIND MRAY ROT ANG")
       ! ----------------------------------------------------
       DO jBndy = 2, 6
         lChk = ChkPtEqn(Sol(1:2), AsyEqn(1:3, jBndy))
@@ -618,7 +618,7 @@ DO imRay = 1, NumMray(0)
       
       hmRay_Loc%NxtAsy_Ref(1:2, iDir, iGeo) = aNxt(RotAux(jBndy), 1:2)
       
-      lBndyPt(iDir, iGeo, imRay) = jBndy < 7
+      lBndyPt(iDir, iGeo, imRay) = jBndy .LT. 7
       lNxtRot(iDir, iGeo, imRay) = TRUE
       RotAng (iDir, iGeo, imRay) = jAng
       Pt(1:2, iDir, iGeo, imRay) = Sol(1:2)

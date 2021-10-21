@@ -312,25 +312,31 @@ DO iPin = 1, nRod
     
     ! Bndy 02 - Spt
     IF (Cnt(1) .GT. ZERO) THEN
-      pTyp = 6
-      
-      IF (Cnt(2) .GT. ZERO) pAng =  ZERO
-      IF (Cnt(2) .GT. ZERO) pAng = -TwoPI_3
-      
-      IF (.NOT. ChkSameVal(ZERO, Cnt(2))) CYCLE
-      
-      pTyp = 7
-      pAng = TwoPI_3
+      IF (ChkSameVal(ZERO, Cnt(2))) THEN
+        pTyp = 7
+        pAng = TwoPI_3
+      ELSE
+        pTyp = 6
+        
+        IF (Cnt(2) .GT. ZERO) THEN
+          pAng =  ZERO
+        ELSE
+          pAng = -TwoPI_3
+        END IF
+      END IF
     ELSE
-      pTyp = 7
-      
-      IF (Cnt(2) .GT. ZERO) pAng = -TwoPI_3
-      IF (Cnt(2) .LT. ZERO) pAng = ZERO
-      
-      IF (.NOT. ChkSameVal(ZERO, Cnt(2))) CYCLE
-      
-      pTyp = 6
-      pAng = TwoPI_3
+      IF (ChkSameVal(ZERO, Cnt(2))) THEN
+        pTyp = 6
+        pAng = TwoPI_3
+      ELSE
+        pTyp = 7
+        
+        IF (Cnt(2) .GT. ZERO) THEN
+          pAng = -TwoPI_3
+        ELSE
+          pAng = ZERO
+        END IF
+      END IF
     END IF
   END DO
 END DO
