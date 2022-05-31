@@ -3,13 +3,14 @@
 SUBROUTINE PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
 
 USE PARAM
-USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
-                         GroupInfo_Type,      XsMac_Type
-USE BenchXs,       ONLY : xsnfBen,            xsnfDynBen
-USE MacXsLib_Mod, ONLY : MacXsNf, IsoMacXsnf
+USE TYPEDEF,        ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type, GroupInfo_Type, XsMac_Type
+USE BenchXs,        ONLY : xsnfBen, xsnfDynBen
+USE MacXsLib_Mod,   ONLY : MacXsNf, IsoMacXsnf
 USE BasicOperation, ONLY : CP_CA, MULTI_VA
-USE TRAN_MOD,     ONLY : TranInfo,            TranCntl
+USE TRAN_MOD,       ONLY : TranInfo, TranCntl
+
 IMPLICIT NONE
+
 TYPE(coreinfo_type) :: CORE
 TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
 TYPE(GroupInfo_Type) :: GroupInfo
@@ -17,75 +18,86 @@ REAL, POINTER :: phis(:, :, :)
 REAL, POINTER :: Psi(:, :)
 INTEGER :: myzb, myze, ng
 LOGICAL :: lXsLib
-
-
-TYPE(Pin_Type), POINTER :: Pin(:)
-TYPE(Cell_Type), POINTER :: CellInfo(:)
+! ----------------------------------------------------
+TYPE(Pin_Type),    POINTER :: Pin(:)
+TYPE(Cell_Type),   POINTER :: CellInfo(:)
 TYPE(Fxrinfo_type),POINTER :: myFxr
-TYPE(XsMac_Type), SAVE :: XsMac
+TYPE(XsMac_Type),  SAVE :: XsMac
 
 INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
-INTEGER :: ipin, icel, ifsrlocal, ifsr, ifxr, iz, itype, ig
-INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
-INTEGER :: i, j, k, iso
-
+INTEGER :: ipin, icel, ifsrlocal, ifsr, ifxr, iz, itype, ig, iResoGrpBeg, iResoGrpEnd, norg, i, j, k, iso
 REAL, POINTER :: xsmacnf(:)
+! ----------------------------------------------------
 
-Pin => Core%Pin
-CellInfo => Core%CellInfo; nCoreFsr = Core%nCoreFsr
-nCoreFxr = Core%nCoreFxr; nxy = Core%nxy
+Pin      => Core%Pin
+CellInfo => Core%CellInfo
+
+nCoreFsr = Core%nCoreFsr
+nCoreFxr = Core%nCoreFxr
+nxy      = Core%nxy
 IF(lxslib) THEN
   iResoGrpBeg = GroupInfo%nofg + 1
   iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
-  norg = GroupInfo%norg
+  norg        = GroupInfo%norg
 ENDIF
 
-IF(.NOT. lxsLib) ALLOCATE(xsmacnf(ng))
+IF (.NOT. lxsLib) ALLOCATE(xsmacnf(ng))
 
 DO iz = myzb, myze
   CALL CP_CA(Psi(:, iz), zero, nCoreFsr)
+  
   DO ipin = 1, nxy
-    FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr  
+    FsrIdxSt  = Pin(ipin)%FsrIdxSt
+    FxrIdxSt  = Pin(ipin)%FxrIdxSt
+    icel      = Pin(ipin)%Cell(iz)
+    nlocalFxr = CellInfo(icel)%nFxr  
+    
     DO j = 1, nLocalFxr
-      ifxr = FxrIdxSt + j -1
+      ifxr      = FxrIdxSt + j -1
       nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
-      myFxr => Fxr(ifxr, iz)
+      myFxr    => Fxr(ifxr, iz)
+      
       IF (lXsLib) THEN
         CALL MacXsNf(XsMac, myFxr, 1, ng, ng, 1._8, FALSE, TRUE)
+        
         xsmacnf => XsMac%XsMacNf
-        IF(myFxr%lres) THEN
-          do ig = iResoGrpBeg, iResoGrpEnd
+        
+        IF (myFxr%lres) THEN
+          DO ig = iResoGrpBeg, iResoGrpEnd
             XsMacNf(ig) = XsMacNf(ig) * myFxr%fresoNF(ig)  
-          enddo
-        ENDIF
+          END DO
+        END IF
       ELSE
         ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)
-        !itype = CellInfo(icel)%iReg(ifsrlocal)      
-        itype = myFxr%imix
-        IF(TranCntl%lDynamicBen) THEN
+        !itype    = CellInfo(icel)%iReg(ifsrlocal)      
+        itype     = myFxr%imix
+        
+        IF (TranCntl%lDynamicBen) THEN
           CALL xsnfDynben(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, xsmacnf)
         ELSE
-        CALL xsnfben(itype, 1, ng, xsmacnf)
+          CALL xsnfben(itype, 1, ng, xsmacnf)
         END IF
         !CHI(ig:ig) = GetChiBen(itype, ig, ig)
-      ENDIF
+      END IF
       
       DO i = 1, nFsrInFxr
         ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
+        
         DO ig = 1, ng
           Psi(ifsr, iz) = Psi(ifsr, iz) + xsmacnf(ig) * phis(ifsr, iz, ig)
-        ENDDO
+        END DO
+        
         CONTINUE
         !src(ifsr) = reigv * chi(ig) * psic(ifsr, iz)
-      ENDDO !Fsr Sweep  
-    ENDDO
-  ENDDO
-ENDDO
+      END DO
+    END DO
+  END DO
+END DO
 
-IF(.NOT. lxsLib) Deallocate(xsmacnf)
-IF(lXsLib) NULLIFY(XsMacNf)
-NULLIFY(Pin, CellInfo)
+IF (.NOT. lxsLib) DEALLOCATE (xsmacnf)
+IF (lXsLib) NULLIFY (XsMacNf)
+NULLIFY (Pin, CellInfo)
+! ----------------------------------------------------
 
 END SUBROUTINE PsiUpdate
 ! ------------------------------------------------------------------------------------------------------------
@@ -94,38 +106,49 @@ SUBROUTINE CellPsiUpdate(CORE, psi, psic, myzb, myze)
 USE PARAM
 USE TYPEDEF, ONLY : coreinfo_type, Fxrinfo_type, Cell_Type, pin_Type
 USE BasicOperation, ONLY : CP_CA
+
 IMPLICIT NONE
+
 TYPE(coreinfo_type) :: CORE
 REAL, POINTER :: Psi(:, :)
 REAL, POINTER :: psiC(:, :)
 INTEGER :: myzb, myze
 
-TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Pin_Type),  POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
-
+! ----------------------------------------------------
 INTEGER :: nxy, nCoreFsr, nCoreFxr, nLocalFsr
-INTEGER :: l, i, j, k, iz
-INTEGER :: FsrIdxSt, icel, ireg
+INTEGER :: l, i, j, k, iz, FsrIdxSt, icel, ireg
 REAL, POINTER :: hz(:)
-Pin => Core%Pin; CellInfo => Core%CellInfo
-hz => Core%hz
-nCoreFsr = Core%nCoreFsr; nCoreFxr = Core%nCoreFxr
-nxy = Core%nxy
+! ----------------------------------------------------
+
+Pin      => Core%Pin
+CellInfo => Core%CellInfo
+hz       => Core%hz
+
+nCoreFsr = Core%nCoreFsr
+nCoreFxr = Core%nCoreFxr
+nxy      = Core%nxy
+
 DO iz = myzb, myze
   DO l = 1, nxy
-    FsrIdxSt = Pin(l)%FsrIdxSt; icel = Pin(l)%Cell(iz);
+    FsrIdxSt  = Pin(l)%FsrIdxSt
+    icel      = Pin(l)%Cell(iz);
     nLocalFsr = CellInfo(icel)%nFsr
-    psic(l, iz) = zero
+    
+    psic(l, iz) = ZERO
     DO j = 1, nLocalFsr
       ireg = FsrIdxSt + j - 1
       psic(l, iz) =  psic(l, iz) + CellInfo(icel)%vol(j) * psi(ireg, iz)
-    ENDDO  
+    END DO
     psic(l, iz) = psic(l, iz)*hz(iz)
-  ENDDO
-ENDDO
-NULLIFY(Pin)
-NULLIFY(CellInfo)
-NULLIFY(hz)
+  END DO
+END DO
+
+NULLIFY (Pin)
+NULLIFY (CellInfo)
+NULLIFY (hz)
+! ----------------------------------------------------
 
 END SUBROUTINE CellPsiUpdate
 ! ------------------------------------------------------------------------------------------------------------
@@ -248,27 +271,22 @@ END FUNCTION PsiErr
 FUNCTION MocResidual(Core, FmInfo, eigv, GroupInfo, ng, PE, nTracerCntl)
 
 USE PARAM
-USE TYPEDEF,  ONLY : CoreInfo_Type,     FmInfo_Type,     GroupInfo_Type,     &
-                     Cell_Type,         PinInfo_Type,     Pin_Type,             &
-                     FxrInfo_Type
-USE MOC_MOD,  ONLY : src1g,              xst1g,            AxSrc1g,              &
-                     AxPxs1g,                                                   & 
-                     SetRtSrcGM,          SetRtMacXsGM,     PseudoAbsorptionGM,     &
-                     AddBucklingGM,       AddConstSrc,                            &
-                     !--- CNJ Edit : Node Majors
-                     phisNg,            srcNg,            xstNg,                &
-                     SetRtSrcNM,        SetRtMacXsNM,     PseudoAbsorptionNM,   &
-                     AddBucklingNM
+USE TYPEDEF,  ONLY : CoreInfo_Type, FmInfo_Type, GroupInfo_Type, Cell_Type, PinInfo_Type, Pin_Type, FxrInfo_Type
+USE MOC_MOD,  ONLY : src1g, xst1g, AxSrc1g, AxPxs1g, SetRtSrcGM, SetRtMacXsGM, PseudoAbsorptionGM, AddBucklingGM, AddConstSrc, &
+                     phisNg, srcNg, xstNg, SetRtSrcNM, SetRtMacXsNM, PseudoAbsorptionNM, AddBucklingNM
 USE geom,     ONLY : nbd
 USE cntl,     ONLY : nTracerCntl_Type
 USE PE_MOD,   ONLY : PE_TYPE
 USE BenchXs,  ONLY : GetXstrBen
 USE DcplXsGen_Mod,  ONLY : DcplSetMocAxEff
 USE BasicOperation, ONLY : CP_CA, CP_VA
+
 #ifdef MPI_ENV
 USE MPICOMM_MOD, ONLY : REDUCE
 #endif
+
 IMPLICIT NONE
+
 TYPE(CoreInfo_Type) :: Core
 TYPE(FmInfo_Type) :: FmInfo
 REAL :: eigv
@@ -277,7 +295,7 @@ INTEGER :: ng
 TYPE(PE_TYPE) :: PE
 TYPE(nTracerCntl_Type) :: nTracerCntl
 REAL :: MocResidual
-
+! ----------------------------------------------------
 TYPE(FxrInfo_Type), POINTER :: FXR(:, :)
 REAL, POINTER :: PHIS(:, :, :)
 REAL, POINTER :: PSI(:, :)
@@ -285,52 +303,59 @@ REAL, POINTER :: MocJout(:, :, :, :, :)
 REAL, POINTER :: AxSrc(:, :, :), AxPXS(:, :, :)
 REAL, POINTER :: Res(:)
 
-!POINTING Variables
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(PinInfo_Type), POINTER :: PinInfo(:)
 TYPE(Cell_Type), POINTER :: Cell(:)
-!
+
 INTEGER :: nxy, nFsr, nlocalFxr, nlocalFsr, FsrIdxSt, FxrIdxSt, nFsrInFxr, myzb, myze
-INTEGER :: ig, ireg, ipin, icel, ifxr, ixy, iz, ifsrlocal, itype
-INTEGER :: i, j, k, l, m
+INTEGER :: ig, ireg, ipin, icel, ifxr, ixy, iz, ifsr, i, j, k, l, m
 LOGICAL :: lXsLib, l3dim
 REAL :: SrcSum, LocalResidual, localsrc, vol, temp
-REAL :: Leakage(100), Collision(100), Source(100)   !--- CNJ Edit : Node Majors
-
+REAL, DIMENSION(100)  :: Leakage, Collision, Source
 LOGICAL :: lNegFix 
+! ----------------------------------------------------
 
-l3dim = nTracerCntl%l3Dim
+l3dim  = nTracerCntl%l3Dim
 lXsLib = nTracerCntl%lXsLib
 
-Fxr => FmInfo%Fxr
-Phis => FmInfo%Phis
-Psi => FmInfo%Psi
+Fxr     => FmInfo%Fxr
+Phis    => FmInfo%Phis
+Psi     => FmInfo%Psi
 MocJout => FmInfo%RadJout !ninout/ 1:in 2:out 3:surfphi 16/02/11 BYS edit
-AxSrc => FmInfo%AxSrc; AxPXS => FmInfo%AxPXS
-
-Pin => Core%Pin
+AxSrc   => FmInfo%AxSrc
+AxPXS   => FmInfo%AxPXS
+Pin     => Core%Pin
 PinInfo => Core%Pininfo
-Cell => Core%CellInfo
-lXsLib = nTracerCntl%lXsLib; l3dim = nTracerCntl%l3dim
-myzb = PE%myzb; myze = PE%myze
-nFsr = Core%nCoreFsr; nxy = Core%nxy
+Cell    => Core%CellInfo
 
-MocResidual = 0; SrcSum = 0
-!AxSrc => FmInfo%AxSrc; AxPXS => FmInfo%AxPXS
+lXsLib = nTracerCntl%lXsLib
+l3dim  = nTracerCntl%l3dim
+myzb   = PE%myzb
+myze   = PE%myze
+nFsr   = Core%nCoreFsr
+nxy    = Core%nxy
+
+MocResidual = 0
+SrcSum      = 0
 CALL CP_CA(AxPxs1g(1:nxy), 0._8, nxy)
 CALL CP_CA(AxSrc1g(1:nxy), 0._8, nxy)
 ALLOCATE(Res(1:nxy))
+! ----------------------------------------------------
 #ifndef ResMG
 DO iz = myzb, myze
   CALL CP_CA(Res(1:nxy), 0._8, nxy)
+  
   IF(.NOT. core%lfuelplane(iz) .AND. nTRACErCntl%lAxRefFDM) CYCLE
-  !--- CNJ Edit : Node Majors
+  
+  ! Node Majors
   IF (nTracerCntl%lNodeMajor) THEN
     DO ig = 1, ng
-      phisNg(ig, :) = phis(:, iz, ig)
-    ENDDO
-    CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, nTracerCntl%lTrCorrection,   &
-                      nTracerCntl%lRST, FALSE, FALSE, PE)
+      DO ifsr = 1, Core%nCoreFsr
+        phisNg(ig, ifsr) = phis(ifsr, iz, ig)
+      END DO
+    END DO
+    
+    CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
 #ifdef LkgSplit
     CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 #endif
@@ -338,166 +363,186 @@ DO iz = myzb, myze
     IF (nTracerCntl%lBsq) CALL AddBucklingNM(Core, Fxr, xstNg, nTracerCntl%Bsq, iz, ng, lxslib, nTracerCntl%lRST)
 #endif
     CALL SetRtSrcNM(Core, Fxr(:, iz), srcNg, phisNg, psi, AxSrc, xstNg, eigv, iz, 1, ng, ng, GroupInfo, l3dim, lxslib, nTracerCntl%lscat1, lNegFix, PE)
+    
     DO ipin = 1, nxy
-      FsrIdxSt = Pin(ipin)%FsrIdxSt
-      icel = Pin(ipin)%Cell(iz)
+      FsrIdxSt  = Pin(ipin)%FsrIdxSt
+      icel      = Pin(ipin)%Cell(iz)
       nlocalFsr = Cell(icel)%nFsr
-      Collision = 0; Source = 0; Leakage = 0
+      Collision = 0
+      Source    = 0
+      Leakage   = 0
+      
       DO ig = 1, ng
         DO i = 1, nbd
           Leakage(ig) = Leakage(ig) + MocJout(2, i, ipin, iz, ig) - MocJout(1, i, ipin, iz, ig)
-        ENDDO
-      ENDDO
+        END DO
+      END DO
+      
       DO i = 1, nlocalFsr
         ireg = FsrIdxSt + i - 1
-        vol = Cell(icel)%vol(i)
+        vol  = Cell(icel)%vol(i)
+        
         DO ig = 1, ng
-          Collision(ig) = Collision(ig) + vol * phis(ireg, iz, ig) * xstNg(ig, ireg)
-          Source(ig) = Source(ig) + vol * srcNg(ig, ireg) * xstNg(ig, ireg)
-        ENDDO
-      ENDDO
+          Collision(ig) = Collision(ig) + vol * xstNg(ig, ireg) * phis(ireg, iz, ig)
+          Source   (ig) = Source   (ig) + vol * xstNg(ig, ireg) * srcNg(ig, ireg)
+        END DO
+      END DO
+      
       DO ig = 1, ng
         LocalResidual = Source(ig) - Collision(ig) - Leakage(ig)
-        SrcSum = SrcSum + Source(ig) ** 2
-        MocResidual = MocResidual + LocalResidual ** 2
-      ENDDO
-    ENDDO
+        SrcSum        = SrcSum      + Source(ig)*Source(ig)
+        MocResidual   = MocResidual + LocalResidual*LocalResidual
+      END DO
+    END DO
   ELSE
     DO ig = 1, ng
-      !CALL CP_VA(AxPx1g)
       lNegFix = nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)
-      IF(nTracerCntl%l3dim .AND. .NOT. nTracerCntl%lDcplCal) THEN
+      
+      IF (nTracerCntl%l3dim .AND. .NOT. nTracerCntl%lDcplCal) THEN
         CALL CP_VA(AxPxs1g(1:nxy), AxPxs(1:nxy, iz, ig), nxy)
         CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)
-      ELSEIF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
+      ELSE IF (nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
         CALL DcplSetMocAxEff(Core, AxPxs(:, iz, ig), phis(:, iz, ig), AxSrc1g, AxPxs1g, iz)
-      ENDIF
+      END IF
+      
       CALL CP_CA(xst1g(1:nFsr), 1._8, nFsr)
-      IF(nTracerCntl%lDcplCal) THEN
+      
+      IF (nTracerCntl%lDcplCal) THEN
         CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
       ELSE
-        !CALL SetRtSrc(Core, Fxr(:, iz), src1g(:), phis, psi, axSrc1g(:), xst1g(:), &
-                      !eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
         CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, nTracerCntl%lscat1, lNegFix, PE)
-      ENDIF
-      IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
-        CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
-      ENDIF
+      END IF
+      
+      IF (nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
+            
       DO ipin = 1, nxy
-        FsrIdxSt = Pin(ipin)%FsrIdxSt
-        icel = Pin(ipin)%Cell(iz); nlocalFsr = Cell(icel)%nFsr
-        DO j = 1, nlocalFsr
-          ireg = FsrIdxSt + j - 1
-          vol = Cell(icel)%vol(j)
-          Res(ipin) = Res(ipin)  + vol * src1g(ireg)
-        ENDDO
-      ENDDO
-    ENDDO
-    !Get total source term
-    DO ipin = 1, nxy
-      SrcSum = SrcSum + Res(ipin) * Res(ipin)
-    ENDDO
-    DO ig = 1, ng
-      lNegFix = nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)
-      IF(nTracerCntl%l3dim .AND. .NOT. nTracerCntl%lDcplCal) THEN
-        CALL CP_VA(AxPxs1g(1:nxy), AxPxs(1:nxy, iz, ig), nxy)
-        CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)
-      ELSEIF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
-        CALL DcplSetMocAxEff(Core, AxPxs(:, iz, ig), phis(:, iz, ig), AxSrc1g, AxPxs1g, iz)
-      ENDIF
-    
-    CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
-      IF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
-#ifdef LkgSplit  
-        CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig),     &
-                              AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
-#endif
-      ENDIF
-#ifdef Buckling
-    IF(nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
-#endif 
-      DO ipin = 1, nxy
-        FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-        icel = Pin(ipin)%Cell(iz)
+        FsrIdxSt  = Pin(ipin)%FsrIdxSt
+        icel      = Pin(ipin)%Cell(iz)
         nlocalFsr = Cell(icel)%nFsr
-        LocalResidual = 0; localsrc = 0
-    !    !Current
-        DO j = 1, nbd
-          LocalResidual = LocalResidual + (MocJout(2, j, ipin, iz, ig) - MocJout(1, j, ipin, iz, ig))
-        ENDDO
         
         DO j = 1, nlocalFsr
           ireg = FsrIdxSt + j - 1
-          vol = Cell(icel)%vol(j)
+          vol  = Cell(icel)%vol(j)
+          
+          Res(ipin) = Res(ipin) + vol * src1g(ireg)
+        END DO
+      END DO
+    END DO
+    
+    !Get total source term
+    DO ipin = 1, nxy
+      SrcSum = SrcSum + Res(ipin) * Res(ipin)
+    END DO
+    
+    DO ig = 1, ng
+      lNegFix = nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)
+      
+      IF (nTracerCntl%l3dim .AND. .NOT. nTracerCntl%lDcplCal) THEN
+        CALL CP_VA(AxPxs1g(1:nxy), AxPxs(1:nxy, iz, ig), nxy)
+        CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)
+      ELSE IF (nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
+        CALL DcplSetMocAxEff(Core, AxPxs(:, iz, ig), phis(:, iz, ig), AxSrc1g, AxPxs1g, iz)
+      END IF
+      
+      CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
+#ifdef LkgSplit        
+      IF (nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig), AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
+#endif
+#ifdef Buckling
+      IF (nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
+#endif 
+      DO ipin = 1, nxy
+        FsrIdxSt  = Pin(ipin)%FsrIdxSt
+        FxrIdxSt  = Pin(ipin)%FxrIdxSt
+        icel      = Pin(ipin)%Cell(iz)
+        nlocalFsr = Cell(icel)%nFsr
+        
+        LocalResidual = 0
+        localsrc      = 0
+        
+        ! Current
+        DO j = 1, nbd
+          LocalResidual = LocalResidual + (MocJout(2, j, ipin, iz, ig) - MocJout(1, j, ipin, iz, ig))
+        END DO
+        
+        DO j = 1, nlocalFsr
+          ireg = FsrIdxSt + j - 1
+          vol  = Cell(icel)%vol(j)
+          
           LocalResidual = LocalResidual + vol * phis(ireg, iz, ig) * xst1g(ireg)
-        ENDDO
+        END DO
+        
         Res(ipin) = Res(ipin) - LocalResidual
-      ENDDO  !Pin Sweep
-    ENDDO  !Group Sweep
+      END DO
+    END DO
+    
     DO ipin = 1, nxy
        MocResidual = MocResidual + Res(ipin) * Res(ipin)
-      !write(*,*) Res(ipin)*Res(ipin)
-    ENDDO
-  ENDIF
-ENDDO
+    END DO
+  END IF
+END DO
+
 DEALLOCATE(Res)
+! ----------------------------------------------------
 #else
 DO ig = 1, ng
   DO iz = myzb, myze
-    IF(.NOT. core%lfuelplane(iz) .AND. nTRACErCntl%lAxRefFDM) CYCLE
-    !CALL CP_VA(AxPx1g)
+    IF (.NOT. core%lfuelplane(iz) .AND. nTRACErCntl%lAxRefFDM) CYCLE
+    
     lNegFix = nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)
-    IF(nTracerCntl%l3dim .AND. .NOT. nTracerCntl%lDcplCal) THEN
+    
+    IF (nTracerCntl%l3dim .AND. .NOT. nTracerCntl%lDcplCal) THEN
       CALL CP_VA(AxPxs1g(1:nxy), AxPxs(1:nxy, iz, ig), nxy)
       CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)
-    ELSEIF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
+    ELSE IF (nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
       CALL DcplSetMocAxEff(Core, AxPxs(:, iz, ig), phis(:, iz, ig), AxSrc1g, AxPxs1g, iz)
-      !CALL CP_VA(AxPxs1g(1:nxy), AxPxs(1:nxy, iz, ig), nxy)
-      !CALL CP_VA(AxSrc1g(1:nxy), AxSrc(1:nxy, iz, ig), nxy)
-    ENDIF
+    END IF
     
     CALL SetRtMacXsGM(Core, Fxr(:, iz), xst1g, iz, ig, ng, lxslib, nTracerCntl%lTrCorrection, nTracerCntl%lRST, FALSE, FALSE, PE)
-    IF(nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) THEN
 #ifdef LkgSplit  
-      CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig),     &
-                            AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
+    IF (nTracerCntl%l3dim .or. nTracerCntl%lDcplCal) CALL PseudoAbsorptionGM(Core, Fxr(:, iz), phis(:, iz, ig), AxPXS1g(:), xst1g, iz, ig, ng, GroupInfo, true)  
 #endif
-    ENDIF
 #ifdef Buckling
-   IF(nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
+    IF (nTracerCntl%lBsq) CALL AddBucklingGM(Core, Fxr, xst1g, nTracerCntl%Bsq, iz, ig, ng, lxslib, nTracerCntl%lRST)
 #endif  
-    IF(nTracerCntl%lDcplCal) THEN
+    IF (nTracerCntl%lDcplCal) THEN
       CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, TRUE, lXslib, FALSE, lNegFix, PE)    
     ELSE
       CALL SetRtSrcGM(Core, Fxr(:, iz), src1g, phis, psi, axSrc1g, xst1g, eigv, iz, ig, ng, GroupInfo, l3dim, lXslib, FALSE, lNegFix, PE)
-    ENDIF
-    IF(nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) THEN
-      CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
-    ENDIF
+    END IF
+    
+    IF (nTracerCntl%lDcplCal .AND. .NOT. Core%lFuelPlane(iz)) CALL AddConstSrc(Core, Fxr(:, iz), src1g, xst1g, nTracerCntl%ConstSrc, iz, ig, ng)
+    
     DO ipin = 1, nxy
-      FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
-      icel = Pin(ipin)%Cell(iz)
+      FsrIdxSt  = Pin(ipin)%FsrIdxSt
+      FxrIdxSt  = Pin(ipin)%FxrIdxSt
+      icel      = Pin(ipin)%Cell(iz)
       nlocalFsr = Cell(icel)%nFsr
-      LocalResidual = 0; localsrc = 0
-      !Current
+      
+      LocalResidual = 0
+      localsrc = 0
+      
+      ! Current
       DO j = 1, nbd
         LocalResidual = LocalResidual + (MocJout(2, j, ipin, iz, ig) - MocJout(1, j, ipin, iz, ig))
-      ENDDO
+      END DO
       
       DO j = 1, nlocalFsr
         ireg = FsrIdxSt + j - 1
-        vol = Cell(icel)%vol(j)
-        LocalResidual = LocalResidual + vol * phis(ireg, iz, ig) * xst1g(ireg)
-        localsrc = localsrc + src1g(ireg) * vol * xst1g(ireg)
-      ENDDO
+        vol  = Cell(icel)%vol(j)
+        
+        LocalResidual = LocalResidual + vol * xst1g(ireg) * phis (ireg, iz, ig) 
+        localsrc      = localsrc      + vol * xst1g(ireg) * src1g(ireg) 
+      END DO
       
       LocalResidual = localsrc - LocalResidual
-      SrcSum = SrcSum + localsrc * localsrc
-      MocResidual = MocResidual + LocalResidual * LocalResidual
-    ENDDO
-  ENDDO
-ENDDO
+      SrcSum        = SrcSum + localsrc * localsrc
+      MocResidual   = MocResidual + LocalResidual*LocalResidual
+    END DO
+  END DO
+END DO
 #endif
+
 #ifdef MPI_ENV
 CALL REDUCE(MocResidual, temp, PE%MPI_RTMASTER_COMM, .TRUE.)
 MocResidual = temp
@@ -508,9 +553,10 @@ SrcSum = temp
 MocResidual = MocResidual / SrcSum
 MocResidual = SQRT(MocResidual)
 
-NULLIFY(Pin)
-NULLIFY(PinInfo)
-NULLIFY(Cell)
+NULLIFY (Pin)
+NULLIFY (PinInfo)
+NULLIFY (Cell)
+! ----------------------------------------------------
 
 END FUNCTION MocResidual
 ! ------------------------------------------------------------------------------------------------------------

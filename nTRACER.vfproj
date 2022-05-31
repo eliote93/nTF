@@ -452,7 +452,8 @@
 		<File RelativePath=".\src\SubGrp_mod.f90"/>
 		<File RelativePath=".\src\SubGrpEffXs.f90"/>
 		<File RelativePath=".\src\SubGrpFsp.f90"/>
-		<File RelativePath=".\src\SubGrpFspNM.f90"/></Filter>
+		<File RelativePath=".\src\SubGrpFsp_MLG_GM.f90"/>
+		<File RelativePath=".\src\SubGrpFsp_MLG_NM.f90"/></Filter>
 		<Filter Name="TH">
 		<Filter Name="SteamTbl">
 		<File RelativePath=".\src\StemTBL_Mod.f90"/>

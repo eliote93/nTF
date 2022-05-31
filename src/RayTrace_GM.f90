@@ -7,6 +7,7 @@ USE PARAM,   ONLY : ZERO
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : RecTrackRotRay_GM, HexTrackRotRay_GM, TrackingDat, wtang
 USE PE_MOD,  ONLY : PE
+USE geom,    ONLY : nbd
 USE CNTL,    ONLY : nTracerCntl
 
 IMPLICIT NONE
@@ -25,7 +26,7 @@ INTEGER, OPTIONAL :: FastMocLv
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, nThr, nxy, FsrIdxSt, nFsr
+INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, ibd, nThr, nxy, FsrIdxSt, nFsr
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
@@ -65,15 +66,21 @@ END IF
 ! ----------------------------------------------------
 phis1g = ZERO
 
-DO ithr = 1, nThr
-  phis1g = phis1g + TrackingDat(ithr)%phis1g
+DO ithr = 1, nthr
+  DO ifsr = 1, nfsr
+    phis1g(ifsr) = phis1g(ifsr) + TrackingDat(ithr)%phis1g(ifsr)
+  END DO
 END DO
 
 IF (ljout) THEN
   jout1g = ZERO
   
-  DO ithr = 1, nThr
-    jout1g = jout1g + TrackingDat(ithr)%jout1g
+  DO ithr = 1, nthr
+    DO ixy = 1, nxy
+      DO ibd = 1, nbd
+        Jout1g(:, ibd, ixy) = Jout1g(:, ibd, ixy) + TrackingDat(ithr)%Jout1g(:, ibd, ixy)
+      END DO
+    END DO
   END DO
 END IF
 ! ----------------------------------------------------

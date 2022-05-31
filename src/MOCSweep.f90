@@ -19,6 +19,7 @@ USE XSLIB_MOD,   ONLY : igresb, igrese
 USE SPH_mod,     ONLY : ssphf, ssphfNM, calcPinSSPH
 USE HexData,     ONLY : nInnMOCItr
 
+USE BasicOperation,    ONLY : CP_VA
 USE SubChCoupling_mod, ONLY : last_TH
 
 #ifdef MPI_ENV
@@ -37,7 +38,7 @@ TYPE (ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, ScatOd, fmoclv
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ifsr, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, ScatOd, fmoclv
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
@@ -131,8 +132,8 @@ IF (ng .GT. 10) lDmesg = FALSE
 
 ! UPD : psi
 IF (RTMASTER) THEN
-  psid = psi
-  
+  CALL CP_VA(psid, psi, Core%nCoreFsr, Core%nz)
+    
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)
 END IF
@@ -213,7 +214,11 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
             END IF
             
             ! Spectral SPH
-            IF (lssph .AND. ig.GE.igresb .AND. ig.LE.igrese) phis1g = phis1g * ssphf(:, iz, ig)
+            IF (lssph .AND. ig.GE.igresb .AND. ig.LE.igrese) THEN
+              DO ifsr = 1, Core%nCoreFsr
+                phis1g(ifsr) = phis1g(ifsr) * ssphf(ifsr, iz, ig)
+              END DO
+            END IF
             
             ! CnP
 #ifdef MPI_ENV
@@ -253,22 +258,25 @@ ELSE
     
     IF (RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
     IF (RTMaster .AND. lLSCASMO) CALL LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
-        
+    
     DO iz = myzb, myze
       IF (.NOT. Core%lFuelPlane(iz) .AND. laxrefFDM) CYCLE
       
       ! Pointing & SET : XS
       IF (RTMASTER) THEN
         DO ig = 1, ng
-          phisNg(ig, :) = phis(:, iz, ig)
+          DO ifsr = 1, Core%nCoreFsr
+            phisNg(ig, ifsr) = phis(ifsr, iz, ig)
+          END DO
         END DO
         
         PhiAngInNg => PhiAngIn(:, :, :, iz)
         
         IF (lscat1) phimNg         => phim(:, :, :, iz)
         IF (ldcmp)  DcmpPhiAngInNg => AsyPhiAngIn(:, :, :, :, :, iz)
-        
+                
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
+        
 #ifdef LkgSplit
         CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 #endif
@@ -326,7 +334,9 @@ ELSE
           ist = max(igresb, GrpBeg)
           ied = min(igrese, GrpEnd)
           
-          phisNg(ist:ied, :) = phisNg(ist:ied, :) * ssphfNM(ist:ied, :, iz)
+          DO ifsr = 1, Core%nCoreFsr
+            phisNg(ist:ied, ifsr) = phisNg(ist:ied, ifsr) * ssphfNM(ist:ied, ifsr, iz)
+          END DO
         END DO
         
         tnmed        = nTracer_dclock(FALSE, FALSE)
@@ -340,7 +350,9 @@ ELSE
       IF (.NOT. RTMASTER) CYCLE
       
       DO ig = 1, ng
-        phis(:, iz, ig) = phisNg(ig, :)
+        DO ifsr = 1, Core%nCoreFsr
+          phis(ifsr, iz, ig) = phisNg(ig, ifsr)
+        END DO
         
         RadJout(:, :, :, iz, ig) = MocJoutNg(:, ig, :, :)
       END DO
@@ -375,7 +387,7 @@ END IF
 
 ! UPD : psi
 IF (RTMASTER) THEN
-  psid = psi
+  CALL CP_VA(psid, psi, Core%nCoreFsr, Core%nz)
   
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)

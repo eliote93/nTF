@@ -206,7 +206,7 @@ USE SUBGRP_MOD,     ONLY : UpdtCoreIsoInfo
 USE TH_MOD,         ONLY : Cal_RefFuelTemp
 USE PE_MOD,         ONLY : PE
 USE FILES,          ONLY : io8
-USE SubGrpFspNM
+USE SubGrpFspMLG_NM
 USE CUDA_MASTER
 USE CUDA_UTIL
 USE CUDA_INIT,      ONLY : AllocMOCVar,     DeallocMOCVar,      CopyRayVar,         DeleteRayVar
@@ -544,7 +544,7 @@ USE SUBGRP_MOD,     ONLY : UpdtCoreIsoInfo
 USE TH_MOD,         ONLY : Cal_RefFuelTemp
 USE PE_MOD,         ONLY : PE
 USE FILES,          ONLY : io8
-USE SubGrpFspNM
+USE SubGrpFspMLG_NM
 USE CUDA_MASTER
 USE CUDA_UTIL
 USE CUDA_INIT,      ONLY : AllocMOCVar,     DeallocMOCVar,      CopyRayVar,         DeleteRayVar

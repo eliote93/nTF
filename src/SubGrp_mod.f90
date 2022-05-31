@@ -43,20 +43,7 @@ INTERFACE
     TYPE(nTracerCntl_Type) :: nTracerCntl
     TYPE(PE_TYPE) :: PE
   END SUBROUTINE  
-  SUBROUTINE SubGrpFsp_MLG_GM(Core, Fxr, THInfo, RayInfo, GroupInfo, nTracerCntl, PE)
-    USE PARAM
-    USE TYPEDEF,  ONLY : CoreInfo_Type,   FxrInfo_Type,   GroupInfo_Type,    RayInfo_Type,    PE_TYPE, THInfo_Type
-    USE CNTL,     ONLY : nTracerCntl_Type
-    IMPLICIT NONE                            
-    TYPE(CoreInfo_Type) :: Core
-    TYPE(FxrInfo_Type),POINTER :: Fxr(:, :)
-    TYPE(THInfo_Type) :: THInfo
-    TYPE(RayInfo_Type) :: RayInfo
-    TYPE(GroupInfo_Type) :: GroupInfo  
-    TYPE(nTracerCntl_Type) :: nTracerCntl
-    TYPE(PE_TYPE) :: PE
-  END SUBROUTINE
-  
+    
   SUBROUTINE SetPlnLsigP(Siglp, Sigtr, lv, irc, Core, Fxr, ilv, iz, ig, PE) 
     USE TYPEDEF, ONLY : CoreInfo_Type, FxrInfo_Type, PE_TYPE
     IMPLICIT NONE               

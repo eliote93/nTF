@@ -6,6 +6,7 @@ USE OMP_LIB
 USE PARAM,   ONLY : ZERO, FALSE, ONE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, wtang, Comp, SrcAng1g1, SrcAng1g2, mwt
+USE geom,    ONLY : nbd
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
 
@@ -25,7 +26,7 @@ INTEGER, OPTIONAL :: FastMocLv
 TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
-INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, iod, nThr, nxy, FsrIdxSt, nFsr, nAzi, nPol, ScatOd
+INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, iod, ibd, nThr, nxy, FsrIdxSt, nFsr, nAzi, nPol, ScatOd, nOd
 REAL :: wttmp, srctmp
 ! ----------------------------------------------------
 
@@ -36,6 +37,12 @@ ScatOd = nTracerCntl%ScatOd
 
 nAzi = RayInfo%nAziAngle
 nPol = RayInfo%nPolarAngle
+
+SELECT CASE (ScatOd)
+CASE(1); nOd = 2
+CASE(2); nOd = 5
+CASE(3); nOd = 9
+END SELECT
 
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
@@ -107,16 +114,25 @@ END IF
 phis1g = ZERO
 phim1g = ZERO
 
-DO ithr = 1, nThr
-  phis1g = phis1g + TrackingDat(ithr)%phis1g
-  phim1g = phim1g + TrackingDat(ithr)%phim1g
+DO ithr = 1, nthr
+  DO ifsr = 1, nFsr
+    phis1g(ifsr) = phis1g(ifsr) + TrackingDat(ithr)%phis1g(ifsr)
+    
+    DO iod = 1, nOd
+      phim1g(iod, ifsr) = phim1g(iod, ifsr) + TrackingDat(ithr)%phim1g(iod, ifsr)
+    END DO
+  END DO
 END DO
 
 IF (ljout) THEN
   jout1g = ZERO
   
-  DO ithr = 1, nThr
-    jout1g = jout1g + TrackingDat(ithr)%jout1g
+  DO ithr = 1, nthr
+    DO ixy = 1, nxy
+      DO ibd = 1, nbd
+        Jout1g(:, ibd, ixy) = Jout1g(:, ibd, ixy) + TrackingDat(ithr)%Jout1g(:, ibd, ixy)
+      END DO
+    END DO
   END DO
 END IF
 ! ----------------------------------------------------

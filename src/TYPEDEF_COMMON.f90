@@ -101,7 +101,7 @@ TYPE BlockIsodata_Type
 END TYPE
 
 TYPE BlockResIsoData_Type
-  ! ----------- SubGrpFspNM ----------------------
+  ! ----------- SubGrpFspMLG_NM ------------------
   ! [Should contain]
   ! - lamsigp, sigp, lreso, nsig0, rtempsq, ri_a
   ! - ptrRTemp
