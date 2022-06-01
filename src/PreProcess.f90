@@ -25,7 +25,7 @@ INTEGER :: ICHAR1ST
 CALL gfortModuleInit
 #endif
 
-! Get Working Dir & File Name
+! Get Working Dir. & File Name
 WorkingDir = PWD()
 LOCALFN    = ' '
 
@@ -40,6 +40,13 @@ ICHAR1ST = ICHAR(LOCALFN(1:1))
 IF (ICHAR1ST.EQ.0 .OR. ICHAR1ST.EQ.32) LOCALFN = 'nTRACER.INP'
 
 FILENAME(InputFileIdx) = LOCALFN
+
+! [FILE]
+IF (PE%MASTER) CALL MVFILE
+#ifdef MPI_ENV
+CALL MPI_SYNC(PE%MPI_COMM)
+#endif
+FILENAME(InputFileIdx) = './inp/' // LOCALFN
 
 ! Scan Input
 IF (lMCP_restart) CALL ScanInput_Include

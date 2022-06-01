@@ -1,3 +1,70 @@
+SUBROUTINE MVFILE
+
+USE param,      ONLY : TRUE, FALSE, BANG, POUND, BLANK, BLANK0, DOT, SLASH
+USE files,      ONLY : io5, filename, InputFileIdx
+USE ioutil,     ONLY : OpenFile, ifnumeric, toupper, getfn
+USE inputcards, ONLY : oneline, probe
+
+IMPLICIT NONE
+
+INTEGER :: indev, jndev, kndev
+CHARACTER*6 :: dumc
+CHARACTER*256 :: cdir
+CHARACTER(256) :: fdir
+! ----------------------------------------------------
+
+indev = io5
+jndev = 42
+kndev = 43
+cdir  = 'echo.inp'
+
+CALL OpenFile(indev,  TRUE, FALSE, FALSE, filename(InputFileIdx))
+CALL OpenFile(jndev, FALSE, FALSE, FALSE, cdir)
+
+! READ
+DO
+  READ (indev, '(A512)',END = 1000) oneline
+  WRITE (jndev, '(A)') trim(oneline)
+  
+  IF (probe .EQ. BANG)     CYCLE
+  IF (probe .EQ. POUND)    CYCLE
+  IF (oneline .EQ. BLANK0) CYCLE
+  IF (ifnumeric(oneline))  CYCLE
+  
+  IF (probe .EQ. DOT)   EXIT
+  IF (probe .EQ. SLASH) EXIT
+  
+  ! FIND : [FILE]
+  IF (probe .NE. BLANK) CYCLE
+  READ (oneline, *) dumc
+  CALL toupper(dumc)
+  IF (dumc .NE. '[FILE]') CYCLE
+  
+  ! CnP : [FILE]
+  BACKSPACE (jndev)
+  
+  CALL getfn(oneline, 2, fdir)
+  CALL OpenFile(kndev, TRUE, FALSE, FALSE, fdir)
+  
+  DO
+    READ (kndev, '(A512)',END = 2000) oneline
+    WRITE (jndev, '(A)') trim(oneline)
+  END DO
+  
+2000 CONTINUE
+  
+  CLOSE (kndev)
+END DO
+
+1000 CONTINUE
+
+! MV
+CLOSE (jndev)
+CALL rename(cdir, './inp/' // filename(InputFileIdx))
+! ----------------------------------------------------
+
+END SUBROUTINE MVFILE
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE inputEdit(io)
 USE PARAM
 USE GEOM,        ONLY : CORE, AsyGeom
@@ -26,7 +93,7 @@ CALL RayInfoOut(io, RayInfo)
 IF(nTracerCntl%lXsLib) CALL PrintLibEStructure(io)
 WRITE(io, '(a)') hbar2
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AsyTypeOut(AsyInfo, nas, io)
 USE PARAM
 USE TYPEDEF, ONLY : AsyInfo_Type
@@ -36,7 +103,7 @@ INTEGER, INTENT(in) :: io
 
 INTEGER :: ias, ix, iy
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE CellInfoOut(IO, CellInfo, ncelltype)
 USE PARAM
 USE TYPEDEF, ONLY : cell_type
@@ -104,7 +171,7 @@ DO i = 1, nCellType
 ENDDO
 WRITE(io, *)
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PinInfoOut(io, PinInfo, nPinType, nz)
 USE PARAM
 USE TYPEDEF, ONLY : pininfo_type
@@ -132,7 +199,7 @@ DO i = 1, nPinType
 ENDDO
 WRITE(io, *)
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AssemblyOut(io, AsyInfo, AsyGeom, nasytype)
 USE PARAM
 USE TYPEDEF, ONLY : AsyInfo_type, BasicGeom
@@ -165,7 +232,7 @@ ENDDO
 WRITE(io, *)
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE LoadingPattern(io, Core)
 USE PARAM
 USE TYPEDEF, ONLY : CoreInfo_Type, Asy_Type, Pin_Type
@@ -238,7 +305,7 @@ ENDDO
 NULLIFY(Pin)
 NULLIFY(Asy)
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE RayInfoOut(io, RayInfo)
 USE PARAM
 USE TYPEDEF, ONLY : RayInfo_Type, AziAngleInfo_Type, PolarAngle_Type
@@ -280,7 +347,7 @@ WRITE(io, *)
 NULLIFY(AziAngle)
 NULLIFY(PolarAngle)
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PrintLibEStructure(io)
 USE XSLIB_MOD,  ONLY : noghel,       enbhel,    LibInfo
 IMPLICIT NONE
@@ -301,7 +368,7 @@ ENDDO
 WRITE(IO, '(10x, i3, 1p2e15.5)') noghel, enbhel(ig), e0
 WRITE(IO, *)
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 !SUBROUTINE PrintInt1DarrayTo2Darray(io, array1D, nxy, nx, ny)
 !USE PARAM
 !IMPLICIT NONE
@@ -313,3 +380,4 @@ END SUBROUTINE
 !  WRITE(io, '(7x, 200I5)') (Array1D(j), j = jbeg, jend)
 !ENDDO
 !END SUBROUTINE
+! ------------------------------------------------------------------------------------------------------------
