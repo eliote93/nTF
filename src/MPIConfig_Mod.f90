@@ -38,8 +38,9 @@ PE%MPI_COMM = MPI_COMM_WORLD
 
 PE%master = TRUE
 IF (PE%myrank .NE. 0) PE%master = FALSE
-
 PE%SLAVE = .NOT. PE%master
+
+CALL hostnm(PE%hostname)
 #endif
 ! ----------------------------------------------------
 

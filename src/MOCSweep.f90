@@ -38,7 +38,7 @@ TYPE (ItrCntl_TYPE)     :: ItrCntl
 REAL :: eigv
 INTEGER :: ng
 ! ----------------------------------------------------
-INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ifsr, ninn, nitermax, myzb, myze, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, ScatOd, fmoclv
+INTEGER :: ig, iz, ist, ied, iout, jswp, iinn, ifsr, ninn, nitermax, myzb, myze, mynz, nPhiAngSv, nPolarAngle, nginfo, GrpBeg, GrpEnd, ScatOd, fmoclv
 INTEGER :: grpbndy(2, 2)
 
 REAL :: eigconv, psiconv, resconv, psipsi, psipsid, eigerr, fiserr, peigv, reserr, tmocst, tmoced, tgmst, tgmed, tgmdel, tnmst, tnmed
@@ -64,6 +64,7 @@ Master   = PE%Master
 RTMaster = PE%RTMaster
 myzb     = PE%myzb
 myze     = PE%myze
+mynz     = myze - myzb + 1
 
 ! Pointing
 FXR      => FmInfo%Fxr
@@ -132,8 +133,8 @@ IF (ng .GT. 10) lDmesg = FALSE
 
 ! UPD : psi
 IF (RTMASTER) THEN
-  CALL CP_VA(psid, psi, Core%nCoreFsr, Core%nz)
-    
+  CALL CP_VA(psid, psi, Core%nCoreFsr, mynz)
+  
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)
 END IF
@@ -276,7 +277,6 @@ ELSE
         IF (ldcmp)  DcmpPhiAngInNg => AsyPhiAngIn(:, :, :, :, :, iz)
                 
         CALL SetRtMacXsNM(Core, Fxr(:, iz), xstNg, iz, ng, lxslib, ltrc, lRST, lssph, lssphreg, PE)
-        
 #ifdef LkgSplit
         CALL PseudoAbsorptionNM(Core, Fxr(:, iz), AxPXS, xstNg, iz, ng, GroupInfo, l3dim)
 #endif
@@ -387,7 +387,7 @@ END IF
 
 ! UPD : psi
 IF (RTMASTER) THEN
-  CALL CP_VA(psid, psi, Core%nCoreFsr, Core%nz)
+  CALL CP_VA(psid, psi, Core%nCoreFsr, mynz)
   
   CALL PsiUpdate(Core, Fxr, phis, psi, myzb, myze, ng, lxslib, GroupInfo)
   CALL CellPsiUpdate(Core, Psi, psic, myzb, myze)

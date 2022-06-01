@@ -1034,6 +1034,8 @@ TYPE PE_TYPE
   INTEGER :: myFxrBeg, myFxrEnd
   INTEGER, POINTER :: nFsr(:), nPin(:), nAsy(:)
   INTEGER, POINTER :: Fsr_displs(:), Pin_displs(:), Asy_displs(:)
+  
+  CHARACTER*10 :: hostname
 END TYPE
 
 !Power Distribution
