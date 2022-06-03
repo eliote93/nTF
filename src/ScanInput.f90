@@ -6,7 +6,7 @@ use files,          only : filename,    InputFileIdx,  XsFileIdx,      SteamTblI
                            io_quick,    CaseId,        TempInclIdx,    lIncFile,    &
                            rlbIdx,      slbIdx,        DeplFileIdx,    phlIdx, PXSIDX, pmatrxIdx
 use ioutil,         only : terminate,   toupper,       openfile,       IFnumeric,   &
-                           nfields,     getfn
+                           nfields,     getfn,         icolfield,      expdast, nhexdat
 use inputcards ,    only : oneline,     probe,         mxcard,         nblock,      &
                            FindBlockId, FindCardId,    cards,          blocks
 use geom,           only : LEDGE,        core,          nCellX0,       nAsyType0,   &
@@ -49,12 +49,13 @@ INTEGER         :: iline                    !Number of Line of Input file
 INTEGER         :: nMxCardInp               !Maximum number of card in the one block
 INTEGER         :: nLineField
 INTEGER         :: iasy, icell, ipin              !Assembly, Cell, Pin Number Idx
-INTEGER         :: i, j, k,  NB
+INTEGER         :: i, j, k,  NB, ist
 INTEGER         :: maxCellID, maxPinID      !--- CNJ Edit : Flexible Cell & Pin Numbering
 INTEGER         :: matfid = 28, ibasecell        !--- 180531 JSR Edit
 REAL            :: REALTemp(100)
 INTEGER         :: MCP_temp
 CHARACTER(512)  :: MCP_oneline
+CHARACTER*512   :: aline, bline
 INTEGER :: xsod
 !INTEGER,pointer :: iCard(:,:)
 
@@ -158,7 +159,10 @@ DO while(TRUE)
       READ(oneline,*) ASTRING, CellPitch
       IF(nLineField .gt. 1) READ(oneline,*) ASTRING, CellPitch, AsyPitch
     CASE('AX_MESH')
-      nz =nLineField
+      ist = icolfield(oneline, 2)
+      aline = oneline(ist:256)
+      CALL expdast(aline, bline)
+      nz = nhexdat(bline)
       CORE%nz = nz; PE%nz = nz
     CASE('CELL')
       read(oneline,*) astring, icell

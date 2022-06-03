@@ -2,7 +2,7 @@ SUBROUTINE HexReadInp(indev)
 
 USE param,      ONLY : ONE, BLANK, DOT
 USE geom,       ONLY : nZ, hz, hzInv
-USE ioutil,     ONLY : toupper, ifnumeric, icolfield
+USE ioutil,     ONLY : toupper, ifnumeric, icolfield, expdast
 USE RAYS,       ONLY : RayInfo
 USE inputcards, ONLY : oneline, probe, FindCardId
 USE PE_MOD,     ONLY : PE
@@ -17,6 +17,7 @@ IMPLICIT NONE
 
 CHARACTER(15)  :: cardname, astring
 CHARACTER(256) :: dataline
+CHARACTER*512  :: aline, bline
 
 INTEGER, PARAMETER :: idblock = 6
 
@@ -71,7 +72,11 @@ DO WHILE (TRUE)
       CALL dmalloc(hz,    nz)
       CALL dmalloc(HzInv, nz)
       
-      READ (oneline, *) astring, (hz(iz), iz = 1, nz)
+      !WRITE (aline, '(A512)') dataline
+      aline = dataline
+      CALL expdast(aline, bline)
+      
+      READ (bline, *) (hz(iz), iz = 1, nz)
       
       HzInv = ONE / Hz
       

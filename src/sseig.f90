@@ -347,7 +347,7 @@ DO iout = 1, ItrCntl%OuterMax
   IF (nTracerCntl%lFeedBack .AND. ThInfo%TdopChg .LT. 5E-5) lThConv = TRUE
   
   IF (MASTER) THEN
-    WRITE(mesg, '(2x, A,L3, 3x, A, L3, 3x, A, L3)') 'Convergence - Flux :', ItrCntl%lconv, 'TH :',lThConv, 'B-Search:', lSearchConv
+    WRITE (mesg, '(2x, A,L3, 3x, A, L3, 3x, A, L3)') 'Convergence - Flux :', ItrCntl%lconv, 'TH :',lThConv, 'B-Search:', lSearchConv
     CALL message(io8, FALSE, TRUE, mesg)
   END IF
   

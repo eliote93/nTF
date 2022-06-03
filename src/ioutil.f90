@@ -107,7 +107,135 @@ ENDIF
 !
 return
 END FUNCTION
-!
+
+SUBROUTINE expdast(aline, bline)
+
+USE param, ONLY : TRUE, FALSE, BLANK, AST, BANG
+
+IMPLICIT NONE
+
+CHARACTER*512 :: aline, bline, cline, multline
+
+INTEGER :: nhexdat, icol, jcol, kcol, ncol, nmult, nline, ist, jst, jed, lgh1, lgh2, lgh3
+CHARACTER*1 :: chr
+! ----------------------------------------------------
+
+bline = aline
+ncol  = len_trim(bline)
+icol = 0
+
+DO
+  icol = icol + 1
+  
+  IF (icol .GT. ncol) EXIT
+  
+  chr = bline(icol:icol)
+  
+  IF (chr .EQ. BANG) EXIT
+  IF (chr .NE. AST) CYCLE
+  
+  ! SET : Number of Multiple
+  DO jcol = icol-1, 1, -1 ! Non-Blank
+    chr = bline(jcol:jcol)
+    IF (chr .NE. BLANK) EXIT
+  END DO
+  
+  IF (jcol .EQ. 1) THEN
+    kcol = 0
+  ELSE
+    DO kcol = jcol-1, 1, -1 ! Blank
+      chr = bline(kcol:kcol)
+      IF (chr .EQ. BLANK) EXIT
+    END DO
+  END IF
+  
+  READ (bline(kcol+1:jcol), *) nmult
+  ist = kcol+1
+  
+  ! SET : Multiplier
+  DO jcol = icol+1, ncol ! Non-Blank
+    chr = bline(jcol:jcol)
+    IF (chr .NE. BLANK) EXIT
+  END DO
+  
+  IF (chr .EQ. '(') THEN
+    DO kcol = jcol+1, ncol ! End of Paranthesis
+      chr = bline(kcol:kcol)
+      IF (chr .EQ. ')') EXIT
+    END DO
+    
+    IF (kcol .GT. ncol) CALL terminate("NHEXDAT : PARANTHESIS")
+    
+    multline = bline(jcol+1:kcol-1)
+    cline = bline(kcol+1:ncol) ! Posterior
+  ELSE
+    DO kcol = jcol+1, ncol ! Blank
+      chr = bline(kcol:kcol)
+      IF (chr .EQ. BLANK) EXIT
+    END DO
+    
+    multline = bline(jcol:kcol-1)
+    cline = bline(kcol:ncol) ! Posterior
+  END IF
+  
+  nline = len_trim(multline)
+  
+  ! CHK : Size
+  lgh1 = ist - 1 ! Anterior
+  lgh2 = nmult*(nline + 1) ! Multline
+  lgh3 = ncol - kcol + 1 ! Posterior
+  IF (lgh1 + lgh2 + lgh3 .GT. 512) CALL terminate("NHEXDAT : LGH")
+  
+  ! MULT
+  bline(ist:) = BLANK
+  
+  DO jcol = 1, nmult
+    jst = ist + (nline+1) * (jcol-1)
+    jed = jst + nline-1
+    
+    bline(jst:jed) = multline
+  END DO
+  
+  bline(jed+1:) = cline ! Posterior
+  ncol = len_trim(bline)
+END DO
+! ----------------------------------------------------
+
+END SUBROUTINE expdast
+
+FUNCTION nhexdat(aline)
+
+USE param, ONLY : BLANK, BANG
+
+IMPLICIT NONE
+
+INTEGER :: nhexdat
+CHARACTER*512 :: aline
+CHARACTER*1   :: chr
+
+INTEGER :: icol
+LOGICAL :: lblkprv, lblknow
+! ----------------------------------------------------
+
+lblkprv = aline(1:1) .EQ. BLANK
+
+nhexdat = 0
+IF (.NOT.lblkprv) nhexdat = 1
+
+DO icol = 2, len_trim(aline)
+  chr = aline(icol:icol)
+  
+  IF (chr .EQ. BANG) EXIT
+  
+  lblknow = chr .EQ. BLANK
+  
+  IF (lblkprv .AND. .NOT.lblknow) nhexdat = nhexdat + 1
+  
+  lblkprv = lblknow
+END DO
+! ----------------------------------------------------
+
+END FUNCTION nhexdat
 
 SUBROUTINE multiline(idin,iDOut,ndataf)
 use param

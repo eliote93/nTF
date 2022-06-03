@@ -203,21 +203,25 @@ END SUBROUTINE HexRead_GapCel
 SUBROUTINE HexRead_Pin(dataline0)
 
 USE geom,    ONLY : nz, nCellType
+USE ioutil,  ONLY : expdast, nhexdat
 USE HexData, ONLY : RodPin
 
 IMPLICIT NONE
 
 CHARACTER(256), INTENT(IN) :: dataline0
-CHARACTER(256) :: dataline
+CHARACTER*512 :: aline, bline
 
-INTEGER :: iz, iPin
+INTEGER :: iz, iPin, ndat
 INTEGER :: ii(300)
 ! ----------------------------------------------------
 
-dataline = dataline0
+aline = dataline0
+CALL expdast(aline, bline)
+ndat = nhexdat(bline)
+IF (nhexdat(bline) .NE. nZ + 1) CALL terminate("WRONG [PIN] - # OF CELL")
 
-READ (dataline, *) iPin
-READ (dataline, *) (ii(iz), iz = 1, nZ + 1)
+READ (bline, *) iPin
+READ (bline, *) (ii(iz), iz = 1, nZ + 1)
 
 IF (RodPin(iPin)%iCel(1) .NE. 0) CALL terminate("WRONG [PIN] - OVERLAPPED GAP PIN INPUT")
 
@@ -233,21 +237,24 @@ END SUBROUTINE HexRead_Pin
 SUBROUTINE HexRead_GapPin(dataline0)
 
 USE geom,    ONLY : nz
+USE ioutil,  ONLY : expdast, nhexdat
 USE HexData, ONLY : GapPin
 
 IMPLICIT NONE
 
 CHARACTER(256), INTENT(IN) :: dataline0
-CHARACTER(256) :: dataline
+CHARACTER*512 :: aline, bline
 
 INTEGER :: iz, iPin
 INTEGER :: ii(300)
 ! ----------------------------------------------------
 
-dataline = dataline0
+aline = dataline0
+CALL expdast(aline, bline)
+IF (nhexdat(bline) .NE. nZ + 1) CALL terminate("WRONG [PIN] - # OF CELL")
 
-READ (dataline, *) iPin
-READ (dataline, *) (ii(iz),iz = 1, nZ + 1)
+READ (bline, *) iPin
+READ (bline, *) (ii(iz),iz = 1, nZ + 1)
 
 IF (GapPin(iPin)%iCel(1) .NE. 0) CALL terminate("WRONG [GAP_PIN] - OVERLAPPED GAP PIN INPUT")
 
@@ -272,7 +279,7 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: indev 
 CHARACTER(256), INTENT(IN) :: dataline0
 CHARACTER(256) :: dataline
-character*512  :: astring
+CHARACTER*512  :: astring
 
 INTEGER :: nSpt, nDataField, ndat
 INTEGER :: ipos(100), ii(100)

@@ -405,9 +405,7 @@ END IF
 
 #ifdef MPI_ENV
 errdat = (/fiserr, eigerr, reserr/)
-
 CALL BCAST(errdat, 3, PE%MPI_RT_COMM)
-
 fiserr = errdat(1)
 eigerr = errdat(2)
 reserr = errdat(3)

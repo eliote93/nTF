@@ -20,6 +20,7 @@ USE MPIComm_Mod,    ONLY : MPIWaitTurn, MPI_SYNC
 IMPLICIT NONE
 
 CHARACTER(15) :: cardname, blockname, astring
+CHARACTER(2)  :: dumc
 INTEGER :: indev
 INTEGER :: idblock,idcard
 LOGICAL :: master
@@ -82,12 +83,12 @@ DO WHILE (TRUE)
     CASE('LP_SHF');       CALL ReadLpShfCard      (indev, io8)
     CASE('VISUAL');       CALL ReadVisualCard     (indev, io8)
     CASE('CNTLROD');      CALL ReadCntlRodCard    (indev, io8)
-    CASE('CUSPING');      CALL ReadCuspingCard    (indev,io8)
+    CASE('CUSPING');      CALL ReadCuspingCard    (indev, io8)
     CASE('XEDYN');        CALL ReadXeDynCard      (indev, io8)
     CASE('MCP_RESTART');  CALL ReadMcpRestartCard (indev, io8)
     CASE('SUBCH_OP');     CALL ReadSubchOptionCard(indev, io8)
-    CASE('MKL');          CALL ReadMKLCard        (indev, io8)   !--- CNJ Edit : Intel MKL Option Parsing
-    CASE('CUDA');         CALL ReadCUDACard       (indev, io8)  !--- CNJ Edit : CUDA Option Parsing
+    CASE('MKL');          CALL ReadMKLCard        (indev, io8) !--- CNJ Edit : Intel MKL Option Parsing
+    CASE('CUDA');         CALL ReadCUDACard       (indev, io8) !--- CNJ Edit : CUDA Option Parsing
     CASE('GCGEN');        CALL ReadGCCard         (indev, io8)
     CASE('NTIG_RESTART'); CALL ReadNTIGCard       (indev, io8) ! --- 180827 JSR
   END SELECT
@@ -98,10 +99,16 @@ END DO
 IF (MASTER) THEN 
   WRITE (mesg, '(A)') hbar2 
   CALL message(io8,FALSE, FALSE, mesg) 
-   
-  mesg = 'Reading Input from '// trim(filename(5)) // '...' 
-  CALL message(io8, TRUE, TRUE, mesg) 
-   
+  
+  mesg = 'Reading Input from '// trim(filename(5)) // '...'
+  CALL message(io8, TRUE, TRUE, mesg)
+  
+  IF (PE%nproc .GT. 1) THEN
+    WRITE (dumc, '(I2)') PE%nproc
+    mesg = 'Using ' // dumc // ' processors ...'
+    CALL message(io8, TRUE, TRUE, mesg)
+  END IF
+  
   IF (nTracerCntl%TRSolver .NE. 1) THEN 
     mesg = 'SCHEME : multigroup MC' 
     CALL message(io8, TRUE, TRUE, mesg) 

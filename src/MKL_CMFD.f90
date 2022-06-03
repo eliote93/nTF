@@ -192,6 +192,10 @@ DO WHILE (.NOT. loutConv)
   
   WRITE (mesg, '(a9, i9, f22.6, 3x, f10.5, 1p, e15.3)') 'MGOUTER', ItrCntl%CMFDIt, eigv, outErr, outRes
   IF (PE%MASTER) CALL message(io8, FALSE, TRUE, mesg)
+  IF (eigv.NE.eigv .OR. outErr.NE.outErr .OR. outRes.NE.outRes) THEN
+    CALL finalize
+    STOP
+  END IF
   
   ! ChevyShev
   IF (lChebyshev) THEN
@@ -492,6 +496,10 @@ DO WHILE (.NOT. loutConv)
   Keff = 1.0 / (1.0 / eigv + seigv)
   WRITE(mesg, '(a9, i9, f22.6, 3x, f10.5, 1p, e15.3)') 'CGOUTER', ItrCntl%GcCMFDIt, Keff, outErr, outRes
   IF (PE%MASTER) CALL message(io8, FALSE, TRUE, mesg)
+  IF (Keff.NE.Keff .OR. outErr.NE.outErr .OR. outRes.NE.outRes) THEN
+    CALL finalize
+    STOP
+  END IF
 END DO
 
 WRITE(mesg, '(a)') 'Group Reconstruction...'
