@@ -52,7 +52,7 @@ hactive = ZERO
 DO iz = 1, nz
   IF (Core%lFuelPlane(iz)) Hactive = Hactive + Core%hz(iz)
 END DO
-
+! ----------------------------------------------------
 #ifdef __PGI
 IF (PE%lCUDACMFD .AND. cuCntl%lPwDist) THEN
   IF (.NOT. cuPwDist%lTran) CALL cuUpdtPinPw(cuPwDist, FALSE, FALSE)
@@ -101,7 +101,7 @@ IF (PE%lCUDACMFD .AND. cuCntl%lPwDist) THEN
   RETURN
 END IF
 #endif
-
+! ----------------------------------------------------
 !--- CNJ Edit : MKL, CUDA Reorder Pin Cross Section
 #ifdef __INTEL_MKL
 IF (PE%lMKL) CALL MKL_ReorderPinXS(Core, CmInfo)
@@ -110,17 +110,17 @@ IF (PE%lMKL) CALL MKL_ReorderPinXS(Core, CmInfo)
 #ifdef __PGI
 IF (PE%lCUDACMFD) CALL CUDAReorderPinXS(Core, CmInfo)
 #endif
-
+! ----------------------------------------------------
 TotPow = ZERO
 Volsum = ZERO
 
-RelPower(1:nz,1:nxy) = ZERO
+RelPower(1:nz, 1:nxy) = ZERO
 
 DO iz = myzb, myze
   IF (.NOT. Core%lFuelPlane(iz)) CYCLE
   
   DO ixy = 1, nxy
-    localPow = DotProduct(PinXS(ixy, iz)%XSKF(1:ng), PhiC(ixy, iz, 1:ng), ng)
+    localPow = DotProduct(PinXS(ixy, iz)%xskf(1:ng), PhiC(ixy, iz, 1:ng), ng)
     
     IF (localPow .LE. ZERO) CYCLE
     
@@ -149,9 +149,10 @@ IF (lGather) THEN
       TotPow = TotPow + RelPower(iz, ixy)
     END DO
   END DO
-ENDIF
+END IF
 #endif
-
+! ----------------------------------------------------
+! Adj : Flux Lv.
 AVGPOW = TotPow / VolSUM
 fnorm  = 1._8 / AvgPow
 
@@ -182,25 +183,23 @@ DO iz = 1, nz
   
   RelPower(iz, 0) = Sum0 / VolSum
 END DO
-
+! ----------------------------------------------------
 !#define relpowerout
 #ifdef relpowerout
 IF (PE%CMFDMASTER) THEN
   OPEN(89, FILE='REL.pw', status='replace')
-  
   DO ixy = 1, nxy
     write(89, '(2I8, F15.5, 500e20.5)') Pin(ixy)%ix, Pin(ixy)%iy, sum(RelPower(:, ixy)),(RelPower(iz, ixy), iz=1, nz)
-    
   END DO
-  close(89)
+  CLOSE(89)
 END IF
 #endif
 
-NULLIFY(Pin)
-NULLIFY(PinXS)
-NULLIFY(PinVol)
-NULLIFY(hz)
-NULLIFY(PhiC)
+NULLIFY (Pin)
+NULLIFY (PinXS)
+NULLIFY (PinVol)
+NULLIFY (hz)
+NULLIFY (PhiC)
 ! ----------------------------------------------------
 
 END SUBROUTINE CalRelPower
@@ -262,12 +261,13 @@ DO iz = myzb, myze
   nlocalFsr = Cell(icel)%nFsr
   
   volsum = ZERO
+  
   DO j = 1, nLocalFxr
     fxrprofile(j) = 0
     ifxr = FxrIdxSt + j -1
     
     IF (.NOT. Fxr(ifxr,iz)%lfuel) CYCLE
-
+    
     nFsrInFxr = Cell(icel)%nFsrInFxr(j)
     
     CALL MacXsKf(XsMac, Fxr(ifxr, iz), 1, ng, ng, 1._8, FALSE)
@@ -277,7 +277,7 @@ DO iz = myzb, myze
     DO ig = iResoGrpBeg,iResoGrpEnd
       XsMackf(ig) = XsMackf(ig) * Fxr(ifxr, iz)%fresokF(ig)
     END DO
-
+    
     DO i = 1, nFsrInFxr
       ifsrlocal = Cell(icel)%MapFxr2FsrIdx(i, j)
       ifsr      = FsrIdxSt + ifsrlocal - 1

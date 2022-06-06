@@ -106,8 +106,13 @@ IF (nTracerCntl%lXeDyn) CALL XeDynRelaxContrl(FALSE)
 
 ! Align XS
 IF (nTracerCntl%lXsAlign) CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
+
+#ifdef MPI_ENV
+  CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
+#endif
 ! ----------------------------------------------------
 IF (nTracerCntl%lFeedBack) THEN
+  ! T/H
   lThConv = FALSE
   
   IF (nTracerCntl%lSSPH) nTracerCntl%lSSPHreg = TRUE
@@ -142,6 +147,7 @@ IF (nTracerCntl%lFeedBack) THEN
     CALL UpdateResPinFuelTemp
   END IF
   
+  ! Init.
   IF (nTRACERCntl%lDeplVarInit) CALL InitIterVar(Core, FMInfo, CmInfo, GroupInfo, TRUE, ItrCntl, nTracerCntl, PE)
 
   ! Update Xenon Dynamics
@@ -153,38 +159,9 @@ IF (nTracerCntl%lFeedBack) THEN
       CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
     END IF
   END IF
-  
-  ! Generate Self-Shielded XS
-  IF (nTracerCntl%lrestrmt) CALL SubgrpDriverSwitch
-  
-#ifdef MPI_ENV
-  CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
-#endif
-  
-  ! Effective XS Calculation
-  IF (.NOT. nTRACERCntl%lPSM) THEN
-#ifdef __PGI
-    IF (nTracerCntl%lXsAlign) THEN
-      CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
-    ELSE
-      CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
-    END IF
-#else
-    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
-#endif
-  ELSE
-    CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
-  END IF
-  
-  IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-  
-  CALL CmfdDriverSwitch
 ! ----------------------------------------------------
 ELSE
-#ifdef MPI_ENV
-  CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
-#endif
-  
+  ! Init.
   IF (nTRACERCntl%lDeplVarInit) CALL InitIterVar(Core, FMInfo, CmInfo, GroupInfo, TRUE, ItrCntl, nTracerCntl, PE)
   
   ! Update Xenon Dynamics
@@ -199,33 +176,38 @@ ELSE
     CALL XsLinIntPolTemp(nTracerCntl%ScatOd)
     CALL UpdateResPinFuelTemp
   END IF
-  
-  ! Generate Self-Shielded XS
-  IF (nTracerCntl%lrestrmt) THEN
-    CALL SubgrpDriverSwitch
-    
-    lSubGrp = TRUE
-  END IF
-  
-  ! Effective XS Calculation
-  IF (.NOT. nTRACERCntl%lPSM) THEN
-#ifdef __PGI
-    IF (nTracerCntl%lXsAlign) THEN
-      CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
-    ELSE
-      CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
-    END IF
-#else
-    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
-#endif
-  ELSE
-    CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
-  END IF
-  
-  IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
-  
-  CALL CmfdDriverSwitch
 END IF
+! ----------------------------------------------------
+! Generate Self-Shielded XS
+IF (nTracerCntl%lrestrmt) THEN
+  CALL SubgrpDriverSwitch
+  
+  lSubGrp = TRUE
+END IF
+
+#ifdef MPI_ENV
+  CALL MPI_SYNC(PE%MPI_NTRACER_COMM)
+#endif
+
+! Effective XS Calculation
+IF (.NOT. nTRACERCntl%lPSM) THEN
+#ifdef __PGI
+  IF (nTracerCntl%lXsAlign) THEN
+    CALL CUDASubGrpEffXSGen(core,FmInfo%fxr,nTracerCntl,PE)
+  ELSE
+    CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+  END IF
+#else
+  CALL SubGrpEffXsGen(Core, FmInfo%Fxr, THInfo, Eigv, GroupInfo, nTracerCntl, PE)
+#endif
+ELSE
+  CALL GetfresoFXR(Core, FmInfo%Fxr, THInfo, eigv, GroupInfo, nTracerCntl, PE)
+END IF
+
+IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
+! ----------------------------------------------------
+! CMFD
+CALL CmfdDriverSwitch
 ! ----------------------------------------------------
 IF (nTracerCntl%lBoronSearch) THEN
   CALL UpdtBoronPPM(nTracerCntl%target_eigv, eigv, nTracerCntl%BoronPPM, TRUE, MASTER)

@@ -471,12 +471,14 @@
 		<File RelativePath=".\src\InitTH.f90"/>
 		<File RelativePath=".\src\mod_AndersonAcc_SIMPLE.f90"/>
 		<File RelativePath=".\src\SetThCell.f90"/>
+		<File RelativePath=".\src\SimpleTH.f90"/>
 		<File RelativePath=".\src\SteadyStateTH.f90"/>
 		<File RelativePath=".\src\Th_mod.f90"/>
 		<File RelativePath=".\src\THFeedBack.f90"/>
 		<File RelativePath=".\src\ThFunction.f90"/>
 		<File RelativePath=".\src\TransientTH.f90"/>
-		<File RelativePath=".\src\UserDefTH.f90"/></Filter>
+		<File RelativePath=".\src\UserDefTH.f90"/>
+		<File RelativePath=".\src\UtilTH.f90"/></Filter>
 		<Filter Name="Transient">
 		<Filter Name="CMFD">
 		<File RelativePath=".\src\TranAxNUtil_mod.f90"/>

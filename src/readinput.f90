@@ -45,7 +45,7 @@ IF (nTracerCntl%lnTIGRst) CALL ProcMatBin !--- 180531 JSR Edit
 indev = io5
 
 DO WHILE (TRUE)
-  READ (io5,'(a512)',END=1000) oneline
+  READ (io5,'(a512)',END = 1000) oneline
   
   IF (probe .EQ. DOT) nTracerCntl%morecase = FALSE
   
@@ -112,7 +112,14 @@ IF (MASTER) THEN
   IF (nTracerCntl%TRSolver .NE. 1) THEN 
     mesg = 'SCHEME : multigroup MC' 
     CALL message(io8, TRUE, TRUE, mesg) 
-  ELSE 
+  ELSE
+    IF (nTracerCntl%lFeedback) THEN 
+      mesg = 'T/H    : T' 
+    ELSE
+      mesg = 'T/H    : F' 
+    END IF  
+    CALL message(io8, TRUE, TRUE, mesg) 
+    
     IF (nTracerCntl%lNodeMajor) THEN 
       IF (nTracerCntl%ScatOd .GT. 0) THEN 
         mesg = 'SCHEME : Node Major Pn' 
