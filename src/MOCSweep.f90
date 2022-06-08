@@ -20,7 +20,7 @@ USE SPH_mod,     ONLY : ssphf, ssphfNM, calcPinSSPH
 USE HexData,     ONLY : nInnMOCItr
 
 USE BasicOperation,    ONLY : CP_VA
-USE SubChCoupling_mod, ONLY : last_TH
+!USE SubChCoupling_mod, ONLY : last_TH
 
 #ifdef MPI_ENV
 USE MPICOMM_MOD, ONLY : BCAST, MPI_SYNC, MPI_MAX_REAL
@@ -423,7 +423,7 @@ IF (RTMASTER) CALL PowerUpdate(Core, Fxr, phis, FmInfo%Power, myzb, myze, ng, lx
 IF (fiserr.LT.psiconv .AND. eigerr.LT.eigconv .AND. reserr.LT.resconv) THEN
   itrcntl%lconv = TRUE
   
-  IF (nTracerCntl%lFeedBack) last_TH = TRUE
+  !IF (nTracerCntl%lFeedBack) last_TH = TRUE
 END IF
 
 ! FIN

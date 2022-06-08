@@ -1,13 +1,15 @@
 #include <defines.h>
 
 module CTFTH_mod
+
 use PARAM
 use typedef, ONLY : CoreInfo_Type,      Pin_Type,       PinInfo_TYPE,   &
                     ThInfo_Type,        Asy_Type,       AsyInfo_Type,   &   
                     PE_TYPE,            FuelTh_Type     
 use CNTL,    ONLY : nTRACERCntl_Type
 use TH_MOD,       ONLY : ThVar
-use SubChCoupling_mod,      only: last_TH, SubChCode, coupled_maxsteps
+!use SubChCoupling_mod,      only: last_TH, SubChCode, coupled_maxsteps
+use SubChCoupling_mod,      only: SubChCode, coupled_maxsteps
 
 implicit none
 private
@@ -76,6 +78,7 @@ subroutine CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
   type(nTracerCntl_Type) :: nTracerCntl
   type(PE_Type) :: PE
   real*8 :: ToutAvg  
+#ifdef HAVE_CTF
   interface
   subroutine CTF_set_rodpowers_W_cm(pin_number,axial_level,rodpower)
     integer, intent(in) :: pin_number, axial_level
@@ -105,7 +108,7 @@ subroutine CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
 
   if (lfirst) then
     call CTF%preproc(Core,PE)
-#ifdef HAVE_CTF
+!#ifdef HAVE_CTF
     if (PE%master) then
       call gen_preproc_input_CTF(Core,nTracerCntl)
       call CTF_preproc()      
@@ -118,10 +121,10 @@ subroutine CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
       CALL CTF_Initialize(CTF%PE%MPI_COMM,.FALSE.)
       if (coupled_maxsteps>0) call set_coupled_maxsteps(coupled_maxsteps)
     endif
-#endif    
+!#endif    
     lfirst=.false.
   endif
-#ifdef HAVE_CTF
+!#ifdef HAVE_CTF
   if (CTF%PE%lSubCh_proc) then
     call CTF%SetSubChData_CTF(Core,ThInfo,CTF_set_rodpowers_W_cm)
 
@@ -135,26 +138,27 @@ subroutine CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
     call CTF_get_coolant_temp_exit(ToutAvg)
   endif  
 
-#endif  
+!#endif  
 
-  call CTF%Bcast_SubChOut(ThInfo,.false.,PE)
+  call CTF%Bcast_SubChOut(ThInfo,PE)
   
   if (Core%lgap) then
     call CTF%SetAsyGapCoolinfo(Core,ThInfo)
   endif
   
+ !#ifdef HAVE_CTF 
   if (last_TH) then
-#ifdef HAVE_CTF
+
     if (CTF%PE%lSubCh_proc) then
       CALL CTF_Edits(1)
       CALL CTF_Cleanup()
     endif
-#endif      
+!#endif      
     call CTF%Finalize()
   endif
 
   call MPI_SYNC(PE%MPI_CMFD_COMM)  
-
+#endif
 end subroutine
 
 

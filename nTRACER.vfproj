@@ -30,7 +30,9 @@
 		<File RelativePath=".\src\defines.h"/>
 		<File RelativePath=".\src\Depletion.h"/>
 		<File RelativePath=".\src\SP3DEFINES.H"/></Filter>
-		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Previous Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+		<File RelativePath=".\src\ESCOTTH_mod_prv.f90"/>
+		<File RelativePath=".\src\SubChCoupling_mod_prv.f90"/></Filter>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 		<Filter Name="Axial Solver">
 		<Filter Name="P1">

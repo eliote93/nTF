@@ -326,12 +326,16 @@ DO while(TRUE)
     case(20) ! ESCOT
       READ(oneline,*) astring, is_coupled
       CodeName='ESCOT'
+    case(21) ! PIN_RESOLV
+      READ(oneline,*) astring, THOpt%LPINRESOLV ! the use of pin-wise power distribution instead of the average value.
     case(23) ! FRAC_DC
       READ(oneline,*) astring, ThVar%FracDC
       !ThVar%FracDF = 1._8 - ThVar%FracDC
-    case(24) ! ch_conf
-      nTracerCntl%lthchconf = .TRUE.
-      CALL ReadCh_conf(indev, ThVar)
+    !case(24) ! ch_conf ! KSC 220607, Version Conflict
+    !  nTracerCntl%lthchconf = .TRUE.
+    !  CALL ReadCh_conf(indev, ThVar)
+    case(24) ! URELX_FUEL
+      READ(oneline,*) astring, THOpt%wf
     case(25) !AA_STH
       READ(oneline,*) astring, AA_STH
       if (AA_STH < 1) then

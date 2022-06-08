@@ -1328,3 +1328,142 @@ ENDDO
 
 END SUBROUTINE AddConstSrc
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE PowerUpdate_WATT(Core, Fxr, phis, power, myzb, myze, ng, lxslib, GroupInfo, PE, LBCAST_INP)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
+                         GroupInfo_Type,      XsMac_Type,         PE_TYPE
+USE BenchXs,       ONLY : xskfBen
+USE MacXsLib_Mod, ONLY : MacXskf
+USE BasicOperation, ONLY : CP_CA, MULTI_VA
+USE CNTL,             ONLY: nTracerCntl
+use Material_Mod,    only: Mixture
+#ifdef MPI_ENV
+USE MPIComm_Mod, ONLY : BCAST
+USE MPIComm_mod, ONLY : REDUCE
+#endif
+IMPLICIT NONE
+TYPE(coreinfo_type) :: CORE
+TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(PE_Type) :: PE
+REAL, POINTER :: phis(:, :, :)
+REAL, POINTER :: Power(:, :)
+REAL, POINTER :: HZ(:)
+INTEGER :: myzb, myze, ng
+LOGICAL :: lXsLib
+LOGICAL :: LBCAST_INP
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE(Fxrinfo_type),POINTER :: myFxr
+TYPE(XsMac_Type), SAVE :: XsMac
+
+INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
+INTEGER :: ipin, icel, ifsrlocal, ifsr, ifxr, iz, itype, ig
+INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
+INTEGER :: i, j, k, IM
+
+REAL, POINTER :: xsmackf(:)
+REAL :: HZ_LOC, vol, localpow, pwsum, F, PowerCore, PowerLevel
+REAL :: Buf
+
+hz => Core%hz
+Pin => Core%Pin
+CellInfo => Core%CellInfo; nCoreFsr = Core%nCoreFsr
+nCoreFxr = Core%nCoreFxr; nxy = Core%nxy
+
+IF(lxslib) THEN
+  iResoGrpBeg = GroupInfo%nofg + 1
+  iResoGrpEnd = GroupInfo%nofg + GroupInfo%norg
+  norg = GroupInfo%norg
+ENDIF
+
+PowerCore = nTracerCntl%PowerCore
+PowerLevel = nTracerCntl%PowerLevel
+pwsum = 0.
+IF(.NOT. lxsLib) ALLOCATE(xsmackf(ng))
+CALL CP_CA(Power(1:nCoreFsr, 1:Core%nz), zero, nCoreFsr, Core%nz)
+
+DO iz = myzb, myze
+  if (.NOT. Core%lFuelPlane(iz)) cycle
+  HZ_LOC = hz(iz)
+  DO ipin = 1, nxy
+    FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
+    if(CellInfo(icel)%lfuel) then
+      DO j = 1, nLocalFxr
+        ifxr = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
+        myFxr => Fxr(ifxr, iz)
+        IM = myFxr%IMIX
+        if (.not. Mixture(IM)%LFUEL) cycle
+        IF(lXsLib) Then
+          CALL MacXsKf(XsMac, myFxr, 1, ng, ng, 1._8, FALSE)
+          xsmacKf => XsMac%XsMacKf
+          IF(myFxr%lres) THEN
+            do ig = iResoGrpBeg, iResoGrpEnd
+              XsMackf(ig) = XsMackf(ig) * myFxr%fresoF(ig)  
+            enddo
+          ENDIF
+        ELSE
+          ifsrlocal = CellInfo(icel)%MapFxr2FsrIdx(1,j)      
+          itype = myFxr%imix
+          CALL xskfben(itype, 1, ng, xsmackf)
+        ENDIF
+
+        localpow = 0._8
+        DO i = 1, nFsrInFxr
+          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
+          ifsrlocal = Cellinfo(icel)%MapFxr2FsrIdx(i, j)
+          vol = CellInfo(icel)%vol(ifsrlocal)*HZ_LOC
+          DO ig = 1, ng
+            Power(ifsr, iz) = power(ifsr, iz) + xsmackf(ig) *  phis(ifsr, iz, ig) * vol
+          END DO
+          localpow = localpow + Power(ifsr, iz)
+        ENDDO ! Number of FSR inside FXR
+        pwsum = pwsum + localpow
+      ENDDO ! LOCAL FXR
+    endif  !FUEL CELL
+  ENDDO  !PIN
+ENDDO  !PLANES
+
+#ifdef MPI_ENV
+
+CALL REDUCE(pwsum, buf, PE%MPI_RTMASTER_COMM, .TRUE.)
+pwsum = buf
+
+IF (LBCAST_INP) THEN
+  DO iz = 1, Core%nz
+    CALL BCAST(Power(1:nCoreFsr, iz), nCoreFsr, PE%MPI_RTMASTER_COMM, PE%AxDomList(iz))
+  ENDDO
+END IF
+#endif
+F=1._8
+
+if(lxslib) F = PowerCore*1.0D+6/PwSum*PowerLevel
+
+do iz = myzb, myze
+  DO ipin = 1, nxy
+    FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+    icel = Pin(ipin)%Cell(iz); nlocalFxr = CellInfo(icel)%nFxr
+    if(CellInfo(icel)%lfuel) then
+      DO j = 1, nLocalFxr
+        ifxr = FxrIdxSt + j -1
+        nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)    
+        myFxr => Fxr(ifxr, iz)
+        IM = myFxr%IMIX
+        if (.not. Mixture(IM)%LFUEL) cycle
+        DO i = 1, nFsrInFxr
+          ifsr = FsrIdxSt + Cellinfo(icel)%MapFxr2FsrIdx(i, j) - 1  !Global FSR Index
+          power(ifsr,iz) = power(ifsr,iz)*F
+        END DO
+      end do
+    end if
+  end do
+end do
+
+IF(.NOT. lxsLib) Deallocate(xsmackf)
+IF(lXsLib) NULLIFY(XsMackf)
+NULLIFY(Pin, CellInfo, hz)
+END SUBROUTINE
+! ------------------------------------------------------------------------------------------------------------

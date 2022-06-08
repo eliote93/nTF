@@ -18,7 +18,7 @@ DATA ThOpt%CpCladCorrelation /1666764.0_8, 757.284_8, 0., 0./ !rhoclad=6.6 g/cc
 TYPE(CoolantTH_Type), PUBLIC, POINTER :: CoolantTHSave(:)
 TYPE(FuelTH_Type), PUBLIC,  POINTER :: FuelTHSave(:)
 REAL(8),PUBLIC, ALLOCATABLE :: fxrtempsave(:,:,:)
-REAL, PUBLIC, POINTER :: hGapArray(:, :)
+!REAL, PUBLIC, POINTER :: hGapArray(:, :)
 
 INTERFACE
   SUBROUTINE AllocTH()
@@ -130,7 +130,8 @@ INTERFACE
     REAL, OPTIONAL :: hgap
   END SUBROUTINE
 
-  SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray)
+  !SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray)
+  SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE)
   USE PARAM
   USE TYPEDEF,          ONLY :  FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
                                 PE_TYPE
@@ -144,29 +145,29 @@ INTERFACE
   REAL :: PowLin,  Plevel, Tfmax
   REAL :: RelPW(:)
   REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
-  REAL :: hGapArray(:)
+  !REAL :: hGapArray(:)
 
   END SUBROUTINE
 
-  SUBROUTINE SteadyFuelConduction_ThCh(Core, powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray, ixy)
-  USE PARAM
-  USE TYPEDEF,          ONLY :  CoreInfo_Type,   FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
-                                PE_TYPE
-  USE CNTL,             ONLY : nTracerCntl_Type
-  IMPLICIT NONE
-  TYPE(CoreInfo_Type) :: Core
-  TYPE(FuelTH_Type):: FuelTH        ! One Channel Coolant TH information
-  TYPE(ThVar_Type) :: ThVar                !
-  TYPE(ThOPT_Type) :: ThOpt                !
-  TYPE(nTracerCntl_Type) :: nTracerCntl
-  TYPE(PE_Type) :: PE                      !
-  REAL :: PowLin,  Plevel, Tfmax
-  REAL :: RelPW(:)
-  REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
-  REAL :: hGapArray(:)
-  INTEGER:: ixy
-
-  END SUBROUTINE
+  !SUBROUTINE SteadyFuelConduction_ThCh(Core, powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray, ixy)
+  !USE PARAM
+  !USE TYPEDEF,          ONLY :  CoreInfo_Type,   FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
+  !                              PE_TYPE
+  !USE CNTL,             ONLY : nTracerCntl_Type
+  !IMPLICIT NONE
+  !TYPE(CoreInfo_Type) :: Core
+  !TYPE(FuelTH_Type):: FuelTH        ! One Channel Coolant TH information
+  !TYPE(ThVar_Type) :: ThVar                !
+  !TYPE(ThOPT_Type) :: ThOpt                !
+  !TYPE(nTracerCntl_Type) :: nTracerCntl
+  !TYPE(PE_Type) :: PE                      !
+  !REAL :: PowLin,  Plevel, Tfmax
+  !REAL :: RelPW(:)
+  !REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
+  !REAL :: hGapArray(:)
+  !INTEGER:: ixy
+  !
+  !END SUBROUTINE
 
   SUBROUTINE SteadyStateTH(Core, CmInfo, FmInfo, ThInfo, Eigv, ng, GroupInfo, nTRACERCntl, PE)
   USE PARAM
@@ -350,7 +351,8 @@ END SUBROUTINE
 
   END SUBROUTINE
 
-  SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, GrpRelPower, ng, nTracerCntl, PE, lGather)
+  !SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, GrpRelPower, ng, nTracerCntl, PE, lGather)
+  SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, lGather)
 
   !Update Normalized Power for T/H
   USE PARAM
@@ -365,7 +367,7 @@ END SUBROUTINE
   TYPE(PE_TYPE) :: PE
   INTEGER :: ng
   REAL, POINTER :: RelPower(:, :)
-  REAL, POINTER :: GrpRelPower(:, :)
+  !REAL, POINTER :: GrpRelPower(:, :)
    LOGICAL :: lGather
   END SUBROUTINE
 

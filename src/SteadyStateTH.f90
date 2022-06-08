@@ -3,8 +3,8 @@ SUBROUTINE SteadyStateTH(Core, CmInfo, FmInfo, ThInfo, Eigv, ng, GroupInfo, nTRA
 
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type, CMInfo_Type, FmInfo_Type, ThInfo_Type, GroupInfo_Type, PE_Type, FxrInfo_Type, PinXS_Type, Pin_Type, ThVar_Type, THOpt_Type, FuelTh_Type, CoolantTH_Type
-USE TH_Mod,         ONLY : ThOpt, ThVar, CalRelPower, SteadyCoolantTH, SteadyFuelConduction, SubCellPowerProfile, SimpleTH, SetPwShape, SetBurnupDist, Grp_RelPower, SetUSErDefTH, &
-                           hGapArray, SteadyCoolantTH_ThCh, SteadyFuelConduction_ThCh, recalculate_vars
+USE TH_Mod,         ONLY : ThOpt, ThVar, CalRelPower, SteadyCoolantTH, SteadyFuelConduction, SubCellPowerProfile, SimpleTH, SetPwShape, SetBurnupDist, Grp_RelPower, SetUSErDefTH, recalculate_vars!, &
+                           !hGapArray, SteadyCoolantTH_ThCh, SteadyFuelConduction_ThCh
 USE SubChannel_mod, ONLY : SubChannelTH
 USE MATRATH_mod,    ONLY : MATRA_TH
 USE CTFTH_mod,      ONLY : CTF_TH
@@ -43,10 +43,10 @@ TYPE (FuelTh_Type), POINTER :: FuelTH(:)
 TYPE (CoolantTH_Type), POINTER :: CoolantTH(:)
 
 REAL, POINTER, DIMENSION(:)   :: RhoU
-REAL, POINTER, DIMENSION(:,:) :: Profile, PwShape, BurnupDist, RelPower, GrpRelPower 
+REAL, POINTER, DIMENSION(:,:) :: Profile, PwShape, BurnupDist, RelPower!, GrpRelPower 
 INTEGER :: xyb, xye, nxy, nzth, nchannel, npr5   !--- CNJ Edit : Domain Decomposition + MPI
 INTEGER :: ixy, iz, iter, n, Comm, ncall
-REAL :: PEXIT, Tout, toutavg, tfmax1, tfmax, tdopd, tdoplmax, TdoplMax0, pwmax, tbeg, tend, powlin, powlv, Btemp, tfavg_max, tmod_max, hgapavg, nhgap
+REAL :: PEXIT, Tout, toutavg, tfmax1, tfmax, tdopd, tdoplmax, TdoplMax0, tbeg, tend, powlin, powlv, Btemp, tfavg_max, tmod_max, hgapavg, nhgap
 LOGICAL :: Master, Slave, lsimpleTH, lMATRA
 LOGICAL :: lftemp_ex = FALSE
 LOGICAL :: lfirst    = TRUE
@@ -103,23 +103,16 @@ ALLOCATE (BurnUpDist (0:ThVar%npr5, nzth))
 IF (ItrCntl%cmfdit .NE. 0) THEN
   ! CAL : Rel. Pw.
   CALL CalRelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, TRUE)
-  
-  ! CAL : Max. Pw.
-  pwmax = 0.
-  DO ixy = xyb, xye
-    IF (.NOT. CoolantTH(ixy)%lfuel) CYCLE
-    pwmax = max(pwmax, RelPower(0, ixy))
-  END DO 
-  ThInfo%pwpeakf = pwmax
-  
+    
   ! CAL : Grp. Rel. Pw.
   IF (nTracerCntl%ThCh_mod .GE. 1) THEN 
-    IF (nTRACERCntl%lthch_tf) THEN 
-      CALL Grp_RelPower(Core, CmInfo, RelPower,    RelPower, ng, nTracerCntl, PE, TRUE)
-    ELSE
-      ALLOCATE(GrpRelPower(0:nzth,0:nxy))
-      CALL Grp_RelPower(Core, CmInfo, RelPower, GrpRelPower, ng, nTracerCntl, PE, TRUE)
-    END IF
+    !IF (nTRACERCntl%lthch_tf) THEN 
+      !CALL Grp_RelPower(Core, CmInfo, RelPower,    RelPower, ng, nTracerCntl, PE, TRUE)
+    CALL Grp_RelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, TRUE)
+    !ELSE
+    !  ALLOCATE(GrpRelPower(0:nzth,0:nxy))
+    !  CALL Grp_RelPower(Core, CmInfo, RelPower, GrpRelPower, ng, nTracerCntl, PE, TRUE)
+    !END IF
   END IF
 END IF
 ! ----------------------------------------------------
@@ -162,30 +155,35 @@ DO iter = 1, 1
 		ELSE IF (CodeName=='CTF') THEN
       tfmax = 0._8
       CALL CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
-      nchannel=1
+      nchannel = 1
     ELSE IF (CodeName=='ESCOT') THEN
       tfmax = 0._8
-      CALL ESCOT_TH(Core, ThInfo, nTracerCntl, ToutAvg, lftemp_ex, PE)
-      nchannel=1
+      CALL ESCOT_TH(Core, ThInfo, nTracerCntl, ToutAvg, lftemp_ex, PE, ng)
+      nchannel = 1
+    !elseif (CodeName=='WRAPPER' .and. is_coupled) then
+    !  tfmax = 0._8
+    !  CALL Wrapper_TH(Core, ThInfo, nTracerCntl, ToutAvg, PE, ng)
+    !  lftemp_ex = .true.
+    !  nchannel=1
     ELSE
       DO ixy = xyb, xye
         IF (.NOT. CoolantTH(ixy)%lfuel) CYCLE
         
         nchannel = nchannel + 1
         
-        IF (nTracerCntl%lthchConf) THEN
-          IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT. nTRACERCntl%lthch_tf) THEN 
-            CALL SteadyCoolantTH_ThCh(Core, PowLin, PowLv, PEXIT, Tout, GrpRelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE, ixy)
-          ELSE 
-            CALL SteadyCoolantTH_ThCh(Core, PowLin, PowLv, PEXIT, Tout,    RelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE, ixy)
-          END IF
-        ELSE
-          IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT. nTRACERCntl%lthch_tf) THEN 
-            CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, GrpRelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE)
-          ELSE
+        !IF (nTracerCntl%lthchConf) THEN
+        !  IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT. nTRACERCntl%lthch_tf) THEN 
+        !    CALL SteadyCoolantTH_ThCh(Core, PowLin, PowLv, PEXIT, Tout, GrpRelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE, ixy)
+        !  ELSE 
+        !    CALL SteadyCoolantTH_ThCh(Core, PowLin, PowLv, PEXIT, Tout,    RelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE, ixy)
+        !  END IF
+        !ELSE
+          !IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT. nTRACERCntl%lthch_tf) THEN 
+          !  CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, GrpRelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE)
+          !ELSE
             CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, RelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE)
-          END IF
-        END IF
+          !END IF
+        !END IF
         
         IF (abs(CoolantTH(ixy)%TCoolInOut(2, nzth)-BTEMP) .LT. epsm4) THEN
           IF (Master) THEN
@@ -217,11 +215,12 @@ DO iter = 1, 1
         CALL SetPwShape(Pwshape, Core, FmInfo%Fxr, FmInfo%Power, ixy, nzth, ThVar%npr5, Thvar, ThOpt, PE)
         CALL SetBurnupDist(BurnUpDist, Core, FmInfo, ixy, nzth, ThVar%npr5, Thvar, ThOpt, PE)
         
-        IF (nTracerCntl%lThChConf) THEN
-          CALL SteadyFuelConduction_ThCh(Core, powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE, hGapArray(:,ixy), ixy)
-        ELSE
-          CALL SteadyFuelConduction(powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE, hGapArray(:,ixy))
-        END IF
+        !IF (nTracerCntl%lThChConf) THEN
+        !  CALL SteadyFuelConduction_ThCh(Core, powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE, hGapArray(:,ixy), ixy)
+        !ELSE
+          !CALL SteadyFuelConduction(powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE, hGapArray(:,ixy))
+        CALL SteadyFuelConduction(powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE)
+        !END IF
         
         tfmax = max(tfmax, tfmax1)
         
@@ -316,7 +315,7 @@ Tend = nTracer_dclock(false, false)
 TimeChk%ThTime = TimeChk%ThTime + (TEnd - Tbeg)
 ! ----------------------------------------------------
 IF (lSimpleTH) DEALLOCATE (Profile)
-IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT.nTRACERCntl%lthch_tf) DEALLOCATE (GrpRelPower)
+!IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT.nTRACERCntl%lthch_tf) DEALLOCATE (GrpRelPower)
 DEALLOCATE (Pwshape)
 DEALLOCATE (BurnUpDist)
 NULLIFY (PIN)

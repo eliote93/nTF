@@ -1167,7 +1167,7 @@ TYPE THOpt_Type
   REAL :: CpFuelCorrelation(0:3)
   REAL :: CpCladCorrelation(0:3)
   REAL :: Hgap = 10000._8
-  REAL :: PinDim(5)                 !  1 : PinRadius, Caldding Outer, Clad Thickness, Guide Tube Radius
+  REAL :: PinDim(6)                 !  1 : PinRadius, Caldding Outer, Clad Thickness, Guide Tube Radius
   INTEGER :: nrpellet  = 20
   INTEGER :: nCondRing = 9
 
@@ -1178,12 +1178,15 @@ TYPE THOpt_Type
   INTEGER :: hGapModel = 1             !  1: Fixed Value   2: Interpolation  3: Modified Ross Stoute (Campbell)
   REAL :: RhoFuel = 10.282
   REAL :: RhoClad = 6.6
-  LOGICAL :: AA_STH = .FALSE.
+  REAL :: WF = 1.0
+  logical :: LPINRESOLV = .true.
+  LOGICAL :: AA_STH = .TRUE.
 END TYPE
 
 TYPE THVar_Type
 
   REAL :: rs, rw, tw, rgap, rgto, rgti           !  Pallet R, Clad R, Thickness of Cladding, GT Radius, m unit
+  REAL :: rsi                       !  Inner hole in VVER fuel pellets.
   REAL :: ChannelPitch              !  Pitch of Channel, m unit
   REAL :: AsyPitch                  !  Pitch of Asy, m unit
   REAL :: acf                       !  Fuel Channel flow area
@@ -1208,10 +1211,8 @@ TYPE THVar_Type
   REAL :: BoilingTemp
 
 
-  !INTEGER :: nAsyCh                 !  # channel per asy
-  !INTEGER :: nAsyGT                 !  # GT per Asy
-  REAL :: nAsyCh                 !  # channel per asy
-  REAL :: nAsyGT                 !  # GT per Asy
+  INTEGER :: nAsyCh                 !  # channel per asy
+  INTEGER :: nAsyGT                 !  # GT per Asy
   INTEGER :: nzth                   !
   INTEGER :: npr, npr1, npr2, npr3, npr4, npr5
   LOGICAL :: lhact = .FALSE.

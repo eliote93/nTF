@@ -1278,6 +1278,47 @@ TYPE (PE_TYPE)          :: PE
 
 END SUBROUTINE initRT
 ! ------------------------------------------------------------------------------------------------------------
+SUBROUTINE PowerUpdate_WATT(Core, Fxr, phis, power, myzb, myze, ng, lxslib, GroupInfo, PE, LBCAST_INP)
+USE PARAM
+USE TYPEDEF,      ONLY : coreinfo_type,       Fxrinfo_type,       Cell_Type,     pin_Type, &
+                         GroupInfo_Type,      XsMac_Type,         PE_TYPE
+USE BenchXs,       ONLY : xskfBen
+USE MacXsLib_Mod, ONLY : MacXskf
+USE BasicOperation, ONLY : CP_CA, MULTI_VA
+USE CNTL,             ONLY: nTracerCntl
+use Material_Mod,    only: Mixture
+#ifdef MPI_ENV
+USE MPIComm_Mod, ONLY : BCAST
+USE MPIComm_mod, ONLY : REDUCE
+#endif
+IMPLICIT NONE
+TYPE(coreinfo_type) :: CORE
+TYPE(Fxrinfo_type),POINTER :: Fxr(:, :)
+TYPE(GroupInfo_Type) :: GroupInfo
+TYPE(PE_Type) :: PE
+REAL, POINTER :: phis(:, :, :)
+REAL, POINTER :: Power(:, :)
+REAL, POINTER :: HZ(:)
+INTEGER :: myzb, myze, ng
+LOGICAL :: lXsLib
+LOGICAL :: LBCAST_INP
+
+TYPE(Pin_Type), POINTER :: Pin(:)
+TYPE(Cell_Type), POINTER :: CellInfo(:)
+TYPE(Fxrinfo_type),POINTER :: myFxr
+TYPE(XsMac_Type), SAVE :: XsMac
+
+INTEGER :: nxy, nCoreFsr, nCoreFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, nFsrInFxr
+INTEGER :: ipin, icel, ifsrlocal, ifsr, ifxr, iz, itype, ig
+INTEGER :: iResoGrpBeg, iResoGrpEnd, norg
+INTEGER :: i, j, k, IM
+
+REAL, POINTER :: xsmackf(:)
+REAL :: HZ_LOC, vol, localpow, pwsum, F, PowerCore, PowerLevel
+REAL :: Buf
+
+END SUBROUTINE PowerUpdate_WATT
+! ------------------------------------------------------------------------------------------------------------
 END INTERFACE
 
 CONTAINS

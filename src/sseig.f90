@@ -25,7 +25,7 @@ USE XeDyn_Mod,         ONLY : UpdtXeDyn, XeDynRelaxContrl
 USE CNTLROD_mod,       ONLY : SetCrBankPosition, CntlRodSearch
 USE MOC_COMMON,        ONLY : SetCoreMacXs, SetCoreMacXs_Cusping
 USE MOC_MOD,           ONLY : GetNeighborMocFlux
-use SubChCoupling_mod, ONLY : last_TH
+!use SubChCoupling_mod, ONLY : last_TH
 USE BenchXs,           ONLY : SetBoronCoolant_NEACRP, DnpLambdaBen, ChidBen
 USE TRAN_MOD,          ONLY : TranInfo
 USE MacXsLib_Mod,      ONLY : PSMEffXSGen, GetfresoFXR
@@ -278,7 +278,7 @@ DO iout = 1, ItrCntl%OuterMax
 #endif
   
   ! T/H Update
-  IF (iout .EQ. ItrCntl%OuterMax) last_TH = TRUE
+  !IF (iout .EQ. ItrCntl%OuterMax) last_TH = TRUE
   
   IF (nTracerCntl%lFeedBack .AND. .NOT.lThConv) THEN
     IF (nTracerCntl%lSSPH) nTracerCntl%lSSPHreg = TRUE

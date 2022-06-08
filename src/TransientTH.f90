@@ -10,11 +10,11 @@ USE TYPEDEF,                    ONLY : CoreInfo_Type,              FmInfo_Type, 
 USE CNTL,                       ONLY : nTracerCntl_Type
 USE TH_Mod,                     ONLY : ThOpt,                      ThVar,                                           &
                                        CalRelPower,                SetPwShape,                tfcaltr,              &
-                                       TranRadFuelCondFDM,         Grp_RelPower,              hGapArray, Tfcaltr_pwshape
+                                       TranRadFuelCondFDM,         Grp_RelPower !,              hGapArray, Tfcaltr_pwshape
 USE FuelProperty_Mod,           ONLY : fhtcoef,                    INTGAPCOND
 USE timer,                      ONLY : nTracer_dclock,             TimeChk
 USE FILES,                      ONLY : IO8
-USE IOUTIL,                     ONLY : message
+USE IOUTIL,                     ONLY : message, terminate
 USE TIMER,                      ONLY : nTracer_dclock,             TimeChk
 #ifdef MPI_ENV
 USE MPIComm_Mod,                ONLY : MPI_SYNC
@@ -157,8 +157,9 @@ IF(nTracerCntl%ThCh_mod .GE. 1 .AND. .NOT. nTracerCntl%lthch_tf) THEN
           htcoeffd = fhtcoef(Tbulkd, deq, CoolantTH(ixy)%RhoUd(iz))               !Heat Transfer Coefficient
           ! CALL tfcaltr(FuelTH(ixy)%tfvol(1:nr-3,iz), FuelTH(ixy)%tfuel(1:nr, iz), FuelTH(ixy)%tfueld(1:nr, iz), Tbulk, htcoeff, &
           !              qf, qfd, nr, ThVar, ThOpt, hGapArray(iz, ixy))
-          CALL Tfcaltr_pwshape(FuelTH(ixy)%tfvol(1:nr-3,iz), FuelTH(ixy)%tfuel(1:nr, iz), FuelTH(ixy)%tfueld(1:nr, iz), Tbulk, htcoeff, &
-                       qf, qfd,PwShapeAsy(:,iz,ixy0), PwShapedAsy(:,iz,ixy0), nr, ThVar, ThOpt, hGapArray(iz, ixy))
+          !CALL Tfcaltr_pwshape(FuelTH(ixy)%tfvol(1:nr-3,iz), FuelTH(ixy)%tfuel(1:nr, iz), FuelTH(ixy)%tfueld(1:nr, iz), Tbulk, htcoeff, &
+          !             qf, qfd,PwShapeAsy(:,iz,ixy0), PwShapedAsy(:,iz,ixy0), nr, ThVar, ThOpt, hGapArray(iz, ixy)) ! KSC 220607
+          CALL terminate("VERSION CONFLICT")
           
           Tsurf = FuelTh(ixy)%tfuel(nsurf, iz)
           qflux = htcoeff * (Tsurf - Tbulk)
@@ -207,7 +208,8 @@ IF(nTracerCntl%ThCh_mod .GE. 1 .AND. .NOT. nTracerCntl%lthch_tf) THEN
     END DO 
   END DO 
 ELSE
-IF(nTracerCntl%ThCh_mod .GE. 1) CALL Grp_RelPower(Core, CmInfo, RelPower, RelPower, ng, nTracerCntl, PE, .TRUE.)
+!IF(nTracerCntl%ThCh_mod .GE. 1) CALL Grp_RelPower(Core, CmInfo, RelPower, RelPower, ng, nTracerCntl, PE, .TRUE.)
+  IF(nTracerCntl%ThCh_mod .GE. 1) CALL Grp_RelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, .TRUE.)
 DO ixy = 1, nxy
   IF(.NOT. CoolantTH(ixy)%lfuel) CYCLE
   Deq = ThVar%Deq
@@ -247,8 +249,8 @@ DO ixy = 1, nxy
                               Tbulk, Tbulkd, htcoeff, htcoeffd, qf, qfd, Pwshape(:, iz), Pwshaped(:, iz), nr, ThVar, ThOpt)
       ELSE
         !CALL tfcaltr(FuelTh(ixy)%tfvol(1:nr-3, iz), FuelTh(ixy)%tfuel(1:nr, iz), FuelTh(ixy)%tfueld(1:nr, iz), Tbulk, htcoeff, qf, qfd, nr, ThVar, ThOpt, hGapArray(iz, ixy))
-        CALL Tfcaltr_pwshape(FuelTh(ixy)%tfvol(1:nr-3, iz), FuelTh(ixy)%tfuel(1:nr, iz), FuelTh(ixy)%tfueld(1:nr, iz), Tbulk, htcoeff, &
-                      qf, qfd, PwShape(:,iz), PwShaped(:,iz), nr, ThVar, ThOpt, hGapArray(iz, ixy))
+        !CALL Tfcaltr_pwshape(FuelTh(ixy)%tfvol(1:nr-3, iz), FuelTh(ixy)%tfuel(1:nr, iz), FuelTh(ixy)%tfueld(1:nr, iz), Tbulk, htcoeff, &
+        !              qf, qfd, PwShape(:,iz), PwShaped(:,iz), nr, ThVar, ThOpt, hGapArray(iz, ixy)) ! KSC 220607
 
       ENDIF
       Tsurf =  FuelTh(ixy)%tfuel(nsurf, iz)
@@ -305,7 +307,7 @@ DO ixy = 1, nxy
   IF(.NOT. CoolantTH(ixy)%lfuel) CYCLE
   DO iz = 1, nzth
     nhgap = nhgap + 1
-    hgapavg = hgapavg + hGapArray(iz, ixy)
+    !hgapavg = hgapavg + hGapArray(iz, ixy) ! KSC 220607
   END DO 
 END DO 
 hgapavg = hgapavg / nhgap

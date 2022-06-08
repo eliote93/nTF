@@ -10,7 +10,7 @@ USE typedef, ONLY : CoreInfo_Type,       FmInfo_Type,        Pin_Type,        &
                     Asy_Type,            AsyInfo_Type,       CoolantTH_Type,  &
                     PE_TYPE
 USE CNTL,    ONLY : nTRACERCntl_Type
-use SubChCoupling_mod,      only: last_TH
+!use SubChCoupling_mod,      only: last_TH
 IMPLICIT NONE
 #ifdef HAVE_MATRA
 TYPE(MatNtData_TYPE), PRIVATE :: MatNtData
@@ -79,7 +79,7 @@ IF(PE%CmfdMaster) THEN
     lFirst = .FALSE.
   ENDIF
   CALL SetMatraData()
-  CALL DriveMatra(MatNtData,last_TH)
+  CALL DriveMatra(MatNtData,.FALSE.)
 ENDIF
 CALL BcastMatraOut(PE)
 CALL GetMatraData()

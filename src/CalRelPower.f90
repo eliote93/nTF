@@ -375,9 +375,10 @@ DEALLOCATE(Buf)
 #endif
 ! ----------------------------------------------------
 
-END SUBROUTINE GatherRelPower
+  END SUBROUTINE GatherRelPower
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, RelPower_Grp, ng, nTracerCntl, PE, lGather)
+!SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, RelPower_Grp, ng, nTracerCntl, PE, lGather)
+SUBROUTINE Grp_RelPower(Core, CmInfo, RelPower, ng, nTracerCntl, PE, lGather)
 !Update Normalized Power for T/H
 
 USE PARAM,          ONLY : ZERO
@@ -393,7 +394,7 @@ TYPE(CmInfo_Type)      :: CmInfo
 TYPE(nTracerCntl_Type) :: nTracerCntl
 TYPE(PE_TYPE)          :: PE
 INTEGER :: ng
-REAL, POINTER, DIMENSION(:,:) :: RelPower, RelPower_Grp
+REAL, POINTER, DIMENSION(:,:) :: RelPower!, RelPower_Grp
 LOGICAL :: lGather
 ! ----------------------------------------------------
 TYPE(Pin_Type),     POINTER, DIMENSION(:) :: Pin
@@ -441,7 +442,8 @@ DO iz = 1, nz
       igrp = AsyInfo(iasytype)%ThChGrp(ixy0)
       ixy  = Asy(iasy)%GlobalPinIdx(ixy0)
       
-      RelPower_Grp(iz, ixy) =  Pw_ThChGrp(igrp)
+      !RelPower_Grp(iz, ixy) = Pw_ThChGrp(igrp)
+      RelPower(iz, ixy) = Pw_ThChGrp(igrp)
     END DO
   END DO
 END DO

@@ -241,28 +241,57 @@ END SUBROUTINE HexSetVyg
 ! ------------------------------------------------------------------------------------------------------------
 !                                     04. SET : TH geo
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexSetThGeo(nach, rw, rgt, acf, xi)
+SUBROUTINE HexSetThGeo(nach, nagt, rw, rgt, acf, xi)
 
 USE PARAM,   ONLY : PI, epsm4
+USE HexData, ONLY : hLgc, hGeoTypInfo, hAsyTypInfo, hAsy, hCore
+USE GEOM,    ONLY : Core
 USE ioutil,  ONLY : terminate
-USE HexData, ONLY : hLgc, hGeoTypInfo, hAsyTypInfo
 
 IMPLICIT NONE
 
-REAL :: nach, rw, rgt, acf, xi
+INTEGER :: nach, nagt
+INTEGER :: ixa, iya, ixya, ixyp, iasy, bpin, epin
+
+REAL :: rw, rgt, acf, xi
 REAL :: Area
 ! ----------------------------------------------------
 
 IF (.NOT. hLgc%lspCMFD) CALL terminate("SET TH GEO")
 
-! ASSUME : Area of Fuel Pin and GT Pin are same
-
 Area = hGeoTypInfo(1)%Area * epsm4
-nach = real(hAsyTypInfo(1)%nRodPin(1))
+nach = hAsyTypInfo(1)%nRodPin(1)
+nagt = 0
 
-! IGNORE : rgt
-acf = (Area - PI * rw * rw * nach) / nach
-xi  = 2._8 * PI * rw
+ixya=0
+do iya=1, Core%nya
+  do ixa=1, Core%nxa
+    if(hCore(ixa,iya) == 0) cycle
+    ixya=ixya+1
+  enddo
+enddo
+
+bpin=0; epin=0
+do iasy=1,ixya
+  if (hAsy(iasy)%nRodPin ==  hAsyTypInfo(1)%nRodPin(1)) then
+    bpin=bpin+1
+    epin=epin+hAsy(iasy)%nRodPin
+    exit
+  endif 
+  bpin=bpin+hAsy(iasy)%nTotPin
+  epin=epin+hAsy(iasy)%nTotPin
+enddo    
+   
+do ixyp=bpin, epin
+  if (.not. Core%pin(ixyp)%lfuel) then
+    nagt = nagt+1
+  endif
+enddo
+
+nach = nach - nagt
+
+acf = (Area - PI * (rw * rw * nach - rgt * rgt * nagt)) / nach
+xi  = 2._8 * PI * (nach *rw + nagt * rgt) / nach
 ! ----------------------------------------------------
 
 END SUBROUTINE HexSetThGeo

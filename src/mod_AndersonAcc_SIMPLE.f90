@@ -27,7 +27,7 @@ MODULE Anderson_Acceleration_SIMPLETH
     nrad_aa = nrad
     nrf = nrfp4 - 4
     if (is_AA) then
-      IF (m_AA.LE.2) lDirectInv = .TRUE.
+      !IF (m_AA.LE.2) lDirectInv = .TRUE.
       ndim_aa = nrad*nz*2 + nrad*nz*(nrfp4)
       allocate(g_new(ndim_aa), source = 0._8)
       allocate(g_old(ndim_aa), source = 0._8)
@@ -36,14 +36,14 @@ MODULE Anderson_Acceleration_SIMPLETH
       allocate(f_old(ndim_aa), source = 0._8)
       allocate(f_new(ndim_aa), source = 0._8)
       allocate(DG(m_AA, ndim_aa), source = 0._8)
-      IF (lDirectInv) THEN
-        ALLOCATE(DF(m_AA, ndim_aa), source = 0.)
-        ALLOCATE(DF_dag(m_AA, ndim_aa), source = 0.)
-      ELSE
+      !IF (lDirectInv) THEN
+      !  ALLOCATE(DF(m_AA, ndim_aa), source = 0.)
+      !  ALLOCATE(DF_dag(m_AA, ndim_aa), source = 0.)
+      !ELSE
         allocate(delf(ndim_aa), source = 0._8)
         allocate(Q(ndim_AA,m_AA), source = 0._8)
         allocate(R(m_AA,m_AA), source = 0._8)
-      END IF
+      !END IF
     else
       return
     end if
@@ -131,11 +131,11 @@ MODULE Anderson_Acceleration_SIMPLETH
 
     if (ncall>0) then
       mk = mk +1
-      IF (.NOT.lDirectInv) THEN
+      !IF (.NOT.lDirectInv) THEN
         do i=1,ndim_aa
           delf(i) = f_new(i)-f_old(i)
         enddo
-      END IF
+      !END IF
       if (mk > m_AA) then
         mk = mk -1
         lqrdel = .true.
@@ -143,23 +143,23 @@ MODULE Anderson_Acceleration_SIMPLETH
           do m=2,mk
             DG(m-1,i)=DG(m,i)
           enddo
-          IF (lDirectInv) THEN
-            do m=2,mk
-              DF(m-1,i)=DF(m,i)
-            enddo
-          END IF
+          !IF (lDirectInv) THEN
+          !  do m=2,mk
+          !    DF(m-1,i)=DF(m,i)
+          !  enddo
+          !END IF
         enddo
       endif
-      IF (lDirectInv) THEN
-        do i =1, ndim_aa
-          DF(mk,i) = f_new(i)-f_old(i)
-          DG(mk,i) = g_new(i)-g_old(i)
-        enddo
-      ELSE
+      !IF (lDirectInv) THEN
+      !  do i =1, ndim_aa
+      !    DF(mk,i) = f_new(i)-f_old(i)
+      !    DG(mk,i) = g_new(i)-g_old(i)
+      !  enddo
+      !ELSE
         DO i = 1, ndim_aa
           DG(mk,i) = g_new(i)-g_old(i)
         ENd DO
-      END IF
+      !END IF
 
     endif
 
@@ -175,74 +175,74 @@ MODULE Anderson_Acceleration_SIMPLETH
       return
     endif
 
-    IF (lDirectInv) THEN !! Edit by LHG, 2021.01.14
-      mk_cond = 1
-      DO WHILE ((mk-mk_cond).GE.0)
-        Finv_d = 0.
+    !IF (lDirectInv) THEN !! Edit by LHG, 2021.01.14
+    !  mk_cond = 1
+    !  DO WHILE ((mk-mk_cond).GE.0)
+    !    Finv_d = 0.
+    !
+    !    ! ---- Determine F_reduced = tr(DF)*DF
+    !    DO i = mk_cond, mk
+    !      DO j = mk_cond, mk
+    !        Finv_d(i,j) = dot_product(DF(i,:),DF(j,:))
+    !      END DO
+    !    END DO
+    !
+    !    ! ---- Get the inverse of F_reduced
+    !    IF ((mk-mk_cond).EQ.1) THEN
+    !      temp = Finv_d(1,1)*Finv_d(2,2)-Finv_d(2,1)*Finv_d(1,2)
+    !      Finv_d = Finv_d/temp
+    !      temp = Finv_d(1,1)
+    !      Finv_d(1,1) = Finv_d(2,2)
+    !      Finv_d(2,2) = temp
+    !      Finv_d(1,2) = -Finv_d(1,2); Finv_d(2,1) = -Finv_d(2,1)
+    !    ELSE
+    !      Finv_d(1,1) = 1./Finv_d(1,1)
+    !      Finv_d(2,2) = 1./Finv_d(2,2)
+    !    END IF
+    !
+    !    ! ---- Obtain DF^(dagger)
+    !    DF_dag = MATMUL(Finv_d,DF)
+    !
+    !    ! ---- Condition number calculate, cond(DF) = ||DF||*||DF_dag||
+    !    condn = 0.; temp = 0.;
+    !    DO i = mk_cond, mk
+    !      condn = condn+dot_product(DF_dag(i,:),DF_dag(i,:))
+    !      temp = temp+dot_product(DF(i,:),DF(i,:))
+    !    END DO
+    !    condn = condn*temp
+    !
+    !    IF (condn.LT.tol_cond) EXIT
+    !    mk_cond = mk_cond+1
+    !  END DO
+    !
+    !  ! ---- Picard iteration solution
+    !  x_solaa(:) = g_new(:)
+    !
+    !  IF ((mk-mk_cond+1)*mk.NE.0) THEN
+    !    ! ---- Solving least-square for min_{gam} (||f_new - DG*gam||)
+    !    DO i = mk_cond, mk
+    !      gam(i) = dot_product(DF_dag(i,:),f_new(:))
+    !    END DO
+    !    WRITE(MESG, '(A,I2,A,20f10.5)') 'AA-',(mk-mk_cond+1), ": Gamma = ", gam(mk_cond:mk)
+    !    if(MASTER) CALL MESSAGE(io8,TRUE,TRUE,MESG)
+    !
+    !    ! ---- Anderson acc. solution without damping as (1-beta_AA)
+    !    DO i = mk_cond, mk
+    !      x_solaa(:) = x_solaa(:)-gam(i)*DG(i,:)
+    !    END DO
+    !
+    !    ! ---- Damping the solution
+    !    IF (beta_AA < 1.0_8) THEN
+    !      x_solaa(:) = beta_AA*x_solaa(:)-(1.-beta_AA)*(f_new(:)-gam(mk_cond)*DF(mk_cond,:))
+    !      DO i = mk_cond+1, mk
+    !        x_solaa(:) = x_solaa(:)+(1.-beta_AA)*gam(i)*DF(i,:)
+    !      END DO
+    !    END IF
+    !
+    !  END IF
+    !END IF
 
-        ! ---- Determine F_reduced = tr(DF)*DF
-        DO i = mk_cond, mk
-          DO j = mk_cond, mk
-            Finv_d(i,j) = dot_product(DF(i,:),DF(j,:))
-          END DO
-        END DO
-
-        ! ---- Get the inverse of F_reduced
-        IF ((mk-mk_cond).EQ.1) THEN
-          temp = Finv_d(1,1)*Finv_d(2,2)-Finv_d(2,1)*Finv_d(1,2)
-          Finv_d = Finv_d/temp
-          temp = Finv_d(1,1)
-          Finv_d(1,1) = Finv_d(2,2)
-          Finv_d(2,2) = temp
-          Finv_d(1,2) = -Finv_d(1,2); Finv_d(2,1) = -Finv_d(2,1)
-        ELSE
-          Finv_d(1,1) = 1./Finv_d(1,1)
-          Finv_d(2,2) = 1./Finv_d(2,2)
-        END IF
-
-        ! ---- Obtain DF^(dagger)
-        DF_dag = MATMUL(Finv_d,DF)
-
-        ! ---- Condition number calculate, cond(DF) = ||DF||*||DF_dag||
-        condn = 0.; temp = 0.;
-        DO i = mk_cond, mk
-          condn = condn+dot_product(DF_dag(i,:),DF_dag(i,:))
-          temp = temp+dot_product(DF(i,:),DF(i,:))
-        END DO
-        condn = condn*temp
-
-        IF (condn.LT.tol_cond) EXIT
-        mk_cond = mk_cond+1
-      END DO
-
-      ! ---- Picard iteration solution
-      x_solaa(:) = g_new(:)
-
-      IF ((mk-mk_cond+1)*mk.NE.0) THEN
-        ! ---- Solving least-square for min_{gam} (||f_new - DG*gam||)
-        DO i = mk_cond, mk
-          gam(i) = dot_product(DF_dag(i,:),f_new(:))
-        END DO
-        WRITE(MESG, '(A,I2,A,20f10.5)') 'AA-',(mk-mk_cond+1), ": Gamma = ", gam(mk_cond:mk)
-        if(MASTER) CALL MESSAGE(io8,TRUE,TRUE,MESG)
-
-        ! ---- Anderson acc. solution without damping as (1-beta_AA)
-        DO i = mk_cond, mk
-          x_solaa(:) = x_solaa(:)-gam(i)*DG(i,:)
-        END DO
-
-        ! ---- Damping the solution
-        IF (beta_AA < 1.0_8) THEN
-          x_solaa(:) = beta_AA*x_solaa(:)-(1.-beta_AA)*(f_new(:)-gam(mk_cond)*DF(mk_cond,:))
-          DO i = mk_cond+1, mk
-            x_solaa(:) = x_solaa(:)+(1.-beta_AA)*gam(i)*DF(i,:)
-          END DO
-        END IF
-
-      END IF
-    END IF
-
-    IF (.NOT. lDirectInv) THEN
+    !IF (.NOT. lDirectInv) THEN
       if (lqrdel) call qrdelete(Q,R,mk)
 
   !Single modified Gram-Schmidt for newly added column
@@ -316,7 +316,7 @@ MODULE Anderson_Acceleration_SIMPLETH
           x_solaa(i) = x_solaa(i) - (1.-beta_AA)*(f_new(i)-g_new(i))
         enddo
       endif
-    END IF
+    !END IF
 
     k=0
     do ixy=1,nrad_aa
