@@ -2,7 +2,7 @@
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE PreProcess()
 
-USE PARAM,    ONLY : FALSE
+USE PARAM,    ONLY : FALSE, SLASH
 USE FILES,    ONLY : LOCALFN, FILENAME, InputFileIdx, caseid, WorkingDir, io8
 USE PE_Mod,   ONLY : PE
 USE IOUTIL,   ONLY : GETIFILE, openfile, PWD, CreateDir, GetOutputDir
@@ -38,7 +38,6 @@ CALL GetMPIFile(LocalFn, PE%MASTER, PE%MPI_COMM)
 ICHAR1ST = ICHAR(LOCALFN(1:1))
 
 IF (ICHAR1ST.EQ.0 .OR. ICHAR1ST.EQ.32) LOCALFN = 'nTRACER.INP'
-
 FILENAME(InputFileIdx) = LOCALFN
 
 ! [FILE]
@@ -46,7 +45,6 @@ IF (PE%MASTER) CALL MVFILE
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_COMM)
 #endif
-FILENAME(InputFileIdx) = './inp/' // LOCALFN
 
 ! Scan Input
 IF (lMCP_restart) CALL ScanInput_Include
@@ -59,7 +57,7 @@ CALL MPI_SYNC(PE%MPI_COMM)
 CALL ScanInput
 
 ! Open output file
-localfn = trim(caseid) // '.out'
+localfn = './out/' // trim(caseid) // '.out'
 
 IF (PE%master) THEN
   CALL openfile(io8, FALSE, FALSE, FALSE, localfn)

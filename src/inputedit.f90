@@ -2,14 +2,15 @@ SUBROUTINE MVFILE
 
 USE param,      ONLY : TRUE, FALSE, BANG, POUND, BLANK, BLANK0, DOT, SLASH
 USE files,      ONLY : io5, filename, InputFileIdx
-USE ioutil,     ONLY : OpenFile, ifnumeric, toupper, getfn
+USE ioutil,     ONLY : OpenFile, ifnumeric, toupper, getfn, fndchara
 USE inputcards, ONLY : oneline, probe
 
 IMPLICIT NONE
 
-INTEGER :: indev, jndev, kndev
+INTEGER :: indev, jndev, kndev, nSpt
+INTEGER :: ipos(100)
 CHARACTER*6 :: dumc
-CHARACTER*256 :: cdir
+CHARACTER*256 :: cdir, ctmp
 CHARACTER(256) :: fdir
 ! ----------------------------------------------------
 
@@ -60,7 +61,13 @@ END DO
 
 ! MV
 CLOSE (jndev)
-CALL rename(cdir, './inp/' // filename(InputFileIdx))
+
+ctmp = filename(InputFileIdx)
+ipos = 0
+CALL fndchara(ctmp, ipos, nspt, SLASH)
+IF (nspt .GT. 0) ctmp = ctmp(ipos(nspt)+1:)
+CALL rename(cdir, './inp/' // ctmp)
+FILENAME(InputFileIdx) = './inp/' // ctmp
 ! ----------------------------------------------------
 
 END SUBROUTINE MVFILE

@@ -665,8 +665,8 @@ xvol = 0
 call ftfavg(x, xvol(1:npr5), r, npr)
 tfvol(1:npr2) = xvol(1:npr2) + CKELVIN
 tfuel(npr5) = xvol(npr5)
-print*,'tfuel',tfuel
-print*,'tfvol',tfvol
+!print*,'tfuel',tfuel
+!print*,'tfvol',tfvol
 NULLIFY(R)
 END SUBROUTINE
 ! ------------------------------------------------------------------------------------------------------------

@@ -374,7 +374,7 @@ INTEGER :: irotray, iz, krot, FastMocLv
 
 END SUBROUTINE RecTrackRotRay_GM
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot, FastMocLv)
+SUBROUTINE HexTrackRotRay_GM(RayInfo, CoreInfo, TrackingDat, ljout, irotray, iz, krot)
 
 USE TYPEDEF, ONLY : RayInfo_Type, coreinfo_type, TrackingDat_Type
 
@@ -385,7 +385,7 @@ TYPE(CoreInfo_Type)    :: CoreInfo
 TYPE(TrackingDat_Type) :: TrackingDat
 
 LOGICAL :: ljout
-INTEGER :: irotray, iz, krot, FastMocLv
+INTEGER :: irotray, iz, krot
 
 END SUBROUTINE HexTrackRotRay_GM
 ! ------------------------------------------------------------------------------------------------------------
