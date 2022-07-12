@@ -251,7 +251,7 @@ INTEGER :: ii(300)
 
 aline = dataline0
 CALL expdast(aline, bline)
-IF (nhexdat(bline) .NE. nZ + 1) CALL terminate("WRONG [PIN] - # OF CELL")
+IF (nhexdat(bline) .NE. nZ + 1) CALL terminate("WRONG [GAP_PIN] - # OF CELL")
 
 READ (bline, *) iPin
 READ (bline, *) (ii(iz),iz = 1, nZ + 1)
