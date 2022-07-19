@@ -100,7 +100,7 @@ DO iz = myzb, myze
   phis1g     = ONE
   PhiAngIn1g = ONE
   PhiAngIn1g(:, 1) = ZERO
-
+  
   IF (Core%lFuelPlane(iz)) THEN
     DO ig = ig1, ig2
       errmax = 0._8
@@ -152,7 +152,7 @@ DO iz = myzb, myze
       END DO
       
       WRITE (mesg,'(2X, 2(A, I3), A, I5, 1P, E13.3)') '[Fuel] Pln', iz, ' Group ', ig,'  In_itr', niter, errmax
-      IF (master .AND. .NOT. lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+      IF (master .AND. .NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
       
       myitersum = myitersum + niter
     END DO
@@ -202,7 +202,7 @@ DO iz = myzb, myze
     END DO
     
     WRITE (mesg,'(2X, A, I3, A, I5, 1P, E13.3)') '[Clad] Pln', iz, '  In_itr', niter, errmax
-    IF (master .AND. .NOT. lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+    IF (master .AND. .NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
     
     myitersum = myitersum + niter
   END IF
@@ -250,7 +250,7 @@ DO iz = myzb, myze
     END DO
     
     WRITE (mesg,'(2X, A, I3, A, I5, 1P, E13.3)') '[AIC]  Pln', iz, '  In_itr', niter, errmax
-    IF (master .AND. .NOT. lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
+    IF (master .AND. .NOT.lSilent) CALL MESSAGE(io8, TRUE, TRUE, mesg)
     
     myitersum = myitersum + niter
   END IF

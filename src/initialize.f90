@@ -5,6 +5,7 @@ USE Geom,          ONLY : Core
 USE Core_Mod,      ONLY : FmInfo, CmInfo, GroupInfo
 USE RAYS,          ONLY : RayInfo
 USE FILES,         ONLY : io8
+USE ioutil,        ONLY : message
 USE CNTL,          ONLY : nTracerCntl
 USE VTK_Mod,       ONLY : ProcessVTK2DPlnModel
 USE PE_MOD,        ONLY : PE
@@ -58,6 +59,9 @@ IF (nTracerCntl%LPShf .OR. nTracerCntl%lCooling) CALL LP_Shuffling(Core, FmInfo,
 
 ! Caterogies Information of Resonanase Isotope and Eq. XS
 IF (nTracerCntl%lXsLib) THEN
+  mesg = 'Allocating XS...'
+  IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
+  
   IF (PE%RTmaster)        CALL AllocXsEQ
   IF (nTracerCntl%lDcpl)  CALL AllocDcplXsEq
   IF (nTracerCntl%lScat1) CALL P1ScatXsTreatment
@@ -81,6 +85,8 @@ IF (nTracerCntl%lMacro) CALL AllocCoreMacXs(Core)
 
 ! 3D Solver Employing Intel MKL
 #ifdef __INTEL_MKL
+mesg = 'Allocating MKL Env...'
+IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
 IF (PE%lMKL.AND.mklCntl%lEnter) CALL SetMKLEnv(Core, FmInfo, RayInfo)
 #endif
 

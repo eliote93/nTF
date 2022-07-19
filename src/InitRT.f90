@@ -21,12 +21,14 @@ TYPE (PE_TYPE)          :: PE
 INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr
 REAL :: wttmp, wtsin2, wtcos, wtpolar
 LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex
+CHARACTER(100)  :: dumc
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
 TYPE (PolarAngle_Type),   POINTER, DIMENSION(:) :: PolarAng
 ! ----------------------------------------------------
 
-mesg = 'Allocating RT Variables...'
+WRITE (dumc, '(I)') CoreInfo%nCoreFsr
+mesg = 'Allocating RT Variables... (# of FSRs = ' // trim(dumc) // ' )'
 IF (PE%master) CALL message(io8, TRUE, TRUE, mesg)
 
 AziAng   => RayInfo%AziAngle
@@ -107,19 +109,19 @@ END DO
 
 ! Basic : GM vs. NM
 IF (lGM) THEN
-  IF (.NOT. ldcmp) THEN
-    DO ithr = 1, nThr
+  DO ithr = 1, nThr
+    IF (.NOT. ldcmp) THEN
       CALL dmalloc(TrackingDat(ithr)%phis1g, nFsr)
       CALL dmalloc(TrackingDat(ithr)%Jout1g, 3, nbd, nxy)
-    END DO
-  END IF
-  
-  DO ithr = 1, nThr
-    CALL dmalloc(TrackingDat(ithr)%FsrIdx,            nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,         nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%OptLenList,        nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%ExpAppPolar, nPol, nMaxRaySeg, nMaxCoreRay)
-    CALL dmalloc(TrackingDat(ithr)%PhiAngOut1g, nPol, nMaxRaySeg + 2)
+    END IF
+    
+    IF (.NOT. lHex) THEN
+      CALL dmalloc(TrackingDat(ithr)%FsrIdx,            nMaxRaySeg, nMaxCoreRay)
+      CALL dmalloc(TrackingDat(ithr)%ExpAppIdx,         nMaxRaySeg, nMaxCoreRay)
+      CALL dmalloc(TrackingDat(ithr)%OptLenList,        nMaxRaySeg, nMaxCoreRay)
+      CALL dmalloc(TrackingDat(ithr)%ExpAppPolar, nPol, nMaxRaySeg, nMaxCoreRay)
+      CALL dmalloc(TrackingDat(ithr)%PhiAngOut1g, nPol, nMaxRaySeg + 2)
+    END IF
     
     TrackingDat(ithr)%lAlloc = TRUE
   END DO

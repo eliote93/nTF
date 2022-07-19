@@ -200,7 +200,7 @@ SUBROUTINE SetGdVars(DeplFxrBundle, lCorrector, Nths, pndcrit)
 
   call OMP_SET_NUM_THREADS(Nths);
 
-  IF (lCorrector) THEN
+    IF (lCorrector) THEN
     !DEALLOCATE(GdXs);RETURN
     !$OMP PARALLEL DO PRIVATE(GdXs, aFxr, j, l, Gd155, GdRR, c_qd, pnum, ND155, phi1g, iGd)
     DO i = 1, nTrueGd
@@ -220,8 +220,8 @@ SUBROUTINE SetGdVars(DeplFxrBundle, lCorrector, Nths, pndcrit)
 
         passcrit = .FALSE.
         j = IsoIdSrch(aFxr%IdIsoEig, aFxr%NIsoEig, iGd)
-        IF (PRESENT(pndcrit)) passcrit = (pnum(iGd).LT.pndcrit(j))
-        IF ((pnum(iGd) .LT. 1.e-20).OR.passcrit) CYCLE
+        IF (PRESENT(pndcrit)) passcrit = (pnum(j).LT.pndcrit(j))
+        IF ((pnum(j) .LT. 1.e-20).OR.passcrit) CYCLE
         GdRR(1,l) = aFxr%xs1g(RctIdCAP,iGd)+aFxr%xs1g(RctIdNA,iGd)+aFxr%xs1g(RctIdNP,iGd)+aFxr%xs1g(RctIdCAPm,iGd)
         GdRR(1,l) = GdRR(1,l)*phi1g
 

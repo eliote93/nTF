@@ -162,6 +162,7 @@ DO WHILE (.NOT. loutConv)
       ELSE
         DO ig = GrpBeg, GrpEnd
           CALL CMFDSrcUpdt(mklCMFD, ig, eigv)
+          
           IF (mklCntl%lJacobi) THEN
             CALL AAJ(mklCMFD, mklCMFD%Jacobi(ig), mklCMFD%phis(:, :, ig), mklCMFD%src(:, ig))
           ELSE

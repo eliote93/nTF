@@ -34,12 +34,16 @@ mklGcCMFD%ng = mklGeom%ngc
 mklAxial%ng = mklGeom%ng
 
 CALL AllocHomoXSVar(CoreInfo, mklGeom%ng)
+
 CALL AllocCMFDVar(mklCMFD, GroupInfo, mklGeom%myzb, mklGeom%myze, mklGeom%l3dim)
+
 IF (mklCntl%lGcCMFD) THEN
   CALL SetGcInfo(GroupInfo, GcGroupInfo)
   CALL AllocCMFDVar(mklGcCMFD, GcGroupInfo, 1, mklGeom%nzCMFD, mklGeom%l3dim)
 ENDIF
+
 IF (mklGeom%l3dim) CALL AllocAxialVar(mklAxial)
+
 IF (mklCntl%lChebyshev) CALL ChebyshevInit()
 
 #ifdef __GAMMA_TRANSPORT

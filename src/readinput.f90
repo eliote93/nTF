@@ -9,6 +9,7 @@ USE inputcards, ONLY : oneline, probe, mxcard, nblock, FindBlockId, FindCardId, 
 USE CNTL,       ONLY : nTracerCntl
 USE PE_MOD,     ONLY : PE
 USE Geom,       ONLY : Core
+USE RAYS,       ONLY : RayInfo
 
 USE MCP_Util,         ONLY : lMCP_Restart
 USE MCP_Restart_Main, ONLY : MCP_Initialize
@@ -19,10 +20,9 @@ USE MPIComm_Mod,    ONLY : MPIWaitTurn, MPI_SYNC
 
 IMPLICIT NONE
 
-CHARACTER(15) :: cardname, blockname, astring
-CHARACTER(2)  :: dumc
-INTEGER :: indev
-INTEGER :: idblock,idcard
+CHARACTER(15) :: cardname, blockname, astring, dumc
+INTEGER :: indev, idblock,idcard
+REAL :: del
 LOGICAL :: master
 ! ----------------------------------------------------
 
@@ -98,16 +98,33 @@ END DO
 ! ----------------------------------------------------
 IF (MASTER) THEN 
   WRITE (mesg, '(A)') hbar2 
-  CALL message(io8,FALSE, FALSE, mesg) 
+  CALL message(io8, FALSE, FALSE, mesg) 
   
-  mesg = 'Reading Input from '// trim(filename(5)) // '...'
+  mesg = 'Reading Input from ' // trim(filename(5)) // '...'
   CALL message(io8, TRUE, TRUE, mesg)
   
   IF (PE%nproc .GT. 1) THEN
     WRITE (dumc, '(I2)') PE%nproc
-    mesg = 'Using ' // dumc // ' processors ...'
+    mesg = 'Prc. # : ' // trim(dumc)
     CALL message(io8, TRUE, TRUE, mesg)
   END IF
+  
+  IF (PE%nThread .GT. 1) THEN
+    WRITE (dumc, '(I2)') PE%nThread
+    mesg = 'Thr. # : ' // trim(dumc)
+    CALL message(io8, TRUE, TRUE, mesg)
+  END IF
+  
+  del = RayInfo%Del
+  
+  IF (int(1000*del) .EQ. 10*int(100*del)) THEN
+    WRITE (dumc, '(F4.2, X, I2, X, I1)') del, RayInfo%nAziAngle/2, RayInfo%nPolarAngle
+  ELSE
+    WRITE (dumc, '(F5.3, X, I2, X, I1)') del, RayInfo%nAziAngle/2, RayInfo%nPolarAngle
+  END IF
+  
+  mesg = 'Ray    : ( ' // trim(dumc) // ' )'
+  CALL message(io8, TRUE, TRUE, mesg)
   
   IF (nTracerCntl%TRSolver .NE. 1) THEN 
     mesg = 'SCHEME : multigroup MC' 

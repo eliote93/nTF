@@ -10,7 +10,7 @@ IMPLICIT NONE
 TYPE(XsMac_Type), POINTER, PRIVATE :: XsMac(:, :)
 
 CONTAINS
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE AllocHomoXSVar(CoreInfo, ng)
 USE PARAM
 USE CNTL,           ONLY : nTracerCntl
@@ -147,16 +147,17 @@ DO ig = 1, ng
 ENDDO
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizeXS(CoreInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, lsigt)
+
 USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
-                           Pin_Type,            Cell_Type
-USE CORE_MOD,       ONLY : GroupInfo
-USE CNTL,           ONLY : nTracerCntl
-USE BenchXs,        ONLY : xsbaseBen,           xsbaseDynBen
-USE MacXsLib_Mod,   ONLY : MacXsBase,           MacXsScatMatrix
-USE TRAN_MOD,       ONLY : TranInfo
+USE TYPEDEF,      ONLY : CoreInfo_Type, FxrInfo_Type, PinXS_Type, Pin_Type, Cell_Type
+USE CORE_MOD,     ONLY : GroupInfo
+USE CNTL,         ONLY : nTracerCntl
+USE BenchXs,      ONLY : xsbaseBen, xsbaseDynBen
+USE MacXsLib_Mod, ONLY : MacXsBase, MacXsScatMatrix
+USE TRAN_MOD,     ONLY : TranInfo
+
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -166,24 +167,23 @@ TYPE(PinXS_Type), POINTER :: PinXS(:, :)
 REAL, POINTER :: phis(:, :, :)
 INTEGER :: ng, nxy, myzb, myze
 LOGICAL :: lxslib, lscat1, lsigt
-
+! ----------------------------------------------------
 TYPE(FxrInfo_Type), POINTER :: myFxr
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: Cell(:)
 
-INTEGER :: i, j, ixy, icel, ipin, iz, ifxr, ifxr_global, itype, tid
-INTEGER :: FsrIdxSt, FxrIdxSt
-INTEGER :: nChi, norg, nLocalFsr, nLocalFxr, nFsrInFxr
-INTEGER :: irgb, irge
+INTEGER :: i, j, ixy, icel, ipin, iz, ifxr, ifxr_global, itype, tid, irgb, irge
+INTEGER :: FsrIdxSt, FxrIdxSt, nChi, norg, nLocalFsr, nLocalFxr, nFsrInFxr
+! ----------------------------------------------------
 
 IF (nTracerCntl%lMacro) THEN
   CALL HomogenizeMacroXS(CoreInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, lsigt)
   RETURN
-ENDIF
+END IF
 
-Pin => CoreInfo%Pin
+Pin  => CoreInfo%Pin
 Cell => CoreInfo%CellInfo
-nChi = GroupInfo%nChi
+nChi  = GroupInfo%nChi
 
 IF (lxslib) THEN
   norg = GroupInfo%norg
@@ -198,51 +198,69 @@ DO iz = myzb, myze
   !$OMP DO SCHEDULE(GUIDED)
   DO ixy = 1, nxy
     nLocalFxr = 0
+    
     DO j = 1, superPin(ixy)%nxy
       ipin = superPin(ixy)%pin(j)
       icel = Pin(ipin)%Cell(iz)
-      FsrIdxSt = Pin(ipin)%FsrIdxSt; FxrIdxSt = Pin(ipin)%FxrIdxSt
+      
+      FsrIdxSt = Pin(ipin)%FsrIdxSt
+      FxrIdxSt = Pin(ipin)%FxrIdxSt
+      
+      ! SET : FXR Mac. XS
       DO i = 1, Cell(icel)%nFxr
-        ifxr = nLocalFxr + i; ifxr_global = FxrIdxSt + i - 1; nFsrInFxr = Cell(icel)%nFsrInFxr(i)
+        ifxr = nLocalFxr + i
+        ifxr_global = FxrIdxSt + i - 1
+        nFsrInFxr = Cell(icel)%nFsrInFxr(i)
+        
         myFxr => Fxr(ifxr_global, iz)
+        
         XsMac(ifxr, tid)%lFuel = FALSE
+        
         IF (lxslib) THEN
           CALL MacXsBase(XsMac(ifxr, tid), myFxr, 1, ng, ng, 1.0D0, FALSE, FALSE, TRUE)
           CALL MacXsScatMatrix(XsMac(ifxr, tid), myFxr, 1, ng, ng, GroupInfo, FALSE, TRUE)
+          
           IF (myFxr%lres) THEN
-            XsMac(ifxr, tid)%XsMacA(irgb : irge) = myFxr%FresoA(irgb : irge) * XsMac(ifxr, tid)%XsMacA(irgb : irge)
+            XsMac(ifxr, tid)%XsMacA(irgb:irge) = myFxr%FresoA(irgb:irge) * XsMac(ifxr, tid)%XsMacA(irgb : irge)
+            
             IF (CoreInfo%lFuelPlane(iz)) THEN
-              XsMac(ifxr, tid)%XsMacNf(irgb : irge) = myFxr%fresonf(irgb : irge) * XsMac(ifxr, tid)%XsMacNf(irgb : irge)
-              XsMac(ifxr, tid)%XsMacKf(irgb : irge) = myFxr%fresokf(irgb : irge) * XsMac(ifxr, tid)%XsMacKf(irgb : irge)
-            ENDIF
-          ENDIF
+              XsMac(ifxr, tid)%XsMacNf(irgb:irge) = myFxr%fresonf(irgb:irge) * XsMac(ifxr, tid)%XsMacNf(irgb:irge)
+              XsMac(ifxr, tid)%XsMacKf(irgb:irge) = myFxr%fresokf(irgb:irge) * XsMac(ifxr, tid)%XsMacKf(irgb:irge)
+            END IF
+          END IF
+          
           XsMac(ifxr, tid)%XsMacTr = XsMac(ifxr, tid)%XsMacA + XsMac(ifxr, tid)%XsMacStr
-          XsMac(ifxr, tid)%XsMacT = XsMac(ifxr, tid)%XsMacA + XsMac(ifxr, tid)%XsMacS
-          XsMac(ifxr, tid)%Chi = 0.0
+          XsMac(ifxr, tid)%XsMacT  = XsMac(ifxr, tid)%XsMacA + XsMac(ifxr, tid)%XsMacS
+          XsMac(ifxr, tid)%Chi     = ZERO
+          
           IF (myFxr%lDepl) THEN
-            XsMac(ifxr, tid)%Chi(1 : nChi) = myFxr%Chi
+            XsMac(ifxr, tid)%Chi(1:nChi) = myFxr%Chi
             XsMac(ifxr, tid)%lFuel = TRUE
-          ENDIF
+          END IF
         ELSE
           itype = myFxr%imix
-          IF(nTracerCntl%lDynamicBen) THEN
+          
+          IF (nTracerCntl%lDynamicBen) THEN
             CALL xsbaseDynBen(itype, TranInfo%fuelTemp(ipin, iz), 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
           ELSE
             CALL xsbaseBen(itype, 1, ng, 1, ng, lscat1, XsMac(ifxr, tid))
           END IF
-        ENDIF
-      ENDDO
+        END IF
+      END DO
+      
       nLocalFxr = nLocalFxr + Cell(icel)%nFxr
-    ENDDO
-    CALL HomogenizeCellXS(CoreInfo, superPin(ixy), PinXS(ixy, iz), XsMac(1 : nLocalFxr, tid), phis, iz, ng, lxslib, lsigt)
-  ENDDO
+    END DO
+    
+    ! Hmg. : Cel Mac. XS
+    CALL HomogenizeCellXS(CoreInfo, superPin(ixy), PinXS(ixy, iz), XsMac(1:nLocalFxr, tid), phis, iz, ng, lxslib, lsigt)
+  END DO
   !$OMP END DO
-ENDDO
-
+END DO
 !$OMP END PARALLEL
+! ----------------------------------------------------
 
-END SUBROUTINE
-
+END SUBROUTINE HomogenizeXS
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizeMacroXS(CoreInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, lsigt)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
@@ -324,7 +342,7 @@ ENDDO
 !$OMP END PARALLEL
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizeXS_Cusping(CoreInfo, FmInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, nthread, lxslib, lscat1, lsigt)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
@@ -475,7 +493,7 @@ ENDDO
 !$OMP END PARALLEL
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizeMacroXS_Cusping(CoreInfo, FmInfo, superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, nthread, lxslib, lscat1, lsigt)
 USE PARAM
 USE TYPEDEF,        ONLY : CoreInfo_Type,       FxrInfo_Type,       PinXS_Type,                                     &
@@ -608,13 +626,14 @@ ENDDO
 !$OMP END PARALLEL
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE HomogenizeCellXS(CoreInfo, superPin, PinXS, XsMac, phis, iz, ng, lxslib, lsigt)
+
 USE PARAM
-USE TYPEDEF,        ONLY : CoreInfo_Type,       Pin_Type,           Cell_Type,                                      &
-                           PinXS_Type,          XsMac_Type
-USE CORE_MOD,       ONLY : GroupInfo
-USE CNTL,           ONLY : nTracerCntl
+USE TYPEDEF,  ONLY : CoreInfo_Type, Pin_Type, Cell_Type, PinXS_Type, XsMac_Type
+USE CORE_MOD, ONLY : GroupInfo
+USE CNTL,     ONLY : nTracerCntl
+
 IMPLICIT NONE
 
 TYPE(CoreInfo_Type) :: CoreInfo
@@ -624,156 +643,193 @@ TYPE(XsMac_Type) :: XsMac(:)
 REAL, POINTER :: phis(:, :, :)
 INTEGER :: iz, ng
 LOGICAL :: lxslib, lsigt
-
+! ----------------------------------------------------
 TYPE(Pin_Type), POINTER :: Pin(:)
 TYPE(Cell_Type), POINTER :: Cell(:)
-INTEGER :: i, j, ixy, ifxr, ipin, icel, ig, ig2, igb, ige, ireg, ifsr
-INTEGER :: nxy, nFxr, nFsrInFxr, nLocalFxr, FsrIdxSt
+INTEGER :: i, j, ixy, ifxr, ipin, icel, ig, ig2, igb, ige, ireg, ifsr, nxy, nFxr, nFsrInFxr, nLocalFxr, FsrIdxSt
 REAL :: localphi, localpsi, psi, vol, phisum, psisum, volsum
 REAL :: RR(6), RRS(ng), Chi(ng)
 LOGICAL :: lFuel
+! ----------------------------------------------------
 
-Pin => CoreInfo%Pin
+Pin  => CoreInfo%Pin
 Cell => CoreInfo%CellInfo
-nxy = superPin%nxy
+nxy   = superPin%nxy
 
 DO ig = 1, ng
-  PinXS%XSs(ig)%from = 0.0
-ENDDO
+  PinXS%XSs(ig)%from = ZERO
+END DO
 
+! Sum
 DO ig = 1, ng
   igb = GroupInfo%OutScatRange(1, ig)
   ige = GroupInfo%OutScatRange(2, ig)
-  RR = 0.0; RRS = 0.0; phisum = 0.0; volsum = 0.0
+  
+  RR        = ZERO
+  RRS       = ZERO
+  phisum    = ZERO
+  volsum    = ZERO
   nLocalFxr = 0
+  
   DO ixy = 1, nxy
-    ipin = superPin%pin(ixy)
-    icel = Pin(ipin)%Cell(iz)
-    nFxr = Cell(icel)%nFxr
+    ipin     = superPin%pin(ixy)
+    icel     = Pin(ipin)%Cell(iz)
+    nFxr     = Cell(icel)%nFxr
     FsrIdxSt = Pin(ipin)%FsrIdxSt
+    
     DO i = 1, nFxr
-      ifxr = nLocalFxr + i
+      ifxr      = nLocalFxr + i
       nFsrInFxr = Cell(icel)%nFsrInFxr(i)
-      localphi = 0.0
+      localphi  = ZERO
+      
       DO j = 1, nFsrInFxr
         ireg = Cell(icel)%MapFxr2FsrIdx(j, i)
         ifsr = FsrIdxSt + ireg - 1
-        vol = Cell(icel)%vol(ireg)
+        vol  = Cell(icel)%vol(ireg)
+        
         localphi = localphi + phis(ifsr, iz, ig) * vol
-        volsum = volsum + vol
-      ENDDO
+        volsum   = volsum + vol
+      END DO
+      
       phisum = phisum + localphi
-      RR(1) = RR(1) + localphi * XsMac(ifxr)%XsMacT(ig)
+      
+      RR(1) = RR(1) + localphi * XsMac(ifxr)%XsMacT (ig)
       RR(2) = RR(2) + localphi * XsMac(ifxr)%XsMacTr(ig)
       RR(3) = RR(3) + localphi * XsMac(ifxr)%XsMacNf(ig)
       RR(4) = RR(4) + localphi * XsMac(ifxr)%XsMacKf(ig)
-      RR(5) = RR(5) + localphi * XsMac(ifxr)%XsMacA(ig)
+      RR(5) = RR(5) + localphi * XsMac(ifxr)%XsMacA (ig)
+      
       IF (lsigt) THEN
-        RR(6) = RR(6) + localphi / XsMac(ifxr)%XsMacT(ig)
+        RR(6) = RR(6) + localphi / XsMac(ifxr)%XsMacT (ig)
       ELSE
         RR(6) = RR(6) + localphi / XsMac(ifxr)%XsMacTr(ig)
-      ENDIF
+      END IF
+      
       DO ig2 = igb, ige
         RRS(ig2) = RRS(ig2) + localphi * XsMac(ifxr)%XsMacSm(ig, ig2)
-      ENDDO
-    ENDDO
+      END DO
+    END DO
+    
     nLocalFxr = nLocalFxr + nFxr
-  ENDDO
+  END DO
+  
   PinXS%Phi(ig) = phisum / volsum
-  RR = RR / phisum
+  
+  RR  = RR  / phisum
   RRS = RRS / phisum
-  PinXS%XSt(ig) = RR(1)
+  
+  PinXS%XSt (ig) = RR(1)
   PinXS%XStr(ig) = RR(2)
   PinXS%XSnf(ig) = RR(3)
   PinXS%XSkf(ig) = RR(4)
-  PinXS%XSa(ig) = RR(5)
-  PinXS%XSs(ig)%WithInGroupScat = RRS(ig)
+  PinXS%XSa (ig) = RR(5)
+  PinXS%XSs (ig)%WithInGroupScat = RRS(ig)
+  
   DO ig2 = igb, ige
     IF ((ig - PinXS%XSs(ig2)%ib) * (ig - PinXS%XSs(ig2)%ie) .GT. 0) CYCLE
+    
     PinXS%XSs(ig2)%from(ig) = RRS(ig2)
-  ENDDO
-  PinXS%XSr(ig) = RR(5) + sum(RRS) - RRS(ig)
-  PinXS%XSs(ig)%self = PinXS%XSs(ig)%from(ig)
-  PinXS%XSs(ig)%from(ig) = 0.0
-  PinXs%XSD(ig) = 1.0 / 3.0 / PinXS%XStr(ig)
-  PinXS%XSD2(ig) = 3.0 / 7.0 / PinXS%XSt(ig)
+  END DO
+  
+  PinXS%XSr (ig)          = RR(5) + sum(RRS) - RRS(ig)
+  PinXS%XSs (ig)%self     = PinXS%XSs(ig)%from(ig)
+  PinXS%XSs (ig)%from(ig) = ZERO
+  PinXs%XSD (ig)          = 1. / 3. / PinXS%XStr(ig)
+  PinXS%XSD2(ig)          = 3. / 7. / PinXS%XSt(ig)
+  
   IF (lsigt) THEN
     PinXS%XStr(ig) = PinXS%XSt(ig)
-    PinXs%XSD(ig) = 1.0 / 3.0 / PinXS%XSt(ig)
-  ENDIF
-  IF (nTracerCntl%lDhom) THEN
-    PinXs%XSD(ig) = 1.0 / 3.0 * RR(6)
-  ENDIF
-ENDDO
+    PinXs%XSD (ig) = 1. / 3. / PinXS%XSt(ig)
+  END IF
+  
+  IF (nTracerCntl%lDhom) PinXs%XSD(ig) = 1. / 3. * RR(6)
+END DO
 
 lFuel = FALSE
+
 IF (.NOT. lxslib) THEN
   nLocalFxr = 0
+  
   DO ixy = 1, nxy
     ipin = superPin%pin(ixy)
     icel = Pin(ipin)%Cell(iz)
     nFxr = Cell(icel)%nFxr
+    
     DO i = 1, nFxr
       ifxr = nLocalFxr + i
+      
       IF (XsMac(ifxr)%lFuel) THEN
-        lFuel = TRUE; EXIT
-      ENDIF
-    ENDDO
+        lFuel = TRUE
+        EXIT
+      END IF
+    END DO
+    
     nLocalFxr = nLocalFxr + nFxr
-  ENDDO
+  END DO
 ELSE
   DO ixy = 1, nxy
     ipin = superPin%pin(ixy)
     icel = Pin(ipin)%Cell(iz)
+    
     IF (Cell(icel)%lFuel) THEN
-      lFuel = TRUE; EXIT
-    ENDIF
-  ENDDO
-ENDIF
+      lFuel = TRUE
+      EXIT
+    END IF
+  END DO
+END IF
 
-Chi = 0.0
+Chi = ZERO
 
 IF (lFuel) THEN
-  psisum = zero
+  psisum    = ZERO
   nLocalFxr = 0
+  
   DO ixy = 1, nxy
-    ipin = superPin%pin(ixy)
-    icel = Pin(ipin)%Cell(iz)
-    nFxr = Cell(icel)%nFxr
+    ipin     = superPin%pin(ixy)
+    icel     = Pin(ipin)%Cell(iz)
+    nFxr     = Cell(icel)%nFxr
     FsrIdxSt = Pin(ipin)%FsrIdxSt
+    
     DO i = 1, nFxr
       ifxr = nLocalFxr + i
+      
       IF (.NOT. XsMac(ifxr)%lFuel) CYCLE
+      
       nFsrInFxr = Cell(icel)%nFsrInFxr(i)
-      localpsi = 0.0
+      localpsi  = ZERO
+      
       DO j = 1, nFsrInFxr
         ireg = Cell(icel)%MapFxr2FsrIdx(j, i)
         ifsr = FsrIdxSt + ireg - 1
-        vol = Cell(icel)%vol(ireg)
+        vol  = Cell(icel)%vol(ireg)
+        
         DO ig = 1, ng
           psi = phis(ifsr, iz, ig) * vol * XsMac(ifxr)%XsMacNf(ig)
-          psisum = psisum + psi
+          
+          psisum   = psisum   + psi
           localpsi = localpsi + psi
-        ENDDO
-      ENDDO
+        END DO
+      END DO
+      
       DO ig = 1, ng
         Chi(ig) = Chi(ig) + XsMac(ifxr)%Chi(ig) * localpsi
-      ENDDO
-    ENDDO
+      END DO
+    END DO
+    
     nLocalFxr = nLocalFxr + nFxr
-  ENDDO
+  END DO
+  
   Chi = Chi / psisum
-ENDIF
+END IF
 
 PinXS%Chi = Chi
+! ----------------------------------------------------
 
 END SUBROUTINE
-
 ! ========================================================================================================== !
 !  An Optimally Diffusive Coarse Mesh Finite Difference Method to Accelerate Neutron Transport Calculations  !
 !         Ang Zhu, Michael Jarret, Yunlin Xu, Brendan Kochunas, Edward Larsen, Thomas Downar (2016)          !
 ! ========================================================================================================== !
-
 FUNCTION odCMFD(h, xst) RESULT(theta)
 
 IMPLICIT NONE
