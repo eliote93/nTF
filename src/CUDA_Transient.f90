@@ -3126,7 +3126,7 @@ DO WHILE(.TRUE.)
       IF (nTracerCntl%lMacro) CALL SetCoreMacXs(Core, FmInfo)
       WRITE(mesg, '(a)') 'Cell Homogenization...'
       IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
-      CALL FxrChiGen(Core, FmInfo%Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+      CALL FxrChiGen(Core, FmInfo%Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
       CALL HomogenizeXS_Cusping(Core, FmInfo, cuGeometry%superPin, FmInfo%Fxr, cuCMFD%PinXS, FmInfo%phis, cuGeometry%ng, cuGeometry%nxyc, &
         cuDevice%myzb, cuDevice%myze, PE%nCMFDThread, nTracerCntl%lxslib, nTracerCntl%lscat1, .FALSE.)
       CALL HomogenizeKinParam(Core, FmInfo, TranInfo, TranCntl, GroupInfo, cuGeometry%superPin, cuCMFD%PinXS,&

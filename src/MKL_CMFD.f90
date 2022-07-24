@@ -84,7 +84,7 @@ lxslib = nTracerCntl%lxslib
 lscat1 = nTracerCntl%lScat1
 l3dim  = nTracerCntl%l3dim
 
-nInIter  = 1
+nInIter  = 5 ! NOTICE
 loutConv = FALSE
 outIter  = 0
 
@@ -101,7 +101,7 @@ CmfdInitBeg = nTracer_dclock(FALSE, FALSE)
 WRITE (mesg, '(A)') 'Cell Homogenization...'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
 
-CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 CALL HomogenizeXS(CoreInfo, mklGeom%superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, FALSE)
 CALL SetRadialCoupling(mklGeom%superPin, mklCMFD%superJout, PinXS, Jout, ng, nxy, myzb, myze, lDhat)
 
@@ -205,7 +205,8 @@ DO WHILE (.NOT. loutConv)
     IF (mklCntl%lChebyshev) CALL CMFDPsiUpdt(mklCMFD)
   END IF
   
-  IF (mod(outIter, 5) .NE. 0) CYCLE
+  !IF (mod(outIter, 5) .NE. 0) CYCLE
+  IF (outIter .NE. 5) CYCLE ! Only Once
   
   ! Ax.
   IF (mklCntl%lAxial .AND. l3dim .AND. .NOT.lFirstCMFD) THEN
@@ -329,7 +330,7 @@ IF (ItrCntl%Cmfdit .EQ. ItrCntl%Cmfdit0) lDhat = FALSE
 
 WRITE(mesg,'(a)') 'Cell Homogenization...'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, mesg)
-CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(CoreInfo, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 CALL HomogenizeXS(CoreInfo, mklGeom%superPin, Fxr, PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, FALSE)
 #ifdef Buckling
 IF (nTracerCntl%lBsq) THEN

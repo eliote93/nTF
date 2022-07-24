@@ -842,7 +842,7 @@ IF (nTracerCntl%lMacro) THEN
 ELSE
   CALL PsiUpdate(Core, Fxr, FmInfo%phis, psi, myzb, myze, ng, lxslib, GroupInfo)
 ENDIF
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 
 itrcntl%mocit = itrcntl%mocit + 1
 WRITE(mesg, '(a22,I5,a3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
@@ -1345,7 +1345,7 @@ lLkgSplit = (nTracerCntl%LkgSplitLv.EQ.0)
 !ELSE
 !  CALL PsiUpdate(Core, Fxr, FmInfo%phis, psi, myzb, myze, ng, lxslib, GroupInfo)
 !ENDIF
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 
 itrcntl%mocit = itrcntl%mocit + 1
 WRITE(mesg, '(a22,I5,a3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
@@ -1644,7 +1644,7 @@ CmfdInitBeg = nTracer_dclock(.FALSE., .FALSE.)
 
 WRITE(mesg, '(a)') 'Cell Homogenization...'
 IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 
 CALL HomogenizeXS(Core, cuGeometry%superPin, Fxr, cuCMFD%PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, .FALSE.)
 CALL SetRadialCoupling(cuGeometry%superPin, cuCMFD%PinXS, Jout, ng, nxy, myzb, myze, lDhat)
@@ -1838,7 +1838,7 @@ CmfdInitBeg = nTracer_dclock(.FALSE., .FALSE.)
 
 WRITE(mesg, '(a)') 'Cell Homogenization...'
 IF (PE%Master) CALL message(io8, .TRUE., .TRUE., mesg)
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 
 ! ------------------------------------------------ Only Difference ------------------------------------------------ !
 CALL HomogenizeXS_cuMAC(Core, cuGeometry%superPin, Fxr, cuCMFD%PinXS, phis, ng, nxy, myzb, myze, lxslib, lscat1, .FALSE.)

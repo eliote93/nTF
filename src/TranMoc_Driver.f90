@@ -139,7 +139,7 @@ IF(.NOT. GroupInfo%lUpScat) nGroupInfo = 1
 itrcntl%mocit = itrcntl%mocit + 1; TimeElasped = 0.
 WRITE(mesg, '(a22,I5,a3)') 'Performing Ray Tracing for Transient', itrcntl%mocit, '...'
 IF(Master) CALL message(io8, TRUE, TRUE, mesg)
-IF(RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+IF(RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 IF(nTracerCntl%lCusping_MPI) CALL GetNeighborMocFlux(phis, FmInfo%neighphis, nFsr, myzb, myze, 1, ng, Core%nz, Core%AxBC)
 DO jsweep =1, nGroupInfo
   GrpBeg = 1; GrpEnd = ng

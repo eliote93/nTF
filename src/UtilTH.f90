@@ -79,8 +79,7 @@ SUBROUTINE BurnupUpdate(is_reset)
 
   IF (bu_step_new > bu_step_old) THEN
     IF (PC_OPT == 1) THEN
-      !is_reset = .true.
-      is_reset = .false.
+      is_reset = .true.
     else
       is_reset = .true.
       LCORRECT_SAVE = .false.
@@ -103,84 +102,95 @@ SUBROUTINE BurnupUpdate(is_reset)
 
 END SUBROUTINE
 ! ------------------------------------------------------------------------------------------------------------
-SUBROUTINE SteadyCoolantTH(powlin, plevel, PEXIT, Tout, RelPW, CoolantTH, ThVar,ThOpt, PE)
+SUBROUTINE SteadyCoolantTH(powlin, plevel, PEXIT, Tout, RelPW, CoolantTH, ThVar)
+
 USE PARAM
-USE TYPEDEF,      ONLY : CoolantTH_Type,       ThVar_Type,     &
-                         ThOpt_Type,           PE_Type
+USE TYPEDEF,      ONLY : CoolantTH_Type, ThVar_Type
 USE SteamTBL_mod, ONLY : steamtbl
+
 IMPLICIT NONE
-TYPE (CoolantTH_Type) :: CoolantTH        ! One Channel Coolant TH in
+
+TYPE (CoolantTH_Type) :: CoolantTH ! One Channel Coolant TH in
 TYPE (ThVar_Type) :: ThVar
-TYPE (ThOPT_Type) :: ThOpt                !
-TYPE (PE_Type) :: PE                      !
-REAL :: PowLin, Plevel, PEXIT, Tout           !
+REAL :: PowLin, Plevel, PEXIT, Tout
 REAL :: RelPW(:)
 
-REAL, POINTER :: hcool(:), rhou(:), rhohu(:), u(:), ud(:), qvol(:), qeff(:), Tcool(:), DenCool(:)
-REAL, POINTER :: TcoolInOut(:, :)
-REAL, POINTER :: hz(:)
-REAL :: qprime, qf, qc, qflux, qeffnew              !
-REAL :: acf, afp, xi, zeta, zetap, FracDC, Fracdf
-REAL :: rhouin, rhouout, rhohuin, rhohuout, hout
-REAL :: Btemp
-REAL :: wt, wh, hin, wrho, wvin, wxin, wbetain, wkapain, wcpin
-INTEGER :: nzth
-INTEGER :: iz
+REAL, POINTER, DIMENSION(:) :: hcool, rhou, rhohu, qvol, qeff, Tcool, DenCool, hz
+REAL, POINTER, DIMENSION(:,:) :: TcoolInOut
+REAL :: qprime, qf, qc, qflux, qeffnew, acf, afp, xi, zeta, zetap, FracDC, Fracdf, rhouin, rhouout, rhohuin, rhohuout, hout, wt, wh, hin, wrho, wvin, wxin, wbetain, wkapain, wcpin
+INTEGER :: nzth, iz
+! ----------------------------------------------------
 
-acf = ThVar%acf; afp = ThVar%afp
-xi = ThVar%Xi; zeta = ThVar%zeta
-zetap = ThVar%zetap
-FracDc = ThVar%FracDC; FracDf = ThVar%FracDf;
-nzth = ThVar%nzth
-Btemp = ThVar%BoilingTemp
-!
-hcool => CoolantTH%hcool; rhou => CoolantTH%rhou
-rhohu => CoolantTH%rhohu; u => CoolantTH%u
-ud => CoolantTH%ud; qvol => CoolantTH%qvol
-Tcool => CoolantTH%Tcool; qeff => CoolantTH%qeff
+acf    = ThVar%acf
+afp    = ThVar%afp
+xi     = ThVar%Xi
+zeta   = ThVar%zeta
+zetap  = ThVar%zetap
+FracDc = ThVar%FracDC
+FracDf = ThVar%FracDf
+nzth   = ThVar%nzth
+hz    => ThVar%hz
+
+hcool      => CoolantTH%hcool
+rhou       => CoolantTH%rhou
+rhohu      => CoolantTH%rhohu
+qvol       => CoolantTH%qvol
+Tcool      => CoolantTH%Tcool
+qeff       => CoolantTH%qeff
 TCoolInOut => CoolantTh%TcoolInOut
-DenCool => CoolantTH%DenCool
-hz => ThVar%hz
-rhouin = rhou(0); rhohuin = rhohu(0)
-!Init Temperature Calculation
+DenCool    => CoolantTH%DenCool
+
+rhouin  = rhou (0)
+rhohuin = rhohu(0)
+
+! INIT : Temperature Calculation
 wh = rhohuin / rhouin
 CALL steamtbl(FALSE,pEXIT,wt,wh,wrho,wvin,wxin,wbetain,wkapain,wcpin)
-TCoolInOut(1, 1) = wt -CKELVIN
+TCoolInOut(1, 1) = wt - CKELVIN
 
 DO iz = 1, nzth
   qprime = plevel * powlin * RelPW(iz)
-  qf = FracDf * qprime / afp;  qc = FracDc * qprime / acf
-  qvol(iz) = qf                         !Heat source of Fuel Pallet
-  qflux = qf * afp / zeta
-  qeffnew = qflux * zetap + qc
+  qf     = FracDf * qprime / afp;  qc = FracDc * qprime / acf
+  
+  qvol(iz) = qf ! Heat source of Fuel Pallet
+  qflux    = qf * afp / zeta
+  qeffnew  = qflux * zetap + qc
   qeff(iz) = qeffnew
   rhohuout = rhohuin + qeffnew * hz(iz)
-  hcool(iz) = 0.5 * (rhohuout+rhohuin) / rhouin
+  hcool(iz) = 0.5 * (rhohuout + rhohuin) / rhouin
+  
   wh = hcool(iz)
   CALL steamtbl(FALSE,pEXIT,wt,wh,wrho,wvin,wxin,wbetain,wkapain,wcpin)
-  Tcool(iz) = wt - CKELVIN
+  
+  Tcool  (iz) = wt - CKELVIN
   Dencool(iz) = wrho
-  RhoHUin = RhoHuOut
-  RhoHU(iz) = RhoHuout
-  !Out Temperature
+  rhohuin     = rhohuout
+  rhohu(iz)   = rhohuout
+  
+  ! Out Temperature
   wh = rhohuout / rhouin
   CALL steamtbl(FALSE,pEXIT,wt,wh,wrho,wvin,wxin,wbetain,wkapain,wcpin)
-  TCoolInOut(2, iz) = wt - CKELVIN
+  
+  TCoolInOut(2, iz)   = wt - CKELVIN
   TCoolInOut(1, iz+1) = TCoolInOut(2, iz)
-!  IF (abs(TCoolInOut(2, iz) - Btemp) .LT. epsm4) THEN
-!    PRINT *, 'Boiling', Btemp
-!  END IF
 END DO
-hout = RhoHu(nzth)/rhou(nzth); wh = hout
+
+hout = RhoHu(nzth)/rhou(nzth)
+
+wh = hout
 CALL steamtbl(FALSE,pEXIT,wt,wh,wrho,wvin,wxin,wbetain,wkapain,wcpin)
+
 tout = wt - CKELVIN
 
-NULLIFY(hcool); NULLIFY(rhou)
-NULLIFY(rhohu); NULLIFY(u)
-NULLIFY(ud); NULLIFY(qvol)
-NULLIFY(Tcool); NULLIFY(qeff)
+NULLIFY (hcool)
+NULLIFY (rhou)
+NULLIFY (rhohu)
+NULLIFY (qvol)
+NULLIFY (Tcool)
+NULLIFY (qeff)
+! ----------------------------------------------------
 
-END SUBROUTINE
+END SUBROUTINE SteadyCoolantTH
 ! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE SteadyCoolantTH_ThCh(Core, powlin, plevel, PEXIT, Tout, RelPW, CoolantTH, ThVar,ThOpt, PE, ixy)
 USE PARAM

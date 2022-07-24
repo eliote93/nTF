@@ -149,7 +149,7 @@ IF (.NOT. nTracerCntl%lNodeMajor) THEN
     IF (Master) CALL message(io8, TRUE, TRUE, mesg)
     
     IF (RTMaster) THEN
-      CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+      CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
       
       IF (lLinSrc) CALL LinPsiUpdate(Core, Fxr, LinPsi, LinSrcSlope, myzb, myze, ng, lxslib, GroupInfo)
     END IF
@@ -257,7 +257,7 @@ ELSE
     WRITE (mesg, '(A22, I5, A3)') 'Performing Ray Tracing', itrcntl%mocit, '...'
     IF (MASTER) CALL message(io8, TRUE, TRUE, mesg)
     
-    IF (RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+    IF (RTMaster) CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
     IF (RTMaster .AND. lLSCASMO) CALL LinPsiUpdate_CASMO(Core, Fxr, phisSlope, psiSlope, myzb, myze, ng, lxslib, GroupInfo)
     
     DO iz = myzb, myze

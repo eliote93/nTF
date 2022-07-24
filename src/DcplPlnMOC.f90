@@ -241,7 +241,7 @@ CALL RadCouplingCoeffGen(Core, CmInfo%PinXs, CmInfo%RadJout, ng, .TRUE., DcplPE)
 
 
 
-CALL FxrChiGen(Core, FmInfo%Fxr, FmInfo, GroupInfo, DcplPE, DcplCntl)
+CALL FxrChiGen(Core, FmInfo%Fxr, FmInfo, GroupInfo, DcplCntl, DcplPE%myzb, DcplPE%myze)
 
 END SUBROUTINE
 
@@ -368,7 +368,7 @@ DO iter = 1, 1
   IF(.NOT. lMPI) CALL message(io8, FALSE, TRUE, mesg)
   IF(lMPI) CALL MPI_DcplMessage(mesg, myrank, TRUE, FALSE, FALSE)
 #endif
-  CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+  CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
   DO jsweep =1, nGroupInfo
     GrpBeg = 1; GrpEnd = ng
     !IF(.NOT. GroupInfo%lUpScat .AND. jsweep .GT. 1) EXIT

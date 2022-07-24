@@ -122,7 +122,7 @@ ResSrcFm => CmInfo%ResSrcFm
 WRITE(mesg,'(a)') 'Cell Homogenization (H)...'
 IF(CMFDMaster) CALL message(io8, TRUE, TRUE, mesg)    
 
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 CALL HomoXsGen_Cusping(Core, FmInfo, Fxr, Phis, CmfdPinXS, myzb, myze, ng, lXsLib, lScat1, FALSE)
 
 lRadDhatUpdt = .TRUE.

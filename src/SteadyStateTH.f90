@@ -152,11 +152,11 @@ DO iter = 1, 1
 				ToutAvg  = toutavg + ThInfo%Tcool(nzth, ixy)
       END DO
       
-		ELSE IF (CodeName=='CTF') THEN
+		ELSE IF (CodeName=='CTF' .AND. is_coupled) THEN
       tfmax = 0._8
       CALL CTF_TH(Core, ThInfo, nTracerCntl,ToutAvg, PE)
       nchannel = 1
-    ELSE IF (CodeName=='ESCOT') THEN
+    ELSE IF (CodeName=='ESCOT' .AND. is_coupled) THEN
       tfmax = 0._8
       CALL ESCOT_TH(Core, ThInfo, nTracerCntl, ToutAvg, lftemp_ex, PE, ng)
       nchannel = 1
@@ -179,9 +179,9 @@ DO iter = 1, 1
         !  END IF
         !ELSE
           !IF (nTRACERCntl%ThCh_mod .GE. 1 .AND. .NOT. nTRACERCntl%lthch_tf) THEN 
-          !  CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, GrpRelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE)
+          !  CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, GrpRelPower(1:nzth, ixy), CoolantTH(ixy), ThVar)
           !ELSE
-            CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, RelPower(1:nzth, ixy), CoolantTH(ixy), ThVar, ThOpt, PE)
+            CALL SteadyCoolantTH(PowLin, PowLv, PEXIT, Tout, RelPower(1:nzth, ixy), CoolantTH(ixy), ThVar)
           !END IF
         !END IF
         

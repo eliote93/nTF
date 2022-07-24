@@ -22,7 +22,6 @@ USE VTK_Mod,     ONLY : ProcessVTK
 USE BinOutp_Mod, ONLY : BinaryOutput
 USE GamCMFD_mod, ONLY : GammaCMFD
 USE CNTL,        ONLY : nTracerCntl
-USE SUBGRP_MOD,  ONLY : FxrChiGen
 
 USE HexTst,   ONLY : HexChkEffXs
 USE HexData,  ONLY : hLgc

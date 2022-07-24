@@ -104,7 +104,7 @@ ENDIF
 !Homogenization ProCedure
 WRITE(mesg,'(a)') 'Cell Homogenization (H)...'
 IF(CMFDMaster) CALL message(io8, TRUE, TRUE, mesg)
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 lsigT=FALSE
 !IF( ItrCntl%Axit .LT. 1 )THEN
 !    lsigT=TRUE
@@ -398,7 +398,7 @@ ENDIF
 !Homogenization ProCedure
 WRITE(mesg,'(a)') 'Cell Homogenization (H)...'
 IF(CMFDMaster) CALL message(io8, TRUE, TRUE, mesg)
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 CALL HomoXsGen(Core, Fxr, Phis, PinXs, myzb, myze, ng, lXsLib, lScat1, FALSE)
 #ifdef Buckling
 IF(nTracerCntl%lBsq) THEN
@@ -669,7 +669,7 @@ IF(.NOT. lParallel) CALL message(io8, TRUE, TRUE, mesg)
 #ifdef MPI_ENV
 IF(lParallel) CALL MPI_DcplMessage(mesg, PE%myrank, TRUE, FALSE, FALSE)
 #endif
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 CALL HomoXsGen(Core, Fxr, Phis, PinXs, myzb, myze, ng, lXsLib, lScat1, FALSE)
 !
 !CALL RadCouplingCoeffGen(Pin, RadJout)

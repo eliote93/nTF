@@ -117,7 +117,7 @@ ENDDO
 !Power 
 CALL CP_CA(Power(1:nCoreFsr, 1:nz), 1._8, nCoreFsr, nz)
 
-CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+CALL FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 !CALL CP_CA(phic(1:nxy, myzb:myze, 1:ng), phiinit, nxy, myze - myzb + 1, ng)
 IF(nTracerCntl%lDcpl) THEN
 #ifndef MPI_ENV
@@ -132,7 +132,7 @@ IF(nTracerCntl%lDcpl) THEN
       CALL CP_CA(DcplFmInfo(j, i)%psid(1:nCoreFsr, myzb:myze), PhiInit, nCoreFsr, myze - myzb + 1)
       CALL CP_CA(DcplFmInfo(j, i)%psic(1:nxy, myzb:myze), phiinit, nxy, myze - myzb + 1)
       CALL CP_CA(DcplFmInfo(j, i)%psicd(1:nxy, myzb:myze), phiinit, nxy, myze - myzb + 1)
-      CALL FxrChiGen(Core, DcplFmInfo(j, i)%Fxr, DcplFmInfo(j, i), GroupInfo, DcplPE(i), nTracerCntl)
+      CALL FxrChiGen(Core, DcplFmInfo(j, i)%Fxr, DcplFmInfo(j, i), GroupInfo, nTracerCntl, DcplPE(i)%myzb, DcplPE(i)%myze)
     ENDDO
   ENDDO
 ENDIF
@@ -248,7 +248,6 @@ USE BenchXs,         ONLY : xsnfBen,       xsnfDynBen
 USE MacXsLib_Mod,    ONLY : MacXsNf
 USE XsUtil_mod,      ONLY : FreeXsMac
 USE BasicOperation,  ONLY : CP_CA
-USE SUbGrp_Mod,      ONLY : FxrChiGen
 USE FILES,            ONLY : io8
 USE IOUTIL,           ONLY : message
 #ifdef MPI_ENV

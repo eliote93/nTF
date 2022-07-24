@@ -171,17 +171,17 @@ INTERFACE
 
   END SUBROUTINE  
   
-  SUBROUTINE FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+  SUBROUTINE FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
     USE TYPEDEF,        ONLY :   CoreInfo_Type,     FxrInfo_Type,  FmInfo_Type,            &
-                                 GroupInfo_Type,    PE_Type   
+                                 GroupInfo_Type
     USE CNTL,           ONLY : nTracerCntl_type
     IMPLICIT NONE
     TYPE(CoreInfo_Type) :: Core
     TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
     TYPE(FmInfo_Type) :: FmInfo
     TYPE(GroupInfo_Type) :: GroupInfo
-    TYPE(PE_Type) :: PE
     TYPE(nTracerCntl_Type) :: nTracerCntl
+    INTEGER :: myzb, myze
   END SUBROUTINE
   
   SUBROUTINE CalcDancoff(Core, Fxr, RayInfo, THInfo, nTracerCntl, PE)

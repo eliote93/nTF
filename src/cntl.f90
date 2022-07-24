@@ -165,7 +165,7 @@ TYPE nTracerCntl_Type
   LOGICAL :: lborontrack=.FALSE.
   LOGICAL :: lFeedBack = .FALSE.
   LOGICAL :: lSubGrpSweep = .FALSE.
-  LOGICAL :: lSimpleTh = .TRUE.
+  LOGICAL :: lSimpleTh = .FALSE.
   INTEGER :: ThCh_mod = 0                   ! T-H channel Mode 0 : Pin By Pin, 1 : Assembly Calculation, 2: 4 box,
   LOGICAL :: lthch_tf = .FALSE.
   LOGICAL :: lFuelCondFDM = .FALSE.         ! Fuel Conduction FDM Solver

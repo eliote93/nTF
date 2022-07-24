@@ -31,7 +31,6 @@ END SUBROUTINE
 SUBROUTINE InitChidLib(Core, FmInfo, GroupInfo, PE, nTracerCntl, Chid, ng)
 USE TYPEDEF,          ONLY : CoreInfo_Type,   FmInfo_Type,    GroupInfo_Type,   PE_Type
 USE CNTL,             ONLY : nTracerCntl_Type
-USE SUBGRP_MOD,       ONLY : FxrChiGen
 IMPLICIT NONE
 TYPE(CoreInfo_Type) :: Core
 TYPE(FmInfo_Type) :: FmInfo

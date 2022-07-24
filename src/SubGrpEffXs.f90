@@ -241,9 +241,9 @@ TimeChk%SubGrpGenEFFXSTime = TimeChk%SubGrpGenEFFXSTime + (Tend - Tbeg)
 
 END SUBROUTINE
 
-SUBROUTINE FxrChiGen(Core, Fxr, FmInfo, GroupInfo, PE, nTracerCntl)
+SUBROUTINE FxrChiGen(Core, Fxr, FmInfo, GroupInfo, nTracerCntl, myzb, myze)
 USE TYPEDEF,        ONLY :   CoreInfo_Type,     FxrInfo_Type,  FmInfo_Type,            &
-                             GroupInfo_Type,    PE_Type,                               &
+                             GroupInfo_Type,                               &
                              Cell_Type,         Pin_Type
 USE CNTL,           ONLY : nTracerCntl_type
 USE MacXsLib_mod,   ONLY : GetMacChi
@@ -253,7 +253,6 @@ TYPE(CoreInfo_Type),INTENT(IN) :: Core
 TYPE(FxrInfo_Type), POINTER :: Fxr(:, :)
 TYPE(FmInfo_Type),INTENT(IN) :: FmInfo
 TYPE(GroupInfo_Type) :: GroupInfo
-TYPE(PE_Type) :: PE
 TYPE(nTracerCntl_Type) :: nTracerCntl
 
 !Pointing Variables
@@ -277,7 +276,6 @@ IF(.NOT. lxsLib) RETURN
 CellInfo => Core%CellInfo; Pin => Core%Pin
 phis => FmInfo%phis
 
-myzb = PE%myzb; myze = PE%myze
 ng = GroupInfo%ng; nchi = GroupInfo%nchi
 nxy = COre%nxy; nFsr = Core%nCoreFsr; nFxr = Core%nCoreFxr
 !ALLOCATE(Spectrum(ng))

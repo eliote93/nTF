@@ -260,9 +260,9 @@ DO while(TRUE)
   idcard = FindCardId(idblock,cardname); IF(idcard .eq. 0) exit
   nLineField = nfields(oneline)-1
 
-  !AA_STH = 1
-  !m_AA = AA_STH
-  !ThOpt%AA_STH = .true.
+  AA_STH = 1
+  m_AA = AA_STH
+  ThOpt%AA_STH = .true.
   SELECT CASE(idcard)
     CASE(1)  ! PIN_DIM
       READ(oneline, *) astring, (THOpt%PinDim(i), i = 1, nLineField)

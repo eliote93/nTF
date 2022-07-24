@@ -76,15 +76,12 @@ INTERFACE
   INTEGER :: iz, ixy
   END SUBROUTINE
 
-  SUBROUTINE SteadyCoolantTH(powlin, plevel, Pexit, Tout, RelPW, CoolantTH, ThVar,ThOpt, PE)
+  SUBROUTINE SteadyCoolantTH(powlin, plevel, Pexit, Tout, RelPW, CoolantTH, ThVar)
   USE PARAM
-  USE TYPEDEF,      ONLY : CoolantTH_Type,       ThVar_Type,     &
-                           ThOpt_Type,           PE_Type
+  USE TYPEDEF,      ONLY : CoolantTH_Type,       ThVar_Type
   IMPLICIT NONE
   TYPE(CoolantTH_Type) :: CoolantTH        ! One Channel Coolant TH information
   TYPE(ThVar_Type) :: ThVar                !
-  TYPE(ThOPT_Type) :: ThOpt                !
-  TYPE(PE_Type) :: PE                      !
   REAL :: PowLin, Plevel, PEXIT, Tout      !
   REAL :: RelPW(:)
 
