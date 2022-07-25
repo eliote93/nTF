@@ -125,10 +125,12 @@ IF (lGM) THEN
     
     TrackingDat(ithr)%lAlloc = TRUE
   END DO
-ELSE IF (.NOT. ldcmp) THEN
+ELSE
   DO ithr = 1, nThr
-    CALL dmalloc(TrackingDat(ithr)%phisNg,    ng, nFsr)
-    CALL dmalloc(TrackingDat(ithr)%JoutNg, 3, ng, nbd, nxy)
+    IF (.NOT. ldcmp) THEN
+      CALL dmalloc(TrackingDat(ithr)%phisNg,    ng, nFsr)
+      CALL dmalloc(TrackingDat(ithr)%JoutNg, 3, ng, nbd, nxy)
+    END IF
     
     TrackingDat(ithr)%lAllocNM = TRUE
   END DO
