@@ -1,5 +1,5 @@
 #include <defines.h>
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE FuelTempChange(Core, Fxr,  deltemp, nTracerCntl, PE)
 !Calculate the reference fuel temperature and save the reference temperature
 USE PARAM
@@ -58,97 +58,108 @@ ENDDO
 NULLIFY(hz); NULLIFY(Pin); NULLIFY(CellInfo)
 
 END SUBROUTINE
-
+! ------------------------------------------------------------------------------------------------------------
 SUBROUTINE Cal_RefFuelTemp(RefFuelTemp, Core, Fxr, nTracerCntl, PE)
-!Calculate the reference fuel temperature and save the reference temperature
+
 USE PARAM
-USE TYPEDEF,       ONLY : coreinfo_type,     Fxrinfo_type,       PE_TYPE,   &
-                          Pin_Type,          Cell_Type    
+USE TYPEDEF,       ONLY : coreinfo_type, Fxrinfo_type, PE_TYPE, Pin_Type, Cell_Type
 USE CNTL,          ONLY : nTracerCntl_Type
+
 #ifdef MPI_ENV
-USE MPICOMM_mod,   ONLY : REDUCE,      MPI_SYNC
+USE MPICOMM_mod,   ONLY : REDUCE, MPI_SYNC
 #endif
+
 IMPLICIT NONE
+
 TYPE(CoreInfo_Type) :: Core
 TYPE(Fxrinfo_type), POINTER :: Fxr(:, :)
 TYPE(PE_TYPE) :: PE
 TYPE(nTracerCntl_Type) :: nTracerCntl
 REAL, POINTER :: RefFuelTemp(:)
-
+! ----------------------------------------------------
 TYPE(Pin_Type), POINTER :: PIN(:)
 TYPE(Cell_Type), POINTER :: CellInfo(:)
 REAL, POINTER :: hz(:)
-REAL :: sumT, sumVol, sumPlnT, sumPlnVol
-REAL :: h, vol, temp
-INTEGER :: j
-INTEGER :: nxy, nCoreFsr, nCoreFxr, nFsrInFxr, FsrIdxSt, FxrIdxSt, nlocalFxr
-INTEGER :: myzb, myze
-INTEGER :: iz, ixy, icel, ifxr,ifsr
+REAL :: sumT, sumVol, sumPlnT, sumPlnVol, h, vol, temp
+INTEGER :: nxy, nCoreFsr, nCoreFxr, nFsrInFxr, FsrIdxSt, FxrIdxSt, nlocalFxr, myzb, myze
+INTEGER :: j, iz, ixy, icel, ifxr,ifsr
+
 #ifdef MPI_ENV
 REAL :: MPIdat(2), MPIdatbuf(2)
 #endif
-IF(nTracerCntl%lBenchXs) RETURN
+! ----------------------------------------------------
 
-hz => Core%hz; Pin => Core%Pin
+IF (nTracerCntl%lBenchXs) RETURN
+
+hz       => Core%hz
+Pin      => Core%Pin
 CellInfo => Core%CellInfo;
+nxy       = Core%nxy
+nCoreFsr  = Core%nCoreFsr
+nCoreFxr  = Core%nCoreFxr
 
-nxy = Core%nxy; nCoreFsr = Core%nCoreFsr; nCoreFxr = Core%nCoreFxr
-myzb = PE%myzb; myze = PE%myze
+myzb = PE%myzb
+myze = PE%myze
 
-SumT=0._8; SumVol = 0._8;
+SumT   = ZERO
+SumVol = ZERO
+
 DO iz = myzb, myze
-  h = hz(iz)
-  sumPlnT = 0.; sumPlnVol = 0
+  h         = hz(iz)
+  sumPlnT   = ZERO
+  sumPlnVol = ZERO
+  
   DO ixy = 1, nxy
-    FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-    icel = Pin(ixy)%Cell(iz)
+    FsrIdxSt = Pin(ixy)%FsrIdxSt
+    FxrIdxSt = Pin(ixy)%FxrIdxSt
+    icel     = Pin(ixy)%Cell(iz)
+    
     nlocalFxr = CellInfo(icel)%nFxr
+    
     DO j = 1, nlocalFxr
-      ifxr = FxrIdxSt + j -1
+      ifxr      = FxrIdxSt + j -1
       nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-      IF(.NOT. Fxr(ifxr, iz)%lfuel) CYCLE
-      vol = FXR(ifxr, iz)%area * h
+      
+      IF (.NOT. Fxr(ifxr, iz)%lfuel) CYCLE
+      
+      vol  = FXR(ifxr, iz)%area * h
       temp = Fxr(ifxr, iz)%temp
-      sumPlnT = sumPlnT + temp*vol
+      
+      sumPlnT   = sumPlnT   + temp*vol
       SumPlnVol = SumPlnVol + vol
-    ENDDO
-  ENDDO
-  sumT = sumT + sumPlnT
+    END DO
+  END DO
+  
+  sumT   = sumT   + sumPlnT
   SumVol = SumVol + SumPlnVol
-  IF(SumPlnVOl .gt. 0) THEN
+  
+  IF (SumPlnVOl .GT. ZERO) THEN
     RefFuelTemp(iz) = sumPlnT / SumPlnVol - CKELVIN
   ELSE
-    RefFuelTemp(iz) = 0
-  ENDIF
- ! RefFuelTemp(iz) = 596.0
-  DO ixy = 1, nxy
-    FsrIdxSt = Pin(ixy)%FsrIdxSt; FxrIdxSt = Pin(ixy)%FxrIdxSt
-    icel = Pin(ixy)%Cell(iz)
-    nlocalFxr = CellInfo(icel)%nFxr
-    DO j = 1, nlocalFxr
-      ifxr = FxrIdxSt + j -1
-      nFsrInFxr = CellInfo(icel)%nFsrInFxr(j)
-    ENDDO
-  ENDDO
-ENDDO
+    RefFuelTemp(iz) = ZERO
+  END IF
+END DO
+
 #ifdef MPI_ENV
 CALL MPI_SYNC(PE%MPI_RTMASTER_COMM)
 MPIdat = (/sumT, SumVol/)
 CALL REDUCE(MPIdat, MPIdatbuf, 2, PE%MPI_RTMASTER_COMM, TRUE)
 sumT = MPIdatBuf(1); SumVol = MPIdatBuf(2)
-!CALL REDUCEnBCAST(sumT, PE%MPI_CMFD_COMM, PE%MPI_RT_COMM, PE%lCMFDGrp, TRUE, TRUE)
-!CALL REDUCEnBCAST(SumVol, PE%MPI_CMFD_COMM, PE%MPI_RT_COMM, PE%lCMFDGrp, TRUE, TRUE)
 #endif
-!RefFuelTemp(0) = 596.0
+
 RefFuelTemp(0) = SumT / SumVol - CKELVIN
+
 DO iz = myzb, myze
-  IF(RefFuelTemp(iz) .LT. 1.e-5_8) RefFuelTemp(iz) = RefFuelTemp(0)
-ENDDO
+  IF (RefFuelTemp(iz) .LT. 1E-5) RefFuelTemp(iz) = RefFuelTemp(0)
+END DO
 
-NULLIFY(hz); NULLIFY(Pin); NULLIFY(CellInfo)
+NULLIFY (hz)
+NULLIFY (Pin)
+NULLIFY (CellInfo)
+! ----------------------------------------------------
 
-END SUBROUTINE
-
+END SUBROUTINE Cal_RefFuelTemp
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION CalPlnFuelTemp(Core, Fxr, ipln)
 USE PARAM
 USE TYPEDEF,          ONLY : CoreInfo_Type       ,FxrInfo_Type                &
@@ -191,7 +202,7 @@ CalPlnFuelTemp = tempsum
 
 NULLIFY(Pin); NULLIFY(CellInfo)
 END FUNCTION
-
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION CalPlnModTemp(Core, Fxr, ipln)
 USE PARAM
 USE TYPEDEF,          ONLY : CoreInfo_Type       ,FxrInfo_Type                &
@@ -234,7 +245,7 @@ CalPlnModTemp = tempsum
 
 NULLIFY(Pin); NULLIFY(CellInfo)
 END FUNCTION
-
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION CalPlnTemp(Core, Fxr, ipln)
 USE PARAM
 USE TYPEDEF,          ONLY : CoreInfo_Type       ,FxrInfo_Type                &
@@ -276,7 +287,7 @@ CalPlnTemp = tempsum
 
 NULLIFY(Pin); NULLIFY(CellInfo)
 END FUNCTION
-
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION GetPinFuelTemp(Core, Fxr, ipln, ipin)
 USE PARAM
 USE TYPEDEF,       ONLY : CoreInfo_Type       ,FxrInfo_Type            &
@@ -317,7 +328,7 @@ ENDIF
 
 NULLIFY(Pin); NULLIFY(CellInfo)
 END FUNCTION
-
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION GetPinModTemp(Core, Fxr, ipln, ipin)
 USE PARAM
 USE TYPEDEF,       ONLY : CoreInfo_Type       ,FxrInfo_Type            &
@@ -353,7 +364,7 @@ ELSE
 ENDIF
 NULLIFY(Pin); NULLIFY(CellInfo)    
 END FUNCTION
-
+! ------------------------------------------------------------------------------------------------------------
 FUNCTION GetPinTemp(Core, Fxr, ipln, ipin)
 USE PARAM
 USE TYPEDEF,       ONLY : CoreInfo_Type       ,FxrInfo_Type            &
@@ -389,3 +400,4 @@ ENDIF
 
 NULLIFY(Pin); NULLIFY(CellInfo)
 END FUNCTION
+! ------------------------------------------------------------------------------------------------------------

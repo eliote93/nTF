@@ -128,18 +128,16 @@ INTERFACE
   END SUBROUTINE
 
   !SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray)
-  SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE)
+  SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl)
   USE PARAM
-  USE TYPEDEF,          ONLY :  FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
-                                PE_TYPE
+  USE TYPEDEF,          ONLY :  FuelTH_Type,     ThVar_Type,     ThOpt_Type
   USE CNTL,             ONLY : nTracerCntl_Type
   IMPLICIT NONE
   TYPE(FuelTH_Type):: FuelTH        ! One Channel Coolant TH information
   TYPE(ThVar_Type) :: ThVar                !
   TYPE(ThOPT_Type) :: ThOpt                !
   TYPE(nTracerCntl_Type) :: nTracerCntl
-  TYPE(PE_Type) :: PE                      !
-  REAL :: PowLin,  Plevel, Tfmax
+    REAL :: PowLin,  Plevel, Tfmax
   REAL :: RelPW(:)
   REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
   !REAL :: hGapArray(:)
@@ -1010,6 +1008,7 @@ INTEGER :: i
 nrp1 = nrpellet + 1; nrp2 = nrpellet + 2
 nrp3 = nrpellet + 3; nrp4 = nrpellet + 4
 delR = R(2) - R(1)
+IF (delR .GT. (R(3) - R(2))) delR = R(3) - R(2)
 !
 i=1
 xavg=(7*x(i)+x(i+1))*0.25

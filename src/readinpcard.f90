@@ -266,9 +266,9 @@ DO while(TRUE)
   SELECT CASE(idcard)
     CASE(1)  ! PIN_DIM
       READ(oneline, *) astring, (THOpt%PinDim(i), i = 1, nLineField)
-      IF (nLineField .EQ. 4) THEN
-        THOpt%PinDim(5) = THOpt%PinDim(4) - THOpt%PinDim(3)
-      endif
+      IF (nLineField .LT. 6) THEN
+        THOpt%PinDIm(6) = THOpt%PinDIm(4) - THOpt%PinDIm(3)
+      ENDIF
     CASE(2)  ! NRING_COND
       READ(oneline, *) astring, THOpt%nrpellet
     CASE(3)  ! EFF_DOPLT

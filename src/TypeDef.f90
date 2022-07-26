@@ -1167,7 +1167,7 @@ TYPE THOpt_Type
   REAL :: CpFuelCorrelation(0:3)
   REAL :: CpCladCorrelation(0:3)
   REAL :: Hgap = 10000._8
-  REAL :: PinDim(6)                 !  1 : PinRadius, Caldding Outer, Clad Thickness, Guide Tube Radius
+  REAL :: PinDim(6)                 !  1 : Pin Radius, Caldding Outer, Clad Thickness, Guide Tube Radius, Pin Inner Radius
   INTEGER :: nrpellet  = 20
   INTEGER :: nCondRing = 9
 

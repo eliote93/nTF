@@ -205,8 +205,8 @@ DO WHILE (.NOT. loutConv)
     IF (mklCntl%lChebyshev) CALL CMFDPsiUpdt(mklCMFD)
   END IF
   
-  !IF (mod(outIter, 5) .NE. 0) CYCLE
-  IF (outIter .NE. 5) CYCLE ! Only Once
+  IF (mod(outIter, 5) .NE. 0) CYCLE
+  IF (ItrCntl%MOCIt.GT. 3 .AND. outIter.NE.5) CYCLE ! Only Once after RT 3
   
   ! Ax.
   IF (mklCntl%lAxial .AND. l3dim .AND. .NOT.lFirstCMFD) THEN

@@ -282,58 +282,76 @@ NULLIFY(Tcool); NULLIFY(qeff)
 
   END SUBROUTINE
 ! ------------------------------------------------------------------------------------------------------------
-!SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray)
-SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE)
+!SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU, FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray)
+SUBROUTINE SteadyFuelConduction(powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU, FuelTH, ThVar, ThOpt, nTracerCntl)
+
 USE PARAM
-USE TYPEDEF,          ONLY :  FuelTH_Type,     ThVar_Type,     ThOpt_Type,          &
-                              PE_TYPE
+USE TYPEDEF,          ONLY : FuelTH_Type, ThVar_Type, ThOpt_Type
 USE CNTL,             ONLY : nTracerCntl_Type
-USE FuelProperty_Mod, ONLY : fhtcoef,    INTGAPCOND
+USE FuelProperty_Mod, ONLY : fhtcoef, INTGAPCOND
 USE TH_Mod,           ONLY : RadFuelCondFDM
+
 IMPLICIT NONE
-TYPE (FuelTH_Type):: FuelTH        ! One Channel Coolant TH information
-TYPE (ThVar_Type) :: ThVar                !
-TYPE (ThOPT_Type) :: ThOpt                !
+
+TYPE (FuelTH_Type):: FuelTH  ! One Channel Coolant TH information
+TYPE (ThVar_Type) :: ThVar
+TYPE (ThOPT_Type) :: ThOpt
 TYPE (nTracerCntl_Type) :: nTracerCntl
-TYPE (PE_Type) :: PE                      !
+
 REAL :: PowLin,  Plevel, Tfmax
 REAL :: RelPW(:)
 REAL, POINTER :: RhoU(:), PwShape(:, :), BurnUp(:, :)
 !REAL :: hGapArray(:)
-
-REAL, POINTER :: hflux(:), qvol(:), tcool(:), htcoef(:), tfuel(:, :), tfvol(:, :)
+! ----------------------------------------------------
+REAL, POINTER, DIMENSION(:)   :: qvol, tcool, htcoef
+REAL, POINTER, DIMENSION(:,:) :: tfuel, tfvol
 REAL :: DEQ, QF, fracdf, qprime, afp
 INTEGER :: iz, nzth, nr
+! ----------------------------------------------------
 
-hflux => FuelTH%hflux; qvol => FuelTh%qvol
-tcool => FuelTH%tcool; htcoef => FuelTh%htcoef
-tfuel => FuelTh%tfuel; tfvol => FuelTH%tfvol
+qvol   => FuelTh%qvol
+tcool  => FuelTH%tcool
+htcoef => FuelTh%htcoef
+tfuel  => FuelTh%tfuel
+tfvol  => FuelTH%tfvol
+
 fracdf = THVar%fracdf
-nzth = ThVar%nzth; DEQ =ThVar%Deq; afp = ThVar%afp
-nr = Thvar%npr5
-Tfmax = 0
+nzth   = ThVar%nzth
+DEQ    = ThVar%Deq
+afp    = ThVar%afp
+nr     = Thvar%npr5
+
+Tfmax = ZERO
+
 DO iz = 1, nzth
   qprime = plevel * powlin * RelPw(iz)
   !IF (ThOpt%hGapModel .EQ. 2) THEN
   !  ThOpt%hgap = INTGAPCOND(qprime)
   !END IF
-  qf = fracdf * qprime / afp; qvol(iz) = qf
+  qf = fracdf * qprime / afp
+  qvol(iz) = qf
   htcoef(iz) = fhtcoef(tcool(iz), deq, RhoU(iz))
-  IF (.NOT. nTracerCntl%LIHP) Pwshape=1
+  
+  IF (.NOT. nTracerCntl%LIHP) Pwshape = 1.
+  
   IF (nTracerCntl%lFuelCondFDM) THEN
     CALL RadFuelCondFDM(tfvol(1:nr-3, iz), tfuel(1:nr, iz), tcool(iz), htcoef(iz), qf, PwShape(:, iz), nr, ThVar, ThOpt, FuelTH%lMox(iz))
   ELSE
     CALL tfcalss(tfvol(1:nr-3, iz), tfuel(1:nr, iz), tcool(iz), htcoef(iz), qf, nr, ThVar, ThOpt, FuelTH%lMox(iz))
     !CALL tfcalss_pwshape(tfvol(1:nr-3, iz), tfuel(1:nr, iz), tcool(iz), htcoef(iz), qf, PwShape(:,iz), nr, ThVar, ThOpt, FuelTH%lMox(iz), hGapArray(iz))
-    !CALL tfcalss_qshape(tfvol(1:nr-3, iz), tfuel(1:nr, iz), tcool(iz), htcoef(iz), qf, qprime, PwShape(:,iz), Burnup(:, iz), nr, ThVar, ThOpt, FuelTH%lMox(iz))
+    !CALL tfcalss_qshape(tfvol(1:nr-3, i0z), tfuel(1:nr, iz), tcool(iz), htcoef(iz), qf, qprime, PwShape(:,iz), Burnup(:, iz), nr, ThVar, ThOpt, FuelTH%lMox(iz))
   END IF
+  
   IF (nTracerCntl%lEffTemp) CALL SetEffectiveTemp(tfvol(1:nr-3, iz),  tfuel(1:nr, iz), BurnUp(0, iz), nr, ThVar, ThOpt)
   CALL CalEffectiveTemp(FuelTh%Teff(iz), tfvol(1:nr-3, iz), tfuel(1:nr, iz), BurnUp(0, iz), nr, ThVar, ThOpt)
-
-  Tfmax = max(tfmax, tfuel(1, iz))
+  
+  tfmax = max(tfmax, tfuel(1, iz))
 END DO
-NULLIFY(hflux, qvol, tcool, htcoef, tfuel, tfvol)
-END SUBROUTINE
+
+NULLIFY (qvol, tcool, htcoef, tfuel, tfvol)
+! ----------------------------------------------------
+
+END SUBROUTINE SteadyFuelConduction
 ! ------------------------------------------------------------------------------------------------------------
 !SUBROUTINE SteadyFuelConduction_ThCh(Core, powlin, plevel, Tfmax, RelPw, PwShape, BurnUp, RhoU,FuelTH, ThVar, ThOpt, nTracerCntl, PE, hGapArray, ixy)
 !USE PARAM

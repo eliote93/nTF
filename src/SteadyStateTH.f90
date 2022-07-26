@@ -204,7 +204,7 @@ DO iter = 1, 1
     tfmax    = 0.
     tdoplmax = 0.
     
-    IF (.NOT. lftemp_ex) THEN
+    IF (.NOT. lftemp_ex) THEN ! DEFAULT
       DO ixy = xyb, xye
         IF (.NOT. CoolantTH(ixy)%lfuel) CYCLE
         
@@ -219,7 +219,7 @@ DO iter = 1, 1
         !  CALL SteadyFuelConduction_ThCh(Core, powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE, hGapArray(:,ixy), ixy)
         !ELSE
           !CALL SteadyFuelConduction(powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE, hGapArray(:,ixy))
-        CALL SteadyFuelConduction(powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl, PE)
+        CALL SteadyFuelConduction(powlin, PowLv, Tfmax1, RelPower(1:nzth, ixy), PwShape, BurnUpDist, RhoU, FuelTH(ixy), ThVar, ThOpt, nTracerCntl)
         !END IF
         
         tfmax = max(tfmax, tfmax1)
@@ -229,7 +229,7 @@ DO iter = 1, 1
           tmod_max  = max(coolantth(ixy)%tcool(iz), tmod_max)
         END DO
       END DO
-
+      
       IF (lfirst) THEN
         CALL init_AA(is_AA,nxy,nzth,ThVar%npr+4)
         lfirst = FALSE
