@@ -1337,7 +1337,8 @@ iit = mod(mocit, 2)
 
 IF (lHex) THEN
   setDcmpClr = AuxHex(iClr, iit)
-  IF (l060) setDcmpClr = iClr
+  !IF (l060) setDcmpClr = iClr
+  setDcmpClr = iClr
 ELSE
   setDcmpClr = AuxRec(iClr, iit)
 END IF

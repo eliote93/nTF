@@ -181,88 +181,88 @@ CALL dmalloc0(TrackingLoc%phim1g, 1, nOd, FsrSt, FsrEd)
 
 src1g => TrackingLoc%src1g
 ! ----------------------------------------------------
-IF (hLgc%lNoRef) THEN
-  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
-  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
-  
-  IF (lAFSS) CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
-  IF (lAFSS) CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
-  
-  DO iazi = 1, nAzi
-    SrcAng1g1 => TrackingLoc%SrcAng1g1
-    SrcAng1g2 => TrackingLoc%SrcAng1g2
-    
-    DO ifsr = FsrSt, FsrEd
-      DO ipol = 1, nPol
-        SrcAng1g1(ipol, ifsr, 1) = src1g(ifsr)
-        SrcAng1g2(ipol, ifsr, 1) = src1g(ifsr)
-        
-        srctmp = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
-        
-        SrcAng1g1(ipol, ifsr, 1) = SrcAng1g1(ipol, ifsr, 1) + srctmp
-        SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) - srctmp
-        
-        IF (ScatOd .LT. 2) CYCLE
-        
-        srctmp = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
-        
-        SrcAng1g1(ipol, ifsr, 1) = SrcAng1g1(ipol, ifsr, 1) + srctmp
-        SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) + srctmp
-        
-        IF (ScatOd .LT. 3) CYCLE
-        
-        srctmp = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
-        
-        SrcAng1g1(ipol, ifsr, 1) = SrcAng1g1(ipol, ifsr, 1) + srctmp
-        SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) - srctmp
-      END DO
-    END DO
-    
-    IF (lAFSS) TrackingLoc%phia1g1 = ZERO
-    IF (lAFSS) TrackingLoc%phia1g2 = ZERO
-    
-    IF (lHex) THEN
-      DO krot = 1, 2
-        DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
-          jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
-          
-          CALL HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, lAFSS, ScatOd)
-        END DO
-      END DO
-    ELSE
-      DO krot = 1, 2
-        DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
-          jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
-          
-          !CALL RecTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, lAFSS, ScatOd)
-        END DO
-      END DO
-    END IF
-    
-    IF (.NOT. lAFSS) CYCLE
-    
-    DO ifsr = FsrSt, FsrEd
-      DO ipol = 1, nPol
-        phia1gp = TrackingLoc%phia1g1(ipol, ifsr, 1) + TrackingLoc%phia1g2(ipol, ifsr, 1) ! NOTICE
-        phia1gm = TrackingLoc%phia1g1(ipol, ifsr, 1) - TrackingLoc%phia1g2(ipol, ifsr, 1)
-        
-        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
-        
-        SELECT CASE (ScatOd)
-        CASE (1)
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-        CASE (2)
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
-        CASE (3)
-          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
-          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
-          phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * phia1gm
-        END SELECT
-      END DO
-    END DO
-  END DO
-ELSE
+!IF (hLgc%lNoRef) THEN
+!  CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
+!  CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
+!  
+!  IF (lAFSS) CALL dmalloc0(TrackingLoc%phia1g1, 1, nPol, FsrSt, FsrEd, 1, 1)
+!  IF (lAFSS) CALL dmalloc0(TrackingLoc%phia1g2, 1, nPol, FsrSt, FsrEd, 1, 1)
+!  
+!  DO iazi = 1, nAzi
+!    SrcAng1g1 => TrackingLoc%SrcAng1g1
+!    SrcAng1g2 => TrackingLoc%SrcAng1g2
+!    
+!    DO ifsr = FsrSt, FsrEd
+!      DO ipol = 1, nPol
+!        SrcAng1g1(ipol, ifsr, 1) = src1g(ifsr)
+!        SrcAng1g2(ipol, ifsr, 1) = src1g(ifsr)
+!        
+!        srctmp = comp(1, ipol, iazi) * srcm1g(1, ifsr) + comp(2, ipol, iazi) * srcm1g(2, ifsr)
+!        
+!        SrcAng1g1(ipol, ifsr, 1) = SrcAng1g1(ipol, ifsr, 1) + srctmp
+!        SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) - srctmp
+!        
+!        IF (ScatOd .LT. 2) CYCLE
+!        
+!        srctmp = comp(3, ipol, iazi) * srcm1g(3, ifsr) + comp(4, ipol, iazi) * srcm1g(4, ifsr) + comp(5, ipol, iazi) * srcm1g(5, ifsr)
+!        
+!        SrcAng1g1(ipol, ifsr, 1) = SrcAng1g1(ipol, ifsr, 1) + srctmp
+!        SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) + srctmp
+!        
+!        IF (ScatOd .LT. 3) CYCLE
+!        
+!        srctmp = comp(6, ipol, iazi) * srcm1g(6, ifsr) + comp(7, ipol, iazi) * srcm1g(7, ifsr) + comp(8, ipol, iazi) * srcm1g(8, ifsr) + comp(9, ipol, iazi) * srcm1g(9, ifsr)
+!        
+!        SrcAng1g1(ipol, ifsr, 1) = SrcAng1g1(ipol, ifsr, 1) + srctmp
+!        SrcAng1g2(ipol, ifsr, 1) = SrcAng1g2(ipol, ifsr, 1) - srctmp
+!      END DO
+!    END DO
+!    
+!    IF (lAFSS) TrackingLoc%phia1g1 = ZERO
+!    IF (lAFSS) TrackingLoc%phia1g2 = ZERO
+!    
+!    IF (lHex) THEN
+!      DO krot = 1, 2
+!        DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
+!          jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
+!          
+!          CALL HexTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, lAFSS, ScatOd)
+!        END DO
+!      END DO
+!    ELSE
+!      DO krot = 1, 2
+!        DO iAsyRay = 1, DcmpAziRay(0, iazi, jAsy)
+!          jAsyRay = DcmpAziRay(iAsyRay, iazi, jAsy)
+!          
+!          !CALL RecTrackRotRayDcmpP1_GM(RayInfo, CoreInfo, TrackingLoc, DcmpAsyRay(jAsyRay, jAsy), ljout, iz, krot, lAFSS, ScatOd)
+!        END DO
+!      END DO
+!    END IF
+!    
+!    IF (.NOT. lAFSS) CYCLE
+!    
+!    DO ifsr = FsrSt, FsrEd
+!      DO ipol = 1, nPol
+!        phia1gp = TrackingLoc%phia1g1(ipol, ifsr, 1) + TrackingLoc%phia1g2(ipol, ifsr, 1) ! NOTICE
+!        phia1gm = TrackingLoc%phia1g1(ipol, ifsr, 1) - TrackingLoc%phia1g2(ipol, ifsr, 1)
+!        
+!        phis1g(ifsr) = phis1g(ifsr) + wtang(ipol, iazi) * phia1gp
+!        
+!        SELECT CASE (ScatOd)
+!        CASE (1)
+!          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
+!        CASE (2)
+!          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
+!          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
+!        CASE (3)
+!          phim1g(1:2, ifsr) = phim1g(1:2, ifsr) + mwt(1:2, ipol, iazi) * phia1gm
+!          phim1g(3:5, ifsr) = phim1g(3:5, ifsr) + mwt(3:5, ipol, iazi) * phia1gp
+!          phim1g(6:9, ifsr) = phim1g(6:9, ifsr) + mwt(6:9, ipol, iazi) * phia1gm
+!        END SELECT
+!      END DO
+!    END DO
+!  END DO
+!ELSE
   CALL dmalloc0(TrackingLoc%SrcAng1g1, 1, nPol, FsrSt, FsrEd, 1, nAzi)
   CALL dmalloc0(TrackingLoc%SrcAng1g2, 1, nPol, FsrSt, FsrEd, 1, nAzi)
   
@@ -338,7 +338,7 @@ ELSE
       END DO
     END DO
   END IF
-END IF
+!END IF
 ! ----------------------------------------------------
 IF (.NOT. lAFSS) THEN
   DO ifsr = FsrSt, FsrEd
@@ -482,7 +482,7 @@ DO imray = jbeg, jend, jinc
   iazi    = AziList   (imray)
   jazi    = iazi
   idir    = DirList   (imray)
-  IF (hLgc%lNoRef) jazi = 1
+  !IF (hLgc%lNoRef) jazi = 1
   IF (krot .EQ. 2) idir = mp(idir)
   
   DO ipol = 1, nPolarAng
