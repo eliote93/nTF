@@ -160,7 +160,8 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
-!IF (hLgc%l060) THEN
+SELECT CASE (hLgc%idcmpclr)
+CASE (0) ! NC
   CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 1)
   
   DcmpAsyClr(0, 1) = nAsy
@@ -169,25 +170,59 @@ END DO
     DcmpAsyClr(iAsy, 1) = iAsy
     Core%Asy(iAsy)%color  = 1
   END DO
-!ELSE
-!  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 3)
-!  
-!  DO iAsy = 1, nAsy
-!    itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
-!    
-!    SELECT CASE (itmp)
-!    CASE (1); iClr = RED
-!    CASE (2); iClr = BLACK
-!    CASE (0); iClr = GREEN
-!    END SELECT
-!    
-!    Core%Asy(iAsy)%color = iClr
-!      
-!    DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
-!    
-!    DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
-!  END DO
-!END IF
+CASE (1) ! RB 1
+  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 2)
+  
+  DO iAsy = 1, nAsy
+    itmp = mod(iAsy, 2)
+    
+    SELECT CASE (itmp)
+    CASE (1); iClr = RED
+    CASE (0); iClr = BLACK
+    END SELECT
+    
+    Core%Asy(iAsy)%color = iClr
+    
+    DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
+    
+    DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
+  END DO
+CASE (2) ! RB 2
+  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 2)
+  
+  DO iAsy = 1, nAsy
+    itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 2)
+    
+    SELECT CASE (itmp)
+    CASE (1); iClr = RED
+    CASE (0); iClr = BLACK
+    END SELECT
+    
+    Core%Asy(iAsy)%color = iClr
+    
+    DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
+    
+    DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
+  END DO
+CASE (3, 4) ! RGB
+  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 3)
+  
+  DO iAsy = 1, nAsy
+    itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 3)
+    
+    SELECT CASE (itmp)
+    CASE (1); iClr = RED
+    CASE (2); iClr = BLACK
+    CASE (0); iClr = GREEN
+    END SELECT
+    
+    Core%Asy(iAsy)%color = iClr
+    
+    DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
+    
+    DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
+  END DO
+END SELECT
 ! ----------------------------------------------------
 ! DEBUG
 !nRef = 0
@@ -218,7 +253,7 @@ END DO
 !PRINT *, nModRay, Core%nCoreFsr, Core%nxy, nAsy, nRef, maxNumPin, maxNumFsr
 !STOP
 ! ----------------------------------------------------
-IF (hLgc%l360) THEN
+IF (hLgc%ldcmpad) THEN
   CALL dmalloc0(DcmpAziRay, 0, nModRay, 1, RayInfo%nAziAngle, 1, nAsy)
   
   DO iAsy = 1, nAsy

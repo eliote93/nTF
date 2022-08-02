@@ -480,6 +480,8 @@ TYPE Type_HexLogical
   LOGICAL :: lspCMFD  = TRUE  ! Super-pin based CMFD
   
   INTEGER :: iSym = 0 ! 1 = 60 / 2 = 120 / 3 = 360 / 4 = Sng Asy / 5 = Sng Cel
+  INTEGER :: idcmpclr
+  LOGICAL :: ldcmpad
   
 END TYPE Type_HexLogical
 ! ------------------------------------------------------------------------------------------------------------
