@@ -8,8 +8,9 @@ USE ioutil,     ONLY : terminate, toupper, openfile, IFnumeric, nfields, message
 USE inputcards, ONLY : oneline, probe, mxcard, nblock, FindBlockId, FindCardId, cards, blocks
 USE CNTL,       ONLY : nTracerCntl
 USE PE_MOD,     ONLY : PE
-USE Geom,       ONLY : Core
+USE Geom,       ONLY : Core, lCoreAng
 USE RAYS,       ONLY : RayInfo
+USE HexData,    ONLY : hLgc
 
 USE MCP_Util,         ONLY : lMCP_Restart
 USE MCP_Restart_Main, ONLY : MCP_Initialize
@@ -105,15 +106,27 @@ IF (MASTER) THEN
   
   IF (PE%nproc .GT. 1) THEN
     WRITE (dumc, '(I2)') PE%nproc
-    mesg = 'Prc. # : ' // trim(dumc)
+    mesg = 'PRC. # : ' // trim(dumc)
     CALL message(io8, TRUE, TRUE, mesg)
   END IF
   
   IF (PE%nThread .GT. 1) THEN
     WRITE (dumc, '(I2)') PE%nThread
-    mesg = 'Thr. # : ' // trim(dumc)
+    mesg = 'THR. # : ' // trim(dumc)
     CALL message(io8, TRUE, TRUE, mesg)
   END IF
+  
+  WRITE (dumc, '(I3)') lCoreAng
+  IF (lCoreAng .NE. 360) THEN
+    IF (hLgc%lAzmRef) THEN
+      mesg = 'CORE   : ' // trim(dumc) // ' Ref.'
+    ELSE
+      mesg = 'CORE   : ' // trim(dumc) // ' Rot.'
+    END IF
+  ELSE
+    mesg = 'CORE   : ' // trim(dumc) // ' Cnt.'
+  END IF
+  CALL message(io8, TRUE, TRUE, mesg)
   
   del = RayInfo%Del
   
@@ -123,65 +136,65 @@ IF (MASTER) THEN
     WRITE (dumc, '(F5.3, X, I2, X, I1)') del, RayInfo%nAziAngle/2, RayInfo%nPolarAngle
   END IF
   
-  mesg = 'Ray    : ( ' // trim(dumc) // ' )'
+  mesg = 'RAY    : ( ' // trim(dumc) // ' )'
   CALL message(io8, TRUE, TRUE, mesg)
   
-  IF (nTracerCntl%TRSolver .NE. 1) THEN 
-    mesg = 'SCHEME : multigroup MC' 
-    CALL message(io8, TRUE, TRUE, mesg) 
+  IF (nTracerCntl%TRSolver .NE. 1) THEN
+    mesg = 'SCHEME : multigroup MC'
+    CALL message(io8, TRUE, TRUE, mesg)
   ELSE
-    IF (nTracerCntl%lFeedback) THEN 
-      mesg = 'T/H    : T' 
+    IF (nTracerCntl%lFeedback) THEN
+      mesg = 'T/H    : T'
     ELSE
-      mesg = 'T/H    : F' 
-    END IF  
-    CALL message(io8, TRUE, TRUE, mesg) 
+      mesg = 'T/H    : F'
+    END IF
+    CALL message(io8, TRUE, TRUE, mesg)
     
     IF (nTracerCntl%lNodeMajor) THEN 
-      IF (nTracerCntl%ScatOd .GT. 0) THEN 
-        mesg = 'SCHEME : Node Major Pn' 
-      ELSE 
-        mesg = 'SCHEME : Node Major Trc' 
-      END IF 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    ELSE 
-      IF (nTracerCntl%ScatOd .GT. 0) THEN 
-        mesg = 'SCHEME : Group Major Pn' 
-      ELSE 
-        mesg = 'SCHEME : Group Major Trc' 
-      END IF 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    END IF 
+      IF (nTracerCntl%ScatOd .GT. 0) THEN
+        mesg = 'SCHEME : Node Major Pn'
+      ELSE
+        mesg = 'SCHEME : Node Major Trc'
+      END IF
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      IF (nTracerCntl%ScatOd .GT. 0) THEN
+        mesg = 'SCHEME : Group Major Pn'
+      ELSE
+        mesg = 'SCHEME : Group Major Trc'
+      END IF
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
      
-    IF (nTracerCntl%lLinSrcCASMO) THEN 
-      IF (nTracerCntl%lHybrid) THEN 
-        mesg = 'LINSRC : T (Hybrid)' 
-      ELSE 
-        mesg = 'LINSRC : T' 
-      END IF 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    ELSE 
-      mesg = 'LINSRC : F' 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    END IF 
+    IF (nTracerCntl%lLinSrcCASMO) THEN
+      IF (nTracerCntl%lHybrid) THEN
+        mesg = 'LINSRC : T (Hybrid)'
+      ELSE
+        mesg = 'LINSRC : T'
+      END IF
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      mesg = 'LINSRC : F'
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
      
-    IF (nTracerCntl%lDomainDcmp) THEN 
-      mesg = 'DCMP   : T' 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    ELSE 
-      mesg = 'DCMP   : F' 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    END IF 
+    IF (nTracerCntl%lDomainDcmp) THEN
+      mesg = 'DCMP   : T'
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      mesg = 'DCMP   : F'
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
      
-    IF (nTracerCntl%lAFSS) THEN 
-      mesg = 'AFSS   : T' 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    ELSE 
-      mesg = 'AFSS   : F' 
-      CALL message(io8, TRUE, TRUE, mesg) 
-    END IF 
-  END IF 
-END IF 
+    IF (nTracerCntl%lAFSS) THEN
+      mesg = 'AFSS   : T'
+      CALL message(io8, TRUE, TRUE, mesg)
+    ELSE
+      mesg = 'AFSS   : F'
+      CALL message(io8, TRUE, TRUE, mesg)
+    END IF
+  END IF
+END IF
 ! ----------------------------------------------------
 #ifndef MPI_ASYNC_READ
 #ifdef MPI_ENV

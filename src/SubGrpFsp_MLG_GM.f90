@@ -138,7 +138,7 @@ DO iz = myzb, myze
           
           IF (RTMASTER) THEN
             CALL EquipXSGen_MLG(Phis1g, SigLamPot, xstr1g, ilv, Core, Fxr, iz, ig, PE) ! equivalence XS calculation with flux from FSP
-            CALL UpdtFtAdj(Core, Fxr, ilv, ig, iz, PE) ! TCF update
+            CALL UpdtFtAdj(Core, Fxr, ilv, ig, iz, PE) ! Temperature Consideration Factor (TCF) update
           END IF
           
           IF (errmaxlv .LT. EPSM3) EXIT
