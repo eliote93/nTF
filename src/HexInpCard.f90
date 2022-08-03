@@ -803,7 +803,7 @@ LOGICAL :: lCmfd = TRUE
 
 dataline = dataline0
 
-READ (dataline, *) lCmfd, hLgc%lspCMFD, nInnMOCItr, nInnCMFDmax, InnCMFDConvCrit, nOutCMFDmax, OutCMFDConvCrit, hLgc%idcmpclr, hLgc%ldcmpad
+READ (dataline, *) lCmfd, hLgc%lspCMFD, nInnMOCItr, nInnCMFDmax, InnCMFDConvCrit, nOutCMFDmax, OutCMFDConvCrit
 
 !mklcntl%maxOuter  = nOutCmfdmax
 !mklcntl%maxInner  = nInnCmfdmax

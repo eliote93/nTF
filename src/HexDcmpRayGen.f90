@@ -160,8 +160,7 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
-SELECT CASE (hLgc%idcmpclr)
-CASE (0) ! NC
+IF (hLgc%l060) THEN
   CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 1)
   
   DcmpAsyClr(0, 1) = nAsy
@@ -170,41 +169,7 @@ CASE (0) ! NC
     DcmpAsyClr(iAsy, 1) = iAsy
     Core%Asy(iAsy)%color  = 1
   END DO
-CASE (1) ! RB 1
-  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 2)
-  
-  DO iAsy = 1, nAsy
-    itmp = mod(iAsy, 2)
-    
-    SELECT CASE (itmp)
-    CASE (1); iClr = RED
-    CASE (0); iClr = BLACK
-    END SELECT
-    
-    Core%Asy(iAsy)%color = iClr
-    
-    DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
-    
-    DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
-  END DO
-CASE (2) ! RB 2
-  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 2)
-  
-  DO iAsy = 1, nAsy
-    itmp = mod(hAsy(iAsy)%iaX + hAsy(iAsy)%iaY, 2)
-    
-    SELECT CASE (itmp)
-    CASE (1); iClr = RED
-    CASE (0); iClr = BLACK
-    END SELECT
-    
-    Core%Asy(iAsy)%color = iClr
-    
-    DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
-    
-    DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
-  END DO
-CASE (3, 4) ! RGB
+ELSE
   CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 3)
   
   DO iAsy = 1, nAsy
@@ -217,12 +182,12 @@ CASE (3, 4) ! RGB
     END SELECT
     
     Core%Asy(iAsy)%color = iClr
-    
+      
     DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
     
     DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
   END DO
-END SELECT
+END IF
 ! ----------------------------------------------------
 ! DEBUG
 !nRef = 0
@@ -253,7 +218,7 @@ END SELECT
 !PRINT *, nModRay, Core%nCoreFsr, Core%nxy, nAsy, nRef, maxNumPin, maxNumFsr
 !STOP
 ! ----------------------------------------------------
-IF (hLgc%ldcmpad) THEN
+IF (hLgc%l360) THEN
   CALL dmalloc0(DcmpAziRay, 0, nModRay, 1, RayInfo%nAziAngle, 1, nAsy)
   
   DO iAsy = 1, nAsy

@@ -1325,30 +1325,22 @@ CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
 FUNCTION setDcmpClr(lHex, l060, iClr, mocit)
 
-USE HexData, ONLY : hLgc
-
 IMPLICIT NONE
 
 LOGICAL :: lHex, l060
 INTEGER :: iClr, iit, mocit, setDcmpClr
 
-INTEGER, PARAMETER :: AuxRB(2, 0:1) = [2, 1,  1, 2]
-INTEGER, PARAMETER :: AuxRGB1(3, 0:1) = [3, 1, 2,  2, 1, 3]
-INTEGER, PARAMETER :: AuxRGB2(3, 0:2) = [3, 1, 2,  1, 2, 3,  2, 3, 1]
+INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
+INTEGER, PARAMETER :: AuxHex(3, 0:1) = [3, 1, 2,  2, 1, 3]
 
-SELECT CASE (hLgc%idcmpclr)
-CASE (0) ! NC
-  setDcmpClr = iClr
-CASE (1,2) ! RB
-  iit = mod(mocit, 2)
-  setDcmpClr = AuxRB(iClr, iit)
-CASE (3) ! RGB 1
-  iit = mod(mocit, 2)
-  setDcmpClr = AuxRGB1(iClr, iit)
-CASE (4) ! RGB 2
-  iit = mod(mocit, 3)
-  setDcmpClr = AuxRGB2(iClr, iit)
-END SELECT
+iit = mod(mocit, 2)
+
+IF (lHex) THEN
+  setDcmpClr = AuxHex(iClr, iit)
+  IF (l060) setDcmpClr = iClr
+ELSE
+  setDcmpClr = AuxRec(iClr, iit)
+END IF
 
 END FUNCTION setDcmpClr
 ! ------------------------------------------------------------------------------------------------------------
