@@ -11,9 +11,8 @@ USE PARAM,      ONLY : FALSE, ONE, ZERO, EPSM3, TRUE, VoidCell, mesg
 USE TYPEDEF,    ONLY : coreinfo_type, Fxrinfo_type, GroupInfo_Type, RayInfo_Type, PE_TYPE, THInfo_Type
 USE CNTL,       ONLY : nTracerCntl_Type
 USE FILES,      ONLY : IO8
-USE geom,       ONLY : nbd
 USE SUBGRP_MOD, ONLY : SetPlnLsigP_MLG, SetPlnLsigP_1gMLG, SubGrpFspErr, EquipXSGen_MLG, EquipXsGen_1gMLG, SetSubGrpSrc1g, UpdtFnAdj, UpdtFtAdj
-USE MOC_MOD,    ONLY : RayTrace_GM, trackingdat
+USE MOC_MOD,    ONLY : RayTrace_GM, RayTraceDcmp_GM, DcmpPhiAngIn1g
 USE IOUTIL,     ONLY : message
 USE TIMER,      ONLY : nTracer_dclock, TimeChk
 USE XSLib_mod,  ONLY : mlgdata, mlgdata0
@@ -33,7 +32,7 @@ TYPE(PE_TYPE)          :: PE
 
 TYPE(FxrInfo_Type), POINTER, DIMENSION(:,:) :: Fxr
 
-INTEGER :: iz, ilv, ig, ig1, ig2, iter, itermax, itersum, ithr, nfsr, nfxr, myzb, myze, nlv, myitersum, nofg, norg, niter, nPhiAngSv, nPolar, nthr, nxy
+INTEGER :: iz, ilv, ig, ig1, ig2, iter, itermax, itersum, ithr, nfsr, nfxr, myzb, myze, nlv, myitersum, nofg, norg, niter, nPhiAngSv, nPolar
 
 REAL :: lv, errmax, errmaxlv, Tbeg, Tend, rt1, rt2, rtnet
 
@@ -52,13 +51,11 @@ ig2 = nofg + norg
 
 nFxr = Core%nCoreFxr
 nFsr = Core%nCoreFsr
-nxy  = Core%nxy
 
 myzb     = PE%myzb
 myze     = PE%myze
 master   = PE%master
 RTmaster = PE%RTmaster
-nthr     = PE%nThread
 
 nPolar    = RayInfo%nPolarAngle
 nPhiAngSv = RayInfo%nPhiAngSv
@@ -74,7 +71,8 @@ lSilent = lDcpl
 Tbeg = nTracer_Dclock(FALSE, FALSE)
 
 itermax = 100
-IF (any(Core%RadBC(1:4) .EQ. VoidCell)) itermax = 1
+IF (.NOT.ldcmp .AND. any(Core%RadBC(1:4) .EQ. VoidCell)) itermax = 1
+IF (ldcmp) itermax = 2 ! Arbitrary
 
 CALL dmalloc(phis1g,  nFsr)
 CALL dmalloc(phis1gd, nFsr)
@@ -83,12 +81,7 @@ CALL dmalloc(src1g,   nFsr)
 CALL dmalloc(PhiAngIn1g, nPolar, nPhiAngSv)
 CALL dmalloc(SigLamPot, nFxr)
 
-IF (ldcmp) THEN
-  DO ithr = 1, nThr
-    CALL dmalloc(TrackingDat(ithr)%phis1g, nFsr)
-    CALL dmalloc(TrackingDat(ithr)%Jout1g, 3, nbd, nxy)
-  END DO
-END IF
+IF (ldcmp) CALL dmalloc(DcmpPhiAngIn1g, nPolar, 2, RayInfo%nModRay, Core%nxya)
 
 WRITE (mesg,'(A, F10.2, A)') "Reference Fuel Temperature", THInfo%RefFuelTemp(0), " C"
 IF (master) CALL message(io8,TRUE,TRUE,mesg)
@@ -128,7 +121,11 @@ DO iz = myzb, myze
           IF (RtMaster) CALL CopyFlux(phis1g, phis1gd, nFsr) ! Save Previous data
           
           rt1   = nTracer_dclock(FALSE, FALSE)
-          CALL RayTrace_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
+          IF (ldcmp) THEN
+            CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
+          ELSE
+            CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
+          END IF
           rt2   = nTracer_dclock(FALSE, FALSE)
           rtnet = rtnet + (rt2 - rt1)
           
@@ -182,7 +179,11 @@ DO iz = myzb, myze
         IF (RtMaster) CALL CopyFlux(phis1g, phis1gd, nFsr) ! Save Previous data
                 
         rt1   = nTracer_dclock(FALSE, FALSE)
-        CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
+        IF (ldcmp) THEN
+          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
+        ELSE
+          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
+        END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
         
@@ -226,7 +227,11 @@ DO iz = myzb, myze
         IF (RtMaster) CALL CopyFlux(phis1g, phis1gd, nFsr) ! Save Previous data
                 
         rt1   = nTracer_dclock(FALSE, FALSE)
-        CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
+        IF (ldcmp) THEN
+          CALL RayTraceDcmp_GM(RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE)
+        ELSE
+          CALL RayTrace_GM    (RayInfo, Core, phis1g, PhiAngIn1g, xstr1g, src1g, jout1g, iz, FALSE, nTracerCntl%FastMocLv)
+        END IF
         rt2   = nTracer_dclock(FALSE, FALSE)
         rtnet = rtnet + (rt2 - rt1)
         
@@ -251,13 +256,7 @@ DO iz = myzb, myze
 END DO
 ! ----------------------------------------------------
 DEALLOCATE (xstr1g, SigLamPot, phis1g, phis1gd, PhiAngIn1g)
-
-IF (ldcmp) THEN
-  DO ithr = 1, nThr
-    DEALLOCATE (TrackingDat(ithr)%phis1g)
-    DEALLOCATE (TrackingDat(ithr)%Jout1g)
-  END DO
-END IF
+IF (ldcmp) DEALLOCATE (DcmpPhiAngIn1g)
 
 nTracerCntl%lSubGrpSweep = TRUE
 itersum = myitersum
