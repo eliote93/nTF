@@ -57,7 +57,7 @@ USE PARAM,   ONLY : FORWARD
 USE TYPEDEF, ONLY : RayInfo_type, RayInfo4Cmfd_Type, DcmpAsyRayInfo_Type
 USE CNTL,    ONLY : nTracerCntl
 USE HexType, ONLY : Type_HexAsyRay
-USE HexData, ONLY : hRotRay, hcRay, hAsy, hAsyTypInfo, haRay, nhAsy, hmRay
+USE HexData, ONLY : hRotRay, hcRay, hAsy, hAsyTypInfo, haRay, nhAsy
 USE HexUtil, ONLY : SetSgn_INT
 
 IMPLICIT NONE
@@ -123,10 +123,8 @@ END DO
 IF (nTracerCntl%lDomainDcmp) THEN
   CALL dmalloc(RayInfo4CMFD%DcmpAsyRayInCell, 2, RayInfo%nModRay, nhAsy)
   CALL dmalloc(RayInfo4CMFD%DcmpAsyRayInSurf, 2, RayInfo%nModRay, nhAsy)
-  CALL dmalloc(RayInfo4CMFD%ltst,             2, RayInfo%nModRay, nhAsy)
   
   RayInfo4CMFD%DcmpAsyRayCount => RayInfo%DcmpAsyRayCount
-  RayInfo4CMFD%ltst = .FALSE.
   
   DcmpAsyRay       => RayInfo%DcmpAsyRay
   DcmpAsyRayInCell => RayInfo4CMFD%DcmpAsyRayInCell
@@ -150,15 +148,11 @@ IF (nTracerCntl%lDomainDcmp) THEN
         
         DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(1)%hSufIdx(1)
         DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
-        
-        IF (hmRay(imRaySt)%ltst(1)) RayInfo4CMFD%ltst(1, iCnt, iAsy) = .TRUE.
       ELSE
         jPin = haRay_Loc%CelRay(npRay)%hPinIdx
         
         DcmpAsyRayInSurf(1, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%hSufIdx(2)
         DcmpAsyRayInCell(1, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
-        
-        IF (hmRay(imRaySt)%ltst(2)) RayInfo4CMFD%ltst(1, iCnt, iAsy) = .TRUE.
       END IF
       
       ! Out-going Surf.
@@ -170,15 +164,11 @@ IF (nTracerCntl%lDomainDcmp) THEN
         
         DcmpAsyRayInSurf(2, iCnt, iAsy) = haRay_Loc%CelRay(npRay)%hsufIdx(2)
         DcmpAsyRayInCell(2, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
-        
-        IF (hmRay(imRayEd)%ltst(1)) RayInfo4CMFD%ltst(2, iCnt, iAsy) = .TRUE.
       ELSE
         jPin = haRay_Loc%CelRay(1)%hPinIdx
         
         DcmpAsyRayInSurf(2, iCnt, iAsy) = haRay_Loc%CelRay(1)%hSufIdx(1)
         DcmpAsyRayInCell(2, iCnt, iAsy) = hAsy(iAsy)%PinIdxSt + hAsyTypInfo(iAsyTyp)%PinLocIdx(iGeoTyp, jPin) - 1
-        
-        IF (hmRay(imRayEd)%ltst(2)) RayInfo4CMFD%ltst(2, iCnt, iAsy) = .TRUE.
       END IF
     END DO
   END DO
@@ -302,7 +292,8 @@ IF (nTracerCntl%lDomainDcmp) THEN
           isxy = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
           ingh = hPinInfo(imxy)%DcmpMP2slfSPngh(isfc)
           jsxy = hPinInfo(imxy)%DcmpMP2nghSPidx(isfc)
-          slgh = superPin(isxy)%BdLength(ingh)
+          
+          slgh  = superPin(isxy)%BdLength(ingh)
           
           DO ig = 1, ng
             myphi = ZERO
@@ -338,8 +329,8 @@ IF (nTracerCntl%lDomainDcmp) THEN
               sfcMOCphi = superJout(3, ingh, isxy, iz, ig)
               sfcMOCcjn = superJout(2, ingh, isxy, iz, ig) - superJout(1, ingh, isxy, iz, ig)
               
-              IF (hLgc%l060 .AND. RayInfo4CMFD%ltst(idir, icnt, iasy)) THEN
-                fmult = sfcCMFDphi / superJout(3, ingh, isxy, iz, ig) ! Sfc. Scalar Flux
+              IF (hLgc%l060) THEN
+                fmult = sfcCMFDphi / superJout(3, ingh, isxy, iz, ig)
               ELSE
                 fmult = (RFOUR*sfcCMFDphi - HALF*sfcCMFDcjn) / (RFOUR*sfcMOCphi - HALF*sfcMOCcjn) ! In-coming Partial Cjn.
               END IF

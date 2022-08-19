@@ -69,7 +69,7 @@ DO iRotRay = 1, nRotRay
     END IF
     
     DO iAsyRay = AsyRayBeg, AsyRayEnd, AsyRayInc
-      jAsyRay = hcRay(abs(jCoreRay))%mRayIdx(iAsyRay) ! mRay Idx.
+      jAsyRay = hcRay(abs(jCoreRay))%mRayIdx(iAsyRay)
       iAsy    = hcRay(abs(jCoreRay))%AsyIdx (iAsyRay)
       
       IF (iAsy .EQ. 0) THEN

@@ -406,7 +406,6 @@ TYPE Type_HexModRay
   
   REAL :: Eq(3)    = ZERO ! ax * by = c
   REAL :: Pt(2, 2) = ZERO ! (x/y, y¢Ö)
-  LOGICAL :: ltst(2) = FALSE ! T : Core Bndy
   
   ! iDir = Negative : y¢Ù, Positive : y¢Ö
   
