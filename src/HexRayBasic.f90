@@ -307,6 +307,19 @@ DO imRay = 1, NumMRay(0)
   hmRay(imRay)%NxtMray_Mov(1)  = jmRay
   hmRay(jmRay)%NxtMray_Mov(-1) = imRay
 END DO
+! ----------------------------------------------------
+!               07. TST
+! ----------------------------------------------------
+DO imRay = 1, NumMRay(0)
+  DO tDir = 1, 2
+    xDel = hmRay(imRay)%pt(1, tDir)
+    yDel = hmRay(imRay)%pt(2, tDir)
+    
+    IF ((abs(ydel).LT.1E-1) .OR. abs(xdel*SQ3+ydel).LT.1E-1) THEN
+      hmRay(imRay)%ltst(tDir) = .TRUE.
+    END IF
+  END DO
+END DO
 
 CONTAINS
 ! ----------------------------------------------------

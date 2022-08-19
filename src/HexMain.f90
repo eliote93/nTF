@@ -91,7 +91,7 @@ CALL ConvertRay
 WRITE (MESG, '(A)') '-------------------------------------------------------------------'
 IF (PE%Master) CALL message(io8, TRUE, TRUE, MESG)
 
-DEALLOCATE (hmRay)
+!DEALLOCATE (hmRay)
 ! ----------------------------------------------------
 ! Tst
 !CALL HexTstHcPin

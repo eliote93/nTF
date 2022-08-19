@@ -495,6 +495,7 @@ TYPE RayInfo4CMFD_TYPE
   !--- CNJ Edit : Domain Decomposition
   REAL, POINTER :: AsyPhiAngIn(:, :, :, :, :, :)
   INTEGER, POINTER :: DcmpAsyRayInCell(:, :, :), DcmpAsyRayInSurf(:, :, :)
+  LOGICAL, POINTER :: ltst(:,:,:)
   INTEGER, POINTER :: DcmpAsyRayCount(:)
 END TYPE
 
