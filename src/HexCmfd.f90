@@ -210,14 +210,14 @@ INTEGER :: ng, nxy, myzb, myze
 TYPE (superPin_Type), POINTER, DIMENSION(:)   :: Pin
 TYPE (PinXs_Type),    POINTER, DIMENSION(:,:) :: PinXs
 ! ----------------------------------------------------
-INTEGER :: iz, izf, ig, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isurf
+INTEGER :: iz, izf, ig, imxy, isv, ingh, icnt, idir, iRotRay, isxy, jsxy, iAsy, isfc
 INTEGER :: nRotRay, nAsy, nPolarAng
 
 INTEGER, POINTER, DIMENSION(:)     :: DcmpAsyRayCount
 INTEGER, POINTER, DIMENSION(:,:)   :: RotRayInOutCell, PhiangInSvIdx, fmRange
 INTEGER, POINTER, DIMENSION(:,:,:) :: DcmpAsyRayInSurf, DcmpAsyRayInCell
 
-REAL :: myphi, nghphi, surfphi, atil, ahat, slgh, fmult, phisum
+REAL :: myphi, nghphi, sfcCMFDphi, sfcCMFDcjn, sfcMOCphi, sfcMOCcjn, atil, ahat, dtil, dhat, slgh, fmult, phisum
 
 REAL, POINTER, DIMENSION(:)           :: hz, hzfm
 REAL, POINTER, DIMENSION(:,:,:)       :: phis
@@ -281,18 +281,18 @@ IF (hLgc%lRadRef) THEN
 END IF
 ! ----------------------------------------------------
 IF (nTracerCntl%lDomainDcmp) THEN
-  !$OMP PARALLEL PRIVATE(iz, iAsy, idir, icnt, imxy, isurf, isxy, ingh, jsxy, slgh, ig, myphi, izf, nghphi, atil, ahat, surfphi, fmult)
+  !$OMP PARALLEL PRIVATE(iz, iAsy, idir, icnt, imxy, isfc, isxy, ingh, jsxy, slgh, ig, myphi, izf, nghphi, atil, ahat, dtil, dhat, sfcCMFDphi, sfcCMFDcjn, sfcMOCphi, sfcMOCcjn, fmult)
   !$OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
   DO iz = myzb, myze
     DO iAsy = 1, nAsy
       DO idir = 1, 2
         DO icnt = 1, DcmpAsyRayCount(iAsy)
-          imxy  = DcmpAsyRayInCell(idir, icnt, iAsy) ! Global Idx. of MoC Pin
-          isurf = DcmpAsyRayInSurf(idir, icnt, iAsy)
-          isxy  = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
-          ingh  = hPinInfo(imxy)%DcmpMP2slfSPngh(isurf)
-          jsxy  = hPinInfo(imxy)%DcmpMP2nghSPidx(isurf)
-                    
+          imxy = DcmpAsyRayInCell(idir, icnt, iAsy) ! Global Idx. of MoC Pin
+          isfc = DcmpAsyRayInSurf(idir, icnt, iAsy)
+          isxy = hPinInfo(imxy)%ihcPin              ! Global Idx. of Super-Pin
+          ingh = hPinInfo(imxy)%DcmpMP2slfSPngh(isfc)
+          jsxy = hPinInfo(imxy)%DcmpMP2nghSPidx(isfc)
+          
           slgh  = superPin(isxy)%BdLength(ingh)
           
           DO ig = 1, ng
@@ -311,17 +311,26 @@ IF (nTracerCntl%lDomainDcmp) THEN
             atil = PinXS(isxy, iz)%atil(ingh, ig)
             ahat = PinXS(isxy, iz)%ahat(ingh, ig)
             
-            surfphi = atil * myphi + (slgh - atil) * nghphi
+            sfcCMFDphi = atil*myphi + (slgh - atil)*nghphi
             
             IF (ItrCntl%mocit .EQ. 0) THEN
               IF (nTracerCntl%lNodeMajor) THEN
-                AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = surfphi / slgh
+                AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = sfcCMFDphi / slgh
               ELSE
-                AsyPhiAngIn(1:nPolarAng, idir, icnt, iAsy, ig, iz) = surfphi / slgh
+                AsyPhiAngIn(1:nPolarAng, idir, icnt, iAsy, ig, iz) = sfcCMFDphi / slgh
               END IF
             ELSE
-              surfphi = surfphi + ahat * (myphi + nghphi)
-              fmult   = surfphi / superJout(3, ingh, isxy, iz, ig)
+              dtil = PinXS(isxy, iz)%dtil(ingh, ig)
+              dhat = PinXS(isxy, iz)%dhat(ingh, ig)
+              
+              sfcCMFDphi = sfcCMFDphi + ahat * (myphi + nghphi)
+              sfcCMFDcjn = -dtil*(nghphi - myphi) - dhat*(nghphi + myphi)
+              
+              sfcMOCphi = superJout(3, ingh, isxy, iz, ig)
+              sfcMOCcjn = superJout(2, ingh, isxy, iz, ig) - superJout(1, ingh, isxy, iz, ig)
+              
+              !fmult = sfcCMFDphi / superJout(3, ingh, isxy, iz, ig)
+              fmult = (RFOUR*sfcCMFDphi - HALF*sfcCMFDcjn) / (RFOUR*sfcMOCphi - HALF*sfcMOCcjn) ! In-coming Partial Cjn.
               
               IF (nTracerCntl%lNodeMajor) THEN
                 AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
