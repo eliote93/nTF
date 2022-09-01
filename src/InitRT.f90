@@ -20,7 +20,7 @@ TYPE (PE_TYPE)          :: PE
 
 INTEGER :: nFsr, nxy, ithr, scatod, nod, nPol, nAzi, ipol, iazi, nthr
 REAL :: wttmp, wtsin2, wtcos, wtpolar
-LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex
+LOGICAL :: lscat1, ldcmp, lLinSrcCASMO, lGM, lHex, lAFSS
 CHARACTER(100)  :: dumc
 
 TYPE (AziAngleInfo_Type), POINTER, DIMENSION(:) :: AziAng
@@ -48,6 +48,7 @@ scatod       = nTracerCntl%scatod
 lscat1       = nTracerCntl%lscat1
 ldcmp        = nTracerCntl%lDomainDcmp
 lLinSrcCASMO = nTracerCntl%lLinSrcCASMO
+lAFSS        = nTracerCntl%lAFSS
 
 IF (nTracerCntl%lscat1) THEN
   SELECT CASE (scatod)
@@ -184,8 +185,8 @@ DO ipol = 1, nPol
     Comp(4, ipol, iazi) = wtsin2 * (1._8 - 2._8 * AziAng(iazi)%sinv * AziAng(iazi)%sinv)
     Comp(5, ipol, iazi) = wtsin2 * (       2._8 * AziAng(iazi)%sinv * AziAng(iazi)%cosv)
     
-    mwt (3,   ipol, iazi) = comp(3, ipol, iazi) *  wtang(ipol, iazi)
-    mwt (4:5, ipol, iazi) = 0.75_8 * comp(4:5, ipol, iazi) *  wtang(ipol, iazi)
+    mwt (3,   ipol, iazi) =          comp(  3, ipol, iazi) * wtang(ipol, iazi)
+    mwt (4:5, ipol, iazi) = 0.75_8 * comp(4:5, ipol, iazi) * wtang(ipol, iazi)
     mwt2(3:5, ipol, iazi) = mwt(3:5, ipol, iazi)
     
     IF (scatod .LT. 3) CYCLE
@@ -228,6 +229,11 @@ IF (.NOT. ldcmp) THEN
       TrackingDat(ithr)%SrcAng1g2 => SrcAng1g2
       
       CALL dmalloc(TrackingDat(ithr)%phim1g, nod, nFsr)
+      
+      IF (lAFSS) THEN
+        CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi)
+        CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
+      END IF
     END DO
   ELSE
     CALL dmalloc(SrcAngNg1, ng, nPol, nFsr, nAzi)
@@ -238,6 +244,11 @@ IF (.NOT. ldcmp) THEN
       TrackingDat(ithr)%SrcAngNg2 => SrcAngNg2
       
       CALL dmalloc(TrackingDat(ithr)%phimNg, nod, ng, nFsr)
+      
+      IF (lAFSS) THEN
+        CALL dmalloc(TrackingDat(ithr)%phiang1, nPol, ng, nFsr, nAzi)
+        CALL dmalloc(TrackingDat(ithr)%phiang2, nPol, ng, nFsr, nAzi)
+      END IF
     END DO
   END IF
 END IF
