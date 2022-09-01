@@ -726,6 +726,9 @@ DO while(TRUE)
     CASE(24) ! DCMP
       nTracerCntl%lDomainDcmp=.FALSE.
       READ(oneline, *) astring, nTracerCntl%lDomainDcmp
+      IF(nLineFIeld .EQ. 2) THEN
+        READ(oneline, *) astring, nTracerCntl%lDomainDcmp, nTracerCntl%lRGB
+      ENDIF
     CASE(25) ! NODE_MAJOR
       nTracerCntl%lNodeMajor=.FALSE. ! group major
       READ(oneline, *) astring, nTracerCntl%lNodeMajor

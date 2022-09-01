@@ -9,7 +9,6 @@ USE Moc_Mod,     ONLY : TrackingDat, DcmpPhiAngInNg, DcmpPhiAngOutNg, DcmpAsyClr
 USE PE_MOD,      ONLY : PE
 USE CNTL,        ONLY : nTracerCntl
 USE itrcntl_mod, ONLY : itrcntl
-USE HexData,     ONLY : hLgc
 
 IMPLICIT NONE
 
@@ -27,7 +26,7 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, nThr, iAsy, jAsy, ixy, nxy, icel, ifsr, jfsr, FsrIdxSt, ig, iClr, jClr
-LOGICAL :: lHex, lAFSS
+LOGICAL :: lHex, lRGB, lAFSS
 ! ----------------------------------------------------
 
 nxy   = CoreInfo%nxy
@@ -35,6 +34,7 @@ Cell => CoreInfo%CellInfo
 Pin  => CoreInfo%Pin
 
 lHex  = nTracerCntl%lHex
+lRGB  = nTracerCntl%lRGB
 lAFSS = nTracerCntl%lAFSS
 
 nthr = PE%nthread
@@ -51,7 +51,7 @@ phisNg(gb:ge, :) = ZERO
 IF (ljout) MocJoutNg(:, gb:ge, :, :) = ZERO
 ! ----------------------------------------------------
 DO iClr = 1, nClr
-  jClr = setDcmpClr(lHex, hLgc%l060, iClr, itrcntl%mocit)
+  jClr = setDcmpClr(lHex, lRGB, iClr, itrcntl%mocit)
   
 #ifdef MPI_ENV
   IF (PE%nRTProc .GT. 1) CALL DcmpScatterBndyFluxNg(RayInfo, PhiAngInNg, DcmpPhiAngInNg)

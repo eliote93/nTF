@@ -58,9 +58,9 @@ IF (nTracerCntl%lscat1) THEN
   END SELECT
 END IF
 
-IF (lHex) THEN
+nClr = 1
+IF (nTracerCntl%lRGB) THEN
   nClr = 3
-  IF (hLgc%l060) nClr = 1
 ELSE
   nClr = 2
 END IF

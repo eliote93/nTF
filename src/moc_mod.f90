@@ -1323,23 +1323,26 @@ END INTERFACE
 
 CONTAINS
 ! ------------------------------------------------------------------------------------------------------------
-FUNCTION setDcmpClr(lHex, l060, iClr, mocit)
+FUNCTION setDcmpClr(lHex, lRGB, iClr, mocit)
 
 IMPLICIT NONE
 
-LOGICAL :: lHex, l060
+LOGICAL :: lHex, lRGB
 INTEGER :: iClr, iit, mocit, setDcmpClr
 
 INTEGER, PARAMETER :: AuxRec(2, 0:1) = [2, 1,  1, 2]
 INTEGER, PARAMETER :: AuxHex(3, 0:1) = [3, 1, 2,  2, 1, 3]
 
-iit = mod(mocit, 2)
-
-IF (lHex) THEN
-  setDcmpClr = AuxHex(iClr, iit)
-  IF (l060) setDcmpClr = iClr
+IF (lRGB) THEN
+  iit = mod(mocit, 2)
+  
+  IF (lHex) THEN
+    setDcmpClr = AuxHex(iClr, iit)
+  ELSE
+    setDcmpClr = AuxRec(iClr, iit)
+  END IF
 ELSE
-  setDcmpClr = AuxRec(iClr, iit)
+  setDcmpClr = iClr
 END IF
 
 END FUNCTION setDcmpClr

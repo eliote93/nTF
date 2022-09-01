@@ -138,6 +138,7 @@ TYPE nTracerCntl_Type
   LOGICAL :: lHybrid = .FALSE.        !--- CNJ Edit : CASMO Linear Source, Domain Decomposition
   LOGICAL :: lNodeMajor = .FALSE.     !--- CNJ Edit : Node Majors
   LOGICAL :: lDomainDcmp = .FALSE.    !--- CNJ Edit : Domain Decomposition
+  LOGICAL :: lRGB = .TRUE.           !--- KSC Edit : RGB Scheme in Dcmp.
   !--- CNJ Edit : Angular Multigrid Ray Tracing
   LOGICAL :: lMultigrid = .FALSE.
   INTEGER :: MultigridLV = 4

@@ -5,6 +5,7 @@ USE ALLOCS
 USE PARAM,   ONLY : TRUE, BACKWARD, FORWARD, RED, BLACK, GREEN
 USE TYPEDEF, ONLY : RayInfo_type, CoreInfo_type, DcmpAsyRayInfo_Type, Pin_Type
 USE PE_Mod,  ONLY : PE
+USE CNTL,    ONLY : nTracerCntl
 USE MOC_MOD, ONLY : DcmpAsyClr, DcmpAziRay
 USE HexData, ONLY : hAsy, hLgc
 USE HexType, ONLY : Type_HexAsyRay, Type_HexCelRay, Type_HexCoreRay, Type_HexRotRay
@@ -160,16 +161,7 @@ DO iRotRay = 1, nRotRay
   END IF
 END DO
 ! ----------------------------------------------------
-IF (hLgc%l060) THEN
-  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 1)
-  
-  DcmpAsyClr(0, 1) = nAsy
-  
-  DO iAsy = 1, nAsy
-    DcmpAsyClr(iAsy, 1) = iAsy
-    Core%Asy(iAsy)%color  = 1
-  END DO
-ELSE
+IF (nTracerCntl%lRGB) THEN
   CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 3)
   
   DO iAsy = 1, nAsy
@@ -186,6 +178,15 @@ ELSE
     DcmpAsyClr(0, iClr) = DcmpAsyClr(0, iClr) + 1
     
     DcmpAsyClr(DcmpAsyClr(0, iClr), iClr) = iAsy
+  END DO
+ELSE
+  CALL dmalloc0(DcmpAsyClr, 0, nAsy, 1, 1)
+  
+  DcmpAsyClr(0, 1) = nAsy
+  
+  DO iAsy = 1, nAsy
+    DcmpAsyClr(iAsy, 1) = iAsy
+    Core%Asy(iAsy)%color  = 1
   END DO
 END IF
 ! ----------------------------------------------------
