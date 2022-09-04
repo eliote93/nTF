@@ -780,6 +780,8 @@ NULLIFY (ExpA)
 NULLIFY (ExpB)
 NULLIFY (Pin)
 
+IF (lAFSS) NULLIFY (phia1g)
+
 ! Hex
 NULLIFY (hRotRay_Loc)
 NULLIFY (CelRay_Loc)

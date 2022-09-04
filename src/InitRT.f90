@@ -117,6 +117,11 @@ IF (lGM) THEN
     IF (.NOT. ldcmp) THEN
       CALL dmalloc(TrackingDat(ithr)%phis1g, nFsr)
       CALL dmalloc(TrackingDat(ithr)%Jout1g, 3, nbd, nxy)
+      
+      IF (lAFSS) THEN
+        CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi)
+        IF (lscat1) CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
+      END IF
     END IF
     
     IF (.NOT. lHex) THEN
@@ -134,6 +139,11 @@ ELSE
     IF (.NOT. ldcmp) THEN
       CALL dmalloc(TrackingDat(ithr)%phisNg,    ng, nFsr)
       CALL dmalloc(TrackingDat(ithr)%JoutNg, 3, ng, nbd, nxy)
+      
+      IF (lAFSS) THEN
+        CALL dmalloc(TrackingDat(ithr)%phiang1, nPol, ng, nFsr, nAzi)
+        IF (lscat1) CALL dmalloc(TrackingDat(ithr)%phiang2, nPol, ng, nFsr, nAzi)
+      END IF
     END IF
     
     TrackingDat(ithr)%lAllocNM = TRUE
@@ -232,11 +242,6 @@ IF (.NOT. ldcmp) THEN
       TrackingDat(ithr)%SrcAng1g2 => SrcAng1g2
       
       CALL dmalloc(TrackingDat(ithr)%phim1g, nod, nFsr)
-      
-      IF (lAFSS) THEN
-        CALL dmalloc(TrackingDat(ithr)%phia1g1, nPol, nFsr, nAzi)
-        CALL dmalloc(TrackingDat(ithr)%phia1g2, nPol, nFsr, nAzi)
-      END IF
     END DO
   ELSE
     CALL dmalloc(SrcAngNg1, ng, nPol, nFsr, nAzi)
@@ -247,11 +252,6 @@ IF (.NOT. ldcmp) THEN
       TrackingDat(ithr)%SrcAngNg2 => SrcAngNg2
       
       CALL dmalloc(TrackingDat(ithr)%phimNg, nod, ng, nFsr)
-      
-      IF (lAFSS) THEN
-        CALL dmalloc(TrackingDat(ithr)%phiang1, nPol, ng, nFsr, nAzi)
-        CALL dmalloc(TrackingDat(ithr)%phiang2, nPol, ng, nFsr, nAzi)
-      END IF
     END DO
   END IF
 END IF
