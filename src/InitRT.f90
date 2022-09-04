@@ -58,11 +58,14 @@ IF (nTracerCntl%lscat1) THEN
   END SELECT
 END IF
 
-nClr = 1
 IF (nTracerCntl%lRGB) THEN
-  nClr = 3
+  IF (lHex) THEN
+    nClr = 3
+  ELSE
+    nClr = 2
+  END IF
 ELSE
-  nClr = 2
+  nClr = 1
 END IF
 ! ----------------------------------------------------
 ! EXP
