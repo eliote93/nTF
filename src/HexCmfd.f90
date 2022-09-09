@@ -329,11 +329,11 @@ IF (nTracerCntl%lDomainDcmp) THEN
               sfcMOCphi = superJout(3, ingh, isxy, iz, ig)
               sfcMOCcjn = superJout(2, ingh, isxy, iz, ig) - superJout(1, ingh, isxy, iz, ig)
               
-              IF (hLgc%l060) THEN
+              !IF (hLgc%l060) THEN
                 fmult = sfcCMFDphi / superJout(3, ingh, isxy, iz, ig)
-              ELSE
-                fmult = (RFOUR*sfcCMFDphi - HALF*sfcCMFDcjn) / (RFOUR*sfcMOCphi - HALF*sfcMOCcjn) ! In-coming Partial Cjn.
-              END IF
+              !ELSE
+              !  fmult = (RFOUR*sfcCMFDphi - HALF*sfcCMFDcjn) / (RFOUR*sfcMOCphi - HALF*sfcMOCcjn) ! In-coming Partial Cjn.
+              !END IF
               
               IF (nTracerCntl%lNodeMajor) THEN
                 AsyPhiAngIn(1:nPolarAng, ig, idir, icnt, iAsy, iz) = AsyPhiAngIn(:, ig, idir, icnt, iAsy, iz) * fmult
