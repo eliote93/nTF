@@ -3,12 +3,13 @@
 SUBROUTINE RayTrace_GM(RayInfo, CoreInfo, phis1g, PhiAngIn1g, xst1g, src1g, jout1g, iz, ljout, FastMocLv)
 
 USE OMP_LIB
-USE PARAM,   ONLY : ZERO
+USE PARAM,   ONLY : ZERO, FALSE
 USE TYPEDEF, ONLY : RayInfo_Type, CoreInfo_type, Pin_Type, Cell_Type
 USE Moc_Mod, ONLY : RecTrackRotRay_GM, HexTrackRotRay_GM, TrackingDat, wtang
 USE PE_MOD,  ONLY : PE
 USE geom,    ONLY : nbd
 USE CNTL,    ONLY : nTracerCntl
+USE Timer,   ONLY : nTracer_dclock, TimeChk
 
 IMPLICIT NONE
 
@@ -27,7 +28,7 @@ TYPE (Pin_Type),  POINTER, DIMENSION(:) :: Pin
 TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, ibd, nThr, nxy, FsrIdxSt, nFsr, nAzi, nPol
-REAL :: phia1gp
+REAL :: phia1gp, tst, ted
 LOGICAL :: lAFSS
 ! ----------------------------------------------------
 
@@ -42,6 +43,7 @@ nPol = RayInfo%nPolarAngle
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
+tst = nTracer_dclock(FALSE, FALSE)
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, krot, iRotRay)
 ithr = omp_get_thread_num() + 1
 
@@ -71,7 +73,10 @@ ELSE
   !$OMP END DO
 END IF
 !$OMP END PARALLEL
+ted = nTracer_dclock(FALSE, FALSE)
+timechk%tst1 = timechk%tst1 + ted - tst
 ! ----------------------------------------------------
+tst = nTracer_dclock(FALSE, FALSE)
 phis1g = ZERO
 
 IF (lAFSS) THEN
@@ -93,12 +98,19 @@ IF (lAFSS) THEN
   !$OMP END DO
   !$OMP END PARALLEL
 ELSE
-  DO ithr = 1, nthr
-    DO ifsr = 1, nfsr
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ithr)
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ifsr = 1, nfsr
+    DO ithr = 1, nthr
       phis1g(ifsr) = phis1g(ifsr) + TrackingDat(ithr)%phis1g(ifsr)
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 END IF
+
+ted = nTracer_dclock(FALSE, FALSE)
+timechk%tst2 = timechk%tst2 + ted - tst
 
 IF (ljout) THEN
   jout1g = ZERO

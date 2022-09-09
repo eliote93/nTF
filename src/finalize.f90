@@ -59,6 +59,10 @@ CALL MPI_MAX_REAL(TimeChk%AxNSolverTime, PE%MPI_NTRACER_COMM, .FALSE.)
 IF(PE%MASTER) THEN
   Write(mesg, 111)  'Total Time =', TimeChk%TotalTime, 'Sec'
   CALL message(io8, FALSE, TRUE, MESG)
+  Write(mesg, 111)  'tst 1 =', TimeChk%tst1, 'Sec' ! DEBUG
+  CALL message(io8, FALSE, TRUE, MESG)
+  Write(mesg, 111)  'tst 2 =', TimeChk%tst2, 'Sec' ! DEBUG
+  CALL message(io8, FALSE, TRUE, MESG)
   IF (nTracerCntl%lED) THEN
     Write(mesg, 333)  'Dancoff. FSP =', TimeChk%DancoffTime, 'Sec', ',', '  N =', nTracerCntl%nCP_er
     CALL message(io8, FALSE, TRUE, MESG)

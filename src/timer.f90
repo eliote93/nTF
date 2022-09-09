@@ -30,6 +30,8 @@ TYPE TimeChk_Type
   REAL :: cuXSPreTime = 0, cuXSMainTime = 0, cuHomDevTime = 0, cuHomHostTime = 0
   REAL :: SSPHTime(0:35) = 0.0
   INTEGER :: SSPHCounter(0:20) = 0
+  REAL :: tst1 = 0
+  REAL :: tst2 = 0
 END TYPE
 TYPE(TimeChk_Type) :: TimeChk
 REAL,save :: tinit,tth,ttotal,txsec,tppr

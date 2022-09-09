@@ -9,6 +9,7 @@ USE Moc_Mod, ONLY : RecTrackRotRayP1_GM, HexTrackRotRayP1_GM, TrackingDat, wtang
 USE geom,    ONLY : nbd
 USE PE_MOD,  ONLY : PE
 USE CNTL,    ONLY : nTracerCntl
+USE Timer,   ONLY : nTracer_dclock, TimeChk
 
 IMPLICIT NONE
 
@@ -28,7 +29,7 @@ TYPE (Cell_Type), POINTER, DIMENSION(:) :: Cell
 
 INTEGER :: ithr, iRotRay, krot, ixy, icel, ifsr, jfsr, iazi, ipol, iod, ibd, nThr, nxy, FsrIdxSt, nFsr, nAzi, nPol, ScatOd, nOd
 LOGICAL :: lAFSS
-REAL :: wttmp, srctmp, phia1gp, phia1gm
+REAL :: wttmp, srctmp, phia1gp, phia1gm, tst, ted
 ! ----------------------------------------------------
 
 nFsr = CoreInfo%nCoreFsr
@@ -49,6 +50,7 @@ END SELECT
 nthr = PE%nThread
 CALL omp_set_num_threads(nthr)
 ! ----------------------------------------------------
+tst = nTracer_dclock(FALSE, FALSE)
 !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ithr, iazi, ifsr, ipol, srctmp)
 ithr = omp_get_thread_num() + 1
 
@@ -114,7 +116,10 @@ ELSE
   !$OMP END DO
 END IF
 !$OMP END PARALLEL
+ted = nTracer_dclock(FALSE, FALSE)
+timechk%tst1 = timechk%tst1 + ted - tst
 ! ----------------------------------------------------
+tst = nTracer_dclock(FALSE, FALSE)
 phis1g = ZERO
 phim1g = ZERO
 
@@ -151,8 +156,10 @@ IF (lAFSS) THEN
   !$OMP END DO
   !$OMP END PARALLEL
 ELSE
-  DO ithr = 1, nthr
-    DO ifsr = 1, nFsr
+  !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ifsr, ithr, iod)
+  !$OMP DO SCHEDULE(GUIDED)
+  DO ifsr = 1, nFsr
+    DO ithr = 1, nthr
       phis1g(ifsr) = phis1g(ifsr) + TrackingDat(ithr)%phis1g(ifsr)
       
       DO iod = 1, nOd
@@ -160,7 +167,12 @@ ELSE
       END DO
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 END IF
+
+ted = nTracer_dclock(FALSE, FALSE)
+timechk%tst2 = timechk%tst2 + ted - tst
 
 IF (ljout) THEN
   jout1g = ZERO
